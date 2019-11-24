@@ -1,0 +1,22 @@
+language: cpp
+
+compiler:
+  - gcc
+  - clang
+
+addons:
+  apt:
+    packages:
+      - gcc
+      - g++
+      - clang
+      - cmake
+
+
+before_script:
+  - mkdir build
+  - (cd build && cmake .. )
+
+script:
+  - (cd build && make)
+  - (cd build && ctest --output-on-failure)
