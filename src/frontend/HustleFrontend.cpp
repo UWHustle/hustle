@@ -1,5 +1,8 @@
-#include "HustleFrontend.h"
 #include "absl/strings/str_cat.h"
+#include "sqlite3.h"
+
+#include "HustleFrontend.h"
+
 
 namespace hustle {
 namespace frontend {
@@ -26,7 +29,7 @@ std::string HustleFrontend::SqlToPlan(const std::string &sql) {
   char *zErrMsg = 0;
   std::string result;
 
-  rc = sqlite3_open(kDBFileName, &db);
+  rc = sqlite3_open(kDBFileName.c_str(), &db);
 
   rc = sqlite3_exec(db, sql.c_str(), callback, &result, &zErrMsg);
   if (rc != SQLITE_OK) {
@@ -43,7 +46,7 @@ HustleFrontend::HustleFrontend() {
   sqlite3 *db;
   int rc;
 
-  rc = sqlite3_open(kDBFileName, &db);
+  rc = sqlite3_open(kDBFileName.c_str(), &db);
 
   if (rc) {
     std::cout << "Can't open database: " << sqlite3_errmsg(db) << "\n";

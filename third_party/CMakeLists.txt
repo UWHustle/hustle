@@ -20,7 +20,6 @@ include(FetchContent)
 #)
 
 ## GoogleTest
-
 FetchContent_Declare(
         googletest
         GIT_REPOSITORY  https://github.com/google/googletest.git
@@ -29,7 +28,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 ## ABSL
-
 FetchContent_Declare(
         abseil
         GIT_REPOSITORY  https://github.com/abseil/abseil-cpp.git
