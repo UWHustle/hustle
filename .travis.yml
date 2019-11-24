@@ -10,7 +10,7 @@ addons:
       - gcc
       - g++
       - clang
-      - cmake-3.15
+      - cmake
 
 
 before_script:
