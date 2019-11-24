@@ -14,7 +14,6 @@ addons:
 
 
 before_script:
-  - sudo apt-get upgrade cmake
   - mkdir build
   - (cd build && cmake .. )
 
