@@ -3,8 +3,8 @@
 include(ExternalProject)
 include(FetchContent)
 
-### Download the SqLite3 amalgamation source, and build a lirbary
-#
+## Download the SqLite3 amalgamation source, and build a lirbary
+
 #ExternalProject_Add(sqlite3_src
 #        URL https://www.sqlite.org/src/tarball/sqlite.tar.gz?r=release
 #        PREFIX ${CMAKE_CURRENT_BINARY_DIR}/sqlite3_src
@@ -12,7 +12,7 @@ include(FetchContent)
 #        BUILD_COMMAND make sqlite3.c
 #        INSTALL_COMMAND ""
 #)
-#
+##
 #add_library(
 #        sqlite33 SHARED IMPORTED
 #        ${CMAKE_CURRENT_BINARY_DIR}/sqlite3_src/src/sqlite3_src-build/sqlite3.c
@@ -42,5 +42,5 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(hustle_arrow)
 
-
 add_subdirectory(sqlite3)
+#include_directories(SYSTEM "sqlite3")

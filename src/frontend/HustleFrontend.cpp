@@ -1,5 +1,4 @@
 #include "absl/strings/str_cat.h"
-#include "sqlite3.h"
 
 #include "HustleFrontend.h"
 
