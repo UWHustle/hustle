@@ -93,3 +93,20 @@ std::shared_ptr<arrow::Table> select (
 
     return result_table;
 }
+
+void test ()
+{
+    std::cout << "start test" << std::endl;
+    std::vector<std::tuple<std::string, int32_t >> rows = {{"somya", 23},{"Y", 27},{"A", 12}, {"B", 60}, {"C", 32} };
+    std::vector<std::string> names = {"name", "age"};
+    std::shared_ptr<arrow::Table> table;
+    auto status = arrow::stl::TableFromTupleRange(arrow::default_memory_pool(), rows, names, &table);
+    EvaluateStatus(status, __PRETTY_FUNCTION__, __LINE__);
+    select(table, "age", arrow::compute::CompareOperator::GREATER_EQUAL, 27);
+    std::cout << "end test" << std::endl;
+}
+
+int main() {
+    test();
+    return 0;
+}
