@@ -43,4 +43,5 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(hustle_arrow)
 
 add_subdirectory(sqlite3)
+include_directory(sqlite3)
 #include_directories(SYSTEM "sqlite3")
