@@ -1,13 +1,20 @@
 language: cpp
 
+dist: bionic
+
 before_script:
-  - ./install_requirements.sh
-  - cmake -version
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
+  - sudo apt-get update
+  - sudo apt-get install gcc-9 g++-9 --yes
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+  - wget https://github.com/Kitware/CMake/releases/download/v3.15.5/cmake-3.15.5-Linux-x86_64.tar.gz
+  - tar xvf cmake-3.15.5-Linux-x86_64.tar.gz -C cmake-3.15
+  - ./cmake-3.15/bin/cmake -version
   - g++ -v
   - gcc -v
   - mkdir build
-  - (cd build && cmake .. )
+  - (cd build && ../cmake-3.15/bin/cmake .. )
 
 script:
   - (cd build && make -j 6)
-  - (cd build && ctest --output-on-failure)
+  - (cd build && ../cmake-3.15/bin/ctest --output-on-failure)
