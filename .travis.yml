@@ -1,16 +1,12 @@
 language: cpp
 
-compiler:
-  - gcc
-  - clang
-
 before_script:
   - ./install_requirements.sh
   - cmake -version
   - g++ -v
   - gcc -v
   - mkdir build
-  - (cd build && cmake.. )
+  - (cd build && cmake .. )
 
 script:
   - (cd build && make -j 6)
