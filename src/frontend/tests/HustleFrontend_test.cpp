@@ -13,6 +13,8 @@ TEST(HustleFrontend, DB_Construction) {
 
   rc = sqlite3_open("test.db", &db);
 
+  sqlite3_close(db);
+
   EXPECT_EQ(rc, 0);
 }
 

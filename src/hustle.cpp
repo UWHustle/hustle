@@ -2,8 +2,12 @@
 
 #include "sqlite3.h"
 #include "frontend/HustleFrontend.h"
+#include "catalog/Catalog.h"
 
 int main(int argc, char *argv[]) {
+  
+  hustle::catalog::Catalog catalog;
+  
   std::cout << "Hello World " << std::endl;
 
   hustle::frontend::HustleFrontend hustle_frontend;

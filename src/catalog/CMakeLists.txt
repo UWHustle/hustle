@@ -1,0 +1,31 @@
+add_library(
+        catalog
+        CatalogManager.h CatalogManager.cpp
+        Catalog.h Catalog.cpp
+        ColumnSchema.h
+        TableSchema.h
+)
+
+target_link_libraries(
+        catalog
+        absl::container
+        absl::hash
+        absl::strings
+        absl::flat_hash_map
+        map_utils
+        cereal
+)
+
+
+add_executable(hustle_catalog_test "tests/HustleCatalog_test.cpp")
+target_link_libraries(hustle_catalog_test
+        gtest
+        gtest_main
+        gmock
+        catalog
+        sqlite3
+        absl::container absl::hash
+        absl::flat_hash_map
+        cereal
+        )
+add_test(HustleCatalog_test hustle_catalog_test)
