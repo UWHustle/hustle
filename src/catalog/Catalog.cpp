@@ -1,5 +1,10 @@
-//
-// Created by Yannis Chronis on 12/15/19.
-//
-
 #include "Catalog.h"
+
+
+namespace hustle {
+namespace catalog {
+
+void loadCatalogFromFile() {};
+
+} // namespace catalog
+} // namespace hustle

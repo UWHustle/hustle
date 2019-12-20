@@ -1,6 +1,5 @@
 add_library(
         catalog
-        CatalogManager.h CatalogManager.cpp
         Catalog.h Catalog.cpp
         ColumnSchema.h
         TableSchema.h
