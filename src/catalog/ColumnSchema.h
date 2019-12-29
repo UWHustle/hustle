@@ -79,6 +79,7 @@ class ColumnSchema {
 
   // TODO(chronis) make private
   ColumnSchema () {};
+
   const std::string &getName() const { return name_; }
   const ColumnType &getType() const { return type_; }
   const HustleType &getHustleType() const { return type_.getHustleType(); }

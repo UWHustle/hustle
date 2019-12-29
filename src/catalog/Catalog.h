@@ -5,194 +5,68 @@
 #include <iostream>
 #include <sstream>
 #include <memory>
+#include <filesystem>
 
 #include "sqlite3.h"
 #include "absl/strings/str_cat.h"
+#include "gtest/gtest.h"
 
 #include "TableSchema.h"
 #include "utils/map_utils.h"
+#include "utils/sqlite_utils.h"
 #include <cereal/access.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/complex.hpp>
+#include <cereal/types/optional.hpp>
 #include <cereal/types/memory.hpp>
-
 
 namespace hustle {
 namespace catalog {
 
-namespace {
-
-class SqliteCatalog {
- public:
-  SqliteCatalog(std::string path) : sqlitepath_(path) {};
-  SqliteCatalog() : sqlitepath_("default_path") {};
-
-  bool addTable(const TableSchema& t) {
-    sqlite3 *db;
-    char *zErrMsg = 0;
-    int rc;
-    char *sql;
-
-    rc = sqlite3_open(sqlitepath_.c_str(), &db);
-
-    if( rc ) {
-      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-      return false;
-    } else {
-      fprintf(stdout, "Opened database successfully\n");
-    }
-
-    rc = sqlite3_exec(db, createCreateSql(t).c_str(), nullptr, 0, &zErrMsg);
-
-    if( rc != SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", zErrMsg);
-      sqlite3_free(zErrMsg);
-      return false;
-    } else {
-      fprintf(stdout, "Table created successfully\n");
-    }
-    sqlite3_close(db);
-
-    return true;
-  }
-
-  bool dropTable(const std::string& name) {
-    sqlite3 *db;
-    char *zErrMsg = 0;
-    int rc;
-    char *sql;
-
-    rc = sqlite3_open(sqlitepath_.c_str(), &db);
-
-    if( rc ) {
-      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-      return false;
-    } else {
-      fprintf(stdout, "Opened database successfully\n");
-    }
-
-    rc = sqlite3_exec(db, absl::StrCat("DROP TABLE ",name,";").c_str(), nullptr, 0, &zErrMsg);
-
-    if( rc != SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", zErrMsg);
-      sqlite3_free(zErrMsg);
-      return false;
-    } else {
-      fprintf(stdout, "Table created successfully\n");
-    }
-    sqlite3_close(db);
-
-    return true;
-  }
-
-  std::string getPath() {return sqlitepath_;}
- private:
-  std::string createCreateSql(const TableSchema& ts) const {
-
-    std::string sql;
-    absl::StrAppend(&sql, "CREATE TABLE ", ts.getName(), "(");
-
-    for (const auto& c : ts.getColumns()) {
-      absl::StrAppend(&sql, c.getName(), " ", c.getType().toString(), " ");
-      if (c.isUnique()) { absl::StrAppend(&sql, " UNIQUE " ); }
-      if (c.isNotNull()) { absl::StrAppend(&sql, " NOT NULL " ); }
-      absl::StrAppend(&sql, ", ");
-    }
-
-    absl::StrAppend(&sql, "PRIMARY KEY(");
-    for (const auto& name : ts.getPrimaryKey()) {
-      absl::StrAppend(&sql, name, ",");
-    }
-    absl::StrAppend(&sql, ");");
-
-    return sql;
-  }
-
-  const std::string sqlitepath_;
-};
-
-
-}
-
-
 class Catalog {
  public:
-  Catalog( std::string catalogPath) :
-      catalogPath_(catalogPath)
-      {};
+  static Catalog CreateCatalog( std::string CatalogPath,
+                                std::string SqlitePath);
 
-  Catalog( std::string catalogPath, std::string a) :
-      catalogPath_(catalogPath)
-  {};
+  bool addTable(TableSchema t);
 
-  // TODO(chronis) make private
-  Catalog() {};
+  bool dropTable(std::string name);
 
-  bool addTable(TableSchema t) {
-    if (utils::contains<std::string, absl::flat_hash_map<std::string, int>>
-          (t.getName(), name_to_id_)) {
-      return false;
-    }
-//    auto search = name_to_id_.find(t.getName());
-//    if (search != name_to_id_.end()) {
-//      return false;
-//    }
-    tables_.push_back(t);
-    name_to_id_[t.getName()] =  tables_.size() - 1;
+  std::optional<TableSchema*> TableExists(std::string name);
 
-//    sqliteCatalog_->addTable(t);
-    return true;
-  }
+  void print() const;
 
-  bool dropTable(std::string name) {
-    auto search = name_to_id_.find(name);
-    if (search == name_to_id_.end()) {
-      return false;
-    }
-
-    tables_.erase(tables_.begin());//tables_.begin() + search->second);
-    name_to_id_.erase(search);
-
-//    sqliteCatalog_->dropTable(name);
-    return true;
-  }
-
-  std::optional<TableSchema*> TableExists(std::string name) {
-    if (!utils::contains <std::string, absl::flat_hash_map<std::string, int>>
-        (name, name_to_id_)) {
-      return  std::nullopt;
-    }
-    return &tables_[name_to_id_[name]];
-  }
-
-  void print() const {
-    std::cout << "----------- DATABASE CATALOG --------" << std::endl;
-    std::cout << "Catalog File Path: " << catalogPath_ << std::endl;
-    for (const auto& t : tables_) {
-      t.print();
-    }
-    std::cout << "----------- ----------- --------" << std::endl;
-  }
-
+  // Used by cereal for serialization/deserialization
   template<class Archive>
-  void serialize(Archive & archive)
-  {
-    archive(CEREAL_NVP(catalogPath_),
+  void serialize(Archive &archive) {
+    archive(
+            CEREAL_NVP(CatalogPath_),
+            CEREAL_NVP(SqlitePath_),
             CEREAL_NVP(name_to_id_),
             CEREAL_NVP(tables_));
   }
 
  private:
+  // Serializes and writes the catalog to a file in json format.
+  void SaveToFile();
+
+  // TODO(chronis) make private
+  Catalog() {};
+  Catalog(std::string CatalogPath, std::string SqlitePath) :
+      CatalogPath_(CatalogPath), SqlitePath_(SqlitePath) {};
+
   std::vector<TableSchema> tables_;
   absl::flat_hash_map<std::string, int> name_to_id_;
-//  std::unique_ptr<SqliteCatalog> sqliteCatalog_;
-  std::string catalogPath_;
-};
-//
-//std::unique_ptr<Catalog> DeserializeCatalog() {
-//
-//}
-//
-//SerializeCatalog
+  std::string CatalogPath_;
+  std::string SqlitePath_;
 
+  FRIEND_TEST(CatalogTest, Serialization);
+};
+
+Catalog CatalogFactory(std::string DBPath);
 
 }
 }

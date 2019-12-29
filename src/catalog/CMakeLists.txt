@@ -2,16 +2,18 @@ add_library(
         catalog
         Catalog.h Catalog.cpp
         ColumnSchema.h
-        TableSchema.h
+        TableSchema.h TableSchema.cpp
 )
 
 target_link_libraries(
         catalog
+        gtest
         absl::container
         absl::hash
         absl::strings
         absl::flat_hash_map
         map_utils
+        sqlite_utils
         cereal
 )
 
