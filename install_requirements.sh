@@ -10,7 +10,7 @@ elif [[ `uname` == "Linux" ]]; then
 		rm -rf cmake-3.15.5
 		sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
 		sudo apt-get update
-		sudo apt-get install gcc-9 g++-9 --yes
+		sudo apt-get install gcc-9 g++-9 gcc-9-multilib g++-9-multilib --yes
 		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
 		# For arrow
 		#sudo apt-get install \

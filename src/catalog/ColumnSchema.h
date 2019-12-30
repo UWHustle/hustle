@@ -44,6 +44,8 @@ class ColumnType {
       case HustleType::CHAR:
         return absl::StrCat("CHAR(", std::to_string(*size_)+")");
         break;
+      default:
+        return "wrong type";
     }
   }
 
