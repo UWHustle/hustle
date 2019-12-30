@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "sqlite3.h"
+#include "sqlite3/sqlite3.h"
 #include "absl/strings/str_cat.h"
 
 namespace hustle {

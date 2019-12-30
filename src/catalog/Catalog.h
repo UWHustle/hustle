@@ -7,7 +7,7 @@
 #include <memory>
 #include <filesystem>
 
-#include "sqlite3.h"
+#include "sqlite3/sqlite3.h"
 #include "absl/strings/str_cat.h"
 #include "gtest/gtest.h"
 

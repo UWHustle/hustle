@@ -42,3 +42,4 @@ FetchContent_MakeAvailable(cereal)
 
 
 add_subdirectory(sqlite3)
+include_directories(sqlite3)

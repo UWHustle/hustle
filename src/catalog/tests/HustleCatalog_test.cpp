@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "sqlite3.h"
+#include "sqlite3/sqlite3.h"
 #include <cereal/archives/json.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/vector.hpp>

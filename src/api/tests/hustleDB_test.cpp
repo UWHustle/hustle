@@ -3,7 +3,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "sqlite3.h"
+#include "sqlite3/sqlite3.h"
 
 #include "catalog/Catalog.h"
 #include "api/HustleDB.h"
