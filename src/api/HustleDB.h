@@ -22,8 +22,10 @@ class HustleDB {
 
   std::string getPlan(const std::string &sql);
 
+  // Not implemented yet.
   bool insert();
 
+  // Not implemented yet.
   bool select();
 
   Catalog *getCatalog() { return &catalog_; }
