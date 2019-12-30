@@ -28,8 +28,7 @@ namespace catalog {
 
 class Catalog {
  public:
-  static Catalog CreateCatalog( std::string CatalogPath,
-                                std::string SqlitePath);
+  static Catalog CreateCatalog(std::string CatalogPath, std::string SqlitePath);
 
   bool addTable(TableSchema t);
 

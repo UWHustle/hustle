@@ -18,7 +18,7 @@ class HustleDB {
 
   bool createTable(const TableSchema ts);
 
-  bool dropTable(const std::string& name);
+  bool dropTable(const std::string &name);
 
   std::string getPlan(const std::string &sql);
 
