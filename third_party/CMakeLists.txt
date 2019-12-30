@@ -26,12 +26,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(hustle_arrow)
 
-## NNG
-FetchContent_Declare(
-        nng
-        GIT_REPOSITORY  https://github.com/nanomsg/nng.git
-)
-FetchContent_MakeAvailable(nng)
+### NNG
+#FetchContent_Declare(
+#        nng
+#        GIT_REPOSITORY  https://github.com/nanomsg/nng.git
+#)
+#FetchContent_MakeAvailable(nng)
 
 ## Cereal
 FetchContent_Declare(

@@ -7,20 +7,15 @@
 
 namespace hustle {
 
-HustleDB::HustleDB(filesystem::path DBpath) :
-    DBPath_(path),
-    CatalogPath_(path + "catalog.db")
-SqliteDBPath_(path
-+ "hustle_sqlite.db") {
+HustleDB::HustleDB(std::string DBpath) :
+    DBPath_(DBpath),
+    CatalogPath_(DBpath + "/" + "catalog.json"),
+    SqliteDBPath_(DBpath + "/" + "hustle_sqlite.db"),
+    catalog_(catalog::Catalog::CreateCatalog(CatalogPath_, SqliteDBPath_)) {
 
-if(!
-std::filesystem::exists(path)
-) {
-std::filesystem::create_directories(path);
-}
-
-catalog_ = catalog::Catalog::CreateCatalog(CatalogPath_, SqliteDBPath_);
-
+  if (!std::filesystem::exists(DBpath)) {
+    std::filesystem::create_directories(DBpath);
+  }
 };
 
 std::string HustleDB::getPlan(const std::string &sql) {

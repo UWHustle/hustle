@@ -3,7 +3,7 @@ add_executable(
         main.cpp
 )
 
-target_link_libraries(hustle_main hustleDB)
+target_link_libraries(hustle_main hustleDB catalog)
 
 set_target_properties(hustle_main
         PROPERTIES

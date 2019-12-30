@@ -6,10 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Threads REQUIRED)
 
-add_subdirectory(third_party)
 include_directories(third_party)
 include_directories(src)
 
-enable_testing()
+add_subdirectory(third_party)
 
+#enable_testing()
 add_subdirectory(src)

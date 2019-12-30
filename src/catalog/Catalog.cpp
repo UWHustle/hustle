@@ -50,7 +50,7 @@ Catalog Catalog::CreateCatalog(std::string CatalogPath,
     }
     // Rebuild the sqlite db catalog.
     for (const auto &t : catalog.tables_) {
-      utils::executeSqliteNoOutput(CatalogPath,
+      utils::executeSqliteNoOutput(SqlitePath,
                                    createCreateSql(t));
     }
     return catalog;

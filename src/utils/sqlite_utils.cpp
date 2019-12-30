@@ -24,7 +24,7 @@ static int callback_print_plan(void *result, int argc, char **argv, char **azCol
 
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // Returns
-bool executeSqliteReturnOutputString(const std::string &sqlitePath, const std::string &sql) {
+std::string executeSqliteReturnOutputString(const std::string &sqlitePath, const std::string &sql) {
 
   sqlite3 *db;
   char *zErrMsg = 0;
@@ -35,7 +35,7 @@ bool executeSqliteReturnOutputString(const std::string &sqlitePath, const std::s
 
   if (rc) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n", sqlite3_errmsg(db));
-    return false;
+    return "";
   } else {
 //    fprintf(stdout, "Opened database successfully\n");
   }
@@ -45,13 +45,13 @@ bool executeSqliteReturnOutputString(const std::string &sqlitePath, const std::s
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
-    return false;
+    return "";
   } else {
 //    fprintf(stdout, "Query ececuted successfully\n");
   }
   sqlite3_close(db);
 
-  return true;
+  return result;
 }
 
 // Executes the sql statement on sqlite database at the sqlitePath path.

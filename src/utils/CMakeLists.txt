@@ -12,4 +12,5 @@ add_library(
 target_link_libraries(
         sqlite_utils
         absl::strings
+        sqlite3
 )

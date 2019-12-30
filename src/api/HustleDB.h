@@ -29,9 +29,9 @@ class HustleDB {
   Catalog *getCatalog() { return &catalog_; }
 
  private:
-  const filesystem::path DBPath_;
-  const filesystem::path CatalogPath_;
-  const filesystem::path SqliteDBPath_;
+  const std::string DBPath_;
+  const std::string CatalogPath_;
+  const std::string SqliteDBPath_;
   Catalog catalog_;
 };
 

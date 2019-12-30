@@ -19,7 +19,6 @@ using hustle::catalog::HustleType;
 using hustle::catalog::ColumnSchema;
 using hustle::catalog::TableSchema;
 using hustle::catalog::Catalog;
-//using hustle::catalog::CatalogManager;
 
 TEST(ColumnSchema, HappyPath) {
   ColumnSchema cs("c1", {HustleType::INTEGER}, false, true);

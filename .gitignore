@@ -41,3 +41,5 @@ cmake-build-*
 release
 debug
 
+/build/
+/cmake-build-debug/
