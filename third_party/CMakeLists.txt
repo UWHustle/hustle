@@ -33,14 +33,6 @@ FetchContent_MakeAvailable(hustle_arrow)
 #)
 #FetchContent_MakeAvailable(nng)
 
-### Cereal
-#FetchContent_Declare(
-#cereal
-#GIT_REPOSITORY  https://github.com/USCiLab/cereal
-#)
-#FetchContent_MakeAvailable(cereal)
-
-
 add_subdirectory(sqlite3)
 include_directories(sqlite3)
 
