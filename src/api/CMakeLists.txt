@@ -14,7 +14,6 @@ target_link_libraries(hustle_hustleDB_test
         sqlite3
         absl::container absl::hash
         absl::flat_hash_map
-        cereal
         hustleDB
         )
 add_test(HustleDB_test hustle_hustleDB_test)

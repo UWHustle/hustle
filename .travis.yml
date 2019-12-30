@@ -5,6 +5,6 @@ dist: bionic
 script:
   - ./install_requirements.sh
   - mkdir build
-  - (cd build && cmake .. )
+  - (cd build && ../cmake-3.15.5/bin/cmake .. )
   - (cd build && make -j 4)
-  - (cd build && ctest --output-on-failure)
+  - (cd build && ../cmake-3.15.5/bin/ctest --output-on-failure)
