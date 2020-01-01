@@ -26,11 +26,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(hustle_arrow)
 
-## NNG
-FetchContent_Declare(
-        nng
-        GIT_REPOSITORY  https://github.com/nanomsg/nng.git
-)
-FetchContent_MakeAvailable(nng)
+### NNG
+#FetchContent_Declare(
+#        nng
+#        GIT_REPOSITORY  https://github.com/nanomsg/nng.git
+#)
+#FetchContent_MakeAvailable(nng)
 
 add_subdirectory(sqlite3)
+include_directories(sqlite3)
+
+include_directories(cereal)
