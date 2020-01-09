@@ -4,6 +4,7 @@
 #include "catalog/Catalog.h"
 #include "catalog/TableSchema.h"
 #include "catalog/ColumnSchema.h"
+#include "table/tests/table_test.h"
 
 int main(int argc, char *argv[]) {
 
@@ -38,6 +39,7 @@ int main(int argc, char *argv[]) {
                 "The plan is: " << std::endl <<
                 hustleDB.getPlan(query) << std::endl;
 
+  test_from_empty_table();
 
   return 0;
 }
