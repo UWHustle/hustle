@@ -8,5 +8,4 @@ elif [[ `uname` == "Linux" ]]; then
 		rm -f cmake-3.15.5.tar.gz
 		cd cmake-3.15.5 && ./bootstrap && make -j 6 && sudo make install
 		rm -rf cmake-3.15.5
-		./install_arrow.sh
 fi
