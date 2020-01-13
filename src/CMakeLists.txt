@@ -15,8 +15,4 @@ set_target_properties(hustle_main
 add_subdirectory(utils)
 add_subdirectory(catalog)
 add_subdirectory(api)
-
-
-
-
 add_subdirectory(table)

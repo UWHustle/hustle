@@ -1,5 +1,3 @@
-
-
 #ifndef HUSTLE_OFFLINE_BLOCK_H
 #define HUSTLE_OFFLINE_BLOCK_H
 

@@ -1,13 +1,14 @@
-//
-// Created by Nicholas Corrado on 1/8/20.
-//
-
-
 #include <iostream>
-#include "../table.h"
-#include "../util.h"
+#include <iostream>
 
-void test_from_empty_table() {
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+#include "table/table.h"
+#include "table/util.h"
+
+using namespace testing;
+
+TEST(HustleTable, EmptyTable) {
 
     std::shared_ptr<arrow::Field> field1 = arrow::field("A", arrow::int64());
     std::shared_ptr<arrow::Field> field2 = arrow::field("B", arrow::fixed_size_binary(43));
@@ -93,6 +94,5 @@ void test_from_empty_table() {
     table.print();
     std::cout << std::endl;
 
-
+  EXPECT_TRUE(true);
 }
-

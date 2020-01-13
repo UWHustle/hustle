@@ -20,11 +20,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(abseil)
 
 ## Hustle Apache Arrow
-FetchContent_Declare(
-        hustle_arrow
-        GIT_REPOSITORY  https://github.com/UWQuickstep/arrow.git
-)
-FetchContent_MakeAvailable(hustle_arrow)
+#FetchContent_Declare(
+#        hustle_arrow
+#        GIT_REPOSITORY  https://github.com/UWQuickstep/arrow.git
+#)
+#FetchContent_MakeAvailable(hustle_arrow)
 
 ### NNG
 #FetchContent_Declare(
