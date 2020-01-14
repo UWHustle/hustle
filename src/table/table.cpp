@@ -91,11 +91,12 @@ void Table::print() {
 
 std::unordered_map<int, std::shared_ptr<Block>> Table::get_blocks() { return blocks; }
 
+
 // Tuple is passed in as an array of bytes which must be parsed.
-char Table::insert_record(uint8_t* record){
+void Table::insert_record(uint8_t* record, int32_t* byte_lengths){
 
     std::shared_ptr<Block> block = get_block_for_insert();
-    block->insert_record(record, record_width);
+    block->insert_record(record, byte_lengths);
 
     if (!block->is_full()) {
         insert_pool[block->get_id()] = block;

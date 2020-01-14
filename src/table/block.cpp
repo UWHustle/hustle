@@ -44,7 +44,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
                 break;
             }
             case arrow::Type::STRING:{
-                scalar = std::make_shared<arrow::StringScalar>();
+                scalar = std::make_shared<arrow::StringScalar>(arrow::Buffer::FromString("placeholder"));
 
                 break;
             }
@@ -54,13 +54,13 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
                         field->type()->ToString());
         }
 
-        status = arrow::MakeArrayFromScalar(*scalar, (int) capacity/record_width, &column);
+        status = arrow::MakeArrayFromScalar(*scalar, 1, &column);
         EvaluateStatus(status, __FUNCTION__, __LINE__);
 
         columns.push_back(std::static_pointer_cast<arrow::PrimitiveArray>(column));
     }
 
-    records = arrow::RecordBatch::Make(this->schema, capacity/record_width, columns);
+    records = arrow::RecordBatch::Make(this->schema, 1, columns);
 }
 
 
@@ -139,7 +139,7 @@ void Block::decrement_num_rows() {
 
 void Block::print() {
 
-    for (int row = 0; row < records->num_rows(); row++) {
+    for (int row = 0; row < num_rows; row++) {
         for (int i = 0; i < records->schema()->num_fields(); i++) {
 
             int type = records->schema()->field(i)->type()->id();
@@ -172,39 +172,77 @@ void Block::print() {
 }
 
 // Assumes fixed-size binary data
-void Block::insert_record(uint8_t* record, int n_bytes) {
+void Block::insert_record(uint8_t* record, int32_t* byte_widths) {
 
     int row_index = get_free_row_index();
     if (row_index < 0) {
         throw std::runtime_error("Cannot insert record into block. Block is full.");
     }
 
+    arrow::Status status;
+
     int head = 0;
-    while (head < n_bytes){
-        // Skip the valid column
-        for (int i=1; i<records->num_columns(); i++) {
+    for (int i=1; i<records->num_columns(); i++) {
 
-            std::shared_ptr<arrow::Field> field = records->schema()->field(i);
-            std::shared_ptr<arrow::Array> column = records->column(i);
-            // index 0 corresponds to null bitmap, index 1 corresponds to data
-            int byte_width = field->type()->layout().bit_widths[1] / 8;
+        std::shared_ptr<arrow::Field> field = records->schema()->field(i);
 
-            // Assumes we the underlying data has fixed length. Note that we do not need to downcast
-            // the array. We are simply adding values to the array; we are not performing any operations
-            // with the data.
-            column = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(records->column(i));
-            // GetMutableValues() returns a pointer to the ith underlying buffer. Again, the 0th buffer
-            // corresponds to the null bitmap, while the 1st buffer corresponds to the data.
-            // This allows us to access the underlying data arrow without casting to a concrete array type.
-            auto* dest = column->data()->GetMutableValues<uint8_t>(1, num_rows*byte_width);
-            std::memcpy(dest, &record[head], byte_width);
+        switch (field->type()->id()) {
+            case arrow::Type::BOOL: {
+                auto column = std::static_pointer_cast<arrow::BooleanArray>(records->column(i));
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                        records->column(i)->data()->buffers[1]);
 
-//            auto* null_bitmap = column->null_bitmap()->mutable_data();
-//            null_bitmap[num_rows / 8] |= (1u << (num_rows % 8u));
-            head += byte_width;
+                // Extended the underlying buffers. This may result in copying the data.
+                if (data_buffer->size() % 8 == 0) {
+                    status = data_buffer->Resize(data_buffer->size() + 1);
+                }
+
+                // Recall that we initialized our column arrays with length 1 so that the underlying buffers are
+                // properly initialized. So, if num_rows == 0, we do not need to update the length of the column data.
+                if (num_rows > 0) {
+                    column->data()->length++;
+                }
+
+                set_valid(num_rows, true);
+
+                break;
+            }
+
+            case arrow::Type::STRING: {
+                auto column = std::static_pointer_cast<arrow::StringArray>(records->column(i));
+
+                auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[1]);
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[2]);
+
+                // Extended the underlying data buffer. This may result in copying the data.
+                // Note that we use index i-1 because byte_widths does not include the byte width of the valid column.
+                status = data_buffer->Resize(data_buffer->size() + byte_widths[i - 1]);
+                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t));
+                EvaluateStatus(status, __FUNCTION__, __LINE__);
+
+                // Recall that we initialized our column arrays with length 1 so that the underlying buffers are
+                // properly initialized. So, if num_rows == 0, we do not need to update the length of the column data.
+                if (num_rows > 0) {
+                    column->data()->length++;
+                }
+
+                // Insert data
+                auto *values_data = column->data()->GetMutableValues<uint8_t>(2, column->value_offset(num_rows));
+                std::memcpy(values_data, &record[head], byte_widths[i - 1]);
+
+                // Update offsets
+                auto offsets_data = (int *) column->value_offsets()->mutable_data();
+                offsets_data[num_rows + 1] = offsets_data[num_rows] + byte_widths[i - 1];
+
+                head += byte_widths[i - 1];
+
+                break;
+            }
+
         }
     }
-    set_valid(num_rows, true);
+
     increment_num_rows();
 }
 

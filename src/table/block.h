@@ -21,7 +21,7 @@ public:
     const std::shared_ptr<arrow::RecordBatch> get_view();
 
     void print();
-    void insert_record(uint8_t*, int);
+    void insert_record(uint8_t* record, int32_t* byte_widths);
 
     int num_rows;
     int num_bytes;
@@ -31,8 +31,6 @@ public:
 private:
     int id;
     std::shared_ptr<arrow::RecordBatch> records;
-    std::shared_ptr<arrow::BooleanArray> valid;
-
     std::shared_ptr<arrow::Schema> schema;
 
 };
