@@ -34,6 +34,7 @@ private:
     std::mutex insert_pool_mutex;
     int block_counter;
     int record_width;
+    int num_rows;
 
 };
 
