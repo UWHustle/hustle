@@ -46,6 +46,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
             case arrow::Type::STRING:{
                 scalar = std::make_shared<arrow::StringScalar>();
 
+                break;
             }
             default:
                 throw std::logic_error(
@@ -60,13 +61,6 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
     }
 
     records = arrow::RecordBatch::Make(this->schema, capacity/record_width, columns);
-
-    // Initialize the valid column, with all values set to false.
-    std::shared_ptr<arrow::Array> valid_column;
-    status = arrow::MakeArrayFromScalar(arrow::BooleanScalar(false),capacity/record_width, &valid_column);
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
-
-    valid = std::static_pointer_cast<arrow::BooleanArray>(valid_column);
 }
 
 
@@ -80,6 +74,7 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capac
         record_width += field->type()->layout().bit_widths[1]/8;
     }
 
+    num_rows = record_batch->num_rows(); // TODO: is this correct?
     records = std::move(record_batch);
 
 }
@@ -102,6 +97,8 @@ Block::get_column_by_name(const std::string &name) {
 }
 
 int Block::get_free_row_index() {
+    auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
+
     // Determine the first available row that can be used to store the data.
     for (int row_index = 0; row_index < capacity; ++row_index) {
         if (!valid->Value(row_index)) {
@@ -111,12 +108,21 @@ int Block::get_free_row_index() {
     return -1;
 }
 
-bool Block::get_valid(unsigned int row_index) { return valid->Value(row_index); }
+bool Block::get_valid(unsigned int row_index) {
+    auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
+    return valid->Value(row_index);
+}
 
 void Block::set_valid(unsigned int row_index, bool val) {
-    auto col = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
-    auto* data = col->values()->mutable_data();
-    data[row_index / 8] |= (1u << (row_index % 8u));
+    auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
+    auto* data = valid->values()->mutable_data();
+    if (val) {
+        data[row_index / 8] |= (1u << (row_index % 8u));
+    }
+    else {
+        data[row_index / 8] &= (1u << (row_index % 8u));
+    }
+
 }
 
 void Block::increment_num_rows() {
