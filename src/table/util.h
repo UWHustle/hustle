@@ -14,4 +14,6 @@ void write_to_file(const char* path, Table &table);
 std::shared_ptr<arrow::RecordBatch> fix_last_batch(std::shared_ptr<arrow::RecordBatch> last_batch, int records_per_block);
 Table test(std::shared_ptr<arrow::Table>);
 Table read_from_file(const char* path);
+std::vector<std::shared_ptr<arrow::Array>>
+get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch);
 #endif //HUSTLE_OFFLINE_UTIL_H

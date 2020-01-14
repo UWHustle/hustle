@@ -49,6 +49,18 @@ Table read_from_file(const char* path) {
     return Table("table", record_batches, BLOCK_SIZE);
 }
 
+std::vector<std::shared_ptr<arrow::Array>>
+get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch) {
+
+    std::vector<std::shared_ptr<arrow::Array>> columns;
+
+    for (int i=0; i<record_batch->num_columns(); i++) {
+        columns.push_back(record_batch->column(i));
+    }
+
+    return columns;
+}
+
 void write_to_file(const char* path, Table &table) {
 
     std::shared_ptr<arrow::io::FileOutputStream> file;
@@ -68,11 +80,17 @@ void write_to_file(const char* path, Table &table) {
         record_batch_writer = arrow::ipc::RecordBatchFileWriter::Open(&*file, write_schema).ValueOrDie();
     }
 
-
     auto blocks = table.get_blocks();
 
     for (int i=0; i<blocks.size(); i++) {
-        status = record_batch_writer->WriteRecordBatch(*blocks[i]->get_view());
+        auto record_batch = blocks[i]->get_view();
+
+        auto correctly_sized_batch = arrow::RecordBatch::Make(
+                record_batch->schema(),
+                blocks[i]->num_rows,
+                get_columns_from_record_batch(record_batch));
+
+        status = record_batch_writer->WriteRecordBatch(*correctly_sized_batch);
         EvaluateStatus(status, __FUNCTION__, __LINE__);
     }
     status = record_batch_writer->Close();
