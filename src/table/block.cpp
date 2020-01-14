@@ -145,6 +145,11 @@ void Block::print() {
             int type = records->schema()->field(i)->type()->id();
 
             switch (type) {
+                case arrow::Type::STRING: {
+                    auto col = std::static_pointer_cast<arrow::StringArray>(records->column(i));
+                    std::cout << col->GetString(row) << "\t";
+                    break;
+                }
                 case arrow::Type::type::FIXED_SIZE_BINARY: {
                     auto col = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(records->column(i));
                     std::cout << col->GetString(row) << "\t";
