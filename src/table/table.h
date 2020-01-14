@@ -20,7 +20,7 @@ public:
     void mark_block_for_insert(const std::shared_ptr<Block> &block);
     void print();
 
-    char insert_record(uint8_t*);
+    void insert_record(uint8_t* record, int32_t* byte_lengths);
     const std::shared_ptr<arrow::Schema> get_schema();
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
 
