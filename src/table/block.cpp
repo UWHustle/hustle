@@ -100,7 +100,7 @@ int Block::get_free_row_index() {
     auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
 
     // Determine the first available row that can be used to store the data.
-    for (int row_index = 0; row_index < capacity; ++row_index) {
+    for (int row_index = 0; row_index < num_rows+1; ++row_index) {
         if (!valid->Value(row_index)) {
             return row_index;
         }
@@ -165,13 +165,17 @@ void Block::print() {
                     std::cout << col->Value(row) << "\t";
                     break;
                 }
+                default: {
+                    throw std::logic_error(
+                            std::string("Block created with unsupported type: ") +
+                            records->schema()->field(i)->type()->ToString());
+                }
             }
         }
         std::cout << std::endl;
     }
 }
 
-// Assumes fixed-size binary data
 void Block::insert_record(uint8_t* record, int32_t* byte_widths) {
 
     int row_index = get_free_row_index();
@@ -182,7 +186,7 @@ void Block::insert_record(uint8_t* record, int32_t* byte_widths) {
     arrow::Status status;
 
     int head = 0;
-    for (int i=1; i<records->num_columns(); i++) {
+    for (int i=0; i<records->num_columns(); i++) {
 
         std::shared_ptr<arrow::Field> field = records->schema()->field(i);
 
@@ -195,6 +199,7 @@ void Block::insert_record(uint8_t* record, int32_t* byte_widths) {
                 // Extended the underlying buffers. This may result in copying the data.
                 if (data_buffer->size() % 8 == 0) {
                     status = data_buffer->Resize(data_buffer->size() + 1);
+                    data_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
                 }
 
                 // Recall that we initialized our column arrays with length 1 so that the underlying buffers are
@@ -221,6 +226,9 @@ void Block::insert_record(uint8_t* record, int32_t* byte_widths) {
                 status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t));
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
 
+                // Note that we do not need to call data_buffer->ZeroPadding() because we will be memcpy-ing over
+                // the added bytes anyways
+
                 // Recall that we initialized our column arrays with length 1 so that the underlying buffers are
                 // properly initialized. So, if num_rows == 0, we do not need to update the length of the column data.
                 if (num_rows > 0) {
@@ -239,7 +247,10 @@ void Block::insert_record(uint8_t* record, int32_t* byte_widths) {
 
                 break;
             }
-
+            default:
+                throw std::logic_error(
+                        std::string("Block created with unsupported type: ") +
+                        field->type()->ToString());
         }
     }
 
