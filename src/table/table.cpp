@@ -9,7 +9,7 @@
 
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
-        : name(std::move(name)), schema(schema), block_counter(0), record_width(0),
+        : name(std::move(name)), schema(schema), block_counter(0), record_width(0), num_rows(0),
           block_capacity(block_capacity) {
 
     for (auto field : schema->fields()) {
@@ -21,7 +21,7 @@ Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
 
 Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
         int block_capacity)
-        : name(std::move(name)), block_counter(0), record_width(0),
+        : name(std::move(name)), block_counter(0), record_width(0), num_rows(0),
           block_capacity(block_capacity) {
 
     for (auto field : record_batches[0]->schema()->fields()) {
@@ -34,6 +34,7 @@ Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> 
         auto block = std::make_shared<Block>(block_counter,batch, BLOCK_SIZE);
         blocks.emplace(block_counter, block);
         block_counter++;
+        num_rows += batch->num_rows();
     }
 
     if (!blocks[blocks.size()-1]->is_full()) {
