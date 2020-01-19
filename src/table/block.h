@@ -35,7 +35,6 @@ private:
 
     int num_bytes;
     int capacity;
-    int record_width;
 
 
 
