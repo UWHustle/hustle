@@ -9,13 +9,10 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
         : num_rows(0), record_width(0), num_bytes(0), capacity(capacity), id(id) {
 
     arrow::Status status;
+
+    // Add valid column to the schema
     status = in_schema->AddField(0, arrow::field("valid", arrow::boolean()), &schema);
     EvaluateStatus(status, __FUNCTION__, __LINE__);
-
-    for (const auto &field : schema->fields()) {
-        record_width += field->type()->layout().bit_widths[1]/8;
-    }
-
 
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 
@@ -35,10 +32,11 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
                 std::shared_ptr<arrow::ResizableBuffer> offsets;
                 status = arrow::AllocateResizableBuffer(sizeof(int32_t), &offsets);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
+
+                // Make sure the first offset value is set to 0, otherwise we're in trouble.
                 int32_t initial_offset = 0;
                 uint8_t* offsets_data = offsets->mutable_data();
                 std::memcpy(&offsets_data[0], &initial_offset, sizeof(initial_offset));
-                std::cout << "TEST = " << offsets->ToString() << std::endl;
 
                 columns.push_back(arrow::ArrayData::Make(arrow::utf8(), 0, {nullptr, offsets, data}));
                 break;
@@ -99,7 +97,7 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capac
         record_width += field->type()->layout().bit_widths[1]/8;
     }
 
-    num_rows = record_batch->num_rows(); // TODO: is this correct?
+    num_rows = record_batch->num_rows();
     records = std::move(record_batch);
     compute_num_bytes();
 }
@@ -123,8 +121,6 @@ Block::get_column_by_name(const std::string &name) {
 
 int Block::get_free_row_index() {
     auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
-    std::cout <<"GET FREE " << valid->ToString() << std::endl;
-    std::cout << "NUM ROWS = " << num_rows << std::endl;
     // Determine the first available row that can be used to store the data.
     for (int row_index = 0; row_index < num_rows+1; ++row_index) {
         if (!valid->Value(row_index)) {
@@ -151,7 +147,7 @@ void Block::set_valid(unsigned int row_index, bool val) {
         data[row_index / 8] &= (1u << (row_index % 8u));
     }
 
-    // TODO: valid bit is being correctly set, but after the second insertion, we get 
+    // TODO: valid bit is being correctly set, but after the second insertion, we get
 //    std::cout <<"AFTER SET VALID " << valid->ToString() << std::endl;
 
 }
@@ -226,11 +222,6 @@ void Block::print() {
 
 // Return true is insertion was successful, false otherwise
 bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
-
-    int32_t record_size = 0;
-    for (int i=0; i<records->num_columns()-1; i++) { // - 1 to exclude valid column
-        record_size += byte_widths[i]; // does record size include valid column?
-    }
 
     arrow::Status status;
 
