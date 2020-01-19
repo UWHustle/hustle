@@ -18,20 +18,26 @@ public:
     void set_valid(unsigned int row_index, bool val);
     void increment_num_rows();
     void decrement_num_rows();
+    void increment_num_bytes(unsigned int);
     const std::shared_ptr<arrow::RecordBatch> get_view();
+    int get_bytes_left();
 
     void print();
-    void insert_record(uint8_t* record, int32_t* byte_widths);
-
+    bool insert_record(uint8_t* record, int32_t* byte_widths);
     int num_rows;
-    int num_bytes;
-    int capacity;
-    int record_width;
+
 
 private:
     int id;
     std::shared_ptr<arrow::RecordBatch> records;
     std::shared_ptr<arrow::Schema> schema;
+    int compute_num_bytes();
+
+    int num_bytes;
+    int capacity;
+    int record_width;
+
+
 
 };
 
