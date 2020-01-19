@@ -106,7 +106,7 @@ void Table::insert_record(uint8_t* record, int32_t* byte_widths){
 
     int32_t record_size = 0;
     for (int i=0; i<schema->num_fields(); i++) {
-        record_size += byte_widths[i]; // does record size include valid column? If so, this needs to be changed.
+        record_size += byte_widths[i]; // TODO: does record size include valid column? If so, this needs to be changed.
     }
 
     // If the record won't fit in the current block, create a new one. Of course, this is dumb, and needs to be changed
