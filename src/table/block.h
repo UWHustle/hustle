@@ -32,7 +32,9 @@ private:
     std::shared_ptr<arrow::RecordBatch> records;
     std::shared_ptr<arrow::Schema> schema;
     int compute_num_bytes();
+    int compute_fixed_record_width();
 
+    int fixed_record_width;
     int num_bytes;
     int capacity;
 
