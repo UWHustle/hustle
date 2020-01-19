@@ -6,7 +6,7 @@
 #include "util.h"
 
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capacity)
-        : num_rows(0), record_width(0), num_bytes(0), capacity(capacity), id(id) {
+        : num_rows(0), fixed_record_width(0), num_bytes(0), capacity(capacity), id(id) {
 
     arrow::Status status;
 
@@ -38,17 +38,14 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
                 uint8_t* offsets_data = offsets->mutable_data();
                 std::memcpy(&offsets_data[0], &initial_offset, sizeof(initial_offset));
 
-                columns.push_back(arrow::ArrayData::Make(arrow::utf8(), 0, {nullptr, offsets, data}));
+                columns.push_back(arrow::ArrayData::Make(field->type(), 0, {nullptr, offsets, data}));
                 break;
             }
 
-            case arrow::Type::BOOL: {
-                columns.push_back(arrow::ArrayData::Make(arrow::boolean(), 0, {nullptr, data}));
-                break;
-            }
-
+            case arrow::Type::BOOL:
             case arrow::Type::INT64: {
-                columns.push_back(arrow::ArrayData::Make(arrow::int64(), 0, {nullptr, data}));
+                columns.push_back(arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
+                fixed_record_width += field->type()->layout().bit_widths[1]/8;
                 break;
             }
             default: {
@@ -82,6 +79,7 @@ int Block::compute_num_bytes() {
                 int byte_width = field->type()->layout().bit_widths[1] / 8;
 
                 num_bytes += byte_width*column->length();
+                fixed_record_width += byte_width;
             }
         }
     }
@@ -89,13 +87,7 @@ int Block::compute_num_bytes() {
 
 // Initialize block from record batch
 Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capacity)
-        : capacity(capacity), id(id), record_width(0), num_bytes(0) {
-
-    arrow::Status status;
-
-    for (const auto &field : record_batch->schema()->fields()) {
-        record_width += field->type()->layout().bit_widths[1]/8;
-    }
+        : capacity(capacity), id(id), num_bytes(0) {
 
     num_rows = record_batch->num_rows();
     records = std::move(record_batch);
@@ -108,7 +100,9 @@ const std::shared_ptr<arrow::RecordBatch> Block::get_view() {
 
 int Block::get_id() { return id; }
 
-bool Block::is_full() { return (num_rows+1)*record_width > capacity; }
+// If a block is not full, there still may not be enough room to insert a new tuple; it depends on the widths of
+// the variable length values (if any).
+bool Block::is_full() { return get_bytes_left() < fixed_record_width; }
 
 std::shared_ptr<arrow::Array> Block::get_column(int column_index) {
     return records->column(column_index);
