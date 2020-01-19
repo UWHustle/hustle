@@ -28,7 +28,9 @@ Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> 
         record_width += field->type()->layout().bit_widths[1] / 8;
     }
 
-    schema = record_batches[0]->schema();
+
+
+//    arrow::Status status = record_batches[0]->schema()->RemoveField(0, &schema);
 
     for (auto batch : record_batches) {
         auto block = std::make_shared<Block>(block_counter,batch, BLOCK_SIZE);
@@ -41,6 +43,10 @@ Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> 
         mark_block_for_insert(blocks[blocks.size()-1]);
     }
 
+//    schema = record_batches[0]->schema(); // TODO: If we do this, Table sees the valid column!
+    auto fields = record_batches[0]->schema()->fields();
+    fields.erase(fields.begin());
+    schema = arrow::schema(fields);
 
 }
 
@@ -94,10 +100,23 @@ std::unordered_map<int, std::shared_ptr<Block>> Table::get_blocks() { return blo
 
 
 // Tuple is passed in as an array of bytes which must be parsed.
-void Table::insert_record(uint8_t* record, int32_t* byte_lengths){
+void Table::insert_record(uint8_t* record, int32_t* byte_widths){
 
     std::shared_ptr<Block> block = get_block_for_insert();
-    block->insert_record(record, byte_lengths);
+
+    int32_t record_size = 0;
+    for (int i=0; i<schema->num_fields(); i++) {
+        record_size += byte_widths[i]; // does record size include valid column? If so, this needs to be changed.
+    }
+
+    // If the record won't fit in the current block, create a new one. Of course, this is dumb, and needs to be changed
+    // later. We could have get_block_for_insert() accept the record size and then search for a block that has enough
+    // room for it.
+    if (record_size > block->get_bytes_left()) {
+        block = create_block();
+    }
+
+    block->insert_record(record, byte_widths);
 
     if (!block->is_full()) {
         insert_pool[block->get_id()] = block;

@@ -19,25 +19,80 @@ void EvaluateStatus(const arrow::Status& status, const char* function_name, int 
     }
 }
 
+std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch) {
+
+    arrow::Status status;
+    std::vector<std::shared_ptr<arrow::ArrayData>> arraydatas;
+
+    for (int i=0; i<batch->num_columns(); i++) {
+
+        auto column = batch->column(i);
+        auto buffers = column->data()->buffers;
+        switch (column->type_id()) {
+
+            case arrow::Type::STRING: {
+                std::shared_ptr<arrow::Buffer> offsets;
+                std::shared_ptr<arrow::Buffer> data;
+                status = buffers[1]->Copy(0, buffers[1]->size(), &offsets);
+                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                status = buffers[2]->Copy(0, buffers[2]->size(), &data);
+                EvaluateStatus(status, __FUNCTION__, __LINE__);
+
+                arraydatas.push_back(arrow::ArrayData::Make(arrow::utf8(), column->length(), {nullptr, offsets, data}));
+                break;
+            }
+
+            case arrow::Type::BOOL: {
+                std::shared_ptr<arrow::Buffer> data;
+                status = buffers[1]->Copy(0, buffers[1]->size(), &data);
+                EvaluateStatus(status, __FUNCTION__, __LINE__);
+
+                arraydatas.push_back(arrow::ArrayData::Make(arrow::boolean(), column->length(), {nullptr, data}));
+                break;
+            }
+            case arrow::Type::INT64: {
+                std::shared_ptr<arrow::Buffer> data;
+                status = buffers[1]->Copy(0, buffers[1]->size(), &data);
+                EvaluateStatus(status, __FUNCTION__, __LINE__);
+
+                arraydatas.push_back(arrow::ArrayData::Make(arrow::int64(), column->length(), {nullptr, data}));
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                        std::string("Cannot copy data of type ") +
+                        column->type()->ToString());
+            }
+        }
+    }
+
+    return arrow::RecordBatch::Make(batch->schema(), batch->num_rows(), arraydatas);
+
+}
+
 Table read_from_file(const char* path) {
 
     arrow::Status status;
 
     std::shared_ptr<arrow::io::ReadableFile> infile;
-    status = arrow::io::ReadableFile::Open(path, arrow::default_memory_pool(), &infile);
+    status = arrow::io::ReadableFile::Open(path, &infile);
     EvaluateStatus(status, __FUNCTION__, __LINE__);
-    std::shared_ptr<arrow::ipc::RecordBatchFileReader> record_batch_reader;
 
+    std::shared_ptr<arrow::ipc::RecordBatchFileReader> record_batch_reader;
     status = arrow::ipc::RecordBatchFileReader::Open(infile, &record_batch_reader);
     EvaluateStatus(status, __FUNCTION__, __LINE__);
+
     std::shared_ptr<arrow::RecordBatch> in_batch;
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
+   std::cout << record_batch_reader << std::endl;
     for (int i=0; i< record_batch_reader->num_record_batches(); i++) {
-        std::cout << record_batch_reader->ReadRecordBatch(i, &in_batch).message() << std::endl;
+
         if(record_batch_reader->ReadRecordBatch(i, &in_batch).ok() && in_batch != nullptr) {
-            record_batches.push_back(in_batch);
+            auto batch_copy = copy_record_batch(in_batch);
+            record_batches.push_back(batch_copy);
         }
+
     }
 
     int record_width = 0;
