@@ -9,35 +9,34 @@
 
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
-        : name(std::move(name)), schema(schema), block_counter(0), fixed_record_width(0), num_rows(0),
+        : name(std::move(name)), schema(schema), block_counter(0), num_rows(0),
           block_capacity(block_capacity) {
 
-    compute_fixed_record_width();
+    fixed_record_width = compute_fixed_record_width();
 }
 
 
 Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
         int block_capacity)
-        : name(std::move(name)), block_counter(0), fixed_record_width(0), num_rows(0),
+        : name(std::move(name)), block_counter(0), num_rows(0),
           block_capacity(block_capacity) {
 
+    // The first column of the record batch is the valid column, which should not be visible to Table. So we remove it.
+    auto fields = record_batches[0]->schema()->fields();
+    fields.erase(fields.begin());
+    schema = arrow::schema(fields);
+    fixed_record_width = compute_fixed_record_width(); // must be called after schema is set
+
     for (auto batch : record_batches) {
-        auto block = std::make_shared<Block>(block_counter,batch, BLOCK_SIZE);
+        auto block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
         blocks.emplace(block_counter, block);
         block_counter++;
         num_rows += batch->num_rows();
     }
 
-    if (!blocks[blocks.size()-1]->is_full()) {
+    if (blocks[blocks.size()-1]->get_bytes_left() > fixed_record_width) {
         mark_block_for_insert(blocks[blocks.size()-1]);
     }
-
-//    schema = record_batches[0]->schema(); // TODO: If we do this, Table sees the valid column!
-    auto fields = record_batches[0]->schema()->fields();
-    fields.erase(fields.begin());
-    schema = arrow::schema(fields);
-    compute_fixed_record_width(); // must be called after schema is set
-
 }
 
 std::shared_ptr<Block> Table::create_block() {
@@ -67,7 +66,7 @@ std::shared_ptr<Block> Table::get_block_for_insert() {
 
 void Table::mark_block_for_insert(const std::shared_ptr<Block> &block) {
     std::scoped_lock insert_pool_lock(insert_pool_mutex);
-    assert(!block->is_full());
+    assert(block->get_bytes_left() > fixed_record_width);
 
     insert_pool[block->get_id()] = block;
 }
@@ -89,6 +88,9 @@ void Table::print() {
 std::unordered_map<int, std::shared_ptr<Block>> Table::get_blocks() { return blocks; }
 
 int Table::compute_fixed_record_width() {
+
+    int fixed_width = 0;
+
     for (auto field : schema->fields()) {
 
         switch (field->type()->id()) {
@@ -97,7 +99,7 @@ int Table::compute_fixed_record_width() {
             }
             case arrow::Type::BOOL:
             case arrow::Type::INT64: {
-                fixed_record_width += field->type()->layout().bit_widths[1] / 8;
+                fixed_width += field->type()->layout().bit_widths[1] / 8;
                 break;
             }
             default: {
@@ -105,10 +107,9 @@ int Table::compute_fixed_record_width() {
                         std::string("Cannot compute fixed record width. Unsupported type: ") +
                         field->type()->ToString());
             }
-
         }
-
     }
+    return fixed_width;
 
 }
 
@@ -126,13 +127,13 @@ void Table::insert_record(uint8_t* record, int32_t* byte_widths){
     // If the record won't fit in the current block, create a new one. Of course, this is dumb, and needs to be changed
     // later. We could have get_block_for_insert() accept the record size and then search for a block that has enough
     // room for it.
-    if (record_size > block->get_bytes_left()) {
+    if (block->get_bytes_left() < record_size ) {
         block = create_block();
     }
 
     block->insert_record(record, byte_widths);
 
-    if (!block->is_full()) {
+    if (block->get_bytes_left() < fixed_record_width) {
         insert_pool[block->get_id()] = block;
     }
 }
