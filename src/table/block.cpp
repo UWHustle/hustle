@@ -30,6 +30,8 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
 
             case arrow::Type::STRING: {
                 std::shared_ptr<arrow::ResizableBuffer> offsets;
+                // Although the data buffer is empty, the offsets buffer should still contain the offset of the 
+                // first element. This offset is always 0.
                 status = arrow::AllocateResizableBuffer(sizeof(int32_t), &offsets);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
 
@@ -45,7 +47,6 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
             case arrow::Type::BOOL:
             case arrow::Type::INT64: {
                 columns.push_back(arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
-                fixed_record_width += field->type()->layout().bit_widths[1]/8;
                 break;
             }
             default: {
@@ -79,7 +80,6 @@ int Block::compute_num_bytes() {
                 int byte_width = field->type()->layout().bit_widths[1] / 8;
 
                 num_bytes += byte_width*column->length();
-                fixed_record_width += byte_width;
             }
         }
     }

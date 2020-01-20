@@ -9,28 +9,17 @@
 
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
-        : name(std::move(name)), schema(schema), block_counter(0), record_width(0), num_rows(0),
+        : name(std::move(name)), schema(schema), block_counter(0), fixed_record_width(0), num_rows(0),
           block_capacity(block_capacity) {
 
-    for (auto field : schema->fields()) {
-        record_width += field->type()->layout().bit_widths[1] / 8;
-    }
-
+    compute_fixed_record_width();
 }
 
 
 Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
         int block_capacity)
-        : name(std::move(name)), block_counter(0), record_width(0), num_rows(0),
+        : name(std::move(name)), block_counter(0), fixed_record_width(0), num_rows(0),
           block_capacity(block_capacity) {
-
-    for (auto field : record_batches[0]->schema()->fields()) {
-        record_width += field->type()->layout().bit_widths[1] / 8;
-    }
-
-
-
-//    arrow::Status status = record_batches[0]->schema()->RemoveField(0, &schema);
 
     for (auto batch : record_batches) {
         auto block = std::make_shared<Block>(block_counter,batch, BLOCK_SIZE);
@@ -47,6 +36,7 @@ Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> 
     auto fields = record_batches[0]->schema()->fields();
     fields.erase(fields.begin());
     schema = arrow::schema(fields);
+    compute_fixed_record_width(); // must be called after schema is set
 
 }
 
@@ -97,6 +87,30 @@ void Table::print() {
 }
 
 std::unordered_map<int, std::shared_ptr<Block>> Table::get_blocks() { return blocks; }
+
+int Table::compute_fixed_record_width() {
+    for (auto field : schema->fields()) {
+
+        switch (field->type()->id()) {
+            case arrow::Type::STRING: {
+                break;
+            }
+            case arrow::Type::BOOL:
+            case arrow::Type::INT64: {
+                fixed_record_width += field->type()->layout().bit_widths[1] / 8;
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                        std::string("Cannot compute fixed record width. Unsupported type: ") +
+                        field->type()->ToString());
+            }
+
+        }
+
+    }
+
+}
 
 
 // Tuple is passed in as an array of bytes which must be parsed.
