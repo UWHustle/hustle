@@ -6,7 +6,7 @@
 #include "util.h"
 
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capacity)
-        : num_rows(0), fixed_record_width(0), num_bytes(0), capacity(capacity), id(id) {
+        : num_rows(0), num_bytes(0), capacity(capacity), id(id) {
 
     arrow::Status status;
 
@@ -30,7 +30,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
 
             case arrow::Type::STRING: {
                 std::shared_ptr<arrow::ResizableBuffer> offsets;
-                // Although the data buffer is empty, the offsets buffer should still contain the offset of the 
+                // Although the data buffer is empty, the offsets buffer should still contain the offset of the
                 // first element. This offset is always 0.
                 status = arrow::AllocateResizableBuffer(sizeof(int32_t), &offsets);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
@@ -74,12 +74,17 @@ int Block::compute_num_bytes() {
                 num_bytes += column->value_offset(column->length());
                 break;
             }
-            default: {
-                auto test = records->column(i);
+            case arrow::Type::BOOL:
+            case arrow::Type::INT64: {
                 auto column = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(records->column(i));
                 int byte_width = field->type()->layout().bit_widths[1] / 8;
-
                 num_bytes += byte_width*column->length();
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                        std::string("Cannot compute fixed record width. Unsupported type: ") +
+                        field->type()->ToString());
             }
         }
     }
@@ -99,10 +104,6 @@ const std::shared_ptr<arrow::RecordBatch> Block::get_view() {
 }
 
 int Block::get_id() { return id; }
-
-// If a block is not full, there still may not be enough room to insert a new tuple; it depends on the widths of
-// the variable length values (if any).
-bool Block::is_full() { return get_bytes_left() < fixed_record_width; }
 
 std::shared_ptr<arrow::Array> Block::get_column(int column_index) {
     return records->column(column_index);
@@ -313,7 +314,7 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
 
             default:
                 throw std::logic_error(
-                        std::string("Inserting unsupported type: ") +
+                        std::string("Cannot insert tuple with unsupported type: ") +
                         field->type()->ToString());
         }
     }

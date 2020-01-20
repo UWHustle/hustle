@@ -10,7 +10,6 @@ public:
     Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity);
     Block(int id, std::shared_ptr<arrow::RecordBatch>, int capacity);
     int get_id();
-    bool is_full();
     std::shared_ptr<arrow::Array> get_column(int column_index);
     std::shared_ptr<arrow::Array> get_column_by_name(const std::string &name);
     int get_free_row_index();
