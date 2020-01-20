@@ -32,8 +32,11 @@ private:
     std::mutex blocks_mutex;
     std::unordered_map<int, std::shared_ptr<Block>> insert_pool;
     std::mutex insert_pool_mutex;
+
+    int compute_fixed_record_width();
+
     int block_counter;
-    int record_width;
+    int fixed_record_width;
     int num_rows;
 
 };
