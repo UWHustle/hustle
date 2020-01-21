@@ -31,7 +31,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
             case arrow::Type::STRING: {
                 std::shared_ptr<arrow::ResizableBuffer> offsets;
                 // Although the data buffer is empty, the offsets buffer should still contain the offset of the
-                // first element. This offset is always 0.
+                // first element.
                 status = arrow::AllocateResizableBuffer(sizeof(int32_t), &offsets);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
 
@@ -60,6 +60,8 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
     records = arrow::RecordBatch::Make(this->schema, 0, columns);
 }
 
+// Compute the number of bytes in the block. This function is only called when a block is initialized from a
+// RecordBatch, e.g. when we read in a block from a file.
 int Block::compute_num_bytes() {
 
     // start at i=1 to skip valid column
@@ -90,7 +92,7 @@ int Block::compute_num_bytes() {
     }
 }
 
-// Initialize block from record batch
+// Initialize block from a RecordBatch
 Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capacity)
         : capacity(capacity), id(id), num_bytes(0) {
 
@@ -99,20 +101,15 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capac
     compute_num_bytes();
 }
 
-const std::shared_ptr<arrow::RecordBatch> Block::get_view() {
-    return records;
-}
+const std::shared_ptr<arrow::RecordBatch> Block::get_records() { return records; }
+
+int Block::get_num_rows() { return num_rows; }
 
 int Block::get_id() { return id; }
 
-std::shared_ptr<arrow::Array> Block::get_column(int column_index) {
-    return records->column(column_index);
-}
+std::shared_ptr<arrow::Array> Block::get_column(int column_index) { return records->column(column_index); }
 
-std::shared_ptr<arrow::Array>
-Block::get_column_by_name(const std::string &name) {
-    return records->GetColumnByName(name);
-}
+std::shared_ptr<arrow::Array> Block::get_column_by_name(const std::string &name) { return records->GetColumnByName(name); }
 
 int Block::get_free_row_index() {
     auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
@@ -133,7 +130,6 @@ bool Block::get_valid(unsigned int row_index) {
 
 void Block::set_valid(unsigned int row_index, bool val) {
     auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
-
     auto* data = valid->values()->mutable_data();
     if (val) {
         data[row_index / 8] |= (1u << (row_index % 8u));
@@ -142,8 +138,6 @@ void Block::set_valid(unsigned int row_index, bool val) {
         data[row_index / 8] &= (1u << (row_index % 8u));
     }
 
-    // TODO: valid bit is being correctly set, but after the second insertion, we get
-//    std::cout <<"AFTER SET VALID " << valid->ToString() << std::endl;
 
 }
 
@@ -241,33 +235,26 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
                 }
                 column->data()->length++;
                 set_valid(num_rows, true);
-
                 break;
             }
 
             case arrow::Type::STRING: {
                 auto column = std::static_pointer_cast<arrow::StringArray>(records->column(i));
-
                 auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[1]);
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[2]);
 
-                // Extended the underlying data buffer. This may result in copying the data. If data is copied, the
-                // internal variables raw_data_ and raw_values_offsets_ in Array are NOT updated. Thus, calls to e.g.
-                // GetString(i) which index from these variables and not directly from the buffers will return garbage
-                // data.
+                // Extended the underlying data buffer. This may result in copying the data.
                 // Note that we use index i-1 because byte_widths does not include the byte width of the valid column.
                 status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t));
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
                 status = data_buffer->Resize(data_buffer->size() + byte_widths[i - 1]);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
-                column->data()->length++;
 
-                // Update offsets. Should be done before data updates, since data updates reference the offsets
-//                auto offsets_data = (int32_t *) column->value_offsets()->mutable_data();
+
+                // Insert offset. Should be done before data updates, since the data insertion references the offsets
                 // num_rows + 1 because num_rows index tells us where the stirng starts. We want to write where the stirng ends.
                 auto *offsets_data = column->data()->GetMutableValues<int32_t>(1, 0);
-                int32_t new_offset;
-                new_offset = offsets_data[num_rows] + byte_widths[i - 1];
+                int32_t new_offset = offsets_data[num_rows] + byte_widths[i - 1];
                 std::memcpy(&offsets_data[num_rows+1], &new_offset, sizeof(new_offset));
 
                 // Insert data
@@ -275,17 +262,8 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
                 auto *values_data = column->data()->GetMutableValues<uint8_t>(2, column->value_offset(num_rows));
                 std::memcpy(values_data, &record[head], byte_widths[i - 1]);
 
-
+                column->data()->length++;
                 head += byte_widths[i - 1];
-
-                // Recreate Array so that it's length is consistent
-                std::shared_ptr<arrow::ArrayData> new_arraydata;
-                new_arraydata = arrow::ArrayData::Make(arrow::utf8(), num_rows+1,{nullptr, offsets_buffer, data_buffer});
-
-
-                auto new_array = arrow::MakeArray(new_arraydata);
-                auto c = std::static_pointer_cast<arrow::StringArray>(new_array);
-
                 break;
             }
             // This works with any fixed-width type, but for now, I specify INT64

@@ -73,6 +73,10 @@ void Table::mark_block_for_insert(const std::shared_ptr<Block> &block) {
 
 const std::shared_ptr<arrow::Schema> Table::get_schema() { return schema; }
 
+int Table::get_num_blocks() {
+    return blocks.size();
+}
+
 void Table::print() {
 
     if (blocks.size() == 0) {
@@ -132,8 +136,9 @@ void Table::insert_record(uint8_t* record, int32_t* byte_widths){
     }
 
     block->insert_record(record, byte_widths);
+    num_rows++;
 
-    if (block->get_bytes_left() < fixed_record_width) {
+    if (block->get_bytes_left() > fixed_record_width) {
         insert_pool[block->get_id()] = block;
     }
 }

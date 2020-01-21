@@ -18,12 +18,13 @@ public:
     void increment_num_rows();
     void decrement_num_rows();
     void increment_num_bytes(unsigned int);
-    const std::shared_ptr<arrow::RecordBatch> get_view();
+    const std::shared_ptr<arrow::RecordBatch> get_records();
     int get_bytes_left();
 
     void print();
+    int get_num_rows();
     bool insert_record(uint8_t* record, int32_t* byte_widths);
-    int num_rows;
+
 
 
 private:
@@ -32,9 +33,9 @@ private:
     std::shared_ptr<arrow::Schema> schema;
     int compute_num_bytes();
 
-    int fixed_record_width;
     int num_bytes;
     int capacity;
+    int num_rows;
 
 
 
