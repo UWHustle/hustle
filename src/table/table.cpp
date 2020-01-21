@@ -47,12 +47,12 @@ std::shared_ptr<Block> Table::create_block() {
     return block;
 }
 
-std::shared_ptr<Block> Table::get_block(int block_id) {
+std::shared_ptr<Block> Table::get_block(int block_id) const {
 //  std::scoped_lock blocks_lock(blocks_mutex);
-    return blocks[block_id];
+    return blocks.at(block_id);
 }
 
-std::shared_ptr<Block> Table::get_block_for_insert() {
+std::shared_ptr<Block> Table::get_block_for_insert()  {
     std::scoped_lock insert_pool_lock(insert_pool_mutex);
     if (insert_pool.empty()) {
         return create_block();
@@ -71,9 +71,9 @@ void Table::mark_block_for_insert(const std::shared_ptr<Block> &block) {
     insert_pool[block->get_id()] = block;
 }
 
-const std::shared_ptr<arrow::Schema> Table::get_schema() { return schema; }
+const std::shared_ptr<arrow::Schema> Table::get_schema() const { return schema; }
 
-int Table::get_num_blocks() {
+int Table::get_num_blocks() const {
     return blocks.size();
 }
 
@@ -119,7 +119,7 @@ int Table::compute_fixed_record_width() {
 
 
 // Tuple is passed in as an array of bytes which must be parsed.
-void Table::insert_record(uint8_t* record, int32_t* byte_widths){
+void Table::insert_record(uint8_t* record, int32_t* byte_widths) {
 
     std::shared_ptr<Block> block = get_block_for_insert();
 

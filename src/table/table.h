@@ -15,13 +15,13 @@ public:
     Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>>,
           int block_capacity);
     std::shared_ptr<Block> create_block();
-    std::shared_ptr<Block> get_block(int block_id);
+    std::shared_ptr<Block> get_block(int block_id) const;
     std::shared_ptr<Block> get_block_for_insert();
     void mark_block_for_insert(const std::shared_ptr<Block> &block);
-    void print();
-    int get_num_blocks();
+
+    int get_num_blocks() const;
     void insert_record(uint8_t* record, int32_t* byte_lengths);
-    const std::shared_ptr<arrow::Schema> get_schema();
+    const std::shared_ptr<arrow::Schema> get_schema() const;
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
 
 private:
@@ -33,6 +33,7 @@ private:
     std::unordered_map<int, std::shared_ptr<Block>> insert_pool;
     std::mutex insert_pool_mutex;
 
+    void print();
     int compute_fixed_record_width();
 
     int block_counter;
