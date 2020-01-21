@@ -101,17 +101,17 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capac
     compute_num_bytes();
 }
 
-const std::shared_ptr<arrow::RecordBatch> Block::get_records() { return records; }
+std::shared_ptr<arrow::RecordBatch> Block::get_records() { return records; }
 
-int Block::get_num_rows() { return num_rows; }
+int Block::get_num_rows() const { return num_rows; }
 
-int Block::get_id() { return id; }
+int Block::get_id() const { return id; }
 
-std::shared_ptr<arrow::Array> Block::get_column(int column_index) { return records->column(column_index); }
+std::shared_ptr<arrow::Array> Block::get_column(int column_index) const { return records->column(column_index); }
 
-std::shared_ptr<arrow::Array> Block::get_column_by_name(const std::string &name) { return records->GetColumnByName(name); }
+std::shared_ptr<arrow::Array> Block::get_column_by_name(const std::string &name) const { return records->GetColumnByName(name); }
 
-int Block::get_free_row_index() {
+int Block::get_free_row_index() const {
     auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
     // Determine the first available row that can be used to store the data.
     for (int row_index = 0; row_index < num_rows+1; ++row_index) {
@@ -123,7 +123,7 @@ int Block::get_free_row_index() {
     return -1;
 }
 
-bool Block::get_valid(unsigned int row_index) {
+bool Block::get_valid(unsigned int row_index) const {
     auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
     return valid->Value(row_index);
 }

@@ -9,20 +9,20 @@ class Block {
 public:
     Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity);
     Block(int id, std::shared_ptr<arrow::RecordBatch>, int capacity);
-    int get_id();
-    std::shared_ptr<arrow::Array> get_column(int column_index);
-    std::shared_ptr<arrow::Array> get_column_by_name(const std::string &name);
-    int get_free_row_index();
-    bool get_valid(unsigned int row_index);
+    int get_id() const;
+    std::shared_ptr<arrow::Array> get_column(int column_index) const;
+    std::shared_ptr<arrow::Array> get_column_by_name(const std::string &name) const;
+    int get_free_row_index() const;
+    bool get_valid(unsigned int row_index) const;
     void set_valid(unsigned int row_index, bool val);
     void increment_num_rows();
     void decrement_num_rows();
     void increment_num_bytes(unsigned int);
-    const std::shared_ptr<arrow::RecordBatch> get_records();
+    std::shared_ptr<arrow::RecordBatch> get_records();
     int get_bytes_left();
 
     void print();
-    int get_num_rows();
+    int get_num_rows() const;
     bool insert_record(uint8_t* record, int32_t* byte_widths);
 
 
