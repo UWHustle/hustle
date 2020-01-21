@@ -85,7 +85,6 @@ Table read_from_file(const char* path) {
     std::shared_ptr<arrow::RecordBatch> in_batch;
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
-   std::cout << record_batch_reader << std::endl;
     for (int i=0; i< record_batch_reader->num_record_batches(); i++) {
 
         if(record_batch_reader->ReadRecordBatch(i, &in_batch).ok() && in_batch != nullptr) {
@@ -138,11 +137,11 @@ void write_to_file(const char* path, Table &table) {
     auto blocks = table.get_blocks();
 
     for (int i=0; i<blocks.size(); i++) {
-        auto record_batch = blocks[i]->get_view();
+        auto record_batch = blocks[i]->get_records();
 
         auto correctly_sized_batch = arrow::RecordBatch::Make(
                 record_batch->schema(),
-                blocks[i]->num_rows,
+                blocks[i]->get_num_rows(),
                 get_columns_from_record_batch(record_batch));
 
         status = record_batch_writer->WriteRecordBatch(*correctly_sized_batch);
