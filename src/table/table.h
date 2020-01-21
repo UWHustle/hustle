@@ -20,8 +20,9 @@ public:
     void mark_block_for_insert(const std::shared_ptr<Block> &block);
 
     int get_num_blocks() const;
+    // TODO: Current cannot be made const because num_rows and insert_pool are updated
     void insert_record(uint8_t* record, int32_t* byte_lengths);
-    const std::shared_ptr<arrow::Schema> get_schema() const;
+    std::shared_ptr<arrow::Schema> get_schema() const;
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
 
 private:
