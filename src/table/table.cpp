@@ -71,7 +71,7 @@ void Table::mark_block_for_insert(const std::shared_ptr<Block> &block) {
     insert_pool[block->get_id()] = block;
 }
 
-const std::shared_ptr<arrow::Schema> Table::get_schema() const { return schema; }
+std::shared_ptr<arrow::Schema> Table::get_schema() const { return schema; }
 
 int Table::get_num_blocks() const {
     return blocks.size();
@@ -116,6 +116,7 @@ int Table::compute_fixed_record_width() {
     return fixed_width;
 
 }
+
 
 
 // Tuple is passed in as an array of bytes which must be parsed.
