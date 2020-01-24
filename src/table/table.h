@@ -6,34 +6,60 @@
 #include <string>
 #include <unordered_map>
 
-// A Table is collection of Blocks. The Table schema does not include the valid
-// column, i.e. the valid column of each Block is hidden from Table.
+/**
+ * A Table is collection of Blocks. The Table schema does not include the valid
+ * column, i.e. the valid column of each Block is hidden from Table.
+ */
 class Table {
 public:
-    // Construct an empty table with no blocks.
+    /**
+     * Construct an empty table with no blocks.
+     *
+     * @param name Table name
+     * @param schema Table schema, excluding the valid column
+     * @param block_capacity Block size
+     */
     Table(std::string name, std::shared_ptr<arrow::Schema> schema,
           int block_capacity);
 
-    // Construct a table from a vector of RecordBatches read from a file.
-    Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>>,
-          int block_capacity);
+    /**
+     * Construct a table from a vector of RecordBatches read from a file.
+     *
+     * @param name Table name
+     * @param record_batches Vector of RecordBatches read from a file
+     * @param block_capacity Block size
+     */
+    Table(std::string name,
+            std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+            int block_capacity);
 
-    // Create an empty block.
+    //
+    /**
+     * Create an empty Block to be added to the Table.
+     *
+     * @return An empty Block.
+     */
     std::shared_ptr<Block> create_block();
 
-    // Return the block with the specified ID.
+    //
+    /**
+     * @param block_id Block ID
+     * @return Block with the specified ID
+     */
     std::shared_ptr<Block> get_block(int block_id) const;
 
-    // Return a block from the insert_pool
+    /**
+     * @return Block from the insert_pool
+     */
     std::shared_ptr<Block> get_block_for_insert();
 
-    // Add a block to the insert_pool
+    /**
+     * @param block Block to be added to the insert pool
+     */
     void mark_block_for_insert(const std::shared_ptr<Block> &block);
 
     int get_num_blocks() const;
 
-    // Insert a record into a block in the insert pool. Returns true if
-    // insertion was successful, false otherwise.
     //
     // record: data to be inserted
     // byte_widths: width of each value to be inserted
@@ -42,12 +68,26 @@ public:
     // insert pool does not have enough space to hold the record, we simply
     // create a new block. In other words, there is no reasonable mechanism
     // in place to
-    void insert_record(uint8_t *record, int32_t *byte_lengths);
+    /**
+     * Insert a record into a block in the insert pool.
+     *
+     * @param record Values to be inserted into each column. Values should be
+     * listed in the same order as they appear in the Block's schema. Values
+     * should not be separated by e.g. null characters.
+     * @param byte_widths Byte width of each value to be inserted. Byte widths
+     * should be listed in the same order as they appear in the Block's schema.
+     */
+    void insert_record(uint8_t *record, int32_t *byte_widths);
 
-    // Return the table's schema, excluding the valid column of the underlying
-    // blocks.
+    /**
+     * @return The Table's schema, excluding the valid column of the underlying
+     * Blocks
+     */
     std::shared_ptr<arrow::Schema> get_schema() const;
 
+    /**
+     * @return A map storing the Table's Blocks
+     */
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
 
 private:
@@ -86,7 +126,9 @@ private:
     // column.
     void print();
 
-    // Compute the minimum number of bytes contained in each record.
+    /**
+     * @return The minimum number of bytes contained in each record.
+     */
     int compute_fixed_record_width();
 
 
