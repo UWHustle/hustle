@@ -1,4 +1,3 @@
-
 #include "block.h"
 #include <arrow/scalar.h>
 #include <vector>
@@ -12,7 +11,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
 
     // Add the valid column to the schema
     status = in_schema->AddField(0, arrow::field("valid", arrow::boolean()), &schema);
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 
@@ -28,7 +27,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
 
         // Buffers are always padded to multiples of 64 bytes
         status = arrow::AllocateResizableBuffer(64, &data);
-        EvaluateStatus(status, __FUNCTION__, __LINE__);
+        evaluate_status(status, __FUNCTION__, __LINE__);
         data->ZeroPadding();
 
         switch (field->type()->id()) {
@@ -38,7 +37,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
                 // Although the data buffer is empty, the offsets buffer should
                 // still contain the offset of the first element.
                 status = arrow::AllocateResizableBuffer(sizeof(int32_t), &offsets);
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
                 // Make sure the first offset value is set to 0
                 int32_t initial_offset = 0;
@@ -254,11 +253,11 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
                 // Extended the underlying data and offsets buffer. This may
                 // result in copying the data.
                 status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t));
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
                 // Use index i-1 because byte_widths does not include the byte
                 // width of the valid column.
                 status = data_buffer->Resize(data_buffer->size() + byte_widths[i - 1]);
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
                 // Insert new offset
                 auto *offsets_data = column->data()->GetMutableValues<int32_t>(1, 0);
@@ -281,7 +280,7 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
 
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[1]);
                 status = data_buffer->Resize(data_buffer->size() + byte_widths[i-1]);
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
                 column = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(records->column(i));
 
