@@ -38,6 +38,5 @@ int main(int argc, char *argv[]) {
                 "The plan is: " << std::endl <<
                 hustleDB.getPlan(query) << std::endl;
 
-
   return 0;
 }
