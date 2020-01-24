@@ -8,10 +8,14 @@
 #include "table/table.h"
 #include "table/util.h"
 
-#define BLOCK_SIZE 1024 // Force the block size to 1 MB for the sake of this test
+#define BLOCK_SIZE 1024 // Force the block size to 1 KB for the sake of this test
 
 using namespace testing;
 
+// TODO(nicholas): Talk to Yannis about structuring tests. Also, when you split
+// this into multiple tests, you should define a test fixture so you can reuse
+// the same data configurations for different tests without reinitializing
+// everything.
 TEST(HustleTable, EmptyTable) {
 
     int row;
