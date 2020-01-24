@@ -9,15 +9,16 @@
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
         : table_name(std::move(name)), schema(schema), block_counter(0),
-        num_rows(0), block_capacity(block_capacity) {
+          num_rows(0), block_capacity(block_capacity) {
 
     fixed_record_width = compute_fixed_record_width();
 }
 
 
 Table::Table(
-        std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-             int block_capacity)
+        std::string name,
+        std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+        int block_capacity)
         : table_name(std::move(name)), block_counter(0), num_rows(0),
           block_capacity(block_capacity) {
 
@@ -90,7 +91,8 @@ void Table::print() {
     }
 }
 
-std::unordered_map<int, std::shared_ptr<Block>> Table::get_blocks() { return blocks; }
+std::unordered_map<int, std::shared_ptr<Block>>
+Table::get_blocks() { return blocks; }
 
 int Table::compute_fixed_record_width() {
 
@@ -109,7 +111,8 @@ int Table::compute_fixed_record_width() {
             }
             default: {
                 throw std::logic_error(
-                        std::string("Cannot compute fixed record width. Unsupported type: ") +
+                        std::string(
+                                "Cannot compute fixed record width. Unsupported type: ") +
                         field->type()->ToString());
             }
         }

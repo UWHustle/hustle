@@ -83,7 +83,8 @@ public:
      * @param name Name of the column
      * @return A read-only pointer to the column.
      */
-    std::shared_ptr<arrow::Array> get_column_by_name(const std::string &name) const;
+    std::shared_ptr<arrow::Array>
+    get_column_by_name(const std::string &name) const;
 
     /**
      * Determine the first available row that can be used to store the data.

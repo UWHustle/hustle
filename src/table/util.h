@@ -20,7 +20,8 @@
  *
  * TODO: Do we want to throw an expection on error?
  */
-void evaluate_status(const arrow::Status &status, const char *function_name, int line_no);
+void evaluate_status(const arrow::Status &status, const char *function_name,
+                     int line_no);
 
 /**
  * Write a table to a file. Currently, all blocks are written to the same file.
@@ -61,6 +62,7 @@ get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch);
  * @param batch An immutable RecordBatch (read from a file)
  * @return An equivalent mutable RecordBatch
  */
-std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch);
+std::shared_ptr<arrow::RecordBatch>
+copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch);
 
 #endif //HUSTLE_OFFLINE_UTIL_H

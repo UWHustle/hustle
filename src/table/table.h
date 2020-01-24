@@ -30,8 +30,8 @@ public:
      * @param block_capacity Block size
      */
     Table(std::string name,
-            std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-            int block_capacity);
+          std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+          int block_capacity);
 
     //
     /**
