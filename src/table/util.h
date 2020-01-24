@@ -18,7 +18,7 @@
 //
 // The function_name and line_no parameters allow us to find exactly where
 // the error occured, since the same error can be thrown from different places.
-void EvaluateStatus(const arrow::Status& status, const char* function_name, int line_no);
+void evaluate_status(const arrow::Status& status, const char* function_name, int line_no);
 
 // Write a table to a file. Currently, all blocks are written to the same file.
 // TODO(nicholas): write one file for each block

@@ -1,5 +1,3 @@
-
-
 #include "util.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
@@ -11,8 +9,7 @@
 #include "table.h"
 #include "block.h"
 
-
-void EvaluateStatus(const arrow::Status& status, const char* function_name, int line_no) {
+void evaluate_status(const arrow::Status& status, const char* function_name, int line_no) {
     if (!status.ok()) {
         std::cout << "\nInvalid status: " << function_name << ", line " << line_no << std::endl;
         throw std::runtime_error(status.ToString());
@@ -36,9 +33,9 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::Rec
                 std::shared_ptr<arrow::Buffer> offsets;
                 std::shared_ptr<arrow::Buffer> data;
                 status = buffers[1]->Copy(0, buffers[1]->size(), &offsets);
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
                 status = buffers[2]->Copy(0, buffers[2]->size(), &data);
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
                 arraydatas.push_back(arrow::ArrayData::Make(arrow::utf8(), column->length(), {nullptr, offsets, data}));
                 break;
@@ -47,7 +44,7 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::Rec
             case arrow::Type::BOOL: {
                 std::shared_ptr<arrow::Buffer> data;
                 status = buffers[1]->Copy(0, buffers[1]->size(), &data);
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
                 arraydatas.push_back(arrow::ArrayData::Make(arrow::boolean(), column->length(), {nullptr, data}));
                 break;
@@ -55,7 +52,7 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::Rec
             case arrow::Type::INT64: {
                 std::shared_ptr<arrow::Buffer> data;
                 status = buffers[1]->Copy(0, buffers[1]->size(), &data);
-                EvaluateStatus(status, __FUNCTION__, __LINE__);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
                 arraydatas.push_back(arrow::ArrayData::Make(arrow::int64(), column->length(), {nullptr, data}));
                 break;
@@ -78,11 +75,11 @@ Table read_from_file(const char* path) {
 
     std::shared_ptr<arrow::io::ReadableFile> infile;
     status = arrow::io::ReadableFile::Open(path, &infile);
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> record_batch_reader;
     status = arrow::ipc::RecordBatchFileReader::Open(infile, &record_batch_reader);
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
     std::shared_ptr<arrow::RecordBatch> in_batch;
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
@@ -127,12 +124,12 @@ void write_to_file(const char* path, Table &table) {
 
     std::shared_ptr<arrow::Schema> write_schema;
     status = table.get_schema()->AddField(0, arrow::field("valid", arrow::boolean()), &write_schema);
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
     status = arrow::io::FileOutputStream::Open(path,&file);
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
+    evaluate_status(status, __FUNCTION__, __LINE__);
     status = arrow::ipc::RecordBatchFileWriter::Open(&*file, table.get_schema()).status();
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
     if (status.ok()) {
         record_batch_writer = arrow::ipc::RecordBatchFileWriter::Open(&*file, write_schema).ValueOrDie();
@@ -142,8 +139,8 @@ void write_to_file(const char* path, Table &table) {
 
     for (int i=0; i<blocks.size(); i++) {
         status = record_batch_writer->WriteRecordBatch(*blocks[i]->get_records());
-        EvaluateStatus(status, __FUNCTION__, __LINE__);
+        evaluate_status(status, __FUNCTION__, __LINE__);
     }
     status = record_batch_writer->Close();
-    EvaluateStatus(status, __FUNCTION__, __LINE__);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 }

@@ -1,4 +1,3 @@
-
 #include "table.h"
 #include "block.h"
 #include <arrow/api.h>
