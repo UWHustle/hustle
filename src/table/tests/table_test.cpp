@@ -53,12 +53,18 @@ TEST(HustleTable, EmptyTable) {
 
     table.insert_record(record_bytes, byte_widths);
 
-    // Fetch each column. We must refetch columns after each insertion in case memory is reallocated upon insertion.
-    valid = std::static_pointer_cast<arrow::BooleanArray>(table.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(table.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(table.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(table.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(table.get_block(0)->get_column(4));
+    // Fetch each column. We must refetch columns after each insertion in case
+    // memory is reallocated upon insertion.
+    valid = std::static_pointer_cast<arrow::BooleanArray>(
+            table.get_block(0)->get_column(0));
+    column1 = std::static_pointer_cast<arrow::Int64Array>(
+            table.get_block(0)->get_column(1));
+    column2 = std::static_pointer_cast<arrow::StringArray>(
+            table.get_block(0)->get_column(2));
+    column3 = std::static_pointer_cast<arrow::StringArray>(
+            table.get_block(0)->get_column(3));
+    column4 = std::static_pointer_cast<arrow::Int64Array>(
+            table.get_block(0)->get_column(4));
 
     num_bytes += record_string.length();
     row = 0;
@@ -78,14 +84,20 @@ TEST(HustleTable, EmptyTable) {
     record_bytes = (uint8_t *) record_string.data();
 
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
+            &f4, sizeof(f4));
     table.insert_record(record_bytes, byte_widths);
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(table.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(table.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(table.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(table.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(table.get_block(0)->get_column(4));
+    valid = std::static_pointer_cast<arrow::BooleanArray>(
+            table.get_block(0)->get_column(0));
+    column1 = std::static_pointer_cast<arrow::Int64Array>(
+            table.get_block(0)->get_column(1));
+    column2 = std::static_pointer_cast<arrow::StringArray>(
+            table.get_block(0)->get_column(2));
+    column3 = std::static_pointer_cast<arrow::StringArray>(
+            table.get_block(0)->get_column(3));
+    column4 = std::static_pointer_cast<arrow::Int64Array>(
+            table.get_block(0)->get_column(4));
 
     num_bytes += record_string.length();
     row = 1;
@@ -108,11 +120,16 @@ TEST(HustleTable, EmptyTable) {
     std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
     table.insert_record(record_bytes, byte_widths);
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(table.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(table.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(table.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(table.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(table.get_block(0)->get_column(4));
+    valid = std::static_pointer_cast<arrow::BooleanArray>(
+            table.get_block(0)->get_column(0));
+    column1 = std::static_pointer_cast<arrow::Int64Array>(
+            table.get_block(0)->get_column(1));
+    column2 = std::static_pointer_cast<arrow::StringArray>(
+            table.get_block(0)->get_column(2));
+    column3 = std::static_pointer_cast<arrow::StringArray>(
+            table.get_block(0)->get_column(3));
+    column4 = std::static_pointer_cast<arrow::Int64Array>(
+            table.get_block(0)->get_column(4));
 
     num_bytes += record_string.length();
     row = 2;
@@ -127,8 +144,10 @@ TEST(HustleTable, EmptyTable) {
     write_to_file("./output.arrow", table);
     Table table_from_file = read_from_file("./output.arrow");
 
-    // Check that the record batch read from the file is the same as the one written to the file.
-    EXPECT_TRUE(table.get_block(0)->get_records()->Equals(*table_from_file.get_block(0)->get_records()));
+    // Check that the record batch read from the file is the same as the one
+    // written to the file.
+    EXPECT_TRUE(table.get_block(0)->get_records()->Equals(
+            *table_from_file.get_block(0)->get_records()));
 
     record_string = "00000000When you add verbiage to a page,you can assume that customers will read 18% of it.00000000";
     byte_widths[1] = 32;
@@ -137,28 +156,36 @@ TEST(HustleTable, EmptyTable) {
     f4 = 7;
     record_bytes = (uint8_t *) record_string.data();
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
+            &f4, sizeof(f4));
 
-    // N = the number of times we can re-insert the third record without needed to create a new block.
+    // N = the number of times we can re-insert the third record without
+    // needing to create a new block.
     int N = table_from_file.get_block(0)->get_bytes_left() / 98;
 
-    // Insert enough records such that we must create a new block containing one record.
+    // Insert enough records such that we must create a new block containing one
+    // record.
     for (int i = 0; i < N + 1; i++) {
         table_from_file.insert_record(record_bytes, byte_widths);
     }
 
-    // At this point, we should have two blocks. The first block should be full, and the second block should have
-    // only one tuple.
+    // At this point, we should have two blocks. The first block should be full,
+    // and the second block should have only one tuple.
 
     EXPECT_EQ(table_from_file.get_num_blocks(), 2);
     EXPECT_EQ(table_from_file.get_block(0)->get_bytes_left(), BLOCK_SIZE - (313 + 98 * 7));
     EXPECT_EQ(table_from_file.get_block(1)->get_bytes_left(), BLOCK_SIZE - 98);
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(table_from_file.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(table_from_file.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(table_from_file.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(table_from_file.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(table_from_file.get_block(0)->get_column(4));
+    valid = std::static_pointer_cast<arrow::BooleanArray>(
+            table_from_file.get_block(0)->get_column(0));
+    column1 = std::static_pointer_cast<arrow::Int64Array>(
+            table_from_file.get_block(0)->get_column(1));
+    column2 = std::static_pointer_cast<arrow::StringArray>(
+            table_from_file.get_block(0)->get_column(2));
+    column3 = std::static_pointer_cast<arrow::StringArray>(
+            table_from_file.get_block(0)->get_column(3));
+    column4 = std::static_pointer_cast<arrow::Int64Array>(
+            table_from_file.get_block(0)->get_column(4));
 
     // Check the contents of tuples in the first block
     for (int i = 0; i < N + 3; i++) {
@@ -188,16 +215,20 @@ TEST(HustleTable, EmptyTable) {
         }
     }
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(table_from_file.get_block(1)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(table_from_file.get_block(1)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(table_from_file.get_block(1)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(table_from_file.get_block(1)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(table_from_file.get_block(1)->get_column(4));
+    valid = std::static_pointer_cast<arrow::BooleanArray>(
+            table_from_file.get_block(1)->get_column(0));
+    column1 = std::static_pointer_cast<arrow::Int64Array>(
+            table_from_file.get_block(1)->get_column(1));
+    column2 = std::static_pointer_cast<arrow::StringArray>(
+            table_from_file.get_block(1)->get_column(2));
+    column3 = std::static_pointer_cast<arrow::StringArray>(
+            table_from_file.get_block(1)->get_column(3));
+    column4 = std::static_pointer_cast<arrow::Int64Array>(
+            table_from_file.get_block(1)->get_column(4));
 
     // Check the contents of the tuple in the second block.
     EXPECT_EQ(column1->Value(0), 12020);
     EXPECT_EQ(column2->GetString(0), "When you add verbiage to a page,");
     EXPECT_EQ(column3->GetString(0), "you can assume that customers will read 18% of it.");
     EXPECT_EQ(column4->Value(0), 7);
-
 }

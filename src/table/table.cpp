@@ -8,23 +8,26 @@
 
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
-        : table_name(std::move(name)), schema(schema), block_counter(0), num_rows(0),
-          block_capacity(block_capacity) {
+        : table_name(std::move(name)), schema(schema), block_counter(0),
+        num_rows(0), block_capacity(block_capacity) {
 
     fixed_record_width = compute_fixed_record_width();
 }
 
 
-Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+Table::Table(
+        std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
              int block_capacity)
         : table_name(std::move(name)), block_counter(0), num_rows(0),
           block_capacity(block_capacity) {
 
-    // The first column of the record batch is the valid column, which should not be visible to Table. So we remove it.
+    // The first column of the record batch is the valid column, which should
+    // not be visible to Table. So we remove it.
     auto fields = record_batches[0]->schema()->fields();
     fields.erase(fields.begin());
     schema = arrow::schema(fields);
-    fixed_record_width = compute_fixed_record_width(); // must be called after schema is set
+    // Must be called only after schema is set
+    fixed_record_width = compute_fixed_record_width();
 
     for (auto batch : record_batches) {
         auto block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
@@ -112,7 +115,6 @@ int Table::compute_fixed_record_width() {
         }
     }
     return fixed_width;
-
 }
 
 
@@ -123,12 +125,9 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
 
     int32_t record_size = 0;
     for (int i = 0; i < schema->num_fields(); i++) {
-        record_size += byte_widths[i]; // TODO: does record size include valid column? If so, this needs to be changed.
+        record_size += byte_widths[i];
     }
 
-    // If the record won't fit in the current block, create a new one. Of course, this is dumb, and needs to be changed
-    // later. We could have get_block_for_insert() accept the record size and then search for a block that has enough
-    // room for it.
     if (block->get_bytes_left() < record_size) {
         block = create_block();
     }
