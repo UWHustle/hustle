@@ -17,7 +17,8 @@ void evaluate_status(const arrow::Status &status, const char *function_name, int
 }
 
 
-std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch) {
+std::shared_ptr<arrow::RecordBatch> copy_record_batch(
+        std::shared_ptr<arrow::RecordBatch> batch) {
 
     arrow::Status status;
     std::vector<std::shared_ptr<arrow::ArrayData>> arraydatas;
@@ -31,12 +32,17 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::Rec
             case arrow::Type::STRING: {
                 std::shared_ptr<arrow::Buffer> offsets;
                 std::shared_ptr<arrow::Buffer> data;
-                status = buffers[1]->Copy(0, buffers[1]->size(), &offsets);
+                status = buffers[1]->Copy(
+                        0, buffers[1]->size(), &offsets);
                 evaluate_status(status, __FUNCTION__, __LINE__);
-                status = buffers[2]->Copy(0, buffers[2]->size(), &data);
+                status = buffers[2]->Copy(
+                        0, buffers[2]->size(), &data);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
-                arraydatas.push_back(arrow::ArrayData::Make(arrow::utf8(), column->length(), {nullptr, offsets, data}));
+                arraydatas.push_back(
+                        arrow::ArrayData::Make(
+                                arrow::utf8(), column->length(),
+                                {nullptr, offsets, data}));
                 break;
             }
 
@@ -45,15 +51,22 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::Rec
                 status = buffers[1]->Copy(0, buffers[1]->size(), &data);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
-                arraydatas.push_back(arrow::ArrayData::Make(arrow::boolean(), column->length(), {nullptr, data}));
+                arraydatas.push_back(
+                        arrow::ArrayData::Make(
+                                arrow::boolean(), column->length(),
+                                {nullptr, data}));
                 break;
             }
             case arrow::Type::INT64: {
                 std::shared_ptr<arrow::Buffer> data;
-                status = buffers[1]->Copy(0, buffers[1]->size(), &data);
+                status = buffers[1]->Copy(
+                        0, buffers[1]->size(), &data);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
-                arraydatas.push_back(arrow::ArrayData::Make(arrow::int64(), column->length(), {nullptr, data}));
+                arraydatas.push_back(
+                        arrow::ArrayData::Make(
+                                arrow::int64(), column->length(),
+                                {nullptr, data}));
                 break;
             }
             default: {
@@ -64,7 +77,8 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::Rec
         }
     }
 
-    return arrow::RecordBatch::Make(batch->schema(), batch->num_rows(), arraydatas);
+    return arrow::RecordBatch::Make(
+            batch->schema(), batch->num_rows(), arraydatas);
 
 }
 
@@ -77,7 +91,8 @@ Table read_from_file(const char *path) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> record_batch_reader;
-    status = arrow::ipc::RecordBatchFileReader::Open(infile, &record_batch_reader);
+    status = arrow::ipc::RecordBatchFileReader::Open(
+            infile, &record_batch_reader);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     std::shared_ptr<arrow::RecordBatch> in_batch;
@@ -122,16 +137,19 @@ void write_to_file(const char *path, Table &table) {
     arrow::Status status;
 
     std::shared_ptr<arrow::Schema> write_schema;
-    status = table.get_schema()->AddField(0, arrow::field("valid", arrow::boolean()), &write_schema);
+    status = table.get_schema()->AddField(0, arrow::field(
+            "valid", arrow::boolean()), &write_schema);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     status = arrow::io::FileOutputStream::Open(path, &file);
     evaluate_status(status, __FUNCTION__, __LINE__);
-    status = arrow::ipc::RecordBatchFileWriter::Open(&*file, table.get_schema()).status();
+    status = arrow::ipc::RecordBatchFileWriter::Open(
+            &*file, table.get_schema()).status();
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     if (status.ok()) {
-        record_batch_writer = arrow::ipc::RecordBatchFileWriter::Open(&*file, write_schema).ValueOrDie();
+        record_batch_writer = arrow::ipc::RecordBatchFileWriter::Open(
+                &*file, write_schema).ValueOrDie();
     }
 
     auto blocks = table.get_blocks();
