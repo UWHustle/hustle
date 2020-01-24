@@ -4,15 +4,16 @@
 #include <iostream>
 #include "util.h"
 
-Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capacity)
+Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
+             int capacity)
         : num_rows(0), num_bytes(0), capacity(capacity), id(id) {
 
     arrow::Status status;
 
     // Add the valid column to the schema
     status = in_schema->AddField(0,
-            arrow::field("valid", arrow::boolean()),
-            &schema);
+                                 arrow::field("valid", arrow::boolean()),
+                                 &schema);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
@@ -38,17 +39,20 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
                 std::shared_ptr<arrow::ResizableBuffer> offsets;
                 // Although the data buffer is empty, the offsets buffer should
                 // still contain the offset of the first element.
-                status = arrow::AllocateResizableBuffer(sizeof(int32_t), &offsets);
+                status = arrow::AllocateResizableBuffer(sizeof(int32_t),
+                                                        &offsets);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
                 // Make sure the first offset value is set to 0
                 int32_t initial_offset = 0;
                 uint8_t *offsets_data = offsets->mutable_data();
-                std::memcpy(&offsets_data[0], &initial_offset, sizeof(initial_offset));
+                std::memcpy(&offsets_data[0], &initial_offset,
+                            sizeof(initial_offset));
 
                 // Initialize null bitmap buffer to nullptr, since we currently don't use it.
                 columns.push_back(arrow::ArrayData::Make(field->type(), 0,
-                        {nullptr, offsets, data}));
+                                                         {nullptr, offsets,
+                                                          data}));
                 break;
             }
 
@@ -56,7 +60,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
             case arrow::Type::INT64: {
                 // Initialize null bitmap buffer to nullptr, since we currently don't use it.
                 columns.push_back(arrow::ArrayData::Make(field->type(), 0,
-                        {nullptr, data}));
+                                                         {nullptr, data}));
                 break;
             }
             default: {
@@ -97,14 +101,16 @@ int Block::compute_num_bytes() {
             }
             default: {
                 throw std::logic_error(
-                        std::string("Cannot compute fixed record width. Unsupported type: ") +
+                        std::string(
+                                "Cannot compute fixed record width. Unsupported type: ") +
                         field->type()->ToString());
             }
         }
     }
 }
 
-Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capacity)
+Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
+             int capacity)
         : capacity(capacity), id(id), num_bytes(0) {
 
     num_rows = record_batch->num_rows();
@@ -118,13 +124,18 @@ int Block::get_num_rows() const { return num_rows; }
 
 int Block::get_id() const { return id; }
 
-std::shared_ptr<arrow::Array> Block::get_column(int column_index) const { return records->column(column_index); }
+std::shared_ptr<arrow::Array> Block::get_column(int column_index) const {
+    return records->column(column_index);
+}
 
 std::shared_ptr<arrow::Array>
-Block::get_column_by_name(const std::string &name) const { return records->GetColumnByName(name); }
+Block::get_column_by_name(const std::string &name) const {
+    return records->GetColumnByName(name);
+}
 
 int Block::get_free_row_index() const {
-    auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
+    auto valid = std::static_pointer_cast<arrow::BooleanArray>(
+            records->column(0));
     for (int row_index = 0; row_index < num_rows + 1; ++row_index) {
         if (!valid->Value(row_index)) {
             return row_index;
@@ -135,12 +146,14 @@ int Block::get_free_row_index() const {
 }
 
 bool Block::get_valid(unsigned int row_index) const {
-    auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
+    auto valid = std::static_pointer_cast<arrow::BooleanArray>(
+            records->column(0));
     return valid->Value(row_index);
 }
 
 void Block::set_valid(unsigned int row_index, bool val) {
-    auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
+    auto valid = std::static_pointer_cast<arrow::BooleanArray>(
+            records->column(0));
     auto *data = valid->values()->mutable_data();
     if (val) {
         data[row_index / 8] |= (1u << (row_index % 8u));
@@ -165,7 +178,8 @@ void Block::decrement_num_rows() {
 
 void Block::increment_num_bytes(unsigned int n_bytes) {
     if (num_bytes + n_bytes > capacity) {
-        throw std::runtime_error("Incremented number of bytes stored in block beyond capacity");
+        throw std::runtime_error(
+                "Incremented number of bytes stored in block beyond capacity");
     } else {
         num_bytes += n_bytes;
     }
@@ -211,7 +225,8 @@ void Block::print() {
                 }
                 default: {
                     throw std::logic_error(
-                            std::string("Block created with unsupported type: ") +
+                            std::string(
+                                    "Block created with unsupported type: ") +
                             records->schema()->field(i)->type()->ToString());
                 }
             }
@@ -277,9 +292,10 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 // Insert new offset
                 auto *offsets_data = column->data()->GetMutableValues<int32_t>(
                         1, 0);
-                int32_t new_offset = offsets_data[num_rows] + byte_widths[i - 1];
+                int32_t new_offset =
+                        offsets_data[num_rows] + byte_widths[i - 1];
                 std::memcpy(&offsets_data[num_rows + 1], &new_offset,
-                        sizeof(new_offset));
+                            sizeof(new_offset));
 
                 // Insert new data
                 int32_t x = column->value_offset(num_rows);
@@ -316,7 +332,8 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
             default:
                 throw std::logic_error(
-                        std::string("Cannot insert tuple with unsupported type: ") +
+                        std::string(
+                                "Cannot insert tuple with unsupported type: ") +
                         field->type()->ToString());
         }
     }
@@ -326,8 +343,8 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     // Create a new RecordBatch object to assure that records->num_rows_ is
     // consistent with the length of the underlying ArrayData.
     records = arrow::RecordBatch::Make(records->schema(),
-            num_rows,
-            get_columns_from_record_batch(records));
+                                       num_rows,
+                                       get_columns_from_record_batch(records));
 }
 
 

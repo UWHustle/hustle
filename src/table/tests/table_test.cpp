@@ -31,7 +31,8 @@ TEST(HustleTable, EmptyTable) {
     std::shared_ptr<arrow::Field> field2 = arrow::field("B", arrow::utf8());
     std::shared_ptr<arrow::Field> field3 = arrow::field("C", arrow::utf8());
     std::shared_ptr<arrow::Field> field4 = arrow::field("D", arrow::int64());
-    std::shared_ptr<arrow::Schema> schema = arrow::schema({field1, field2, field3, field4});
+    std::shared_ptr<arrow::Schema> schema = arrow::schema(
+            {field1, field2, field3, field4});
 
     std::string record_string;
     uint8_t *record_bytes;
@@ -49,7 +50,8 @@ TEST(HustleTable, EmptyTable) {
     f4 = 37373737;
     record_bytes = (uint8_t *) record_string.data();
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
+                &f4, sizeof(f4));
 
     table.insert_record(record_bytes, byte_widths);
 
@@ -72,8 +74,10 @@ TEST(HustleTable, EmptyTable) {
     EXPECT_EQ(table.get_block(0)->get_num_rows(), 1);
     EXPECT_EQ(valid->Value(row), true);
     EXPECT_EQ(column1->Value(row), f1);
-    EXPECT_EQ(column2->GetString(row), "Mon dessin ne representait pas un chapeau.");
-    EXPECT_EQ(column3->GetString(row), "Il representait un serpent boa qui digerait un elephant.");
+    EXPECT_EQ(column2->GetString(row),
+              "Mon dessin ne representait pas un chapeau.");
+    EXPECT_EQ(column3->GetString(row),
+              "Il representait un serpent boa qui digerait un elephant.");
     EXPECT_EQ(column4->Value(row), f4);
 
     record_string = "00000000Twice two makes four is an excellent thing.Twice two makes five is sometimes a very charming thing too.00000000";
@@ -85,7 +89,7 @@ TEST(HustleTable, EmptyTable) {
 
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
     std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
-            &f4, sizeof(f4));
+                &f4, sizeof(f4));
     table.insert_record(record_bytes, byte_widths);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(
@@ -105,8 +109,10 @@ TEST(HustleTable, EmptyTable) {
     EXPECT_EQ(table.get_block(0)->get_num_rows(), 2);
     EXPECT_EQ(valid->Value(row), true);
     EXPECT_EQ(column1->Value(row), f1);
-    EXPECT_EQ(column2->GetString(row), "Twice two makes four is an excellent thing.");
-    EXPECT_EQ(column3->GetString(row), "Twice two makes five is sometimes a very charming thing too.");
+    EXPECT_EQ(column2->GetString(row),
+              "Twice two makes four is an excellent thing.");
+    EXPECT_EQ(column3->GetString(row),
+              "Twice two makes five is sometimes a very charming thing too.");
     EXPECT_EQ(column4->Value(row), f4);
 
     record_string = "00000000Nullius in verba.Premature optimization is the root of all evil.00000000";
@@ -117,7 +123,8 @@ TEST(HustleTable, EmptyTable) {
     record_bytes = (uint8_t *) record_string.data();
 
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
+                &f4, sizeof(f4));
     table.insert_record(record_bytes, byte_widths);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(
@@ -138,7 +145,8 @@ TEST(HustleTable, EmptyTable) {
     EXPECT_EQ(valid->Value(row), true);
     EXPECT_EQ(column1->Value(row), f1);
     EXPECT_EQ(column2->GetString(row), "Nullius in verba.");
-    EXPECT_EQ(column3->GetString(row), "Premature optimization is the root of all evil.");
+    EXPECT_EQ(column3->GetString(row),
+              "Premature optimization is the root of all evil.");
     EXPECT_EQ(column4->Value(row), f4);
 
     write_to_file("./output.arrow", table);
@@ -157,7 +165,7 @@ TEST(HustleTable, EmptyTable) {
     record_bytes = (uint8_t *) record_string.data();
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
     std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
-            &f4, sizeof(f4));
+                &f4, sizeof(f4));
 
     // N = the number of times we can re-insert the third record without
     // needing to create a new block.
@@ -173,7 +181,8 @@ TEST(HustleTable, EmptyTable) {
     // and the second block should have only one tuple.
 
     EXPECT_EQ(table_from_file.get_num_blocks(), 2);
-    EXPECT_EQ(table_from_file.get_block(0)->get_bytes_left(), BLOCK_SIZE - (313 + 98 * 7));
+    EXPECT_EQ(table_from_file.get_block(0)->get_bytes_left(),
+              BLOCK_SIZE - (313 + 98 * 7));
     EXPECT_EQ(table_from_file.get_block(1)->get_bytes_left(), BLOCK_SIZE - 98);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(
@@ -194,23 +203,30 @@ TEST(HustleTable, EmptyTable) {
 
         if (i == 0) {
             EXPECT_EQ(column1->Value(i), 4242);
-            EXPECT_EQ(column2->GetString(i), "Mon dessin ne representait pas un chapeau.");
-            EXPECT_EQ(column3->GetString(i), "Il representait un serpent boa qui digerait un elephant.");
+            EXPECT_EQ(column2->GetString(i),
+                      "Mon dessin ne representait pas un chapeau.");
+            EXPECT_EQ(column3->GetString(i),
+                      "Il representait un serpent boa qui digerait un elephant.");
             EXPECT_EQ(column4->Value(i), 37373737);
         } else if (i == 1) {
             EXPECT_EQ(column1->Value(i), 1776);
-            EXPECT_EQ(column2->GetString(i), "Twice two makes four is an excellent thing.");
-            EXPECT_EQ(column3->GetString(i), "Twice two makes five is sometimes a very charming thing too.");
+            EXPECT_EQ(column2->GetString(i),
+                      "Twice two makes four is an excellent thing.");
+            EXPECT_EQ(column3->GetString(i),
+                      "Twice two makes five is sometimes a very charming thing too.");
             EXPECT_EQ(column4->Value(i), 1789);
         } else if (i == 2) {
             EXPECT_EQ(column1->Value(i), 481516);
             EXPECT_EQ(column2->GetString(i), "Nullius in verba.");
-            EXPECT_EQ(column3->GetString(i), "Premature optimization is the root of all evil.");
+            EXPECT_EQ(column3->GetString(i),
+                      "Premature optimization is the root of all evil.");
             EXPECT_EQ(column4->Value(i), 2342);
         } else {
             EXPECT_EQ(column1->Value(i), 12020);
-            EXPECT_EQ(column2->GetString(i), "When you add verbiage to a page,");
-            EXPECT_EQ(column3->GetString(i), "you can assume that customers will read 18% of it.");
+            EXPECT_EQ(column2->GetString(i),
+                      "When you add verbiage to a page,");
+            EXPECT_EQ(column3->GetString(i),
+                      "you can assume that customers will read 18% of it.");
             EXPECT_EQ(column4->Value(i), 7);
         }
     }
@@ -229,6 +245,7 @@ TEST(HustleTable, EmptyTable) {
     // Check the contents of the tuple in the second block.
     EXPECT_EQ(column1->Value(0), 12020);
     EXPECT_EQ(column2->GetString(0), "When you add verbiage to a page,");
-    EXPECT_EQ(column3->GetString(0), "you can assume that customers will read 18% of it.");
+    EXPECT_EQ(column3->GetString(0),
+              "you can assume that customers will read 18% of it.");
     EXPECT_EQ(column4->Value(0), 7);
 }

@@ -9,9 +9,11 @@
 #include "table.h"
 #include "block.h"
 
-void evaluate_status(const arrow::Status &status, const char *function_name, int line_no) {
+void evaluate_status(const arrow::Status &status, const char *function_name,
+                     int line_no) {
     if (!status.ok()) {
-        std::cout << "\nInvalid status: " << function_name << ", line " << line_no << std::endl;
+        std::cout << "\nInvalid status: " << function_name << ", line "
+                  << line_no << std::endl;
         throw std::runtime_error(status.ToString());
     }
 }
@@ -100,7 +102,8 @@ Table read_from_file(const char *path) {
 
     for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
 
-        if (record_batch_reader->ReadRecordBatch(i, &in_batch).ok() && in_batch != nullptr) {
+        if (record_batch_reader->ReadRecordBatch(i, &in_batch).ok() &&
+            in_batch != nullptr) {
             auto batch_copy = copy_record_batch(in_batch);
             record_batches.push_back(batch_copy);
         }
@@ -119,7 +122,8 @@ Table read_from_file(const char *path) {
 }
 
 std::vector<std::shared_ptr<arrow::Array>>
-get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch) {
+get_columns_from_record_batch(
+        std::shared_ptr<arrow::RecordBatch> record_batch) {
 
     std::vector<std::shared_ptr<arrow::Array>> columns;
 
@@ -155,7 +159,8 @@ void write_to_file(const char *path, Table &table) {
     auto blocks = table.get_blocks();
 
     for (int i = 0; i < blocks.size(); i++) {
-        status = record_batch_writer->WriteRecordBatch(*blocks[i]->get_records());
+        status = record_batch_writer->WriteRecordBatch(
+                *blocks[i]->get_records());
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
     status = record_batch_writer->Close();
