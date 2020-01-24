@@ -34,7 +34,7 @@ TEST(HustleTable, EmptyTable) {
     std::shared_ptr<arrow::Schema> schema = arrow::schema({field1, field2, field3, field4});
 
     std::string record_string;
-    uint8_t* record_bytes;
+    uint8_t *record_bytes;
     int32_t byte_widths[4] = {8, 0, 0, 8};
     uint64_t f1, f4;
 
@@ -47,9 +47,9 @@ TEST(HustleTable, EmptyTable) {
     byte_widths[2] = 56;
     f1 = 4242;
     f4 = 37373737;
-    record_bytes = (uint8_t*) record_string.data();
+    record_bytes = (uint8_t *) record_string.data();
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1]+byte_widths[2]+byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
 
     table.insert_record(record_bytes, byte_widths);
 
@@ -75,10 +75,10 @@ TEST(HustleTable, EmptyTable) {
     byte_widths[2] = 60;
     f1 = 1776;
     f4 = 1789;
-    record_bytes = (uint8_t*) record_string.data();
+    record_bytes = (uint8_t *) record_string.data();
 
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1]+byte_widths[2]+byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
     table.insert_record(record_bytes, byte_widths);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(table.get_block(0)->get_column(0));
@@ -102,10 +102,10 @@ TEST(HustleTable, EmptyTable) {
     byte_widths[2] = 47;
     f1 = 481516;
     f4 = 2342;
-    record_bytes = (uint8_t*) record_string.data();
+    record_bytes = (uint8_t *) record_string.data();
 
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1]+byte_widths[2]+byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
     table.insert_record(record_bytes, byte_widths);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(table.get_block(0)->get_column(0));
@@ -135,15 +135,15 @@ TEST(HustleTable, EmptyTable) {
     byte_widths[2] = 50;
     f1 = 12020;
     f4 = 7;
-    record_bytes = (uint8_t*) record_string.data();
+    record_bytes = (uint8_t *) record_string.data();
     std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1]+byte_widths[2]+byte_widths[3]], &f4, sizeof(f4));
+    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]], &f4, sizeof(f4));
 
     // N = the number of times we can re-insert the third record without needed to create a new block.
-    int N = table_from_file.get_block(0)->get_bytes_left()/98;
+    int N = table_from_file.get_block(0)->get_bytes_left() / 98;
 
     // Insert enough records such that we must create a new block containing one record.
-    for(int i=0; i<N+1; i++) {
+    for (int i = 0; i < N + 1; i++) {
         table_from_file.insert_record(record_bytes, byte_widths);
     }
 
@@ -151,8 +151,8 @@ TEST(HustleTable, EmptyTable) {
     // only one tuple.
 
     EXPECT_EQ(table_from_file.get_num_blocks(), 2);
-    EXPECT_EQ(table_from_file.get_block(0)->get_bytes_left(), BLOCK_SIZE-(313+98*7));
-    EXPECT_EQ(table_from_file.get_block(1)->get_bytes_left(), BLOCK_SIZE-98);
+    EXPECT_EQ(table_from_file.get_block(0)->get_bytes_left(), BLOCK_SIZE - (313 + 98 * 7));
+    EXPECT_EQ(table_from_file.get_block(1)->get_bytes_left(), BLOCK_SIZE - 98);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(table_from_file.get_block(0)->get_column(0));
     column1 = std::static_pointer_cast<arrow::Int64Array>(table_from_file.get_block(0)->get_column(1));
@@ -161,29 +161,26 @@ TEST(HustleTable, EmptyTable) {
     column4 = std::static_pointer_cast<arrow::Int64Array>(table_from_file.get_block(0)->get_column(4));
 
     // Check the contents of tuples in the first block
-    for (int i=0; i<N+3; i++) {
+    for (int i = 0; i < N + 3; i++) {
 
         EXPECT_EQ(valid->Value(i), true);
 
-        if (i==0) {
+        if (i == 0) {
             EXPECT_EQ(column1->Value(i), 4242);
             EXPECT_EQ(column2->GetString(i), "Mon dessin ne representait pas un chapeau.");
             EXPECT_EQ(column3->GetString(i), "Il representait un serpent boa qui digerait un elephant.");
             EXPECT_EQ(column4->Value(i), 37373737);
-        }
-        else if (i==1) {
+        } else if (i == 1) {
             EXPECT_EQ(column1->Value(i), 1776);
             EXPECT_EQ(column2->GetString(i), "Twice two makes four is an excellent thing.");
             EXPECT_EQ(column3->GetString(i), "Twice two makes five is sometimes a very charming thing too.");
             EXPECT_EQ(column4->Value(i), 1789);
-        }
-        else if (i==2) {
+        } else if (i == 2) {
             EXPECT_EQ(column1->Value(i), 481516);
             EXPECT_EQ(column2->GetString(i), "Nullius in verba.");
             EXPECT_EQ(column3->GetString(i), "Premature optimization is the root of all evil.");
             EXPECT_EQ(column4->Value(i), 2342);
-        }
-        else {
+        } else {
             EXPECT_EQ(column1->Value(i), 12020);
             EXPECT_EQ(column2->GetString(i), "When you add verbiage to a page,");
             EXPECT_EQ(column3->GetString(i), "you can assume that customers will read 18% of it.");
