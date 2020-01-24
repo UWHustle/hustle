@@ -19,6 +19,8 @@ void EvaluateStatus(const arrow::Status& status, const char* function_name, int 
     }
 }
 
+
+
 std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch) {
 
     arrow::Status status;
@@ -95,7 +97,9 @@ Table read_from_file(const char* path) {
     }
 
     int record_width = 0;
-    // Assume that the first batch is the same size as all other batches.
+
+    // The first batch has the same schema as all other batches, otherwise an
+    // error would have been thrown earlier.
     for (const auto &field : record_batches[0]->schema()->fields()) {
         record_width += field->type()->layout().bit_widths[1]/8;
     }
@@ -137,14 +141,7 @@ void write_to_file(const char* path, Table &table) {
     auto blocks = table.get_blocks();
 
     for (int i=0; i<blocks.size(); i++) {
-        auto record_batch = blocks[i]->get_records();
-
-        auto correctly_sized_batch = arrow::RecordBatch::Make(
-                record_batch->schema(),
-                blocks[i]->get_num_rows(),
-                get_columns_from_record_batch(record_batch));
-
-        status = record_batch_writer->WriteRecordBatch(*correctly_sized_batch);
+        status = record_batch_writer->WriteRecordBatch(*blocks[i]->get_records());
         EvaluateStatus(status, __FUNCTION__, __LINE__);
     }
     status = record_batch_writer->Close();

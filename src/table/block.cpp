@@ -10,14 +10,19 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
 
     arrow::Status status;
 
-    // Add valid column to the schema
+    // Add the valid column to the schema
     status = in_schema->AddField(0, arrow::field("valid", arrow::boolean()), &schema);
     EvaluateStatus(status, __FUNCTION__, __LINE__);
 
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 
+
     for (const auto &field : schema->fields()) {
 
+        // Empty ArrayData should be constructed using the constructor that
+        // accepts buffers as parameters. Other constructors will initialize
+        // empty ArrayData (and Array) with nullptrs, making it impossible to
+        // insert data.
         std::shared_ptr<arrow::ArrayData> array_data;
         std::shared_ptr<arrow::ResizableBuffer> data;
 
@@ -30,22 +35,24 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
 
             case arrow::Type::STRING: {
                 std::shared_ptr<arrow::ResizableBuffer> offsets;
-                // Although the data buffer is empty, the offsets buffer should still contain the offset of the
-                // first element.
+                // Although the data buffer is empty, the offsets buffer should
+                // still contain the offset of the first element.
                 status = arrow::AllocateResizableBuffer(sizeof(int32_t), &offsets);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
 
-                // Make sure the first offset value is set to 0, otherwise we're in trouble.
+                // Make sure the first offset value is set to 0
                 int32_t initial_offset = 0;
                 uint8_t* offsets_data = offsets->mutable_data();
                 std::memcpy(&offsets_data[0], &initial_offset, sizeof(initial_offset));
 
+                // Initialize null bitmap buffer to nullptr, since we currently don't use it.
                 columns.push_back(arrow::ArrayData::Make(field->type(), 0, {nullptr, offsets, data}));
                 break;
             }
 
             case arrow::Type::BOOL:
             case arrow::Type::INT64: {
+                // Initialize null bitmap buffer to nullptr, since we currently don't use it.
                 columns.push_back(arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
                 break;
             }
@@ -60,11 +67,10 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema, int capaci
     records = arrow::RecordBatch::Make(this->schema, 0, columns);
 }
 
-// Compute the number of bytes in the block. This function is only called when a block is initialized from a
-// RecordBatch, e.g. when we read in a block from a file.
+
 int Block::compute_num_bytes() {
 
-    // start at i=1 to skip valid column
+    // Start at i=1 to skip valid column
     for (int i=1; i<records->num_columns(); i++) {
 
         std::shared_ptr<arrow::Field> field =  records->schema()->field(i);
@@ -79,6 +85,7 @@ int Block::compute_num_bytes() {
             case arrow::Type::BOOL:
             case arrow::Type::INT64: {
                 auto column = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(records->column(i));
+                // buffer at index 1 is the data buffer.
                 int byte_width = field->type()->layout().bit_widths[1] / 8;
                 num_bytes += byte_width*column->length();
                 break;
@@ -92,7 +99,6 @@ int Block::compute_num_bytes() {
     }
 }
 
-// Initialize block from a RecordBatch
 Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capacity)
         : capacity(capacity), id(id), num_bytes(0) {
 
@@ -113,7 +119,6 @@ std::shared_ptr<arrow::Array> Block::get_column_by_name(const std::string &name)
 
 int Block::get_free_row_index() const {
     auto valid = std::static_pointer_cast<arrow::BooleanArray>(records->column(0));
-    // Determine the first available row that can be used to store the data.
     for (int row_index = 0; row_index < num_rows+1; ++row_index) {
         if (!valid->Value(row_index)) {
             return row_index;
@@ -168,8 +173,6 @@ int Block::get_bytes_left() {
 
 void Block::print() {
 
-    // @TODO: The issue is that raw_data_ and raw_values_data_ are not being updated.
-    // We had the correct data buffers, but GetString() fetches from the internal pointers!
     for (int row = 0; row < num_rows; row++) {
         for (int i = 0; i < records->schema()->num_fields(); i++) {
 
@@ -216,25 +219,30 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
 
     std::vector<arrow::Array> new_columns;
 
+    // Position in the record array
     int head = 0;
+
     for (int i=0; i<records->num_columns(); i++) {
 
         std::shared_ptr<arrow::Field> field = records->schema()->field(i);
         switch (field->type()->id()) {
-            // Although BOOL is a fixed-width type, we must handle it separately, since data is stored at the
-            // bit-level rather than the byte level.
+            // Although BOOL is a fixed-width type, we must handle it
+            // separately, since data is stored at the bit-level rather than
+            // the byte level.
             case arrow::Type::BOOL: {
                 auto column = std::static_pointer_cast<arrow::BooleanArray>(records->column(i));
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         records->column(i)->data()->buffers[1]);
 
-                // Extended the underlying buffers. This may result in copying the data.
+                // Extended the underlying buffers. This may result in copying
+                // the data.
                 if (data_buffer->size() % 8 == 0 && num_rows > 0) {
                     status = data_buffer->Resize(data_buffer->size() + 1);
                     data_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
                 }
-                column->data()->length++;
+
                 set_valid(num_rows, true);
+                column->data()->length++;
                 break;
             }
 
@@ -243,22 +251,22 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
                 auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[1]);
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[2]);
 
-                // Extended the underlying data buffer. This may result in copying the data.
-                // Note that we use index i-1 because byte_widths does not include the byte width of the valid column.
+                // Extended the underlying data and offsets buffer. This may
+                // result in copying the data.
                 status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t));
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
+                // Use index i-1 because byte_widths does not include the byte
+                // width of the valid column.
                 status = data_buffer->Resize(data_buffer->size() + byte_widths[i - 1]);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
 
-
-                // Insert offset. Should be done before data updates, since the data insertion references the offsets
-                // num_rows + 1 because num_rows index tells us where the stirng starts. We want to write where the stirng ends.
+                // Insert new offset
                 auto *offsets_data = column->data()->GetMutableValues<int32_t>(1, 0);
                 int32_t new_offset = offsets_data[num_rows] + byte_widths[i - 1];
                 std::memcpy(&offsets_data[num_rows+1], &new_offset, sizeof(new_offset));
 
-                // Insert data
-                int32_t x = column->value_offset(num_rows); // sometimes this value is garbage???
+                // Insert new data
+                int32_t x = column->value_offset(num_rows);
                 auto *values_data = column->data()->GetMutableValues<uint8_t>(2, column->value_offset(num_rows));
                 std::memcpy(values_data, &record[head], byte_widths[i - 1]);
 
@@ -271,17 +279,12 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
 
                 std::shared_ptr<arrow::Array> column = records->column(i);
 
-                // TODO: buffers still need to be resized in this case!
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(column->data()->buffers[1]);
                 status = data_buffer->Resize(data_buffer->size() + byte_widths[i-1]);
                 EvaluateStatus(status, __FUNCTION__, __LINE__);
-                // Assumes we the underlying data has fixed length. Note that we do not need to downcast
-                // the array. We are simply adding values to the array; we are not performing any operations
-                // with the data.
+
                 column = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(records->column(i));
-                // GetMutableValues() returns a pointer to the ith underlying buffer. Again, the 0th buffer
-                // corresponds to the null bitmap, while the 1st buffer corresponds to the data.
-                // This allows us to access the underlying data arrow without casting to a concrete array type.
+
                 auto* dest = column->data()->GetMutableValues<uint8_t>(1, num_rows*byte_widths[i-1]);
                 std::memcpy(dest, &record[head], byte_widths[i-1]);
 
@@ -299,6 +302,8 @@ bool Block::insert_record(uint8_t* record, int32_t* byte_widths) {
     increment_num_bytes(head);
     increment_num_rows();
 
+    // Create a new RecordBatch object to assure that records->num_rows_ is
+    // consistent with the length of the underlying ArrayData.
     records = arrow::RecordBatch::Make(records->schema(), num_rows, get_columns_from_record_batch(records));
 }
 
