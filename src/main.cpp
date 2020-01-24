@@ -5,6 +5,10 @@
 #include "catalog/TableSchema.h"
 #include "catalog/ColumnSchema.h"
 
+char project[1024];
+char join[1024];
+char nonJoin[1024];
+
 int main(int argc, char *argv[]) {
 
   hustle::HustleDB hustleDB("db_directory");
@@ -29,15 +33,20 @@ int main(int argc, char *argv[]) {
 
   hustleDB.createTable(ts1);
 
+  memset(project, 0, 1024);
+  memset(join, 0, 1024);
+  memset(nonJoin, 0, 1024);
+
   // Get Execution Plan
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
                       "from Subscriber, AccessInfo "
-                      "where Subscriber.c1 = AccessInfo.c3;";
+                      "where Subscriber.c2 = AccessInfo.c3;";
 
   std::cout << "For query: " << query << std::endl <<
                 "The plan is: " << std::endl <<
                 hustleDB.getPlan(query) << std::endl;
 
+  fprintf(stdout, R"({"project": [%s], "join": [%s], "non-join": [%s]})", project, join, nonJoin);
 
   return 0;
 }

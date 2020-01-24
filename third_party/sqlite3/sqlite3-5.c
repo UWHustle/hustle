@@ -1,3 +1,7 @@
+extern char project[];
+extern char join[];
+extern char nonJoin[];
+
 /************** Begin file select.c ******************************************/
 /*
 ** 2001 September 15
@@ -6652,6 +6656,14 @@ SQLITE_PRIVATE int sqlite3Select(
         assert( pMinMaxOrderBy==0 || pMinMaxOrderBy->nExpr==1 );
 
         SELECTTRACE(1,pParse,p,("WhereBegin\n"));
+        
+        currPos = project;
+        for (int i = 0; i < pEList->nExpr; i++) {
+            currPos += sprintf(currPos, "\"%s\"", pEList->a[i].zSpan);
+            if (i != pEList->nExpr - 1) {
+                currPos += sprintf(currPos, ", ");
+            }
+        }
         pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, pMinMaxOrderBy,
                                    0, minMaxFlag, 0);
         if( pWInfo==0 ){
@@ -11851,6 +11863,7 @@ SQLITE_PRIVATE int sqlite3WhereExplainOneScan(
             || (wctrlFlags&(WHERE_ORDERBY_MIN|WHERE_ORDERBY_MAX));
 
     sqlite3StrAccumInit(&str, db, zBuf, sizeof(zBuf), SQLITE_MAX_LENGTH);
+    // printf("sqlite3WhereExplainOneScan\n")
     sqlite3_str_appendall(&str, isSearch ? "SEARCH" : "SCAN");
     if( pItem->pSelect ){
       sqlite3_str_appendf(&str, " SUBQUERY %u", pItem->pSelect->selId);
@@ -20264,7 +20277,30 @@ static int exprIsDeterministic(Expr *p){
 ** be used to compute the appropriate cursor depending on which index is
 ** used.
 */
-SQLITE_PRIVATE WhereInfo *sqlite3WhereBegin(
+
+
+SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
+  if (pExpr->pLeft == NULL && pExpr->pRight == NULL) {
+    if ((pExpr->flags & EP_IntValue) != 0) {
+      currPos += sprintf(currPos, "{\"value\": %d}", pExpr->u.iValue);
+    } else {
+      currPos += sprintf(currPos, "{\"iTable\": %d, \"iColumn\": %d}", pExpr->iTable, pExpr->iColumn);
+    }
+  } else if (pExpr->pLeft != NULL && pExpr->pRight != NULL) {
+    currPos += sprintf(currPos, "{");
+    currPos += sprintf(currPos, "\"left\": ");
+    resolveExpr(pExpr->pLeft);
+    
+    currPos += sprintf(currPos, ", ");
+    currPos += sprintf(currPos, "\"op\": %d, ", pExpr->op);
+
+    currPos += sprintf(currPos, "\"right\": ");
+    resolveExpr(pExpr->pRight);
+    currPos += sprintf(currPos, "}");
+  }
+}
+
+WhereInfo *sqlite3WhereBegin(
   Parse *pParse,          /* The parser context */
   SrcList *pTabList,      /* FROM clause: A list of all tables to be scanned */
   Expr *pWhere,           /* The WHERE clause */
@@ -20559,6 +20595,46 @@ SQLITE_PRIVATE WhereInfo *sqlite3WhereBegin(
   **       LEFT JOIN t2
   **       LEFT JOIN t3 USING (t1.ipk=t3.ipk)
   */
+
+  if (pLoop != NULL) {
+    if (pWInfo->pResultSet != NULL) {
+      currPos = project;
+      for (int i = 0; i < pWInfo->pResultSet->nExpr; i++) {
+        currPos += sprintf(currPos, "\"%s\"", pWInfo->pResultSet->a[i].zSpan);
+
+        if (i != pWInfo->pResultSet->nExpr - 1) {
+          currPos += sprintf(currPos, ", ");
+        }
+      }
+    }
+    
+    currPos = join;
+
+    for (int i = 0; i < pWInfo->nLevel; i++) {
+      WhereLevel level = pWInfo->a[i];
+      currPos += sprintf(currPos, "{\"fromtable\": %d, ", level.iFrom);
+
+      currPos += sprintf(currPos, "\"predicates\": ");
+      if (level.pWLoop->nLTerm == 0) {
+        currPos += sprintf(currPos, "\"NULL\"");
+      } else {
+        for (int j = 0; j < level.pWLoop->nLTerm; j++) {
+          resolveExpr(level.pWLoop->aLTerm[j]->pExpr);
+        }
+      }
+      currPos += sprintf(currPos, "}");
+      if (i != pWInfo->nLevel - 1) {
+        currPos += sprintf(currPos, ", ");
+      }
+    }
+
+    currPos = nonJoin;
+
+  }
+
+
+
+
   notReady = ~(Bitmask)0;
   if( pWInfo->nLevel>=2
    && pResultSet!=0               /* guarantees condition (1) above */
@@ -20797,6 +20873,10 @@ SQLITE_PRIVATE WhereInfo *sqlite3WhereBegin(
     if( (wsFlags&WHERE_MULTI_OR)==0 && (wctrlFlags&WHERE_OR_SUBCLAUSE)==0 ){
       sqlite3WhereAddScanStatus(v, pTabList, pLevel, addrExplain);
     }
+  }
+  if (currPos != NULL) {
+    currPos -= 2;
+    currPos += sprintf(currPos, "");
   }
 
   /* Done. */
@@ -30517,7 +30597,15 @@ SQLITE_API int sqlite3_complete16(const void *zSql){
   sqlite3ValueFree(pVal);
   return rc & 0xff;
 }
+
+
+
+
 #endif /* SQLITE_OMIT_UTF16 */
 #endif /* SQLITE_OMIT_COMPLETE */
 
 /************** End of complete.c ********************************************/
+
+
+
+
