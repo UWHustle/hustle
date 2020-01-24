@@ -90,7 +90,6 @@ private:
     int compute_fixed_record_width();
 
 
-
 };
 
 

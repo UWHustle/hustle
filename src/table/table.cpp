@@ -16,7 +16,7 @@ Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
 
 
 Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-        int block_capacity)
+             int block_capacity)
         : table_name(std::move(name)), block_counter(0), num_rows(0),
           block_capacity(block_capacity) {
 
@@ -33,8 +33,8 @@ Table::Table(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> 
         num_rows += batch->num_rows();
     }
 
-    if (blocks[blocks.size()-1]->get_bytes_left() > fixed_record_width) {
-        mark_block_for_insert(blocks[blocks.size()-1]);
+    if (blocks[blocks.size() - 1]->get_bytes_left() > fixed_record_width) {
+        mark_block_for_insert(blocks[blocks.size() - 1]);
     }
 }
 
@@ -51,7 +51,7 @@ std::shared_ptr<Block> Table::get_block(int block_id) const {
     return blocks.at(block_id);
 }
 
-std::shared_ptr<Block> Table::get_block_for_insert()  {
+std::shared_ptr<Block> Table::get_block_for_insert() {
     std::scoped_lock insert_pool_lock(insert_pool_mutex);
     if (insert_pool.empty()) {
         return create_block();
@@ -80,8 +80,7 @@ void Table::print() {
 
     if (blocks.size() == 0) {
         std::cout << "Table is empty." << std::endl;
-    }
-    else {
+    } else {
         for (int i = 0; i < blocks.size(); i++) {
             blocks[i]->print();
         }
@@ -117,21 +116,20 @@ int Table::compute_fixed_record_width() {
 }
 
 
-
 // Tuple is passed in as an array of bytes which must be parsed.
-void Table::insert_record(uint8_t* record, int32_t* byte_widths) {
+void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
 
     std::shared_ptr<Block> block = get_block_for_insert();
 
     int32_t record_size = 0;
-    for (int i=0; i<schema->num_fields(); i++) {
+    for (int i = 0; i < schema->num_fields(); i++) {
         record_size += byte_widths[i]; // TODO: does record size include valid column? If so, this needs to be changed.
     }
 
     // If the record won't fit in the current block, create a new one. Of course, this is dumb, and needs to be changed
     // later. We could have get_block_for_insert() accept the record size and then search for a block that has enough
     // room for it.
-    if (block->get_bytes_left() < record_size ) {
+    if (block->get_bytes_left() < record_size) {
         block = create_block();
     }
 

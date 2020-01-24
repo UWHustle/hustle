@@ -9,7 +9,7 @@
 #include "table.h"
 #include "block.h"
 
-void evaluate_status(const arrow::Status& status, const char* function_name, int line_no) {
+void evaluate_status(const arrow::Status &status, const char *function_name, int line_no) {
     if (!status.ok()) {
         std::cout << "\nInvalid status: " << function_name << ", line " << line_no << std::endl;
         throw std::runtime_error(status.ToString());
@@ -17,13 +17,12 @@ void evaluate_status(const arrow::Status& status, const char* function_name, int
 }
 
 
-
 std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch) {
 
     arrow::Status status;
     std::vector<std::shared_ptr<arrow::ArrayData>> arraydatas;
 
-    for (int i=0; i<batch->num_columns(); i++) {
+    for (int i = 0; i < batch->num_columns(); i++) {
 
         auto column = batch->column(i);
         auto buffers = column->data()->buffers;
@@ -69,7 +68,7 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(std::shared_ptr<arrow::Rec
 
 }
 
-Table read_from_file(const char* path) {
+Table read_from_file(const char *path) {
 
     arrow::Status status;
 
@@ -84,9 +83,9 @@ Table read_from_file(const char* path) {
     std::shared_ptr<arrow::RecordBatch> in_batch;
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
-    for (int i=0; i< record_batch_reader->num_record_batches(); i++) {
+    for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
 
-        if(record_batch_reader->ReadRecordBatch(i, &in_batch).ok() && in_batch != nullptr) {
+        if (record_batch_reader->ReadRecordBatch(i, &in_batch).ok() && in_batch != nullptr) {
             auto batch_copy = copy_record_batch(in_batch);
             record_batches.push_back(batch_copy);
         }
@@ -98,7 +97,7 @@ Table read_from_file(const char* path) {
     // The first batch has the same schema as all other batches, otherwise an
     // error would have been thrown earlier.
     for (const auto &field : record_batches[0]->schema()->fields()) {
-        record_width += field->type()->layout().bit_widths[1]/8;
+        record_width += field->type()->layout().bit_widths[1] / 8;
     }
 
     return Table("table", record_batches, BLOCK_SIZE);
@@ -109,14 +108,14 @@ get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch) 
 
     std::vector<std::shared_ptr<arrow::Array>> columns;
 
-    for (int i=0; i<record_batch->num_columns(); i++) {
+    for (int i = 0; i < record_batch->num_columns(); i++) {
         columns.push_back(record_batch->column(i));
     }
 
     return columns;
 }
 
-void write_to_file(const char* path, Table &table) {
+void write_to_file(const char *path, Table &table) {
 
     std::shared_ptr<arrow::io::FileOutputStream> file;
     std::shared_ptr<arrow::ipc::RecordBatchWriter> record_batch_writer;
@@ -126,7 +125,7 @@ void write_to_file(const char* path, Table &table) {
     status = table.get_schema()->AddField(0, arrow::field("valid", arrow::boolean()), &write_schema);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    status = arrow::io::FileOutputStream::Open(path,&file);
+    status = arrow::io::FileOutputStream::Open(path, &file);
     evaluate_status(status, __FUNCTION__, __LINE__);
     status = arrow::ipc::RecordBatchFileWriter::Open(&*file, table.get_schema()).status();
     evaluate_status(status, __FUNCTION__, __LINE__);
@@ -137,7 +136,7 @@ void write_to_file(const char* path, Table &table) {
 
     auto blocks = table.get_blocks();
 
-    for (int i=0; i<blocks.size(); i++) {
+    for (int i = 0; i < blocks.size(); i++) {
         status = record_batch_writer->WriteRecordBatch(*blocks[i]->get_records());
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
