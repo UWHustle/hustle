@@ -9,7 +9,7 @@
  * A Hustle Block is a wrapper for an Arrow RecordBatch. An Arrow RecordBatch
  * is a table-like structure containing a vector of equal-length Arrow Arrays
  * An Arrow Array is a contiguous sequence of values of the same type. Both
- * RecordBatch and Array are immutable. Data within an Array can be mutated b
+ * RecordBatch and Array are immutable. Data within an Array can be mutated by
  * accessing the Array's underlying ArrayData, the mutable container holding
  * the data buffer. ArrayData buffers are always padded to multiples of 64
  * bytes.
@@ -19,15 +19,15 @@
  * e.g. inserting an element into ArrayData and incrementing its length will
  * not update the length of the Array.
  *
- * Currently, blocks are initialized with 0 rows, and memory is allocated upo
+ * Currently, blocks are initialized with 0 rows, and memory is allocated upon
  * insertion as needed.
  *
  * Currently, only BOOL, INT64, STRING, and FIXEDSIZEBINARY types are support
  * However, support for any fixed-width type can be added by introducing
  * additional case statements in each switch block.
  *
- * TODO(nicholas): In the future, blocks will "guess" how many records they c
- * hold and allocate enough memory for that many records. If this guess is to
+ * TODO(nicholas): In the future, blocks will "guess" how many records they can
+ * hold and allocate enough memory for that many records. If this guess is too
  * large/small, then we can allocate/deallocate memory accordingly.
  *
  * TODO(nicholas): It may be better to store a vector of mutable ArrayDatas
@@ -179,8 +179,9 @@ private:
 
     // Block ID
     int id;
-
-    std::shared_ptr<arrow::RecordBatch> records;
+    
+    
+    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
     std::shared_ptr<arrow::Schema> schema;
 
     /**
@@ -196,7 +197,8 @@ private:
      */
     int compute_num_bytes();
 
-    // Total number of data bytes stored in the block, excluding the valid column data.
+    // Total number of data bytes stored in the block, excluding the valid
+    // column data.
     int num_bytes;
 
     // Initialized to BLOCK_SIZE
