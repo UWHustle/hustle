@@ -81,7 +81,8 @@ int Block::compute_num_bytes() {
 
             case arrow::Type::STRING: {
                 //TODO(nicholas): is this correct??
-                num_bytes += columns[i]->length;
+                auto *offsets = columns[i]->GetValues<int32_t>(1, 0);
+                num_bytes += offsets[num_rows];
                 break;
             }
             case arrow::Type::BOOL:
@@ -106,6 +107,10 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
         : capacity(capacity), id(id), num_bytes(0) {
 
     num_rows = record_batch->num_rows();
+    schema = std::move(record_batch->schema());
+    for (int i = 0; i< record_batch->num_columns(); i++) {
+        columns.push_back(record_batch->column_data(i));
+    }
     //TODO(nicholas): fix initialization from RecordBatch
 //    records = std::move(record_batch);
     compute_num_bytes();
@@ -201,7 +206,6 @@ void Block::print() {
                 case arrow::Type::STRING: {
                     auto col = std::static_pointer_cast<arrow::StringArray>(
                             arrays[i]);
-                    auto test = col->value_data()->data();
 
                     std::cout << col->GetString(row) << "\t";
                     break;
@@ -331,12 +335,6 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     }
     increment_num_bytes(head);
     increment_num_rows();
-    print();
-    // Create a new RecordBatch object to assure that records->num_rows_ is
-    // consistent with the length of the underlying ArrayData.
-//    records = arrow::RecordBatch::Make(records->schema(),
-//                                       num_rows,
-//                                       get_columns_from_record_batch(records));
 }
 
 
