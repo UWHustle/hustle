@@ -80,7 +80,6 @@ int Block::compute_num_bytes() {
         switch (field->type()->id()) {
 
             case arrow::Type::STRING: {
-                //TODO(nicholas): is this correct??
                 auto *offsets = columns[i]->GetValues<int32_t>(1, 0);
                 num_bytes += offsets[num_rows];
                 break;
@@ -111,8 +110,6 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
     for (int i = 0; i< record_batch->num_columns(); i++) {
         columns.push_back(record_batch->column_data(i));
     }
-    //TODO(nicholas): fix initialization from RecordBatch
-//    records = std::move(record_batch);
     compute_num_bytes();
 }
 
@@ -129,27 +126,26 @@ std::shared_ptr<arrow::Array> Block::get_column(int column_index) const {
 
 std::shared_ptr<arrow::Array>
 Block::get_column_by_name(const std::string &name) const {
-    // TODO(nicholas): need ot search for column by name
-    return nullptr;
+    return arrow::MakeArray(columns[schema->GetFieldIndex(name)]);
 }
 
 int Block::get_free_row_index() const {
-    //TODO(nicholas)
-//    auto valid = std::static_pointer_cast<arrow::BooleanArray>(
-//            columns[0]);
-//    for (int row_index = 0; row_index < num_rows + 1; ++row_index) {
-//        if (!valid->Value(row_index)) {
-//            return row_index;
-//        }
-//    }
-
+    //TODO(nicholas): This may need to change when we reserve space in blocks.
+    // In particular, num_rows is the number valid rows. We will need another
+    // way to fetch the total number of rows in the block (valid + invalid)
+    auto *data = columns[0]->GetMutableValues<uint8_t>(1, 0);
+    for (int i = 0; i < num_rows; i++) {
+        if (data[i/8] >> (i % 8u)) {
+            return i;
+        }
+    }
     return -1;
 }
 
 bool Block::get_valid(unsigned int row_index) const {
     auto *data = columns[0]->GetMutableValues<uint8_t>(1, 0);
     uint8_t byte = data[row_index / 8];
-    return (byte >> (row_index % 8u)) == 1;
+    return (byte >> (row_index % 8u)) == 1u;
 
 }
 
@@ -299,7 +295,6 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                             sizeof(new_offset));
 
                 // Insert new data
-                int32_t x = offsets_data[num_rows]; //TODO(nicholas): correct?
                 auto *values_data = columns[i]->GetMutableValues<uint8_t>(
                         2, offsets_data[num_rows]);
                 std::memcpy(values_data, &record[head], byte_widths[i - 1]);

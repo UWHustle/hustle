@@ -179,8 +179,7 @@ private:
 
     // Block ID
     int id;
-    
-    
+
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
     std::shared_ptr<arrow::Schema> schema;
 
@@ -206,8 +205,6 @@ private:
 
     // Number of rows in the Block, including valid and invalid rows.
     int num_rows;
-
-
 };
 
 #endif //HUSTLE_OFFLINE_BLOCK_H
