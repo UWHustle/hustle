@@ -101,21 +101,12 @@ Table read_from_file(const char *path) {
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
     for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
-
-        if (record_batch_reader->ReadRecordBatch(i, &in_batch).ok() &&
-            in_batch != nullptr) {
+        status = record_batch_reader->ReadRecordBatch(i, &in_batch);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        if (in_batch != nullptr) {
             auto batch_copy = copy_record_batch(in_batch);
             record_batches.push_back(batch_copy);
         }
-
-    }
-
-    int record_width = 0;
-
-    // The first batch has the same schema as all other batches, otherwise an
-    // error would have been thrown earlier.
-    for (const auto &field : record_batches[0]->schema()->fields()) {
-        record_width += field->type()->layout().bit_widths[1] / 8;
     }
 
     return Table("table", record_batches, BLOCK_SIZE);
