@@ -90,6 +90,10 @@ public:
      */
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
 
+    // Print the contents of all blocks in the table, including the valid
+    // column.
+    void print();
+
 private:
     std::string table_name;
 
@@ -122,9 +126,7 @@ private:
     // Total number of rows in all blocks of the table.
     int num_rows;
 
-    // Print the contents of all blocks in the table, including the valid
-    // column.
-    void print();
+
 
     /**
      * @return The minimum number of bytes contained in each record.
