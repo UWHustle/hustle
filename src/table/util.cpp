@@ -292,6 +292,10 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
     record_batch_builder->Flush(&record_batch);
     record_batches.push_back(record_batch);
 
+    file.close();
+
+    return Table("table", record_batches, BLOCK_SIZE);
+
 //    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 //
 //    for (int i = 0; i<schema->num_fields(); i++) {
@@ -299,7 +303,5 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
 //        record_batch_builder->GetField(i)->FinishInternal(&out);
 //        columns.push_back(out);
 //    }
-    file.close();
 
-    return Table("table", record_batches, BLOCK_SIZE);
 }
