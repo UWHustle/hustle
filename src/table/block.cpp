@@ -67,7 +67,6 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
             }
         }
     }
-
 }
 
 
@@ -94,7 +93,7 @@ int Block::compute_num_bytes() {
             default: {
                 throw std::logic_error(
                         std::string(
-                                "Cannot compute fixed record width. Unsupported type: ") +
+                                "Cannot compute record width. Unsupported type: ") +
                         field->type()->ToString());
             }
         }
