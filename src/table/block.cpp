@@ -238,8 +238,17 @@ void Block::print() {
 // Return true is insertion was successful, false otherwise
 bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
-    arrow::Status status;
+    int record_size = 0;
+    for (int i=0; i<schema->num_fields(); i++) {
+        record_size += byte_widths[i];
+    }
 
+    // record does not fit in the block.
+    if (record_size > get_bytes_left()) {
+        return false;
+    }
+
+    arrow::Status status;
     std::vector<arrow::Array> new_columns;
 
     // Position in the record array
@@ -329,6 +338,8 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     }
     increment_num_bytes(head);
     increment_num_rows();
+
+    return true;
 }
 
 
