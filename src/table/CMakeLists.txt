@@ -7,7 +7,8 @@ add_library(
 
 target_include_directories(table PUBLIC ${ARROW_INCLUDE_DIR} )
 target_link_libraries(table PUBLIC
-        ${ARROW_SHARED_LIB})
+        ${ARROW_SHARED_LIB}
+        absl::strings)
 
 add_executable(hustle_table_test "tests/table_test.cpp")
 target_link_libraries(hustle_table_test
