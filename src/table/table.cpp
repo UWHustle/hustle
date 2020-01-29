@@ -94,6 +94,8 @@ void Table::print() {
 std::unordered_map<int, std::shared_ptr<Block>>
 Table::get_blocks() { return blocks; }
 
+// TODO(nicholas): We need to reuse this function outside of Table. Make this
+//  a separate utility function.
 int Table::compute_fixed_record_width() {
 
     int fixed_width = 0;
