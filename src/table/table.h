@@ -126,14 +126,6 @@ private:
     // Total number of rows in all blocks of the table.
     int num_rows;
 
-
-
-    /**
-     * @return The minimum number of bytes contained in each record.
-     */
-    int compute_fixed_record_width();
-
-
 };
 
 

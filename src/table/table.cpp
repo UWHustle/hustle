@@ -4,6 +4,7 @@
 #include <iostream>
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
+#include "util.h"
 
 
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
@@ -11,7 +12,7 @@ Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
         : table_name(std::move(name)), schema(schema), block_counter(0),
           num_rows(0), block_capacity(block_capacity) {
 
-    fixed_record_width = compute_fixed_record_width();
+    fixed_record_width = compute_fixed_record_width(schema);
 }
 
 
@@ -28,7 +29,7 @@ Table::Table(
     fields.erase(fields.begin());
     schema = arrow::schema(fields);
     // Must be called only after schema is set
-    fixed_record_width = compute_fixed_record_width();
+    fixed_record_width = compute_fixed_record_width(schema);
 
     for (auto batch : record_batches) {
         auto block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
@@ -93,34 +94,6 @@ void Table::print() {
 
 std::unordered_map<int, std::shared_ptr<Block>>
 Table::get_blocks() { return blocks; }
-
-// TODO(nicholas): We need to reuse this function outside of Table. Make this
-//  a separate utility function.
-int Table::compute_fixed_record_width() {
-
-    int fixed_width = 0;
-
-    for (auto field : schema->fields()) {
-
-        switch (field->type()->id()) {
-            case arrow::Type::STRING: {
-                break;
-            }
-            case arrow::Type::BOOL:
-            case arrow::Type::INT64: {
-                fixed_width += field->type()->layout().bit_widths[1] / 8;
-                break;
-            }
-            default: {
-                throw std::logic_error(
-                        std::string(
-                                "Cannot compute fixed record width. Unsupported type: ") +
-                        field->type()->ToString());
-            }
-        }
-    }
-    return fixed_width;
-}
 
 
 // Tuple is passed in as an array of bytes which must be parsed.
