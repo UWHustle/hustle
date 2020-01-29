@@ -65,4 +65,8 @@ get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch);
 std::shared_ptr<arrow::RecordBatch>
 copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch);
 
+int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema);
+Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
+        schema);
+
 #endif //HUSTLE_OFFLINE_UTIL_H
