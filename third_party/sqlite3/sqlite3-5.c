@@ -1,6 +1,6 @@
 extern char project[];
-extern char join[];
-extern char nonJoin[];
+extern char indexPred[];
+extern char otherPred[];
 
 /************** Begin file select.c ******************************************/
 /*
@@ -20280,13 +20280,13 @@ static int exprIsDeterministic(Expr *p){
 
 
 SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
-  if (pExpr->pLeft == NULL && pExpr->pRight == NULL) {
-    if ((pExpr->flags & EP_IntValue) != 0) {
+  if (pExpr->pLeft == NULL || pExpr->pRight == NULL) {
+    if (pExpr->op == TK_INTEGER) {
       currPos += sprintf(currPos, "{\"value\": %d}", pExpr->u.iValue);
-    } else {
+    } else if (pExpr->op == TK_COLUMN) {
       currPos += sprintf(currPos, "{\"iTable\": %d, \"iColumn\": %d}", pExpr->iTable, pExpr->iColumn);
     }
-  } else if (pExpr->pLeft != NULL && pExpr->pRight != NULL) {
+  } else {
     currPos += sprintf(currPos, "{");
     currPos += sprintf(currPos, "\"left\": ");
     resolveExpr(pExpr->pLeft);
@@ -20608,28 +20608,28 @@ WhereInfo *sqlite3WhereBegin(
       }
     }
     
-    currPos = join;
+    currPos = indexPred;
 
     for (int i = 0; i < pWInfo->nLevel; i++) {
       WhereLevel level = pWInfo->a[i];
       currPos += sprintf(currPos, "{\"fromtable\": %d, ", level.iFrom);
 
       currPos += sprintf(currPos, "\"predicates\": ");
-      if (level.pWLoop->nLTerm == 0) {
-        currPos += sprintf(currPos, "\"NULL\"");
-      } else {
-        for (int j = 0; j < level.pWLoop->nLTerm; j++) {
-          resolveExpr(level.pWLoop->aLTerm[j]->pExpr);
+
+      currPos += sprintf(currPos, "[");
+      for (int j = 0; j < level.pWLoop->nLTerm; j++) {
+        resolveExpr(level.pWLoop->aLTerm[j]->pExpr);
+        if (j != level.pWLoop->nLTerm - 1) {
+          currPos += sprintf(currPos, ", ");
         }
       }
+      currPos += sprintf(currPos, "]");
       currPos += sprintf(currPos, "}");
       if (i != pWInfo->nLevel - 1) {
         currPos += sprintf(currPos, ", ");
       }
     }
-
-    currPos = nonJoin;
-
+    currPos = otherPred;
   }
 
 
@@ -20878,6 +20878,7 @@ WhereInfo *sqlite3WhereBegin(
     currPos -= 2;
     currPos += sprintf(currPos, "");
   }
+
 
   /* Done. */
   VdbeModuleComment((v, "Begin WHERE-core"));

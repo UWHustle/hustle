@@ -6298,7 +6298,7 @@ static void exprCodeBetween(
     compRight.op = TK_LE;
     compRight.pLeft = pDel;
     compRight.pRight = pExpr->x.pList->a[1].pExpr;
-    /// commented for physical plan
+    //TODO(Lichengxi) commented for physical plan:
     // exprToRegister(pDel, exprCodeVector(pParse, pDel, &regFree1));
     if( xJump ){
       xJump(pParse, &exprAnd, dest, jumpIfNull);
