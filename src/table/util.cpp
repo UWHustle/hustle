@@ -1,10 +1,12 @@
-#include "util.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
 #include <iostream>
+#include <fstream>
 #include <arrow/scalar.h>
+#include "absl/strings/str_split.h"
+#include "absl/strings/numbers.h"
 
 #include "table.h"
 #include "block.h"
@@ -160,9 +162,7 @@ void write_to_file(const char *path, Table &table) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-#include <fstream>
-#include "absl/strings/str_split.h"
-#include "absl/strings/numbers.h"
+
 
 int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema) {
 
@@ -199,11 +199,12 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
     status = schema->AddField(0,arrow::field("valid", arrow::boolean()),
             &schema);
 
-
-
+    // RecordBatchBuilder initializes ArrayBuilders for each field in schema
     std::unique_ptr<arrow::RecordBatchBuilder> record_batch_builder;
     arrow::RecordBatchBuilder::Make(schema,arrow::default_memory_pool(),
                                     &record_batch_builder);
+
+    // We will output a table constructed from these RecordBatches
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
     std::fstream file;
@@ -226,7 +227,7 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
                 break;
             }
             default: {
-                // TODO(nicholas): something here
+                // TODO(nicholas): something here?
             }
         }
     }
@@ -255,10 +256,11 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
                 GetFieldAs<arrow::BooleanBuilder>(0);
         builder->Append(true);
 
-        // Use index i-1 when indexing values, because it does not include
-        // valid column.
+        // Start at i=1 to skip the valid column
         for (int i = 1; i < schema->num_fields(); i++) {
 
+            // Use index i-1 when indexing values, because it does not include
+            // valid column.
             switch (schema->field(i)->type()->id()) {
                 case arrow::Type::STRING: {
                     auto builder = record_batch_builder->
@@ -288,6 +290,7 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
     // TODO(nicholas):  Add a Block construct that accepts a vector of
     //  ArrayData so that you don't need to construct a RecordBatch
 
+    // Finish the final RecordBatch
     std::shared_ptr<arrow::RecordBatch> record_batch;
     record_batch_builder->Flush(&record_batch);
     record_batches.push_back(record_batch);
