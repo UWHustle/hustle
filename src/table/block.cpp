@@ -239,8 +239,9 @@ void Block::print() {
 bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
     int record_size = 0;
-    for (int i=0; i<schema->num_fields(); i++) {
-        record_size += byte_widths[i];
+    // start at i=1 to skip valid column
+    for (int i=1; i<schema->num_fields(); i++) {
+        record_size += byte_widths[i-1];
     }
 
     // record does not fit in the block.
