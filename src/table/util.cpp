@@ -215,12 +215,12 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
     }
 
     int num_bytes = 0;
-    int variable_record_width = 0;
+    int variable_record_width;
     int fixed_record_width = compute_fixed_record_width(schema);
 
     std::vector<int> string_column_indices;
 
-    for (int i = 0; i < schema->num_fields(); i++) {
+    for (int i = 1; i < schema->num_fields(); i++) {
         switch (schema->field(i)->type()->id()) {
             case arrow::Type::STRING: {
                 string_column_indices.push_back(i);
@@ -238,8 +238,9 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
 
         std::vector<std::string> values = absl::StrSplit(line, '|');
 
+        variable_record_width = 0;
         for (int index : string_column_indices) {
-            variable_record_width += values[index].length();
+            variable_record_width += values[index-1].length();
         }
 
         // If adding this record will make the current RecordBatch exceed our
