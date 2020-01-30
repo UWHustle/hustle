@@ -15,6 +15,10 @@ using hustle::catalog::ColumnSchema;
 using hustle::catalog::TableSchema;
 using hustle::catalog::Catalog;
 
+char project[1024];
+char indexPred[1024];
+char otherPred[1024];
+
 TEST(HustleDB, Create) {
   std::filesystem::remove_all("db_directory");
 
