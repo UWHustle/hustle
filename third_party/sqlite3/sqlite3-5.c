@@ -20284,7 +20284,7 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
     if (pExpr->op == TK_INTEGER) {
       currPos += sprintf(currPos, "{\"value\": %d}", pExpr->u.iValue);
     } else if (pExpr->op == TK_COLUMN) {
-      currPos += sprintf(currPos, "{\"iTable\": %d, \"iColumn\": %d}", pExpr->iTable, pExpr->iColumn);
+      currPos += sprintf(currPos, "{\"i_table\": %d, \"i_column\": %d}", pExpr->iTable, pExpr->iColumn);
     }
   } else {
     currPos += sprintf(currPos, "{");

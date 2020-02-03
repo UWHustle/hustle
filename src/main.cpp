@@ -4,6 +4,9 @@
 #include "catalog/Catalog.h"
 #include "catalog/TableSchema.h"
 #include "catalog/ColumnSchema.h"
+#include <frontend/ParseTree.h>
+
+using hustle::frontend::ParseTree;
 
 char project[1024];
 char indexPred[1024];
@@ -46,7 +49,27 @@ int main(int argc, char *argv[]) {
                 "The plan is: " << std::endl <<
                 hustleDB.getPlan(query) << std::endl;
 
-  fprintf(stdout, R"({"project": [%s], "index-pred": [%s], "other-pred": [%s]})", project, indexPred, otherPred);
+
+  std::string plan_path = "db_directory/plan.json";
+  FILE* fp = fopen(plan_path.c_str(), "w");
+  fprintf(fp, R"({"execution_plan": {"project": [%s], "index_pred": [%s], "other_pred": [%s]}})", project, indexPred, otherPred);
+//  fprintf(fp, R"({"project": [%s], "index_pred": [%s], "other_pred": [%s]})", project, indexPred, otherPred);
+  fprintf(stdout, R"({"project": [%s], "index_pred": [%s], "other_pred": [%s]})", project, indexPred, otherPred);
+  fclose(fp);
+
+  ParseTree parseTree;
+
+  std::ifstream in(plan_path);
+  {
+    cereal::JSONInputArchive iarchive(in);
+    iarchive(parseTree);
+  }
+
+
+
+  cereal::JSONOutputArchive output(std::cout);
+
+  output( cereal::make_nvp("execution_plan", parseTree) );
 
   return 0;
 }
