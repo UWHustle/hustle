@@ -190,8 +190,10 @@ int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema) {
     return fixed_width;
 }
 
+#include <sys/mman.h>
+
 Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
-        schema) {
+        schema, int block_size) {
 
     arrow::Status status;
 
@@ -203,6 +205,7 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
     std::unique_ptr<arrow::RecordBatchBuilder> record_batch_builder;
     arrow::RecordBatchBuilder::Make(schema,arrow::default_memory_pool(),
                                     &record_batch_builder);
+    record_batch_builder->SetInitialCapacity(8192);
 
     // We will output a table constructed from these RecordBatches
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
@@ -234,6 +237,7 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
 
     std::string line;
 
+    auto t1 = std::chrono::high_resolution_clock::now();
     while (getline(file, line)) {
 
         std::vector<std::string> values = absl::StrSplit(line, '|');
@@ -245,7 +249,8 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
 
         // If adding this record will make the current RecordBatch exceed our
         // block size, then start building a new RecordBatch.
-        if (num_bytes + fixed_record_width + variable_record_width > BLOCK_SIZE) {
+        if (num_bytes + fixed_record_width + variable_record_width >
+        block_size) {
             std::shared_ptr<arrow::RecordBatch> record_batch;
             record_batch_builder->Flush(&record_batch);
             record_batches.push_back(record_batch);
@@ -288,6 +293,13 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
         }
     }
 
+    auto t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "READ TIME = " <<
+//    std::chrono::duration_cast<std::chrono::nanoseconds>
+//    (t2-t1).count
+//            () <<
+//              std::endl;
+
     // TODO(nicholas):  Add a Block construct that accepts a vector of
     //  ArrayData so that you don't need to construct a RecordBatch
 
@@ -298,7 +310,7 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
 
     file.close();
 
-    return Table("table", record_batches, BLOCK_SIZE);
+    return Table("table", record_batches, block_size);
 
 //    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 //
