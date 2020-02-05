@@ -174,8 +174,6 @@ TEST_F(HustleBlockTest, ManyInsertBlock) {
     EXPECT_EQ(column3->GetString(row),
               "you can assume that customers will read 18% of it.");
     EXPECT_EQ(column4->Value(row), 7);
-
-    block.print();
 }
 
 TEST_F(HustleBlockTest, FullBlock) {
