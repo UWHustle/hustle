@@ -53,8 +53,7 @@ int main(int argc, char *argv[]) {
   std::string plan_path = "db_directory/plan.json";
   FILE* fp = fopen(plan_path.c_str(), "w");
   fprintf(fp, R"({"execution_plan": {"project": [%s], "index_pred": [%s], "other_pred": [%s]}})", project, indexPred, otherPred);
-//  fprintf(fp, R"({"project": [%s], "index_pred": [%s], "other_pred": [%s]})", project, indexPred, otherPred);
-  fprintf(stdout, R"({"project": [%s], "index_pred": [%s], "other_pred": [%s]})", project, indexPred, otherPred);
+  fprintf(stdout, R"({"execution_plan": {"project": [%s], "index_pred": [%s], "other_pred": [%s]}})", project, indexPred, otherPred);
   fclose(fp);
 
   ParseTree parseTree;

@@ -20282,9 +20282,9 @@ static int exprIsDeterministic(Expr *p){
 SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
   if (pExpr->pLeft == NULL || pExpr->pRight == NULL) {
     if (pExpr->op == TK_INTEGER) {
-      currPos += sprintf(currPos, "{\"value\": %d}", pExpr->u.iValue);
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"value\": %d, \"i_table\": %d, \"i_column\": %d}", "INTEGER", pExpr->u.iValue, 0, 0);
     } else if (pExpr->op == TK_COLUMN) {
-      currPos += sprintf(currPos, "{\"i_table\": %d, \"i_column\": %d}", pExpr->iTable, pExpr->iColumn);
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"value\": %d, \"i_table\": %d, \"i_column\": %d}", "COLUMN", 0, pExpr->iTable, pExpr->iColumn);
     }
   } else {
     currPos += sprintf(currPos, "{");
