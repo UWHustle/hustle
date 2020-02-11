@@ -4,6 +4,7 @@
 #include <arrow/compute/api.h>
 #include <arrow/compute/kernels/compare.h>
 #include <table/util.h>
+#include <iostream>
 
 #define BLOCK_SIZE 1024
 
@@ -22,19 +23,16 @@ std::vector<std::shared_ptr<Block>> Join::runOperator(std::vector<std::vector<st
   if (left_blocks.size() != right_blocks.size()) {
     // error, block groups not same size
   }
-  auto out = std::vector<std::shared_ptr<Block>>(left_blocks.size());
+  auto out = std::vector<std::shared_ptr<Block>>();
   for (int i = 0; i < left_blocks.size(); i++) {
     // create schema
-    auto schema_fields = std::vector<std::shared_ptr<arrow::Field>>(
-        left_blocks[i]->get_records()->schema()->num_fields() +
-            right_blocks[i]->get_records()->schema()->num_fields()
-    );
+    auto schema_fields = std::vector<std::shared_ptr<arrow::Field>>();
     for (int j = 0; j < left_blocks[i]->get_records()->schema()->num_fields(); j++) {
-      schema_fields.push_back(left_blocks[i]->get_records()->schema()->field(j));
+      schema_fields.push_back(left_blocks[i]->get_records()->schema()->field(j)->Copy());
     }
     for (int j = 0; j < right_blocks[i]->get_records()->schema()->num_fields(); j++) {
       if (right_blocks[i]->get_records()->schema()->field(j)->name() != column_name_) {
-        schema_fields.push_back(right_blocks[i]->get_records()->schema()->field(i));
+        schema_fields.push_back(right_blocks[i]->get_records()->schema()->field(j)->Copy());
       }
     }
     auto out_schema = arrow::schema(schema_fields);
@@ -119,13 +117,13 @@ std::vector<std::shared_ptr<Block>> Join::runOperator(std::vector<std::vector<st
       }
     }
     // convert vector of vectors to vector of arrays
-    auto out_arrays = std::vector<std::shared_ptr<arrow::Array>>(out_record_data.size());
+    auto out_arrays = std::vector<std::shared_ptr<arrow::Array>>();
     for (auto &j : out_record_data) {
       std::shared_ptr<arrow::Array> out_array = nullptr;
       arrow::Int64Builder array_builder = arrow::Int64Builder();
       for (const auto &jj : j) {
-        int64_t a_value = std::static_pointer_cast<arrow::Int64Array>(jj->make_array())->Value(0);
-        status = array_builder.Append(a_value);
+        auto a_value = std::static_pointer_cast<arrow::Int64Scalar>(jj->scalar());
+        status = array_builder.Append(a_value->value);
         if (!status.ok()) {
           // ArrayBuilder append failed
           evaluate_status(status, __FUNCTION__, __LINE__);

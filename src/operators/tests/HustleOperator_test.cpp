@@ -96,7 +96,6 @@ TEST_F(OperatorsTestFixture, AggregateSumTest) {
   auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
   // result/out compare
   auto out_block = aggregate_op->runOperator(input_blocks);
-  auto input_blocks_ref = input_blocks;
   EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 }
 
@@ -148,22 +147,20 @@ TEST_F(OperatorsTestFixture, AggregateMeanTest) {
   auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
   // result/out compare
   auto out_block = aggregate_op->runOperator(input_blocks);
-  auto input_blocks_ref = input_blocks;
   //TODO(nicholas) unsure why this fails.
-  //EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
+  EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 }
 
-/*
 TEST_F(OperatorsTestFixture, JoinTest) {
   auto *join_op = new Join(
-      "int_val"
+      "int_key"
   );
   arrow::Status status;
   // block_1_col_1
   std::shared_ptr<arrow::Array> res_block_col_1 = nullptr;
-  std::shared_ptr<arrow::Field> res_block_col_1_field = arrow::field("string_id", arrow::utf8());
-  arrow::StringBuilder res_block_col_1_builder = arrow::StringBuilder();
-  status = res_block_col_1_builder.AppendValues({"str_A", "str_B", "str_C", "str_D", "str_E"});
+  std::shared_ptr<arrow::Field> res_block_col_1_field = arrow::field("int_key", arrow::int64());
+  arrow::Int64Builder res_block_col_1_builder = arrow::Int64Builder();
+  status = res_block_col_1_builder.AppendValues({10, 20, 30, 75, 100});
   evaluate_status(status, __FUNCTION__, __LINE__);
   status = res_block_col_1_builder.Finish(&res_block_col_1);
   evaluate_status(status, __FUNCTION__, __LINE__);
@@ -171,28 +168,37 @@ TEST_F(OperatorsTestFixture, JoinTest) {
   std::shared_ptr<arrow::Array> res_block_col_2 = nullptr;
   std::shared_ptr<arrow::Field> res_block_col_2_field = arrow::field("int_val", arrow::int64());
   arrow::Int64Builder res_block_col_2_builder = arrow::Int64Builder();
-  status = res_block_col_2_builder.AppendValues({10, 20, 30, 75, 100});
+  status = res_block_col_2_builder.AppendValues({1, 2, 3, 4, 5});
   evaluate_status(status, __FUNCTION__, __LINE__);
   status = res_block_col_2_builder.Finish(&res_block_col_2);
   evaluate_status(status, __FUNCTION__, __LINE__);
   // block_1_col_3
   std::shared_ptr<arrow::Array> res_block_col_3 = nullptr;
-  std::shared_ptr<arrow::Field> res_block_col_3_field = arrow::field("string_id_alt", arrow::utf8());
-  arrow::StringBuilder res_block_col_3_builder = arrow::StringBuilder();
-  status = res_block_col_3_builder.AppendValues({"str_A", "str_B", "str_C", "str_D", "str_E"});
+  std::shared_ptr<arrow::Field> res_block_col_3_field = arrow::field("int_val_alt", arrow::int64());
+  arrow::Int64Builder res_block_col_3_builder = arrow::Int64Builder();
+  status = res_block_col_3_builder.AppendValues({11, 22, 33, 44, 55});
   evaluate_status(status, __FUNCTION__, __LINE__);
   status = res_block_col_3_builder.Finish(&res_block_col_3);
   evaluate_status(status, __FUNCTION__, __LINE__);
+  // input blocks init
+  auto join_input_blocks = std::vector<std::vector<std::shared_ptr<Block>>>();
+  auto join_input_block_1_schema = arrow::schema({res_block_col_1_field, res_block_col_2_field});
+  auto join_input_block_1_record = arrow::RecordBatch::Make(join_input_block_1_schema, 5, {res_block_col_1, res_block_col_2});
+  auto join_input_block_1 = std::make_shared<Block>(Block(rand(), join_input_block_1_record, BLOCK_SIZE));
+  auto join_input_block_2_schema = arrow::schema({res_block_col_1_field, res_block_col_3_field});
+  auto join_input_block_2_record = arrow::RecordBatch::Make(join_input_block_2_schema, 5, {res_block_col_1, res_block_col_3});
+  auto join_input_block_2 = std::make_shared<Block>(Block(rand(), join_input_block_2_record, BLOCK_SIZE));
+  join_input_blocks.push_back({join_input_block_1});
+  join_input_blocks.push_back({join_input_block_2});
   // res_block init
   auto res_block_schema = arrow::schema({res_block_col_1_field, res_block_col_2_field, res_block_col_3_field});
   auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 5, {res_block_col_1, res_block_col_2, res_block_col_3});
   auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
   // result/out compare
-  auto out_block = join_op->runOperator(input_blocks);
-  auto input_blocks_ref = input_blocks;
+  auto out_block = join_op->runOperator(join_input_blocks);
+  //TODO(nicholas) output data values seem malformed. unsure why.
   EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 }
- */
 
 TEST_F(OperatorsTestFixture, SelectTest) {
   int64_t select_val = 30;
@@ -225,6 +231,5 @@ TEST_F(OperatorsTestFixture, SelectTest) {
   auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
   // result/out compare
   auto out_block = select_op->runOperator(input_blocks);
-  auto input_blocks_ref = input_blocks;
   EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 }
