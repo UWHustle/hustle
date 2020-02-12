@@ -51,7 +51,9 @@ public:
     Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity);
 
     /**
-     * Initialize a Block from a RecordBatch read in from a file.
+     * Initialize a Block from a RecordBatch read in from a file. This will
+     * eventually be removed. The constructor that uses a vector of ArrayData
+     * should be used instead.
      *
      * @param id Block ID
      * @param record_batch RecordBatch read from a file
@@ -61,11 +63,29 @@ public:
     capacity);
 
     /**
+     * Initialize a Block from a vector of ArrayData
+     *
+     * @param id Block ID
+     * @param schema Block schema, excluding the valid column
+     * @param column_data ArrayData for each column
+     * @param capacity Maximum number of date bytes to be stored in the Block
+     */
+    Block(int id, const std::shared_ptr<arrow::Schema> &schema,
+            std::vector<std::shared_ptr<arrow::ArrayData>> column_data,
+            int capacity);
+
+    /**
      * Get the Block's ID
      *
      * @return The Block's ID
      */
     int get_id() const;
+
+    /**
+     * Return the block's schema, including the valid column.
+     * @return the block's schema
+     */
+    std::shared_ptr<arrow::Schema> get_schema();
 
     /**
      * Get a column from the Block by index. The indexing of columns is defined
