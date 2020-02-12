@@ -31,7 +31,8 @@ std::vector<std::shared_ptr<Block>> Aggregate::runOperator(std::vector<std::vect
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     auto *out_aggregate = new arrow::compute::Datum();
     // computation
-    auto *out_col = new arrow::compute::Datum();
+//    auto *out_col = new arrow::compute::Datum();
+//    auto *out_col = new arrow::ArrayData();
     for (int j = 0; j < blocks[i]->get_records()->schema()->num_fields(); j++) {
       switch(aggregate_kernel_){
         case SUM: {
@@ -61,6 +62,7 @@ std::vector<std::shared_ptr<Block>> Aggregate::runOperator(std::vector<std::vect
           }
         }
         break;
+        // NOTE: Mean outputs a DOUBLE
         case MEAN: {
           status = arrow::compute::Mean(
               &function_context,
@@ -78,14 +80,20 @@ std::vector<std::shared_ptr<Block>> Aggregate::runOperator(std::vector<std::vect
         // aggregate failed
         evaluate_status(status, __FUNCTION__, __LINE__);
       }
+
       std::shared_ptr<arrow::Array> out_array;
+      auto b = out_aggregate->scalar()->type;
       status = arrow::MakeArrayFromScalar(arrow::default_memory_pool(), *out_aggregate->scalar(), 1, &out_array);
       evaluate_status(status, __FUNCTION__, __LINE__);
       out_data.push_back(out_array->data());
     }
     // create RecordBatch and Block from result
-    auto out_batch = arrow::RecordBatch::Make(arrow::schema({blocks[i]->get_records()->schema()->GetFieldByName(column_name_)}), out_data[0]->length, out_data);
-    std::shared_ptr<Block> out_block = std::make_shared<Block>(Block(rand(), out_batch, out_data[0]->length));
+//    auto out_batch = arrow::RecordBatch::Make(arrow::schema({blocks[i]->get_records()->schema()->GetFieldByName(column_name_)}), out_data[0]->length, out_data);
+      auto out_batch = arrow::RecordBatch::Make(arrow::schema(
+              {arrow::field("mean", arrow::float64())}),
+              out_data[0]->length, out_data);
+        std::shared_ptr<Block> out_block = std::make_shared<Block>(Block(rand
+                (), out_batch, BLOCK_SIZE));
     out.push_back(out_block);
     out_data.clear();
   }
