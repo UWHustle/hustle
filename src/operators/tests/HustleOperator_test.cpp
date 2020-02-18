@@ -10,6 +10,9 @@
 #include "operators/Join.h"
 #include "operators/Select.h"
 
+
+#include <arrow/compute/kernels/filter.h>
+
 #define BLOCK_SIZE 1024
 
 using namespace testing;
