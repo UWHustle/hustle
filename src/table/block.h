@@ -194,6 +194,21 @@ public:
      */
     bool insert_record(uint8_t *record, int32_t *byte_widths);
 
+    /**
+     * Insert one or more records into the Block as a vector of ArrayData.
+     * This insertion method would be used to insert the results of a query, 
+     * since query results are returned as Arrays.
+     *
+     * @param column_data Values to be inserted into each column, including 
+     * the valid column. Columns should be listed in the same order as they 
+     * appear in the Block's schema. The length of column_data must match the
+     * length of the Block's schema. All ArrayData must contain the same 
+     * number of elements.
+     * @return True if insertion was successful, false otherwise.
+     */
+    bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>> 
+    column_data);
+
 
 private:
 
