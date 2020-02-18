@@ -17,7 +17,8 @@ Join::Join(std::string column_name) {
 }
 
 std::shared_ptr<Block> Join::runOperator(
-        std::shared_ptr<Block> left, std::shared_ptr<Block> right) {
+        std::shared_ptr<Block> left, std::shared_ptr<Block> right,
+        std::shared_ptr<Block> out) {
 
     arrow::Status status;
     std::vector<std::shared_ptr<arrow::ArrayData>> out_record_data;
@@ -32,8 +33,6 @@ std::shared_ptr<Block> Join::runOperator(
         }
     }
     auto out_schema = arrow::schema(schema_fields);
-
-
 
     for (int i=0; i< left->get_num_rows(); i++) {
 
@@ -79,18 +78,19 @@ std::shared_ptr<Block> Join::runOperator(
                     right->get_records()->column(col_index),
                     *filter,
                     out_data);
+
             out_record_data.push_back(out_data->array());
         }
 
-        for (int col_index=0; col_index<left->get_num_rows(); col_index++) {
-            auto scalar = std::make_shared<arrow::Int64Scalar>(join_val);
-            std::shared_ptr<arrow::Array> left_col;
-            arrow::MakeArrayFromScalar(*scalar,
-                                       out_record_data[0]->length,
-                                       &left_col);
-
-            out_record_data.push_back(left_col->data());
-        }
+//        for (int col_index=0; col_index<left->get_num_rows(); col_index++) {
+//            auto scalar = std::make_shared<arrow::Int64Scalar>(join_val);
+//            std::shared_ptr<arrow::Array> left_col;
+//            arrow::MakeArrayFromScalar(*scalar,
+//                                       out_record_data[0]->length,
+//                                       &left_col);
+//
+//            out_record_data.push_back(left_col->data());
+//        }
 
     }
 
