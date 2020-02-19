@@ -191,3 +191,45 @@ TEST_F(HustleBlockTest, FullBlock) {
     EXPECT_EQ(result, false);
     EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE - 912);
 }
+
+TEST_F(HustleBlockTest, ArrayInsertBlock) {
+
+    arrow::BooleanBuilder valid_builder;
+    arrow::Int64Builder col1_builder;
+    arrow::StringBuilder col2_builder;
+    arrow::StringBuilder col3_builder;
+    arrow::Int64Builder col4_builder;
+
+    valid_builder.AppendValues(5, true);
+    col1_builder.AppendValues({1,2,3,4,5});
+    col2_builder.AppendValues({"my","name","is","nicholas","corrado"});
+    col3_builder.AppendValues({"a","b","c","d","e"});
+    col4_builder.AppendValues({11,22,33,44,55});
+
+    std::shared_ptr<arrow::BooleanArray> valid;
+    std::shared_ptr<arrow::Int64Array> col1;
+    std::shared_ptr<arrow::StringArray> col2;
+    std::shared_ptr<arrow::StringArray> col3;
+    std::shared_ptr<arrow::Int64Array> col4;
+
+    valid_builder.Finish(&valid);
+    col1_builder.Finish(&col1);
+    col2_builder.Finish(&col2);
+    col3_builder.Finish(&col3);
+    col4_builder.Finish(&col4);
+
+    auto h = col2->value_offset(0);
+
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data;
+    column_data.push_back(valid->data());
+    column_data.push_back(col1->data());
+    column_data.push_back(col2->data());
+    column_data.push_back(col3->data());
+    column_data.push_back(col4->data());
+
+    Block block(0, schema, BLOCK_SIZE);
+    block.insert_records(column_data);
+    block.print();
+
+
+}
