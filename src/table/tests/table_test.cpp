@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <arrow/io/api.h>
 
 #include "gtest/gtest.h"
@@ -12,240 +13,188 @@
 
 using namespace testing;
 
-// TODO(nicholas): Talk to Yannis about structuring tests. Also, when you split
-// this into multiple tests, you should define a test fixture so you can reuse
-// the same data configurations for different tests without reinitializing
-// everything.
-TEST(HustleTable, EmptyTable) {
 
-    int row;
-    int num_bytes = 0;
+class HustleTableTest : public testing::Test {
+protected:
 
-    std::shared_ptr<arrow::BooleanArray> valid;
-    std::shared_ptr<arrow::Int64Array> column1;
-    std::shared_ptr<arrow::StringArray> column2;
-    std::shared_ptr<arrow::StringArray> column3;
-    std::shared_ptr<arrow::Int64Array> column4;
-
-    std::shared_ptr<arrow::Field> field1 = arrow::field("A", arrow::int64());
-    std::shared_ptr<arrow::Field> field2 = arrow::field("B", arrow::utf8());
-    std::shared_ptr<arrow::Field> field3 = arrow::field("C", arrow::utf8());
-    std::shared_ptr<arrow::Field> field4 = arrow::field("D", arrow::int64());
-    std::shared_ptr<arrow::Schema> schema = arrow::schema(
-            {field1, field2, field3, field4});
-
+    std::shared_ptr<arrow::Schema> schema;
     std::string record_string;
-    uint8_t *record_bytes;
-    int32_t byte_widths[4] = {8, 0, 0, 8};
-    uint64_t f1, f4;
+    int32_t byte_widths[4] = {8, 42, 56, 8};
+
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data;
+
+    void SetUp() override {
+
+        std::shared_ptr<arrow::Field> field1 = arrow::field("A",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field> field2 = arrow::field("B", arrow::utf8());
+        std::shared_ptr<arrow::Field> field3 = arrow::field("C", arrow::utf8());
+        std::shared_ptr<arrow::Field> field4 = arrow::field("D",
+                                                            arrow::int64());
+        schema = arrow::schema(
+                {field1, field2, field3, field4});
+
+        record_string = "00000000Mon dessin ne representait pas un chapeau.Il representait un serpent boa qui digerait un elephant.00000000";
+        int64_t f1 = 4242;
+        int64_t f4 = 37373737;
+        auto *record_1 = (uint8_t *) record_string.data();
+        std::memcpy(&record_1[0], &f1, sizeof(f1));
+        std::memcpy(&record_1[byte_widths[1] + byte_widths[2] +
+                              byte_widths[3]], &f4, sizeof(f4));
+
+        std::ofstream csv_file;
+        csv_file.open("table_test.csv");
+        for (int i = 0; i < 9; i++) {
+            csv_file
+                    << "4242|Mon dessin ne representait pas un chapeau.|Il representait un serpent boa qui digerait un elephant.|37373737\n";
+        }
+        csv_file.close();
+
+
+        //*****************************
+
+        arrow::BooleanBuilder valid_builder;
+        arrow::Int64Builder col1_builder;
+        arrow::StringBuilder col2_builder;
+        arrow::StringBuilder col3_builder;
+        arrow::Int64Builder col4_builder;
+
+        valid_builder.AppendValues(3, true);
+        col1_builder.AppendValues({1, 2, 3});
+        col2_builder.AppendValues({"nicholas", "edward", "corrado"});
+        col3_builder.AppendValues({"a", "b", "c"});
+        col4_builder.AppendValues({11, 22, 33});
+
+        std::shared_ptr<arrow::BooleanArray> valid;
+        std::shared_ptr<arrow::Int64Array> col1;
+        std::shared_ptr<arrow::StringArray> col2;
+        std::shared_ptr<arrow::StringArray> col3;
+        std::shared_ptr<arrow::Int64Array> col4;
+
+        valid_builder.Finish(&valid);
+        col1_builder.Finish(&col1);
+        col2_builder.Finish(&col2);
+        col3_builder.Finish(&col3);
+        col4_builder.Finish(&col4);
+
+        column_data.push_back(valid->data());
+        column_data.push_back(col1->data());
+        column_data.push_back(col2->data());
+        column_data.push_back(col3->data());
+        column_data.push_back(col4->data());
+
+
+    }
+
+};
+
+TEST_F(HustleTableTest, EmptyTable) {
 
     Table table("table", schema, BLOCK_SIZE);
+
     EXPECT_EQ(table.get_num_blocks(), 0);
+}
 
-    // Create tuple
-    record_string = "00000000Mon dessin ne representait pas un chapeau.Il representait un serpent boa qui digerait un elephant.00000000";
-    byte_widths[1] = 42;
-    byte_widths[2] = 56;
-    f1 = 4242;
-    f4 = 37373737;
-    record_bytes = (uint8_t *) record_string.data();
-    std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
-                &f4, sizeof(f4));
+TEST_F(HustleTableTest, OneBlockTable) {
 
-    table.insert_record(record_bytes, byte_widths);
+    Table table("table", schema, BLOCK_SIZE);
 
-    // Fetch each column. We must refetch columns after each insertion in case
-    // memory is reallocated upon insertion.
-    valid = std::static_pointer_cast<arrow::BooleanArray>(
-            table.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(
-            table.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(
-            table.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(
-            table.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(
-            table.get_block(0)->get_column(4));
+    table.insert_record((uint8_t *) record_string.data(), byte_widths);
 
-    num_bytes += record_string.length();
-    row = 0;
     EXPECT_EQ(table.get_num_blocks(), 1);
-    EXPECT_EQ(table.get_block(0)->get_num_rows(), 1);
-    EXPECT_EQ(valid->Value(row), true);
-    EXPECT_EQ(column1->Value(row), f1);
-    EXPECT_EQ(column2->GetString(row),
-              "Mon dessin ne representait pas un chapeau.");
-    EXPECT_EQ(column3->GetString(row),
-              "Il representait un serpent boa qui digerait un elephant.");
-    EXPECT_EQ(column4->Value(row), f4);
+}
 
-    record_string = "00000000Twice two makes four is an excellent thing.Twice two makes five is sometimes a very charming thing too.00000000";
-    byte_widths[1] = 43;
-    byte_widths[2] = 60;
-    f1 = 1776;
-    f4 = 1789;
-    record_bytes = (uint8_t *) record_string.data();
+TEST_F(HustleTableTest, OneBlockArray) {
 
-    std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
-                &f4, sizeof(f4));
-    table.insert_record(record_bytes, byte_widths);
+    Table table("table", schema, BLOCK_SIZE);
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(
-            table.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(
-            table.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(
-            table.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(
-            table.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(
-            table.get_block(0)->get_column(4));
+    table.insert_records(column_data);
 
-    num_bytes += record_string.length();
-    row = 1;
     EXPECT_EQ(table.get_num_blocks(), 1);
-    EXPECT_EQ(table.get_block(0)->get_num_rows(), 2);
-    EXPECT_EQ(valid->Value(row), true);
-    EXPECT_EQ(column1->Value(row), f1);
-    EXPECT_EQ(column2->GetString(row),
-              "Twice two makes four is an excellent thing.");
-    EXPECT_EQ(column3->GetString(row),
-              "Twice two makes five is sometimes a very charming thing too.");
-    EXPECT_EQ(column4->Value(row), f4);
+}
 
-    record_string = "00000000Nullius in verba.Premature optimization is the root of all evil.00000000";
-    byte_widths[1] = 17;
-    byte_widths[2] = 47;
-    f1 = 481516;
-    f4 = 2342;
-    record_bytes = (uint8_t *) record_string.data();
+TEST_F(HustleTableTest, TwoBlockArray) {
 
-    std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
-                &f4, sizeof(f4));
-    table.insert_record(record_bytes, byte_widths);
+    Table table("table", schema, BLOCK_SIZE);
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(
-            table.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(
-            table.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(
-            table.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(
-            table.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(
-            table.get_block(0)->get_column(4));
-
-    num_bytes += record_string.length();
-    row = 2;
-    EXPECT_EQ(table.get_num_blocks(), 1);
-    EXPECT_EQ(table.get_block(0)->get_num_rows(), 3);
-    EXPECT_EQ(valid->Value(row), true);
-    EXPECT_EQ(column1->Value(row), f1);
-    EXPECT_EQ(column2->GetString(row), "Nullius in verba.");
-    EXPECT_EQ(column3->GetString(row),
-              "Premature optimization is the root of all evil.");
-    EXPECT_EQ(column4->Value(row), f4);
-
-    write_to_file("./output.arrow", table);
-    Table table_from_file = read_from_file("./output.arrow");
-
-    // Check that the record batch read from the file is the same as the one
-    // written to the file.
-    EXPECT_TRUE(table.get_block(0)->get_records()->Equals(
-            *table_from_file.get_block(0)->get_records()));
-
-    record_string = "00000000When you add verbiage to a page,you can assume that customers will read 18% of it.00000000";
-    byte_widths[1] = 32;
-    byte_widths[2] = 50;
-    f1 = 12020;
-    f4 = 7;
-    record_bytes = (uint8_t *) record_string.data();
-    std::memcpy(&record_bytes[0], &f1, sizeof(f1));
-    std::memcpy(&record_bytes[byte_widths[1] + byte_widths[2] + byte_widths[3]],
-                &f4, sizeof(f4));
-
-    // N = the number of times we can re-insert the third record without
-    // needing to create a new block.
-    int N = table_from_file.get_block(0)->get_bytes_left() / 98;
-
-    // Insert enough records such that we must create a new block containing one
-    // record.
-    for (int i = 0; i < N + 1; i++) {
-        table_from_file.insert_record(record_bytes, byte_widths);
+    // Inserting three records 14 times. This fits into one block.
+    for (int i = 0; i < 14; i++) {
+        table.insert_records(column_data);
     }
 
-    // At this point, we should have two blocks. The first block should be full,
-    // and the second block should have only one tuple.
+    // Bulk inserting again should allocate a new block
+    table.insert_records(column_data);
 
-    EXPECT_EQ(table_from_file.get_num_blocks(), 2);
-    EXPECT_EQ(table_from_file.get_block(0)->get_bytes_left(),
-              BLOCK_SIZE - (313 + 98 * 7));
-    EXPECT_EQ(table_from_file.get_block(1)->get_bytes_left(), BLOCK_SIZE - 98);
+    EXPECT_EQ(table.get_num_blocks(), 2);
+}
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(
-            table_from_file.get_block(0)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(
-            table_from_file.get_block(0)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(
-            table_from_file.get_block(0)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(
-            table_from_file.get_block(0)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(
-            table_from_file.get_block(0)->get_column(4));
 
-    // Check the contents of tuples in the first block
-    for (int i = 0; i < N + 3; i++) {
+TEST_F(HustleTableTest, TwoBlockTable) {
 
-        EXPECT_EQ(valid->Value(i), true);
+    Table table("table", schema, BLOCK_SIZE);
 
-        if (i == 0) {
-            EXPECT_EQ(column1->Value(i), 4242);
-            EXPECT_EQ(column2->GetString(i),
-                      "Mon dessin ne representait pas un chapeau.");
-            EXPECT_EQ(column3->GetString(i),
-                      "Il representait un serpent boa qui digerait un elephant.");
-            EXPECT_EQ(column4->Value(i), 37373737);
-        } else if (i == 1) {
-            EXPECT_EQ(column1->Value(i), 1776);
-            EXPECT_EQ(column2->GetString(i),
-                      "Twice two makes four is an excellent thing.");
-            EXPECT_EQ(column3->GetString(i),
-                      "Twice two makes five is sometimes a very charming thing too.");
-            EXPECT_EQ(column4->Value(i), 1789);
-        } else if (i == 2) {
-            EXPECT_EQ(column1->Value(i), 481516);
-            EXPECT_EQ(column2->GetString(i), "Nullius in verba.");
-            EXPECT_EQ(column3->GetString(i),
-                      "Premature optimization is the root of all evil.");
-            EXPECT_EQ(column4->Value(i), 2342);
-        } else {
-            EXPECT_EQ(column1->Value(i), 12020);
-            EXPECT_EQ(column2->GetString(i),
-                      "When you add verbiage to a page,");
-            EXPECT_EQ(column3->GetString(i),
-                      "you can assume that customers will read 18% of it.");
-            EXPECT_EQ(column4->Value(i), 7);
-        }
+    // With 1 KB block size, we can store 8 copies of the first record in one
+    // block.
+    for (int i = 0; i < 8; i++) {
+        table.insert_record((uint8_t *) record_string.data(), byte_widths);
     }
 
-    valid = std::static_pointer_cast<arrow::BooleanArray>(
-            table_from_file.get_block(1)->get_column(0));
-    column1 = std::static_pointer_cast<arrow::Int64Array>(
-            table_from_file.get_block(1)->get_column(1));
-    column2 = std::static_pointer_cast<arrow::StringArray>(
-            table_from_file.get_block(1)->get_column(2));
-    column3 = std::static_pointer_cast<arrow::StringArray>(
-            table_from_file.get_block(1)->get_column(3));
-    column4 = std::static_pointer_cast<arrow::Int64Array>(
-            table_from_file.get_block(1)->get_column(4));
+    // The first block cannot hold a 9th copy of the first record, so we must
+    // create a new block.
+    table.insert_record((uint8_t *) record_string.data(),
+                        byte_widths);
 
-    // Check the contents of the tuple in the second block.
-    EXPECT_EQ(column1->Value(0), 12020);
-    EXPECT_EQ(column2->GetString(0), "When you add verbiage to a page,");
-    EXPECT_EQ(column3->GetString(0),
-              "you can assume that customers will read 18% of it.");
-    EXPECT_EQ(column4->Value(0), 7);
+    EXPECT_EQ(table.get_num_blocks(), 2);
+}
+
+TEST_F(HustleTableTest, TableIO) {
+
+    Table table("table", schema, BLOCK_SIZE);
+
+    table.insert_records(column_data);
+    table.insert_record((uint8_t *) record_string.data(), byte_widths);
+    table.insert_records(column_data);
+
+    for (int i = 0; i < 8; i++) {
+        table.insert_record((uint8_t *) record_string.data(), byte_widths);
+    }
+
+    // The first block cannot hold a 9th copy of the first record, so we must
+    // create a new block.
+    table.insert_record((uint8_t *) record_string.data(),
+                        byte_widths);
+
+    write_to_file("table.hsl", table);
+    Table table_from_file = read_from_file("table.hsl");
+
+    EXPECT_TRUE(table_from_file.get_block(0)->get_records()->
+            Equals(*table.get_block(0)->get_records()));
+    EXPECT_TRUE(table_from_file.get_block(1)->get_records()->
+            Equals(*table.get_block(1)->get_records()));
+
+}
+
+TEST_F(HustleTableTest, ReadTableFromCSV) {
+
+    Table table("table", schema, BLOCK_SIZE);
+
+    // With 1 KB block size, we can store 8 copies of the first record in one
+    // block.
+    for (int i = 0; i < 8; i++) {
+        table.insert_record((uint8_t *) record_string.data(), byte_widths);
+    }
+
+
+    // The first block cannot hold a 9th copy of the first record, so we must
+    // create a new block.
+    table.insert_record((uint8_t *) record_string.data(),
+                        byte_widths);
+
+    Table table_from_csv = read_from_csv_file
+            ("table_test.csv", schema, BLOCK_SIZE);
+
+    EXPECT_TRUE(table_from_csv.get_block(0)->get_records()->
+            Equals(*table.get_block(0)->get_records()));
+    EXPECT_TRUE(table_from_csv.get_block(1)->get_records()->
+            Equals(*table.get_block(1)->get_records()));
 }

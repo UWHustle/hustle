@@ -80,6 +80,21 @@ public:
     void insert_record(uint8_t *record, int32_t *byte_widths);
 
     /**
+     * Insert one or more records into the Table as a vector of ArrayData.
+     * This insertion method would be used to insert the results of a query,
+     * since query results are returned as Arrays.
+     *
+     * @param column_data Values to be inserted into each column, including
+     * the valid column. Columns should be listed in the same order as they
+     * appear in the Table's schema. The length of column_data must match the
+     * length of the Table's schema. All ArrayData must contain the same
+     * number of elements.
+     * @return True if insertion was successful, false otherwise.
+     */
+    void insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
+                        column_data);
+
+    /**
      * @return The Table's schema, excluding the valid column of the underlying
      * Blocks
      */
@@ -89,6 +104,10 @@ public:
      * @return A map storing the Table's Blocks
      */
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
+
+    // Print the contents of all blocks in the table, including the valid
+    // column.
+    void print();
 
 private:
     std::string table_name;
@@ -121,16 +140,6 @@ private:
 
     // Total number of rows in all blocks of the table.
     int num_rows;
-
-    // Print the contents of all blocks in the table, including the valid
-    // column.
-    void print();
-
-    /**
-     * @return The minimum number of bytes contained in each record.
-     */
-    int compute_fixed_record_width();
-
 
 };
 
