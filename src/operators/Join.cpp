@@ -17,11 +17,11 @@ Join::Join(std::string column_name) {
 }
 
 std::shared_ptr<Block> Join::runOperator(
-        std::shared_ptr<Block> left, std::shared_ptr<Block> right,
-        std::shared_ptr<Block> out) {
+        std::shared_ptr<Block> left, std::shared_ptr<Block> right) {
 
     arrow::Status status;
     std::vector<std::shared_ptr<arrow::ArrayData>> out_record_data;
+
 
     auto schema_fields = std::vector<std::shared_ptr<arrow::Field>>();
     for (int j = 0; j < left->get_records()->schema()->num_fields(); j++) {
@@ -33,6 +33,8 @@ std::shared_ptr<Block> Join::runOperator(
         }
     }
     auto out_schema = arrow::schema(schema_fields);
+
+    auto out_block = std::make_shared<Block>(rand(), out_schema, BLOCK_SIZE);
 
     for (int i=0; i< left->get_num_rows(); i++) {
 
@@ -69,32 +71,78 @@ std::shared_ptr<Block> Join::runOperator(
                 filter
         );
 
-        // TODO(nicholas): This is not a natural join; I do not skip the
-        //  duplicate join column.
+        // TODO(nicholas): Need to implement get_schema() or
+        //  get_field() in Block.
         for (int col_index=0; col_index<right->get_num_rows(); col_index++) {
-            auto *out_data = new arrow::compute::Datum();
-            status = arrow::compute::Filter(
-                    &function_context,
-                    right->get_records()->column(col_index),
-                    *filter,
-                    out_data);
+            if (right->get_records()->schema()->field(j)->name() !=
+            column_name_) {
+                auto *out_data = new arrow::compute::Datum();
+                status = arrow::compute::Filter(
+                        &function_context,
+                        right->get_records()->column(col_index),
+                        *filter,
+                        out_data);
 
-            out_record_data.push_back(out_data->array());
+                out_record_data.push_back(out_data->array());
+            }
         }
 
-//        for (int col_index=0; col_index<left->get_num_rows(); col_index++) {
-//            auto scalar = std::make_shared<arrow::Int64Scalar>(join_val);
-//            std::shared_ptr<arrow::Array> left_col;
-//            arrow::MakeArrayFromScalar(*scalar,
-//                                       out_record_data[0]->length,
-//                                       &left_col);
-//
-//            out_record_data.push_back(left_col->data());
-//        }
+        for (int col_index=0; col_index<left->get_records()->num_columns(); col_index++) {
 
+            std::shared_ptr<arrow::Scalar> scalar;
+
+            std::shared_ptr<arrow::Field> field = left->get_records()
+                    ->schema()->field(i);
+
+            switch (field->type()->id()) {
+
+                case arrow::Type::STRING: {
+                    auto column =
+                            std::static_pointer_cast<arrow::StringArray>(
+                            left->get_column(i));
+                    scalar = std::make_shared<arrow::StringScalar>
+                            (column->GetString(i));
+
+                    break;
+                }
+                case arrow::Type::BOOL: {
+                    auto column =
+                            std::static_pointer_cast<arrow::BooleanArray>(
+                                    left->get_column(i));
+                    scalar = std::make_shared<arrow::BooleanScalar>
+                            (column->Value(i));
+                    break;
+                }
+                case arrow::Type::INT64: {
+                    auto column =
+                            std::static_pointer_cast<arrow::Int64Array>(
+                            left->get_column(i));
+                    scalar = std::make_shared<arrow::Int64Scalar>
+                            (column->Value(i));
+                    break;
+                }
+                default: {
+                    throw std::logic_error(
+                            std::string(
+                                    "Cannot join table with "
+                                    "unsupported type: ") +
+                            field->type()->ToString());
+                }
+            }
+
+        std::shared_ptr<arrow::Array> left_col;
+        status = arrow::MakeArrayFromScalar(*scalar,
+                                   out_record_data[0]->length,
+                                   &left_col);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+
+        out_record_data.push_back(left_col->data());
+        }
+
+//        out_block.insert_records(out_record_data);
     }
-
 }
+
 
 std::vector<std::shared_ptr<Block>> Join::runOperator(std::vector<std::vector<std::shared_ptr<Block>>> block_groups) {
   // natural join block_groups[0][x] and block_groups[1][x]
