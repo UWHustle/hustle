@@ -17,6 +17,8 @@ Select::Select(arrow::compute::CompareOperator compare_operator, std::string col
   column_value_ = std::move(column_value);
 }
 
+// TODO(nicholas): returned blocks are generally NOT full. In the future, we
+//   will want to fill the blocks are much as possible.
 std::shared_ptr<Block> Select::runOperatorOnBlock(std::shared_ptr<Block>
         input_block) {
 

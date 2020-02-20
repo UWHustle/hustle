@@ -17,8 +17,7 @@ class Join : public Operator{
   // Operator.h
   std::vector<std::shared_ptr<Block>> runOperator(std::vector<std::vector<std::shared_ptr<Block>>> block_groups) override;
     std::shared_ptr<Block> runOperator(
-            std::shared_ptr<Block> left, std::shared_ptr<Block> right,
-            std::shared_ptr<Block> out);
+            std::shared_ptr<Block> left, std::shared_ptr<Block> right);
 
  private:
   std::string column_name_;
