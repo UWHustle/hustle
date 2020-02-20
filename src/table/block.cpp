@@ -257,6 +257,8 @@ void Block::print() {
     }
 }
 
+// TODO(nicholas) cuyrrently there is no attempt to allocate new memory if
+//  the buffers are too small.
 bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                    column_data) {
     // TODO(nicholas): Currently, no check is done to assure that the Block
@@ -352,9 +354,6 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 columns[i]->length += n;
 
-                for(int k=0; k<num_rows+1; k++) {
-                    std::cout << offsets_data[k] << std::endl;
-                }
                 increment_num_bytes(offsets_data[num_rows+n]);
                 break;
             }
@@ -418,10 +417,10 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
 
-                    // TODO(nicholas)
-
-                        status = data_buffer->Resize(data_buffer->size() + 1);
-                        data_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
+                    // TODO(nicholas) zero padding after reserving will clear
+                    //  the set bits!
+                        status = data_buffer->Reserve(data_buffer->size() + 1);
+//                        data_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
 
 
 
@@ -439,12 +438,12 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 // result in copying the data.
                 // Use index i-1 because byte_widths does not include the byte
                 // width of the valid column.
-                status = data_buffer->Resize(
+                status = data_buffer->Reserve(
                         data_buffer->size() + byte_widths[i - 1]);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
-                status = offsets_buffer->Resize(
+                status = offsets_buffer->Reserve(
                         offsets_buffer->size() + sizeof(int32_t));
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
@@ -473,7 +472,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
 
-                    status = data_buffer->Resize(
+                    status = data_buffer->Reserve(
                             data_buffer->size() + byte_widths[i - 1]);
                     evaluate_status(status, __FUNCTION__, __LINE__);
 
