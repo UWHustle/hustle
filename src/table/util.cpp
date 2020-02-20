@@ -1,10 +1,12 @@
-#include "util.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
 #include <iostream>
+#include <fstream>
 #include <arrow/scalar.h>
+#include "absl/strings/str_split.h"
+#include "absl/strings/numbers.h"
 
 #include "table.h"
 #include "block.h"
@@ -84,6 +86,8 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 
 }
 
+// TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
+// reading blocks we do not intend to mutate.
 Table read_from_file(const char *path) {
 
     arrow::Status status;
@@ -101,21 +105,12 @@ Table read_from_file(const char *path) {
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
     for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
-
-        if (record_batch_reader->ReadRecordBatch(i, &in_batch).ok() &&
-            in_batch != nullptr) {
+        status = record_batch_reader->ReadRecordBatch(i, &in_batch);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        if (in_batch != nullptr) {
             auto batch_copy = copy_record_batch(in_batch);
             record_batches.push_back(batch_copy);
         }
-
-    }
-
-    int record_width = 0;
-
-    // The first batch has the same schema as all other batches, otherwise an
-    // error would have been thrown earlier.
-    for (const auto &field : record_batches[0]->schema()->fields()) {
-        record_width += field->type()->layout().bit_widths[1] / 8;
     }
 
     return Table("table", record_batches, BLOCK_SIZE);
@@ -165,4 +160,164 @@ void write_to_file(const char *path, Table &table) {
     }
     status = record_batch_writer->Close();
     evaluate_status(status, __FUNCTION__, __LINE__);
+}
+
+
+
+int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema) {
+
+    int fixed_width = 0;
+
+    for (auto field : schema->fields()) {
+
+        switch (field->type()->id()) {
+            case arrow::Type::STRING: {
+                break;
+            }
+            case arrow::Type::BOOL:
+            case arrow::Type::INT64: {
+                fixed_width += field->type()->layout().bit_widths[1] / 8;
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                        std::string(
+                                "Cannot compute fixed record width. Unsupported type: ") +
+                        field->type()->ToString());
+            }
+        }
+    }
+    return fixed_width;
+}
+
+#include <sys/mman.h>
+
+Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
+        schema, int block_size) {
+
+    arrow::Status status;
+
+    // Add valid column
+    status = schema->AddField(0,arrow::field("valid", arrow::boolean()),
+            &schema);
+
+    // RecordBatchBuilder initializes ArrayBuilders for each field in schema
+    std::unique_ptr<arrow::RecordBatchBuilder> record_batch_builder;
+    arrow::RecordBatchBuilder::Make(schema,arrow::default_memory_pool(),
+                                    &record_batch_builder);
+    record_batch_builder->SetInitialCapacity(8192);
+
+    // We will output a table constructed from these RecordBatches
+    std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
+
+    std::fstream file;
+    file.open(path, std::ios::in);
+
+    if (!file.is_open()) {
+        std::__throw_runtime_error("Cannot open file.");
+    }
+
+    int num_bytes = 0;
+    int variable_record_width;
+    int fixed_record_width = compute_fixed_record_width(schema);
+
+    std::vector<int> string_column_indices;
+
+    for (int i = 1; i < schema->num_fields(); i++) {
+        switch (schema->field(i)->type()->id()) {
+            case arrow::Type::STRING: {
+                string_column_indices.push_back(i);
+                break;
+            }
+            default: {
+                // TODO(nicholas): something here?
+            }
+        }
+    }
+
+    std::string line;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    while (getline(file, line)) {
+
+        std::vector<std::string> values = absl::StrSplit(line, '|');
+
+        variable_record_width = 0;
+        for (int index : string_column_indices) {
+            variable_record_width += values[index-1].length();
+        }
+
+        // If adding this record will make the current RecordBatch exceed our
+        // block size, then start building a new RecordBatch.
+        if (num_bytes + fixed_record_width + variable_record_width >
+        block_size) {
+            std::shared_ptr<arrow::RecordBatch> record_batch;
+            record_batch_builder->Flush(&record_batch);
+            record_batches.push_back(record_batch);
+            num_bytes = 0;
+        }
+
+        // Update valid column
+        auto builder = record_batch_builder->
+                GetFieldAs<arrow::BooleanBuilder>(0);
+        builder->Append(true);
+
+        // Start at i=1 to skip the valid column
+        for (int i = 1; i < schema->num_fields(); i++) {
+
+            // Use index i-1 when indexing values, because it does not include
+            // valid column.
+            switch (schema->field(i)->type()->id()) {
+                case arrow::Type::STRING: {
+                    auto builder = record_batch_builder->
+                            GetFieldAs<arrow::StringBuilder>(i);
+                    builder->Append(values[i-1]);
+                    num_bytes += values[i-1].length();
+                    break;
+                }
+                case arrow::Type::INT64: {
+                    int64_t out;
+                    absl::SimpleAtoi(values[i-1], &out);
+                    auto builder = record_batch_builder->
+                            GetFieldAs<arrow::Int64Builder>(i);
+                    builder->Append(out);
+                    num_bytes += sizeof(out);
+                    break;
+                }
+                default: {
+                    throw std::logic_error(
+                            std::string("Cannot load data of type ") +
+                            schema->field(i)->type()->ToString());
+                }
+            }
+        }
+    }
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "READ TIME = " <<
+//    std::chrono::duration_cast<std::chrono::nanoseconds>
+//    (t2-t1).count
+//            () <<
+//              std::endl;
+
+    // TODO(nicholas):  Add a Block construct that accepts a vector of
+    //  ArrayData so that you don't need to construct a RecordBatch
+
+    // Finish the final RecordBatch
+    std::shared_ptr<arrow::RecordBatch> record_batch;
+    record_batch_builder->Flush(&record_batch);
+    record_batches.push_back(record_batch);
+
+    file.close();
+
+    return Table("table", record_batches, block_size);
+
+//    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
+//
+//    for (int i = 0; i<schema->num_fields(); i++) {
+//        std::shared_ptr<arrow::ArrayData> out;
+//        record_batch_builder->GetField(i)->FinishInternal(&out);
+//        columns.push_back(out);
+//    }
+
 }
