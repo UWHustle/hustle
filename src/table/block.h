@@ -196,17 +196,17 @@ public:
 
     /**
      * Insert one or more records into the Block as a vector of ArrayData.
-     * This insertion method would be used to insert the results of a query, 
+     * This insertion method would be used to insert the results of a query,
      * since query results are returned as Arrays.
      *
-     * @param column_data Values to be inserted into each column, including 
-     * the valid column. Columns should be listed in the same order as they 
+     * @param column_data Values to be inserted into each column, including
+     * the valid column. Columns should be listed in the same order as they
      * appear in the Block's schema. The length of column_data must match the
-     * length of the Block's schema. All ArrayData must contain the same 
+     * length of the Block's schema. All ArrayData must contain the same
      * number of elements.
      * @return True if insertion was successful, false otherwise.
      */
-    bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>> 
+    bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     column_data);
 
 
@@ -215,8 +215,8 @@ private:
     // Block ID
     int id;
 
-    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
     std::shared_ptr<arrow::Schema> schema;
+    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 
     /**
      * Compute the number of bytes in the block. This function is only called

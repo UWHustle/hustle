@@ -4,13 +4,14 @@
 #include <iostream>
 #include "util.h"
 
-#define ESTIMATED_STR_LEN 3
+#define ESTIMATED_STR_LEN 100
 
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
              int capacity)
         : num_rows(0), num_bytes(0), capacity(capacity), id(id) {
 
     arrow::Status status;
+
 
     int fixed_record_width = compute_fixed_record_width(in_schema);
     int num_string_cols = 0;
@@ -21,7 +22,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
     }
 
     // Estimated number of tuples that will fit in the block, assuming that
-    // strings are on average 20 characters long.
+    // strings are on average ESTIMATED_STR_LEN characters long.
     int init_rows = capacity/(fixed_record_width +ESTIMATED_STR_LEN*num_string_cols);
 
     // Add the valid column to the schema
@@ -32,17 +33,13 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
 
     for (const auto &field : schema->fields()) {
 
+
         // Empty ArrayData should be constructed using the constructor that
         // accepts buffers as parameters. Other constructors will initialize
         // empty ArrayData (and Array) with nullptrs, making it impossible to
         // insert data.
         std::shared_ptr<arrow::ArrayData> array_data;
         std::shared_ptr<arrow::ResizableBuffer> data;
-
-        // Buffers are always padded to multiples of 64 bytes
-        status = arrow::AllocateResizableBuffer(64, &data);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        data->ZeroPadding();
 
         switch (field->type()->id()) {
 
@@ -61,8 +58,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
                 std::memcpy(&offsets_data[0], &initial_offset,
                             sizeof(initial_offset));
 
-                status = arrow::AllocateResizableBuffer
-                        (ESTIMATED_STR_LEN*init_rows, &data);
+                status = arrow::AllocateResizableBuffer(ESTIMATED_STR_LEN*init_rows, &data);
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 data->ZeroPadding();
 
@@ -319,23 +315,36 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 auto in_offsets_data =
                         column_data[i]->GetMutableValues<int32_t>(
                                 1, 0);
+                auto j = in_offsets_data[0];
                 auto in_values_data =
                         column_data[i]->GetMutableValues<uint8_t>(
                                 2, 0);
 
                 // Insert new offset
-                int32_t current_offset = columns[i]->buffers[1]->data()
-                        [num_rows];
 
-                for(int k=0; k<=n; k++) {
-                    in_offsets_data[k] += current_offset;
-                }
                 auto *offsets_data = columns[i]->GetMutableValues<int32_t>(
                         1, 0);
+
+                int32_t current_offset = offsets_data[num_rows];
+                int32_t next = offsets_data[num_rows+1];
+
+                // NOTE: BAD!!! If you want to reuse the input data, the
+                // offsets will be incorrect!
+//                for(int k=0; k<=n; k++) {
+//                    in_offsets_data[k] += current_offset;
+//                }
+
                 std::memcpy(&offsets_data[num_rows], in_offsets_data,
                             sizeof(int32_t)*(n+1));
 
+                // Correct new offsets
+                for(int k=0; k<=n; k++) {
+                    offsets_data[num_rows + k] += current_offset;
+                }
+
                 // Insert new data
+                auto x = offsets_data[num_rows];
+
                 auto *values_data = columns[i]->GetMutableValues<uint8_t>(
                         2, offsets_data[num_rows]);
                 std::memcpy(values_data, in_values_data,
@@ -343,10 +352,10 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 columns[i]->length += n;
 
-                for(int k=0; k<n; k++) {
+                for(int k=0; k<num_rows+1; k++) {
                     std::cout << offsets_data[k] << std::endl;
                 }
-
+                increment_num_bytes(offsets_data[num_rows+n]);
                 break;
             }
                 // This works with any fixed-width type, but for now, I specify INT64
@@ -364,6 +373,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         (1, 0), sizeof(int64_t)*n);
 
                 columns[i]->length += n;
+                increment_num_bytes(n*sizeof(int64_t));
                 break;
             }
 
@@ -409,10 +419,10 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                         columns[i]->buffers[1]);
 
                     // TODO(nicholas)
-                if (data_buffer->size() % 8 == 0 && num_rows > 0) {
+
                         status = data_buffer->Resize(data_buffer->size() + 1);
                         data_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
-                }
+
 
 
                 set_valid(num_rows, true);
@@ -427,21 +437,16 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
                 // Extended the underlying data and offsets buffer. This may
                 // result in copying the data.
-                if (data_buffer->size() + byte_widths[i-1] >
-                    data_buffer->capacity()) {
-                    // Use index i-1 because byte_widths does not include the byte
-                    // width of the valid column.
-                    status = data_buffer->Resize(
-                            data_buffer->size() + byte_widths[i - 1]);
-                    evaluate_status(status, __FUNCTION__, __LINE__);
-                }
+                // Use index i-1 because byte_widths does not include the byte
+                // width of the valid column.
+                status = data_buffer->Resize(
+                        data_buffer->size() + byte_widths[i - 1]);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
-                if (offsets_buffer->size() + sizeof(int32_t) >
-                    data_buffer->capacity()) {
-                    status = offsets_buffer->Resize(
-                            offsets_buffer->size() + sizeof(int32_t));
-                    evaluate_status(status, __FUNCTION__, __LINE__);
-                }
+
+                status = offsets_buffer->Resize(
+                        offsets_buffer->size() + sizeof(int32_t));
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
 
                 // Insert new offset
@@ -449,10 +454,11 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                         1, 0);
                 int32_t new_offset =
                         offsets_data[num_rows] + byte_widths[i - 1];
-                std::memcpy(&offsets_data[num_rows + 1], &new_offset,
+                std::memcpy(&offsets_data[num_rows+1], &new_offset,
                             sizeof(new_offset));
-
+                auto x = offsets_data[num_rows+1];
                 // Insert new data
+                auto g = offsets_data[num_rows];
                 auto *values_data = columns[i]->GetMutableValues<uint8_t>(
                         2, offsets_data[num_rows]);
                 std::memcpy(values_data, &record[head], byte_widths[i - 1]);
@@ -467,12 +473,10 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
 
-                if (data_buffer->size() + sizeof(int64_t) >
-                    data_buffer->capacity()) {
                     status = data_buffer->Resize(
                             data_buffer->size() + byte_widths[i - 1]);
                     evaluate_status(status, __FUNCTION__, __LINE__);
-                }
+
 
                 auto *dest = columns[i]->GetMutableValues<uint8_t>(
                         1, num_rows * byte_widths[i - 1]);
@@ -489,6 +493,8 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                                 "Cannot insert tuple with unsupported type: ") +
                         field->type()->ToString());
         }
+
+
     }
     increment_num_bytes(head);
     increment_num_rows();
