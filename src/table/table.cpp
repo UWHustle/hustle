@@ -120,7 +120,7 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
 
 // Tuple is passed in as an array of bytes which must be parsed.
 void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
-                                    column_data){
+                           column_data) {
 
     int data_size = 0;
     // Start at i=1 to skip valid column

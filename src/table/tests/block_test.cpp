@@ -12,15 +12,17 @@
 
 using namespace testing;
 
-class HustleBlockTest: public testing::Test {
+class HustleBlockTest : public testing::Test {
 protected:
 
     void SetUp() override {
 
-        std::shared_ptr<arrow::Field> field1 = arrow::field("A", arrow::int64());
+        std::shared_ptr<arrow::Field> field1 = arrow::field("A",
+                                                            arrow::int64());
         std::shared_ptr<arrow::Field> field2 = arrow::field("B", arrow::utf8());
         std::shared_ptr<arrow::Field> field3 = arrow::field("C", arrow::utf8());
-        std::shared_ptr<arrow::Field> field4 = arrow::field("D", arrow::int64());
+        std::shared_ptr<arrow::Field> field4 = arrow::field("D",
+                                                            arrow::int64());
         schema = arrow::schema(
                 {field1, field2, field3, field4});
 
@@ -30,40 +32,40 @@ protected:
         record_string_1 = "00000000Mon dessin ne representait pas un chapeau.Il representait un serpent boa qui digerait un elephant.00000000";
         f1 = 4242;
         f4 = 37373737;
-        auto* record_1 = (uint8_t *) record_string_1.data();
+        auto *record_1 = (uint8_t *) record_string_1.data();
         std::memcpy(&record_1[0], &f1, sizeof(f1));
         std::memcpy(&record_1[byte_widths_1[1] + byte_widths_1[2] +
-        byte_widths_1[3]], &f4, sizeof(f4));
+                              byte_widths_1[3]], &f4, sizeof(f4));
 
         // Create record_2
         record_string_2 = "00000000Twice two makes four is an "
-                                  "excellent thing.Twice two makes five is sometimes a very charming thing too.00000000";
+                          "excellent thing.Twice two makes five is sometimes a very charming thing too.00000000";
         f1 = 1776;
         f4 = 1789;
-        auto* record_2 = (uint8_t *) record_string_2.data();
+        auto *record_2 = (uint8_t *) record_string_2.data();
         std::memcpy(&record_2[0], &f1, sizeof(f1));
         std::memcpy(&record_2[byte_widths_2[1] + byte_widths_2[2] +
-        byte_widths_2[3]], &f4, sizeof(f4));
+                              byte_widths_2[3]], &f4, sizeof(f4));
 
         // Create record_3
         record_string_3 = "00000000Nullius in verba.Premature "
-                               "optimization is the root of all evil.00000000";
+                          "optimization is the root of all evil.00000000";
         f1 = 481516;
         f4 = 2342;
-        auto* record_3 = (uint8_t *) record_string_3.data();
+        auto *record_3 = (uint8_t *) record_string_3.data();
         std::memcpy(&record_3[0], &f1, sizeof(f1));
         std::memcpy(&record_3[byte_widths_3[1] + byte_widths_3[2] +
-        byte_widths_3[3]],&f4, sizeof(f4));
+                              byte_widths_3[3]], &f4, sizeof(f4));
 
         // Create record_4
         record_string_4 = "00000000When you add verbiage to a page,"
-                                   "you can assume that customers will read 18% of it.00000000";
+                          "you can assume that customers will read 18% of it.00000000";
         f1 = 12020;
         f4 = 7;
-        auto* record_4 = (uint8_t *) record_string_4.data();
+        auto *record_4 = (uint8_t *) record_string_4.data();
         std::memcpy(&record_4[0], &f1, sizeof(f1));
         std::memcpy(&record_4[byte_widths_4[1] + byte_widths_4[2] +
-        byte_widths_4[3]], &f4, sizeof(f4));
+                              byte_widths_4[3]], &f4, sizeof(f4));
 
         //*****************************
 
@@ -74,10 +76,10 @@ protected:
         arrow::Int64Builder col4_builder;
 
         valid_builder.AppendValues(3, true);
-        col1_builder.AppendValues({1,2,3});
-        col2_builder.AppendValues({"nicholas","edward","corrado"});
-        col3_builder.AppendValues({"a","b","c"});
-        col4_builder.AppendValues({11,22,33});
+        col1_builder.AppendValues({1, 2, 3});
+        col2_builder.AppendValues({"nicholas", "edward", "corrado"});
+        col3_builder.AppendValues({"a", "b", "c"});
+        col4_builder.AppendValues({11, 22, 33});
 
         std::shared_ptr<arrow::BooleanArray> valid;
         std::shared_ptr<arrow::Int64Array> col1;
@@ -133,8 +135,8 @@ TEST_F(HustleBlockTest, EmptyBlock) {
 TEST_F(HustleBlockTest, OneInsertBlock) {
 
     Block block(0, schema, BLOCK_SIZE);
-    bool result = block.insert_record((uint8_t*) record_string_1.data(),
-            byte_widths_1);
+    bool result = block.insert_record((uint8_t *) record_string_1.data(),
+                                      byte_widths_1);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(block.get_column(0));
     column1 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(1));
@@ -157,10 +159,10 @@ TEST_F(HustleBlockTest, OneInsertBlock) {
 TEST_F(HustleBlockTest, ManyInsertBlock) {
 
     Block block(0, schema, BLOCK_SIZE);
-    block.insert_record((uint8_t*) record_string_1.data(), byte_widths_1);
-    block.insert_record((uint8_t*) record_string_2.data(), byte_widths_2);
-    block.insert_record((uint8_t*) record_string_3.data(), byte_widths_3);
-    block.insert_record((uint8_t*) record_string_4.data(), byte_widths_4);
+    block.insert_record((uint8_t *) record_string_1.data(), byte_widths_1);
+    block.insert_record((uint8_t *) record_string_2.data(), byte_widths_2);
+    block.insert_record((uint8_t *) record_string_3.data(), byte_widths_3);
+    block.insert_record((uint8_t *) record_string_4.data(), byte_widths_4);
 
     valid = std::static_pointer_cast<arrow::BooleanArray>(block.get_column(0));
     column1 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(1));
@@ -169,7 +171,7 @@ TEST_F(HustleBlockTest, ManyInsertBlock) {
     column4 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(4));
 
     int num_bytes = record_string_1.length() + record_string_2.length() +
-            record_string_3.length() + record_string_4.length();
+                    record_string_3.length() + record_string_4.length();
 
     EXPECT_EQ(block.get_num_rows(), 4);
     EXPECT_EQ((block.get_bytes_left()), BLOCK_SIZE - num_bytes);
@@ -215,26 +217,26 @@ TEST_F(HustleBlockTest, FullBlock) {
     Block block(0, schema, BLOCK_SIZE);
 
     // With 1 KB block size, we can store 8 copies of the first record
-    for (int i=0 ; i<8; i++) {
-        block.insert_record((uint8_t*) record_string_1.data(), byte_widths_1);
+    for (int i = 0; i < 8; i++) {
+        block.insert_record((uint8_t *) record_string_1.data(), byte_widths_1);
     }
 
     // This block cannot hold a 9th copy of the first record
-    bool result = block.insert_record((uint8_t*) record_string_1.data(), byte_widths_1);
+    bool result = block.insert_record((uint8_t *) record_string_1.data(),
+                                      byte_widths_1);
 
     EXPECT_EQ(result, false);
     EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE - 912);
 }
 
 
-
 TEST_F(HustleBlockTest, ArrayInsert) {
 
-    auto test_schema = arrow::schema({arrow::field("A",arrow::int64()),
-                   arrow::field("B",arrow::int64()),
-                   arrow::field("C",arrow::int64()),
-                   arrow::field("D",arrow::int64()),
-                   arrow::field("E",arrow::int64())});
+    auto test_schema = arrow::schema({arrow::field("A", arrow::int64()),
+                                      arrow::field("B", arrow::int64()),
+                                      arrow::field("C", arrow::int64()),
+                                      arrow::field("D", arrow::int64()),
+                                      arrow::field("E", arrow::int64())});
 
 
     auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
@@ -290,11 +292,11 @@ TEST_F(HustleBlockTest, ArrayInsert) {
 
 TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
 
-    auto test_schema = arrow::schema({arrow::field("A",arrow::int64()),
-                                      arrow::field("B",arrow::int64()),
-                                      arrow::field("C",arrow::int64()),
-                                      arrow::field("D",arrow::int64()),
-                                      arrow::field("E",arrow::int64())});
+    auto test_schema = arrow::schema({arrow::field("A", arrow::int64()),
+                                      arrow::field("B", arrow::int64()),
+                                      arrow::field("C", arrow::int64()),
+                                      arrow::field("D", arrow::int64()),
+                                      arrow::field("E", arrow::int64())});
 
 
     auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
@@ -304,9 +306,9 @@ TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
     int off = in_offsets_data[0];
 
     Block block(0, schema, BLOCK_SIZE);
-    block.insert_record((uint8_t*) record_string_1.data(), byte_widths_1);
+    block.insert_record((uint8_t *) record_string_1.data(), byte_widths_1);
     block.insert_records(column_data);
-    block.insert_record((uint8_t*) record_string_1.data(), byte_widths_1);
+    block.insert_record((uint8_t *) record_string_1.data(), byte_widths_1);
     block.insert_records(column_data);
 
 
