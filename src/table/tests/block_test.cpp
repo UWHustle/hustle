@@ -65,6 +65,38 @@ protected:
         std::memcpy(&record_4[byte_widths_4[1] + byte_widths_4[2] +
         byte_widths_4[3]], &f4, sizeof(f4));
 
+        //*****************************
+
+        arrow::BooleanBuilder valid_builder;
+        arrow::Int64Builder col1_builder;
+        arrow::StringBuilder col2_builder;
+        arrow::StringBuilder col3_builder;
+        arrow::Int64Builder col4_builder;
+
+        valid_builder.AppendValues(3, true);
+        col1_builder.AppendValues({1,2,3});
+        col2_builder.AppendValues({"nicholas","edward","corrado"});
+        col3_builder.AppendValues({"a","b","c"});
+        col4_builder.AppendValues({11,22,33});
+
+        std::shared_ptr<arrow::BooleanArray> valid;
+        std::shared_ptr<arrow::Int64Array> col1;
+        std::shared_ptr<arrow::StringArray> col2;
+        std::shared_ptr<arrow::StringArray> col3;
+        std::shared_ptr<arrow::Int64Array> col4;
+
+        valid_builder.Finish(&valid);
+        col1_builder.Finish(&col1);
+        col2_builder.Finish(&col2);
+        col3_builder.Finish(&col3);
+        col4_builder.Finish(&col4);
+
+        column_data.push_back(valid->data());
+        column_data.push_back(col1->data());
+        column_data.push_back(col2->data());
+        column_data.push_back(col3->data());
+        column_data.push_back(col4->data());
+
     }
 
     std::shared_ptr<arrow::Schema> schema;
@@ -84,6 +116,8 @@ protected:
     std::shared_ptr<arrow::StringArray> column2;
     std::shared_ptr<arrow::StringArray> column3;
     std::shared_ptr<arrow::Int64Array> column4;
+
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data;
 };
 
 TEST_F(HustleBlockTest, EmptyBlock) {
@@ -192,44 +226,142 @@ TEST_F(HustleBlockTest, FullBlock) {
     EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE - 912);
 }
 
-TEST_F(HustleBlockTest, ArrayInsertBlock) {
 
-    arrow::BooleanBuilder valid_builder;
-    arrow::Int64Builder col1_builder;
-    arrow::StringBuilder col2_builder;
-    arrow::StringBuilder col3_builder;
-    arrow::Int64Builder col4_builder;
 
-    valid_builder.AppendValues(5, true);
-    col1_builder.AppendValues({1,2,3,4,5});
-    col2_builder.AppendValues({"my","name","is","nicholas","corrado"});
-    col3_builder.AppendValues({"a","b","c","d","e"});
-    col4_builder.AppendValues({11,22,33,44,55});
+TEST_F(HustleBlockTest, ArrayInsert) {
 
-    std::shared_ptr<arrow::BooleanArray> valid;
-    std::shared_ptr<arrow::Int64Array> col1;
-    std::shared_ptr<arrow::StringArray> col2;
-    std::shared_ptr<arrow::StringArray> col3;
-    std::shared_ptr<arrow::Int64Array> col4;
+    auto test_schema = arrow::schema({arrow::field("A",arrow::int64()),
+                   arrow::field("B",arrow::int64()),
+                   arrow::field("C",arrow::int64()),
+                   arrow::field("D",arrow::int64()),
+                   arrow::field("E",arrow::int64())});
 
-    valid_builder.Finish(&valid);
-    col1_builder.Finish(&col1);
-    col2_builder.Finish(&col2);
-    col3_builder.Finish(&col3);
-    col4_builder.Finish(&col4);
 
-    auto h = col2->value_offset(0);
-
-    std::vector<std::shared_ptr<arrow::ArrayData>> column_data;
-    column_data.push_back(valid->data());
-    column_data.push_back(col1->data());
-    column_data.push_back(col2->data());
-    column_data.push_back(col3->data());
-    column_data.push_back(col4->data());
+    auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
 
     Block block(0, schema, BLOCK_SIZE);
     block.insert_records(column_data);
-    block.print();
 
+    int row;
+    valid = std::static_pointer_cast<arrow::BooleanArray>(block.get_column(0));
+    column1 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(1));
+    column2 = std::static_pointer_cast<arrow::StringArray>(block.get_column(2));
+    column3 = std::static_pointer_cast<arrow::StringArray>(block.get_column(3));
+    column4 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(4));
+
+    EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE - 72);
+
+    row = 0;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 1);
+    EXPECT_EQ(column2->GetString(row),
+              "nicholas");
+    EXPECT_EQ(column3->GetString(row),
+              "a");
+    EXPECT_EQ(column4->Value(row), 11);
+
+    row = 1;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 2);
+    EXPECT_EQ(column2->GetString(row),
+              "edward");
+    EXPECT_EQ(column3->GetString(row),
+              "b");
+    EXPECT_EQ(column4->Value(row), 22);
+
+    row = 2;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 3);
+    EXPECT_EQ(column2->GetString(row),
+              "corrado");
+    EXPECT_EQ(column3->GetString(row),
+              "c");
+    EXPECT_EQ(column4->Value(row), 33);
+
+
+
+    // NOTE: It is not generally a good idea to compare RecordBatches like
+    // this. This will say two RecordBatches are not equal even if they
+    // contain the same data if, for instance, the underlying buffers are
+    // sized differently.
+//    EXPECT_TRUE(record_batch->Equals(*block.get_records()));
+}
+
+
+TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
+
+    auto test_schema = arrow::schema({arrow::field("A",arrow::int64()),
+                                      arrow::field("B",arrow::int64()),
+                                      arrow::field("C",arrow::int64()),
+                                      arrow::field("D",arrow::int64()),
+                                      arrow::field("E",arrow::int64())});
+
+
+    auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
+    auto in_offsets_data =
+            column_data[2]->GetMutableValues<int32_t>(
+                    1, 0);
+    int off = in_offsets_data[0];
+
+    Block block(0, schema, BLOCK_SIZE);
+    block.insert_record((uint8_t*) record_string_1.data(), byte_widths_1);
+    block.insert_records(column_data);
+    block.insert_record((uint8_t*) record_string_1.data(), byte_widths_1);
+    block.insert_records(column_data);
+
+
+    int row;
+    valid = std::static_pointer_cast<arrow::BooleanArray>(block.get_column(0));
+    column1 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(1));
+    column2 = std::static_pointer_cast<arrow::StringArray>(block.get_column(2));
+    column3 = std::static_pointer_cast<arrow::StringArray>(block.get_column(3));
+    column4 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(4));
+
+    row = 0;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 4242);
+    EXPECT_EQ(column2->GetString(row),
+              "Mon dessin ne representait pas un chapeau.");
+    EXPECT_EQ(column3->GetString(row),
+              "Il representait un serpent boa qui digerait un elephant.");
+    EXPECT_EQ(column4->Value(row), 37373737);
+
+
+    row = 1;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 1);
+    EXPECT_EQ(column2->GetString(row),
+              "nicholas");
+    EXPECT_EQ(column3->GetString(row),
+              "a");
+    EXPECT_EQ(column4->Value(row), 11);
+
+    row = 2;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 2);
+    EXPECT_EQ(column2->GetString(row),
+              "edward");
+    EXPECT_EQ(column3->GetString(row),
+              "b");
+    EXPECT_EQ(column4->Value(row), 22);
+
+    row = 3;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 3);
+    EXPECT_EQ(column2->GetString(row),
+              "corrado");
+    EXPECT_EQ(column3->GetString(row),
+              "c");
+    EXPECT_EQ(column4->Value(row), 33);
+
+    row = 4;
+    EXPECT_EQ(valid->Value(row), true);
+    EXPECT_EQ(column1->Value(row), 4242);
+    EXPECT_EQ(column2->GetString(row),
+              "Mon dessin ne representait pas un chapeau.");
+    EXPECT_EQ(column3->GetString(row),
+              "Il representait un serpent boa qui digerait un elephant.");
+    EXPECT_EQ(column4->Value(row), 37373737);
 
 }
+

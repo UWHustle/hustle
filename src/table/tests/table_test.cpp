@@ -21,6 +21,8 @@ protected:
     std::string record_string;
     int32_t byte_widths[4] = {8, 42, 56, 8};
 
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data;
+
     void SetUp() override {
 
         std::shared_ptr<arrow::Field> field1 = arrow::field("A", arrow::int64());
@@ -45,6 +47,40 @@ protected:
         }
         csv_file.close();
 
+
+        //*****************************
+
+        arrow::BooleanBuilder valid_builder;
+        arrow::Int64Builder col1_builder;
+        arrow::StringBuilder col2_builder;
+        arrow::StringBuilder col3_builder;
+        arrow::Int64Builder col4_builder;
+
+        valid_builder.AppendValues(3, true);
+        col1_builder.AppendValues({1,2,3});
+        col2_builder.AppendValues({"nicholas","edward","corrado"});
+        col3_builder.AppendValues({"a","b","c"});
+        col4_builder.AppendValues({11,22,33});
+
+        std::shared_ptr<arrow::BooleanArray> valid;
+        std::shared_ptr<arrow::Int64Array> col1;
+        std::shared_ptr<arrow::StringArray> col2;
+        std::shared_ptr<arrow::StringArray> col3;
+        std::shared_ptr<arrow::Int64Array> col4;
+
+        valid_builder.Finish(&valid);
+        col1_builder.Finish(&col1);
+        col2_builder.Finish(&col2);
+        col3_builder.Finish(&col3);
+        col4_builder.Finish(&col4);
+
+        column_data.push_back(valid->data());
+        column_data.push_back(col1->data());
+        column_data.push_back(col2->data());
+        column_data.push_back(col3->data());
+        column_data.push_back(col4->data());
+
+
     }
 
 };
@@ -65,6 +101,31 @@ TEST_F(HustleTableTest, OneBlockTable) {
     EXPECT_EQ(table.get_num_blocks(), 1);
 }
 
+TEST_F(HustleTableTest, OneBlockArray) {
+
+    Table table("table", schema, BLOCK_SIZE);
+
+    table.insert_records(column_data);
+
+    EXPECT_EQ(table.get_num_blocks(), 1);
+}
+
+TEST_F(HustleTableTest, TwoBlockArray) {
+
+    Table table("table", schema, BLOCK_SIZE);
+
+    // Inserting three records 14 times. This fits into one block.
+    for (int i=0; i<14; i++) {
+        table.insert_records(column_data);
+    }
+
+    // Bulk inserting again should allocate a new block
+    table.insert_records(column_data);
+
+    EXPECT_EQ(table.get_num_blocks(), 2);
+}
+
+
 TEST_F(HustleTableTest, TwoBlockTable) {
 
     Table table("table", schema, BLOCK_SIZE);
@@ -83,12 +144,14 @@ TEST_F(HustleTableTest, TwoBlockTable) {
     EXPECT_EQ(table.get_num_blocks(), 2);
 }
 
-TEST_F(HustleTableTest, ReadTableFromFile) {
+TEST_F(HustleTableTest, TableIO) {
 
     Table table("table", schema, BLOCK_SIZE);
 
-    // With 1 KB block size, we can store 8 copies of the first record in one
-    // block.
+    table.insert_records(column_data);
+    table.insert_record((uint8_t*) record_string.data(), byte_widths);
+    table.insert_records(column_data);
+
     for (int i=0 ; i<8; i++) {
         table.insert_record((uint8_t*) record_string.data(), byte_widths);
     }
@@ -117,6 +180,7 @@ TEST_F(HustleTableTest, ReadTableFromCSV) {
     for (int i=0 ; i<8; i++) {
         table.insert_record((uint8_t*) record_string.data(), byte_widths);
     }
+
 
     // The first block cannot hold a 9th copy of the first record, so we must
     // create a new block.
