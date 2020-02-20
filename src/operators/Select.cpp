@@ -42,6 +42,11 @@ std::shared_ptr<Block> Select::runOperatorOnBlock(std::shared_ptr<Block>
     );
     evaluate_status(status, __FUNCTION__, __LINE__);
 
+    // Check if selectivity is 0 i.e. no tuples match the select predicate
+    if (filter->make_array()->null_count() == filter->length() ) {
+        return nullptr;
+    }
+
     auto* out_col = new arrow::compute::Datum();
     for (int j = 0; j < input_block->get_records()->num_columns(); j++) {
         status = arrow::compute::Filter(&function_context,
@@ -68,7 +73,10 @@ std::vector<std::shared_ptr<Block>> Select::runOperator(std::vector<std::vector<
   arrow::Status status;
   auto out = std::vector<std::shared_ptr<Block>>();
   for (int i = 0; i < blocks.size(); i++) {
-    out.push_back(runOperatorOnBlock(blocks[i]));
+      auto block = runOperatorOnBlock(blocks[i]);
+      if (block != nullptr){
+          out.push_back(block);
+      }
   }
   return out;
 }
