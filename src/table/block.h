@@ -71,8 +71,8 @@ public:
      * @param capacity Maximum number of date bytes to be stored in the Block
      */
     Block(int id, const std::shared_ptr<arrow::Schema> &schema,
-            std::vector<std::shared_ptr<arrow::ArrayData>> column_data,
-            int capacity);
+          std::vector<std::shared_ptr<arrow::ArrayData>> column_data,
+          int capacity);
 
     /**
      * Get the Block's ID
@@ -207,7 +207,7 @@ public:
      * @return True if insertion was successful, false otherwise.
      */
     bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
-    column_data);
+                        column_data);
 
 
 private:

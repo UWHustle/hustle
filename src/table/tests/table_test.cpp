@@ -14,7 +14,7 @@
 using namespace testing;
 
 
-class HustleTableTest: public testing::Test {
+class HustleTableTest : public testing::Test {
 protected:
 
     std::shared_ptr<arrow::Schema> schema;
@@ -25,25 +25,28 @@ protected:
 
     void SetUp() override {
 
-        std::shared_ptr<arrow::Field> field1 = arrow::field("A", arrow::int64());
+        std::shared_ptr<arrow::Field> field1 = arrow::field("A",
+                                                            arrow::int64());
         std::shared_ptr<arrow::Field> field2 = arrow::field("B", arrow::utf8());
         std::shared_ptr<arrow::Field> field3 = arrow::field("C", arrow::utf8());
-        std::shared_ptr<arrow::Field> field4 = arrow::field("D", arrow::int64());
+        std::shared_ptr<arrow::Field> field4 = arrow::field("D",
+                                                            arrow::int64());
         schema = arrow::schema(
                 {field1, field2, field3, field4});
 
         record_string = "00000000Mon dessin ne representait pas un chapeau.Il representait un serpent boa qui digerait un elephant.00000000";
         int64_t f1 = 4242;
         int64_t f4 = 37373737;
-        auto* record_1 = (uint8_t *) record_string.data();
+        auto *record_1 = (uint8_t *) record_string.data();
         std::memcpy(&record_1[0], &f1, sizeof(f1));
         std::memcpy(&record_1[byte_widths[1] + byte_widths[2] +
                               byte_widths[3]], &f4, sizeof(f4));
 
         std::ofstream csv_file;
         csv_file.open("table_test.csv");
-        for (int i=0; i<9; i++) {
-            csv_file << "4242|Mon dessin ne representait pas un chapeau.|Il representait un serpent boa qui digerait un elephant.|37373737\n";
+        for (int i = 0; i < 9; i++) {
+            csv_file
+                    << "4242|Mon dessin ne representait pas un chapeau.|Il representait un serpent boa qui digerait un elephant.|37373737\n";
         }
         csv_file.close();
 
@@ -57,10 +60,10 @@ protected:
         arrow::Int64Builder col4_builder;
 
         valid_builder.AppendValues(3, true);
-        col1_builder.AppendValues({1,2,3});
-        col2_builder.AppendValues({"nicholas","edward","corrado"});
-        col3_builder.AppendValues({"a","b","c"});
-        col4_builder.AppendValues({11,22,33});
+        col1_builder.AppendValues({1, 2, 3});
+        col2_builder.AppendValues({"nicholas", "edward", "corrado"});
+        col3_builder.AppendValues({"a", "b", "c"});
+        col4_builder.AppendValues({11, 22, 33});
 
         std::shared_ptr<arrow::BooleanArray> valid;
         std::shared_ptr<arrow::Int64Array> col1;
@@ -115,7 +118,7 @@ TEST_F(HustleTableTest, TwoBlockArray) {
     Table table("table", schema, BLOCK_SIZE);
 
     // Inserting three records 14 times. This fits into one block.
-    for (int i=0; i<14; i++) {
+    for (int i = 0; i < 14; i++) {
         table.insert_records(column_data);
     }
 
@@ -132,14 +135,14 @@ TEST_F(HustleTableTest, TwoBlockTable) {
 
     // With 1 KB block size, we can store 8 copies of the first record in one
     // block.
-    for (int i=0 ; i<8; i++) {
-        table.insert_record((uint8_t*) record_string.data(), byte_widths);
+    for (int i = 0; i < 8; i++) {
+        table.insert_record((uint8_t *) record_string.data(), byte_widths);
     }
 
     // The first block cannot hold a 9th copy of the first record, so we must
     // create a new block.
-    table.insert_record((uint8_t*) record_string.data(),
-            byte_widths);
+    table.insert_record((uint8_t *) record_string.data(),
+                        byte_widths);
 
     EXPECT_EQ(table.get_num_blocks(), 2);
 }
@@ -149,16 +152,16 @@ TEST_F(HustleTableTest, TableIO) {
     Table table("table", schema, BLOCK_SIZE);
 
     table.insert_records(column_data);
-    table.insert_record((uint8_t*) record_string.data(), byte_widths);
+    table.insert_record((uint8_t *) record_string.data(), byte_widths);
     table.insert_records(column_data);
 
-    for (int i=0 ; i<8; i++) {
-        table.insert_record((uint8_t*) record_string.data(), byte_widths);
+    for (int i = 0; i < 8; i++) {
+        table.insert_record((uint8_t *) record_string.data(), byte_widths);
     }
 
     // The first block cannot hold a 9th copy of the first record, so we must
     // create a new block.
-    table.insert_record((uint8_t*) record_string.data(),
+    table.insert_record((uint8_t *) record_string.data(),
                         byte_widths);
 
     write_to_file("table.hsl", table);
@@ -177,14 +180,14 @@ TEST_F(HustleTableTest, ReadTableFromCSV) {
 
     // With 1 KB block size, we can store 8 copies of the first record in one
     // block.
-    for (int i=0 ; i<8; i++) {
-        table.insert_record((uint8_t*) record_string.data(), byte_widths);
+    for (int i = 0; i < 8; i++) {
+        table.insert_record((uint8_t *) record_string.data(), byte_widths);
     }
 
 
     // The first block cannot hold a 9th copy of the first record, so we must
     // create a new block.
-    table.insert_record((uint8_t*) record_string.data(),
+    table.insert_record((uint8_t *) record_string.data(),
                         byte_widths);
 
     Table table_from_csv = read_from_csv_file

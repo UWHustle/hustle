@@ -93,6 +93,7 @@ public:
      */
     void insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         column_data);
+
     /**
      * @return The Table's schema, excluding the valid column of the underlying
      * Blocks
