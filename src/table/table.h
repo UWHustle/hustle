@@ -60,6 +60,8 @@ public:
      */
     void mark_block_for_insert(const std::shared_ptr<Block> &block);
 
+    int get_num_rows() const;
+
     int get_num_blocks() const;
 
     //
