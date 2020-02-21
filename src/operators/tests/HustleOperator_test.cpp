@@ -124,31 +124,88 @@ TEST_F(OperatorsTestFixture, AggregateSumTest) {
     int x=0;
 }
 
-TEST_F(OperatorsTestFixture, AggregateCountTest) {
-  auto *aggregate_op = new Aggregate(
-      hustle::operators::AggregateKernels::COUNT,
-      "int_val"
-  );
-  std::string col_name = "int_val";
-  int col_val = 5;
-  //
-  //
-  arrow::Status status;
-  std::shared_ptr<arrow::Array> res_block_col = nullptr;
-  std::shared_ptr<arrow::Field> res_block_field= arrow::field(col_name, arrow::int64());
-  arrow::Int64Builder res_block_col_builder = arrow::Int64Builder();
-  status = res_block_col_builder.Append(col_val);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-  status = res_block_col_builder.Finish(&res_block_col);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-  // res_block init
-  auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({res_block_field}));
-  auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 1, {res_block_col});
-  auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
-  // result/out compare
-  auto out_block = aggregate_op->runOperator(input_blocks);
-  EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
+TEST_F(OperatorsTestFixture, AggregateSumTestTwoBlocks) {
+    auto *aggregate_op = new Aggregate(
+            hustle::operators::AggregateKernels::SUM,
+            "int_val"
+    );
+    std::string col_name = "int_val";
+    int col_val = 235*2;
+    //
+    arrow::Status status;
+    std::shared_ptr<arrow::Array> res_block_col = nullptr;
+    std::shared_ptr<arrow::Field> res_block_field= arrow::field(col_name, arrow::int64());
+    arrow::Int64Builder res_block_col_builder = arrow::Int64Builder();
+    status = res_block_col_builder.Append(col_val);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    status = res_block_col_builder.Finish(&res_block_col);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    // res_block init
+    res_block_col->data()->buffers[0] = nullptr; // NOTE: Arrays
+    // built from ArrayBuilder always
+    // have a null bitmap.
+    auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({res_block_field}));
+    auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 1, {res_block_col});
+    auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
+    // result/out compare
+    auto out_block = aggregate_op->runOperator(two_blocks);
+    EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
+    auto res = res_block->get_records()->column(0)->data();
+    auto out = out_block[0]->get_records()->column(0)->data();
+    int x=0;
 }
+
+//TEST_F(OperatorsTestFixture, AggregateCountTest) {
+//  auto *aggregate_op = new Aggregate(
+//      hustle::operators::AggregateKernels::COUNT,
+//      "int_val"
+//  );
+//  std::string col_name = "int_val";
+//  int col_val = 5;
+//  //
+//  //
+//  arrow::Status status;
+//  std::shared_ptr<arrow::Array> res_block_col = nullptr;
+//  std::shared_ptr<arrow::Field> res_block_field= arrow::field(col_name, arrow::int64());
+//  arrow::Int64Builder res_block_col_builder = arrow::Int64Builder();
+//  status = res_block_col_builder.Append(col_val);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//  status = res_block_col_builder.Finish(&res_block_col);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//  // res_block init
+//  auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({res_block_field}));
+//  auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 1, {res_block_col});
+//  auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
+//  // result/out compare
+//  auto out_block = aggregate_op->runOperator(input_blocks);
+//  EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
+//}
+//
+//TEST_F(OperatorsTestFixture, AggregateCountTwoBlocks) {
+//    auto *aggregate_op = new Aggregate(
+//            hustle::operators::AggregateKernels::COUNT,
+//            "int_val"
+//    );
+//    std::string col_name = "int_val";
+//    int col_val = 5*2;
+//    //
+//    //
+//    arrow::Status status;
+//    std::shared_ptr<arrow::Array> res_block_col = nullptr;
+//    std::shared_ptr<arrow::Field> res_block_field= arrow::field(col_name, arrow::int64());
+//    arrow::Int64Builder res_block_col_builder = arrow::Int64Builder();
+//    status = res_block_col_builder.Append(col_val);
+//    evaluate_status(status, __FUNCTION__, __LINE__);
+//    status = res_block_col_builder.Finish(&res_block_col);
+//    evaluate_status(status, __FUNCTION__, __LINE__);
+//    // res_block init
+//    auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({res_block_field}));
+//    auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 1, {res_block_col});
+//    auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
+//    // result/out compare
+//    auto out_block = aggregate_op->runOperator(two_blocks);
+//    EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
+//}
 
 TEST_F(OperatorsTestFixture, AggregateMeanTest) {
   auto *aggregate_op = new Aggregate(
@@ -178,167 +235,196 @@ TEST_F(OperatorsTestFixture, AggregateMeanTest) {
   // because the mean is not being correclty outputted. out_block[0] does not
   // actually contain the mean.
   EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
-
 }
 
-TEST_F(OperatorsTestFixture, JoinTest) {
-  auto *join_op = new Join(
-      "int_key"
-  );
-  arrow::Status status;
-  // block_1_col_1
-  std::shared_ptr<arrow::Array> res_block_col_1 = nullptr;
-  std::shared_ptr<arrow::Field> res_block_col_1_field = arrow::field("int_key", arrow::int64());
-  arrow::Int64Builder res_block_col_1_builder = arrow::Int64Builder();
-  status = res_block_col_1_builder.AppendValues({10, 20, 30, 75, 100});
-  evaluate_status(status, __FUNCTION__, __LINE__);
-  status = res_block_col_1_builder.Finish(&res_block_col_1);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-  // block_1_col_2
-  std::shared_ptr<arrow::Array> res_block_col_2 = nullptr;
-  std::shared_ptr<arrow::Field> res_block_col_2_field = arrow::field("int_val", arrow::int64());
-  arrow::Int64Builder res_block_col_2_builder = arrow::Int64Builder();
-  status = res_block_col_2_builder.AppendValues({1, 2, 3, 4, 5});
-  evaluate_status(status, __FUNCTION__, __LINE__);
-  status = res_block_col_2_builder.Finish(&res_block_col_2);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-  // block_1_col_3
-  std::shared_ptr<arrow::Array> res_block_col_3 = nullptr;
-  std::shared_ptr<arrow::Field> res_block_col_3_field = arrow::field("int_val_alt", arrow::int64());
-  arrow::Int64Builder res_block_col_3_builder = arrow::Int64Builder();
-  status = res_block_col_3_builder.AppendValues({11, 22, 33, 44, 55});
-  evaluate_status(status, __FUNCTION__, __LINE__);
-  status = res_block_col_3_builder.Finish(&res_block_col_3);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-  // input blocks init
-  auto join_input_blocks = std::vector<std::vector<std::shared_ptr<Block>>>();
-
-  auto join_input_block_1_schema = arrow::schema({res_block_col_1_field, res_block_col_2_field});
-  auto join_input_block_1_record = arrow::RecordBatch::Make(join_input_block_1_schema, 5, {res_block_col_1, res_block_col_2});
-  auto join_input_block_1 = std::make_shared<Block>(Block(rand(), join_input_block_1_record, BLOCK_SIZE));
-
-  auto join_input_block_2_schema = arrow::schema({res_block_col_1_field, res_block_col_3_field});
-  auto join_input_block_2_record = arrow::RecordBatch::Make(join_input_block_2_schema, 5, {res_block_col_1, res_block_col_3});
-  auto join_input_block_2 = std::make_shared<Block>(Block(rand(), join_input_block_2_record, BLOCK_SIZE));
-
-  join_input_blocks.push_back({join_input_block_1});
-  join_input_blocks.push_back({join_input_block_2});
-
-
-  // res_block init
-  auto res_block_schema = arrow::schema({res_block_col_1_field, res_block_col_2_field, res_block_col_3_field});
-  auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 5, {res_block_col_1, res_block_col_2, res_block_col_3});
-  auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
-
-
-  // result/out compare
-  auto out_block = join_op->runOperator(join_input_blocks);
-  //TODO(nicholas) output data values seem malformed. unsure why.
-  EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
-
-    res_block->print();
-    out_block[0]->print();
-
-    auto res = res_block->get_records()->column(0)->data();
-    auto out1 = out_block[0]->get_records()->column(0)->data();
-    auto out2 = out_block[0]->get_records()->column(1)->data();
-    auto out3 = out_block[0]->get_records()->column(2)->data();
-    int x = 0;
-}
-
-TEST_F(OperatorsTestFixture, SelectOneBlock) {
-  int64_t select_val = 30;
-  auto *select_op = new Select(
-      arrow::compute::CompareOperator::EQUAL,
-      "int_val",
-      arrow::compute::Datum(select_val)
-  );
-  std::string col_1_name = "string_id";
-  std::string col_2_name = "int_val";
-
-
-  arrow::Status status;
-
-
-  std::shared_ptr<arrow::Array> res_block_col_1 = nullptr;
-  arrow::StringBuilder res_block_col_1_builder = arrow::StringBuilder();
-  status = res_block_col_1_builder.AppendValues({"str_B","str_C"});
-  evaluate_status(status, __FUNCTION__, __LINE__);
-  status = res_block_col_1_builder.Finish(&res_block_col_1);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-  std::shared_ptr<arrow::Array> res_block_col_2 = nullptr;
-  arrow::Int64Builder res_block_col_2_builder = arrow::Int64Builder();
-  status = res_block_col_2_builder.Append(30);
-  status = res_block_col_2_builder.Append(30);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-  status = res_block_col_2_builder.Finish(&res_block_col_2);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-  // res_block init
-  auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({arrow::field(col_1_name, arrow::utf8()), arrow::field(col_2_name, arrow::int64())}));
-  auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 2,
-          {res_block_col_1, res_block_col_2});
-  auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
-
-
-  // result/out compare
-  auto out_block = select_op->runOperator(input_blocks);
-  EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
-
-  std::cout << std::endl;
-  out_block[0]->print();
-  res_block->print();
-}
-
-TEST_F(OperatorsTestFixture, SelectOneBlockEmpty) {
-    int64_t select_val = 3000000;
-    auto *select_op = new Select(
-            arrow::compute::CompareOperator::EQUAL,
-            "int_val",
-            arrow::compute::Datum(select_val)
+TEST_F(OperatorsTestFixture, AggregateMeanTwoBlocks) {
+    auto *aggregate_op = new Aggregate(
+            hustle::operators::AggregateKernels::MEAN,
+            "int_val"
     );
-    std::string col_1_name = "string_id";
-    std::string col_2_name = "int_val";
-
+    std::string col_name = "int_val";
+    int64_t col_val = 47; // 235 / 5
+    //
     arrow::Status status;
-
-    std::shared_ptr<arrow::Array> res_block_col_1 = nullptr;
-    arrow::StringBuilder res_block_col_1_builder = arrow::StringBuilder();
+    std::shared_ptr<arrow::Array> res_block_col = nullptr;
+    std::shared_ptr<arrow::Field> res_block_field= arrow::field(col_name,
+                                                                arrow::float64());
+    arrow::DoubleBuilder res_block_col_builder = arrow::DoubleBuilder();
+    status = res_block_col_builder.Append(col_val);
     evaluate_status(status, __FUNCTION__, __LINE__);
-    status = res_block_col_1_builder.Finish(&res_block_col_1);
+    status = res_block_col_builder.Finish(&res_block_col);
     evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-    std::shared_ptr<arrow::Array> res_block_col_2 = nullptr;
-    arrow::Int64Builder res_block_col_2_builder = arrow::Int64Builder();
-    evaluate_status(status, __FUNCTION__, __LINE__);
-    status = res_block_col_2_builder.Finish(&res_block_col_2);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-
     // res_block init
-    auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({arrow::field(col_1_name, arrow::utf8()), arrow::field(col_2_name, arrow::int64())}));
-    auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 0,
-                                                     {res_block_col_1, res_block_col_2});
+    res_block_col->data()->buffers[0] =nullptr;
+    auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({res_block_field}));
+    auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 1, {res_block_col});
     auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
-
     // result/out compare
-    auto out_block = select_op->runOperator(input_blocks);
-    EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
-
-    std::cout << std::endl;
-    out_block[0]->print();
-    res_block->print();
+    auto out_block = aggregate_op->runOperator(two_blocks);
+    //TODO(nicholas) unsure why this fails.
+    // because the mean is not being correclty outputted. out_block[0] does not
+    // actually contain the mean.
+    EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 }
+//
+//TEST_F(OperatorsTestFixture, JoinTest) {
+//  auto *join_op = new Join(
+//      "int_key"
+//  );
+//  arrow::Status status;
+//  // block_1_col_1
+//  std::shared_ptr<arrow::Array> res_block_col_1 = nullptr;
+//  std::shared_ptr<arrow::Field> res_block_col_1_field = arrow::field("int_key", arrow::int64());
+//  arrow::Int64Builder res_block_col_1_builder = arrow::Int64Builder();
+//  status = res_block_col_1_builder.AppendValues({10, 20, 30, 75, 100});
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//  status = res_block_col_1_builder.Finish(&res_block_col_1);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//
+//  // block_1_col_2
+//  std::shared_ptr<arrow::Array> res_block_col_2 = nullptr;
+//  std::shared_ptr<arrow::Field> res_block_col_2_field = arrow::field("int_val", arrow::int64());
+//  arrow::Int64Builder res_block_col_2_builder = arrow::Int64Builder();
+//  status = res_block_col_2_builder.AppendValues({1, 2, 3, 4, 5});
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//  status = res_block_col_2_builder.Finish(&res_block_col_2);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//
+//  // block_1_col_3
+//  std::shared_ptr<arrow::Array> res_block_col_3 = nullptr;
+//  std::shared_ptr<arrow::Field> res_block_col_3_field = arrow::field("int_val_alt", arrow::int64());
+//  arrow::Int64Builder res_block_col_3_builder = arrow::Int64Builder();
+//  status = res_block_col_3_builder.AppendValues({11, 22, 33, 44, 55});
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//  status = res_block_col_3_builder.Finish(&res_block_col_3);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//
+//  // input blocks init
+//  auto join_input_blocks = std::vector<std::vector<std::shared_ptr<Block>>>();
+//
+//  auto join_input_block_1_schema = arrow::schema({res_block_col_1_field, res_block_col_2_field});
+//  auto join_input_block_1_record = arrow::RecordBatch::Make(join_input_block_1_schema, 5, {res_block_col_1, res_block_col_2});
+//  auto join_input_block_1 = std::make_shared<Block>(Block(rand(), join_input_block_1_record, BLOCK_SIZE));
+//
+//  auto join_input_block_2_schema = arrow::schema({res_block_col_1_field, res_block_col_3_field});
+//  auto join_input_block_2_record = arrow::RecordBatch::Make(join_input_block_2_schema, 5, {res_block_col_1, res_block_col_3});
+//  auto join_input_block_2 = std::make_shared<Block>(Block(rand(), join_input_block_2_record, BLOCK_SIZE));
+//
+//  join_input_blocks.push_back({join_input_block_1});
+//  join_input_blocks.push_back({join_input_block_2});
+//
+//
+//  // res_block init
+//  auto res_block_schema = arrow::schema({res_block_col_1_field, res_block_col_2_field, res_block_col_3_field});
+//  auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 5, {res_block_col_1, res_block_col_2, res_block_col_3});
+//  auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
+//
+//
+//  // result/out compare
+//  auto out_block = join_op->runOperator(join_input_blocks);
+//  //TODO(nicholas) output data values seem malformed. unsure why.
+//  EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
+//
+//    res_block->print();
+//    out_block[0]->print();
+//
+//    auto res = res_block->get_records()->column(0)->data();
+//    auto out1 = out_block[0]->get_records()->column(0)->data();
+//    auto out2 = out_block[0]->get_records()->column(1)->data();
+//    auto out3 = out_block[0]->get_records()->column(2)->data();
+//    int x = 0;
+//}
+//
+//TEST_F(OperatorsTestFixture, SelectOneBlock) {
+//  int64_t select_val = 30;
+//  auto *select_op = new Select(
+//      arrow::compute::CompareOperator::EQUAL,
+//      "int_val",
+//      arrow::compute::Datum(select_val)
+//  );
+//  std::string col_1_name = "string_id";
+//  std::string col_2_name = "int_val";
+//
+//
+//  arrow::Status status;
+//
+//
+//  std::shared_ptr<arrow::Array> res_block_col_1 = nullptr;
+//  arrow::StringBuilder res_block_col_1_builder = arrow::StringBuilder();
+//  status = res_block_col_1_builder.AppendValues({"str_B","str_C"});
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//  status = res_block_col_1_builder.Finish(&res_block_col_1);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//
+//  std::shared_ptr<arrow::Array> res_block_col_2 = nullptr;
+//  arrow::Int64Builder res_block_col_2_builder = arrow::Int64Builder();
+//  status = res_block_col_2_builder.Append(30);
+//  status = res_block_col_2_builder.Append(30);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//  status = res_block_col_2_builder.Finish(&res_block_col_2);
+//  evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//
+//  // res_block init
+//  auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({arrow::field(col_1_name, arrow::utf8()), arrow::field(col_2_name, arrow::int64())}));
+//  auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 2,
+//          {res_block_col_1, res_block_col_2});
+//  auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
+//
+//
+//  // result/out compare
+//  auto out_block = select_op->runOperator(input_blocks);
+//  EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
+//
+//  std::cout << std::endl;
+//  out_block[0]->print();
+//  res_block->print();
+//}
+//
+//TEST_F(OperatorsTestFixture, SelectOneBlockEmpty) {
+//    int64_t select_val = 3000000;
+//    auto *select_op = new Select(
+//            arrow::compute::CompareOperator::EQUAL,
+//            "int_val",
+//            arrow::compute::Datum(select_val)
+//    );
+//    std::string col_1_name = "string_id";
+//    std::string col_2_name = "int_val";
+//
+//    arrow::Status status;
+//
+//    std::shared_ptr<arrow::Array> res_block_col_1 = nullptr;
+//    arrow::StringBuilder res_block_col_1_builder = arrow::StringBuilder();
+//    evaluate_status(status, __FUNCTION__, __LINE__);
+//    status = res_block_col_1_builder.Finish(&res_block_col_1);
+//    evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//
+//    std::shared_ptr<arrow::Array> res_block_col_2 = nullptr;
+//    arrow::Int64Builder res_block_col_2_builder = arrow::Int64Builder();
+//    evaluate_status(status, __FUNCTION__, __LINE__);
+//    status = res_block_col_2_builder.Finish(&res_block_col_2);
+//    evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//
+//    // res_block init
+//    auto res_block_schema = std::make_shared<arrow::Schema>(arrow::Schema({arrow::field(col_1_name, arrow::utf8()), arrow::field(col_2_name, arrow::int64())}));
+//    auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 0,
+//                                                     {res_block_col_1, res_block_col_2});
+//    auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
+//
+//    // result/out compare
+//    auto out_block = select_op->runOperator(input_blocks);
+//    EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
+//
+//    std::cout << std::endl;
+//    out_block[0]->print();
+//    res_block->print();
+//}
 
 
 TEST_F(OperatorsTestFixture, SelectTwoBlocks) {
@@ -386,9 +472,6 @@ TEST_F(OperatorsTestFixture, SelectTwoBlocks) {
     EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
     EXPECT_TRUE(out_block[1]->get_records()->Equals(*res_block_2->get_records()));
 
-    std::cout << std::endl;
-    out_block[0]->print();
-    res_block->print();
 }
 
 
@@ -505,7 +588,7 @@ TEST_F(OperatorsTestFixture2, SelectFromCSV) {
     );
 
     auto out_blocks = select_op->runOperator({blocks});
-    
+
     for (auto block : out_blocks) {
 
         valid = std::static_pointer_cast<arrow::BooleanArray>
