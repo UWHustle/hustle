@@ -51,6 +51,16 @@ std::shared_ptr<Block> Table::create_block() {
     return block;
 }
 
+void Table::add_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
+
+    for (auto &block : input_blocks) {
+        blocks.emplace(block_counter, block);
+        block_counter++;
+        num_rows += block->get_num_rows();
+    }
+
+}
+
 std::shared_ptr<Block> Table::get_block(int block_id) const {
 //  std::scoped_lock blocks_lock(blocks_mutex);
     return blocks.at(block_id);
