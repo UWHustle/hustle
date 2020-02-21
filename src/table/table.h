@@ -41,7 +41,9 @@ public:
      */
     std::shared_ptr<Block> create_block();
 
-    //
+
+    void add_blocks(std::vector<std::shared_ptr<Block>> intput_blocks);
+
     /**
      * @param block_id Block ID
      * @return Block with the specified ID
