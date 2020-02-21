@@ -4,6 +4,7 @@
 #include <iostream>
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
+#include "util.h"
 
 
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
@@ -11,7 +12,7 @@ Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
         : table_name(std::move(name)), schema(schema), block_counter(0),
           num_rows(0), block_capacity(block_capacity) {
 
-    fixed_record_width = compute_fixed_record_width();
+    fixed_record_width = compute_fixed_record_width(schema);
 }
 
 
@@ -28,7 +29,7 @@ Table::Table(
     fields.erase(fields.begin());
     schema = arrow::schema(fields);
     // Must be called only after schema is set
-    fixed_record_width = compute_fixed_record_width();
+    fixed_record_width = compute_fixed_record_width(schema);
 
     for (auto batch : record_batches) {
         auto block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
@@ -94,32 +95,6 @@ void Table::print() {
 std::unordered_map<int, std::shared_ptr<Block>>
 Table::get_blocks() { return blocks; }
 
-int Table::compute_fixed_record_width() {
-
-    int fixed_width = 0;
-
-    for (auto field : schema->fields()) {
-
-        switch (field->type()->id()) {
-            case arrow::Type::STRING: {
-                break;
-            }
-            case arrow::Type::BOOL:
-            case arrow::Type::INT64: {
-                fixed_width += field->type()->layout().bit_widths[1] / 8;
-                break;
-            }
-            default: {
-                throw std::logic_error(
-                        std::string(
-                                "Cannot compute fixed record width. Unsupported type: ") +
-                        field->type()->ToString());
-            }
-        }
-    }
-    return fixed_width;
-}
-
 
 // Tuple is passed in as an array of bytes which must be parsed.
 void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
@@ -137,6 +112,52 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
 
     block->insert_record(record, byte_widths);
     num_rows++;
+
+    if (block->get_bytes_left() > fixed_record_width) {
+        insert_pool[block->get_id()] = block;
+    }
+}
+
+// Tuple is passed in as an array of bytes which must be parsed.
+void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
+                           column_data) {
+
+    int data_size = 0;
+    // Start at i=1 to skip valid column
+    for (int i = 1; i < schema->num_fields(); i++) {
+
+        std::shared_ptr<arrow::Field> field = schema->field(i);
+        switch (field->type()->id()) {
+
+            case arrow::Type::STRING: {
+                auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
+                data_size += offsets[column_data[0]->length];
+                break;
+            }
+            case arrow::Type::BOOL:
+            case arrow::Type::INT64: {
+                // buffer at index 1 is the data buffer.
+                int byte_width = field->type()->layout().bit_widths[1] / 8;
+                data_size += byte_width * column_data[i]->length;
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                        std::string(
+                                "Cannot compute record width. Unsupported type: ") +
+                        field->type()->ToString());
+            }
+        }
+    }
+
+    std::shared_ptr<Block> block = get_block_for_insert();
+
+    if (block->get_bytes_left() < data_size) {
+        block = create_block();
+    }
+
+    block->insert_records(column_data);
+    num_rows += column_data[0]->length;
 
     if (block->get_bytes_left() > fixed_record_width) {
         insert_pool[block->get_id()] = block;

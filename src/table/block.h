@@ -9,7 +9,7 @@
  * A Hustle Block is a wrapper for an Arrow RecordBatch. An Arrow RecordBatch
  * is a table-like structure containing a vector of equal-length Arrow Arrays
  * An Arrow Array is a contiguous sequence of values of the same type. Both
- * RecordBatch and Array are immutable. Data within an Array can be mutated b
+ * RecordBatch and Array are immutable. Data within an Array can be mutated by
  * accessing the Array's underlying ArrayData, the mutable container holding
  * the data buffer. ArrayData buffers are always padded to multiples of 64
  * bytes.
@@ -19,15 +19,15 @@
  * e.g. inserting an element into ArrayData and incrementing its length will
  * not update the length of the Array.
  *
- * Currently, blocks are initialized with 0 rows, and memory is allocated upo
+ * Currently, blocks are initialized with 0 rows, and memory is allocated upon
  * insertion as needed.
  *
  * Currently, only BOOL, INT64, STRING, and FIXEDSIZEBINARY types are support
  * However, support for any fixed-width type can be added by introducing
  * additional case statements in each switch block.
  *
- * TODO(nicholas): In the future, blocks will "guess" how many records they c
- * hold and allocate enough memory for that many records. If this guess is to
+ * TODO(nicholas): In the future, blocks will "guess" how many records they can
+ * hold and allocate enough memory for that many records. If this guess is too
  * large/small, then we can allocate/deallocate memory accordingly.
  *
  * TODO(nicholas): It may be better to store a vector of mutable ArrayDatas
@@ -51,7 +51,9 @@ public:
     Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity);
 
     /**
-     * Initialize a Block from a RecordBatch read in from a file.
+     * Initialize a Block from a RecordBatch read in from a file. This will
+     * eventually be removed. The constructor that uses a vector of ArrayData
+     * should be used instead.
      *
      * @param id Block ID
      * @param record_batch RecordBatch read from a file
@@ -61,11 +63,29 @@ public:
     capacity);
 
     /**
+     * Initialize a Block from a vector of ArrayData
+     *
+     * @param id Block ID
+     * @param schema Block schema, excluding the valid column
+     * @param column_data ArrayData for each column
+     * @param capacity Maximum number of date bytes to be stored in the Block
+     */
+    Block(int id, const std::shared_ptr<arrow::Schema> &schema,
+          std::vector<std::shared_ptr<arrow::ArrayData>> column_data,
+          int capacity);
+
+    /**
      * Get the Block's ID
      *
      * @return The Block's ID
      */
     int get_id() const;
+
+    /**
+     * Return the block's schema, including the valid column.
+     * @return the block's schema
+     */
+    std::shared_ptr<arrow::Schema> get_schema();
 
     /**
      * Get a column from the Block by index. The indexing of columns is defined
@@ -174,14 +194,29 @@ public:
      */
     bool insert_record(uint8_t *record, int32_t *byte_widths);
 
+    /**
+     * Insert one or more records into the Block as a vector of ArrayData.
+     * This insertion method would be used to insert the results of a query,
+     * since query results are returned as Arrays.
+     *
+     * @param column_data Values to be inserted into each column, including
+     * the valid column. Columns should be listed in the same order as they
+     * appear in the Block's schema. The length of column_data must match the
+     * length of the Block's schema. All ArrayData must contain the same
+     * number of elements.
+     * @return True if insertion was successful, false otherwise.
+     */
+    bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
+                        column_data);
+
 
 private:
 
     // Block ID
     int id;
 
-    std::shared_ptr<arrow::RecordBatch> records;
     std::shared_ptr<arrow::Schema> schema;
+    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 
     /**
      * Compute the number of bytes in the block. This function is only called
@@ -196,7 +231,8 @@ private:
      */
     int compute_num_bytes();
 
-    // Total number of data bytes stored in the block, excluding the valid column data.
+    // Total number of data bytes stored in the block, excluding the valid
+    // column data.
     int num_bytes;
 
     // Initialized to BLOCK_SIZE
@@ -204,8 +240,6 @@ private:
 
     // Number of rows in the Block, including valid and invalid rows.
     int num_rows;
-
-
 };
 
 #endif //HUSTLE_OFFLINE_BLOCK_H

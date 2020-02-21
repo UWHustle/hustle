@@ -16,6 +16,7 @@ class Select : public Operator{
 
   // Operator.h
   std::vector<std::shared_ptr<Block>> runOperator(std::vector<std::vector<std::shared_ptr<Block>>> block_groups) override;
+  std::shared_ptr<Block> runOperatorOnBlock (std::shared_ptr<Block> block);
 
 private:
   arrow::compute::CompareOperator compare_operator_;
