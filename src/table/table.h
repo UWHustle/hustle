@@ -109,6 +109,15 @@ public:
      */
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
 
+    /**
+     * Return the number of rows that appear before a specific block in the
+     * table (the block's row offset)
+     *
+     * @param i Block index
+     * @return The number of rows that appear before block i in the table.
+     */
+    int get_block_row_offset(int i) const;
+
     // Print the contents of all blocks in the table, including the valid
     // column.
     void print();
@@ -149,7 +158,7 @@ private:
     // at index 0 is always 0.
     std::vector<int> block_row_offsets;
 
-    int get_block_row_offset(int i) const;
+
 
 };
 
