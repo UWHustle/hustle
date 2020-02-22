@@ -118,6 +118,14 @@ public:
      */
     int get_block_row_offset(int i) const;
 
+    /**
+     * Return a specific column as a ChunkedArray over all blocks in the table.
+     *
+     * @param i Column index
+     * @return a ChunkedArray of column i over all blocks in the table.
+     */
+    std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+
     // Print the contents of all blocks in the table, including the valid
     // column.
     void print();
