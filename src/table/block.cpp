@@ -277,18 +277,16 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     }
 
     auto test = schema->fields();
-    // TODO(nicholas): Currently, no check is done to assure that the Block
-    //  can hold all of the records to be inserted.
     int data_size = 0;
 
-    for (int i = 1; i < schema->num_fields(); i++) {
+    for (int i = 0; i < schema->num_fields(); i++) {
 
         std::shared_ptr<arrow::Field> field = schema->field(i);
         switch (field->type()->id()) {
 
             case arrow::Type::STRING: {
                 auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
-                data_size += offsets[column_data[0]->length];
+                data_size += offsets[column_data[i]->length];
                 break;
             }
             case arrow::Type::BOOL:
