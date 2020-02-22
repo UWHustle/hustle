@@ -27,10 +27,13 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     arrow::Status status;
 
     arrow::SchemaBuilder schema_builder;
+    status = schema_builder.AddField(arrow::field("valid",arrow::boolean()));
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     status = schema_builder.AddSchema(left_table->get_schema());
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     for (auto &field : right_table->get_schema()->fields()) {
+        // Exclude extra join column and the right table's valid column
         if (field->name() != column_name_) {
             status = schema_builder.AddField(field);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -73,9 +76,11 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     std::shared_ptr<arrow::Int64Array> left_indices;
     std::shared_ptr<arrow::Int64Array> right_indices;
 
-    std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
 
     // Probe phase
+    // TODO(nicholas): Should the probe phase be done all at once or one
+    //  block at a time?
     for (int i=0; i<left_table->get_num_blocks(); i++) {
 
         auto left_block = left_table->get_block(i);
@@ -85,21 +90,23 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
                 join_col);
 
 
-        for (int row=0; row<left_block->get_num_rows(); row++) {
+        for (int row = 0; row < left_block->get_num_rows(); row++) {
             auto key = join_col_casted->Value(row);
 
             if (hash.count(key)) {
                 record_id rid = hash[key];
 
-                status = left_indices_builder.Append(row);
+                int left_row_index = left_table->get_block_row_offset(i) + row;
+                status = left_indices_builder.Append(left_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-                int right_index = right_table->get_block_row_offset(rid
-                        .block_id) + rid.row_index;
-                status = right_indices_builder.Append(right_index);
+                int right_row_index = right_table->get_block_row_offset(
+                        rid.block_id) + rid.row_index;
+                status = right_indices_builder.Append(right_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
+    }
 
 
         // Note that ArrayBuilders are automatically reset by default after
@@ -114,15 +121,20 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             arrow::compute::FunctionContext function_context(
                     arrow::default_memory_pool());
             arrow::compute::TakeOptions take_options;
-            auto *left_col = new arrow::compute::Datum();
+//            auto *left_col = new arrow::compute::Datum();
+            std::shared_ptr<arrow::ChunkedArray> left_col;
 
-            for (int k = 0; k < left_table->get_schema()->num_fields(); k++) {
+            // TODO(nicholas): Note that we are skipping the valid column,
+            //  since Table cannot see it!
+
+            // +1 to include the valid column
+            for (int k = 0; k < left_table->get_schema()->num_fields()+1; k++) {
                 status = arrow::compute::Take(&function_context,
-                                              left_block->get_column(k),
-                                              left_indices, take_options,
-                                              left_col);
+                                              *left_table->get_column(k),
+                                              *left_indices, take_options,
+                                              &left_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                out_block_data.push_back(left_col->array());
+                out_table_data.push_back(left_col);
             }
 
             // NOTE: Arrow's Take API is a little weird. If you pass in an
@@ -132,29 +144,43 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             // shared_ptrs; only the output object is.
             std::shared_ptr<arrow::ChunkedArray> right_col;
 
-            for (int k = 0; k < right_table->get_schema()->num_fields(); k++) {
+            // Skip the valid column, since we already took the bvalid column
+            // from the left table.
+            //TODO(nicholas) make the valid column visible to Table somehow.
+            for (int k = 1; k < right_table->get_block(0)->get_schema()->
+            num_fields(); k++) {
                 // Do not duplicate the join column (natural join)
-
-                auto test = right_table->get_column(i);
-                if (right_table->get_schema()->field(k)->name() !=
+                if (right_table->get_block(0)->get_schema()->field(k)->name() !=
                 column_name_) {
                     status = arrow::compute::Take(&function_context,
                                                   *right_table->get_column(k),
                                                   *right_indices, take_options,
                                                   &right_col);
                     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                    out_block_data.push_back(right_col-);
+                    out_table_data.push_back(right_col);
                 }
             }
 
-            auto out_block = std::make_shared<Block>(out_block_counter,
-                                                     out_schema,
-                                                     BLOCK_SIZE);
-            out_block->insert_records(out_block_data);
-            out_blocks.push_back(out_block);
-            out_block_data.clear();
+            std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
+            // TODO(nicholas): insert_records_assumes we pass in a valid
+            //  column too! we don't have the valid column here!
+//            out_block_data.push_back(nullptr);
+
+            for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
+            chunk_i++) {
+
+                for (auto &col : out_table_data) {
+                    out_block_data.push_back(col->chunk(chunk_i)->data());
+                }
+
+                auto out_block = std::make_shared<Block>(out_block_counter++,
+                                                         out_schema,
+                                                         BLOCK_SIZE);
+                out_block->insert_records(out_block_data);
+                out_blocks.push_back(out_block);
+                out_block_data.clear();
+            }
         }
-    }
 
     out_table->add_blocks(out_blocks);
     return out_table;
