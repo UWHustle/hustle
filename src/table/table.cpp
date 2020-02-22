@@ -43,7 +43,7 @@ Table::Table(
         mark_block_for_insert(blocks[blocks.size() - 1]);
         // The final block is not full, so do not include an offset for the
         // next block.
-        block_row_offsets[block_row_offsets.size()] = -1;
+        block_row_offsets[block_row_offsets.size()-1] = -1;
     }
 }
 
