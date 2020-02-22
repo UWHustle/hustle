@@ -145,6 +145,12 @@ private:
     // Total number of rows in all blocks of the table.
     int num_rows;
 
+    // The value at index i is the number of records before block i. The value
+    // at index 0 is always 0.
+    std::vector<int> block_row_offsets;
+
+    int get_block_row_offset(int i) const;
+
 };
 
 

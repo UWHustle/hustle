@@ -10,7 +10,7 @@
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
         : table_name(std::move(name)), schema(schema), block_counter(0),
-          num_rows(0), block_capacity(block_capacity) {
+          num_rows(0), block_capacity(block_capacity), block_row_offsets({0}) {
 
     fixed_record_width = compute_fixed_record_width(schema);
 }
@@ -21,7 +21,7 @@ Table::Table(
         std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
         int block_capacity)
         : table_name(std::move(name)), block_counter(0), num_rows(0),
-          block_capacity(block_capacity) {
+          block_capacity(block_capacity), block_row_offsets({0}) {
 
     // The first column of the record batch is the valid column, which should
     // not be visible to Table. So we remove it.
@@ -36,10 +36,14 @@ Table::Table(
         blocks.emplace(block_counter, block);
         block_counter++;
         num_rows += batch->num_rows();
+        block_row_offsets.push_back(num_rows);
     }
 
     if (blocks[blocks.size() - 1]->get_bytes_left() > fixed_record_width) {
         mark_block_for_insert(blocks[blocks.size() - 1]);
+        // The final block is not full, so do not include an offset for the
+        // next block.
+        block_row_offsets[block_row_offsets.size()] = -1;
     }
 }
 
@@ -48,6 +52,9 @@ std::shared_ptr<Block> Table::create_block() {
     int block_id = block_counter++;
     auto block = std::make_shared<Block>(block_id, schema, block_capacity);
     blocks.emplace(block_id, block);
+
+    block_row_offsets.push_back(num_rows);
+
     return block;
 }
 
@@ -57,6 +64,14 @@ void Table::add_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
         blocks.emplace(block_counter, block);
         block_counter++;
         num_rows += block->get_num_rows();
+        block_row_offsets.push_back(num_rows);
+    }
+
+    if (blocks[blocks.size() - 1]->get_bytes_left() > fixed_record_width) {
+        mark_block_for_insert(blocks[blocks.size() - 1]);
+        // The final block is not full, so do not include an offset for the
+        // next new block.
+        block_row_offsets[block_row_offsets.size()] = -1;
     }
 
 }
@@ -73,6 +88,7 @@ std::shared_ptr<Block> Table::get_block(int block_id) const {
 std::shared_ptr<Block> Table::get_block_for_insert() {
     std::scoped_lock insert_pool_lock(insert_pool_mutex);
     if (insert_pool.empty()) {
+        block_row_offsets.push_back(num_rows);
         return create_block();
     }
 
@@ -176,4 +192,8 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     if (block->get_bytes_left() > fixed_record_width) {
         insert_pool[block->get_id()] = block;
     }
+}
+
+int Table::get_block_row_offset(int i) const{
+    return block_row_offsets[i];
 }
