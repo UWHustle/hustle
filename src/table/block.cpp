@@ -26,11 +26,16 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
     int init_rows = capacity /
                     (fixed_record_width + ESTIMATED_STR_LEN * num_string_cols);
 
-    // Add the valid column to the schema
-    status = in_schema->AddField(0,
-                                 arrow::field("valid", arrow::boolean()),
-                                 &schema);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    // If schema doesn't include a valid column, add one.
+    if (in_schema->field(0)->name() != "valid") {
+        status = in_schema->AddField(0,
+                                     arrow::field("valid", arrow::boolean()),
+                                     &schema);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+    }
+    else {
+        schema = in_schema;
+    }
 
     for (const auto &field : schema->fields()) {
 
@@ -266,6 +271,12 @@ void Block::print() {
 //  the buffers are too small.
 bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                            column_data) {
+
+    if (column_data[0]->length == 0) {
+        return true;
+    }
+
+    auto test = schema->fields();
     // TODO(nicholas): Currently, no check is done to assure that the Block
     //  can hold all of the records to be inserted.
     int data_size = 0;
@@ -519,6 +530,10 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     increment_num_rows();
 
     return true;
+}
+
+std::shared_ptr<arrow::Schema> Block::get_schema() {
+    return schema;
 }
 
 
