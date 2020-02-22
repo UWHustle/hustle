@@ -556,35 +556,51 @@ protected:
         schema = arrow::schema(
                 {field1, field2, field3, field4});
 
-        std::ofstream csv_file;
-        csv_file.open("table_test.csv");
+        std::ofstream left_table_csv;
+        left_table_csv.open("left_table.csv");
         for (int i = 0; i < 8; i++) {
-            csv_file<< "4242|Mon dessin ne representait pas un chapeau.|Il "
-                       "representait un serpent boa qui digerait un elephant"
-                       ".|37373737\n";
-            csv_file << "1776|Twice two makes four is an excellent thing"
-                        ".|Twice two makes five is sometimes a very charming "
-                        "thing too.|1789\n";
-        }
-        csv_file.close();
 
+            left_table_csv<< std::to_string(i) + "|Mon dessin ne representait"
+                                                 "  pas un chapeau.|Il "
+                                                 "representait un serpent boa qui digerait un elephant"
+                                                 ".|0\n";
+            left_table_csv << "1776|Twice two makes four is an excellent thing"
+                        ".|Twice two makes five is sometimes a very charming "
+                        "thing too.|0\n";
+        }
+        left_table_csv.close();
+
+
+        std::ofstream right_table_csv;
+        right_table_csv.open("right_table.csv");
+        for (int i = 0; i < 8; i++) {
+            right_table_csv<< "4242|Mon dessin ne representait pas un chapeau"
+                            ".|Il "
+                             "representait un serpent boa qui digerait un elephant"
+                             ".|37373737\n";
+            right_table_csv << std::to_string(i) + "|Twice two makes four is "
+                                                   "an excellent thing"
+                              ".|Twice two makes five is sometimes a very charming "
+                              "thing too.|1789\n";
+        }
+        right_table_csv.close();
     }
 };
 
 TEST_F(OperatorsTestFixture2, SelectFromCSV) {
 
-    Table table_from_csv = read_from_csv_file
-            ("table_test.csv", schema, BLOCK_SIZE);
+    auto table_from_csv = read_from_csv_file
+            ("left_table.csv", schema, BLOCK_SIZE);
 
     std::vector<std::shared_ptr<Block>> blocks;
-    for (int i=0; i<table_from_csv.get_num_blocks(); i++){
-        blocks.push_back(table_from_csv.get_block(i));
+    for (int i=0; i<table_from_csv->get_num_blocks(); i++){
+        blocks.push_back(table_from_csv->get_block(i));
     }
 
     auto *select_op = new hustle::operators::Select(
             arrow::compute::CompareOperator::EQUAL,
             "A",
-            arrow::compute::Datum((int64_t) 4242)
+            arrow::compute::Datum((int64_t) 1776)
     );
 
     auto out_blocks = select_op->runOperator({blocks});
@@ -604,15 +620,67 @@ TEST_F(OperatorsTestFixture2, SelectFromCSV) {
 
         for (int row = 0; row < block->get_num_rows(); row++) {
             EXPECT_EQ(valid->Value(row), true);
-            EXPECT_EQ(column1->Value(row), 4242);
+            EXPECT_EQ(column1->Value(row), 1776);
             EXPECT_EQ(column2->GetString(row),
-                      "Mon dessin ne representait pas un chapeau.");
+                      "Twice two makes four is an excellent thing.");
             EXPECT_EQ(column3->GetString(row),
-                      "Il representait un serpent boa qui digerait un "
-                      "elephant.");
-            EXPECT_EQ(column4->Value(row), 37373737);
+                      "Twice two makes five is sometimes a very charming "
+                      "thing too.");
+            EXPECT_EQ(column4->Value(row), 1789);
         }
     }
+}
 
+TEST_F(OperatorsTestFixture2, HashJoin) {
 
+    auto left_table = read_from_csv_file
+            ("left_table.csv", schema, BLOCK_SIZE);
+
+    auto right_table = read_from_csv_file
+            ("right_table.csv", schema, BLOCK_SIZE);
+
+    auto join_op = hustle::operators::Join("A");
+
+    auto out_table = join_op.hash_join(left_table, right_table);
+
+    out_table->print();
+//    for (auto block : out_table->) {
+//
+//        valid = std::static_pointer_cast<arrow::BooleanArray>
+//                (block->get_column(0));
+//        column1 = std::static_pointer_cast<arrow::Int64Array>
+//                (block->get_column(1));
+//        column2 = std::static_pointer_cast<arrow::StringArray>
+//                (block->get_column(2));
+//        column3 = std::static_pointer_cast<arrow::StringArray>
+//                (block->get_column(3));
+//        column4 = std::static_pointer_cast<arrow::Int64Array>
+//                (block->get_column(4));
+//
+//        for (int row = 0; row < block->get_num_rows(); row++) {
+//            EXPECT_EQ(valid->Value(row), true);
+//            EXPECT_EQ(column1->Value(row), 1776);
+//            EXPECT_EQ(column2->GetString(row),
+//                      "Twice two makes four is an excellent thing.");
+//            EXPECT_EQ(column3->GetString(row),
+//                      "Twice two makes five is sometimes a very charming "
+//                      "thing too.");
+//            EXPECT_EQ(column4->Value(row), 1789);
+//        }
+//    }
+}
+
+TEST_F(OperatorsTestFixture2, HashJoinEmptyResult) {
+
+    auto left_table = read_from_csv_file
+            ("left_table.csv", schema, BLOCK_SIZE);
+
+    auto right_table = read_from_csv_file
+            ("right_table.csv", schema, BLOCK_SIZE);
+
+    auto join_op = hustle::operators::Join("D");
+
+    auto out_table = join_op.hash_join(left_table, right_table);
+
+    out_table->print();
 }
