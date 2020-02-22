@@ -202,10 +202,11 @@ int Table::get_block_row_offset(int i) const{
     return block_row_offsets[i];
 }
 
-std::shared_ptr<arrow::ChunkedArray> Table::get_column(int i)  {
+// TODO(nicholas): note that this function can "see" the valid columns
+std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index)  {
     arrow::ArrayVector array_vector;
     for (int i = 0; i < blocks.size(); i++) {
-        array_vector.push_back(blocks[i]->get_column(i));
+        array_vector.push_back(blocks[i]->get_column(col_index));
     }
     return std::make_shared<arrow::ChunkedArray>(array_vector);
 }
