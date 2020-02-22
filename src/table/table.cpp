@@ -60,6 +60,10 @@ std::shared_ptr<Block> Table::create_block() {
 
 void Table::add_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
 
+    if (input_blocks.empty()) {
+        return;
+    }
+
     for (auto &block : input_blocks) {
         blocks.emplace(block_counter, block);
         block_counter++;
