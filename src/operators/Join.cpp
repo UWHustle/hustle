@@ -16,20 +16,38 @@ Join::Join(std::string column_name) {
     column_name_ = std::move(column_name);
 }
 
-    std::vector<std::shared_ptr<Block>> Join::runOperator(
-            std::vector<std::vector<std::shared_ptr<Block>>> block_groups) {
-        return std::vector<std::shared_ptr<Block>>();
-    }
+std::vector<std::shared_ptr<Block>> Join::runOperator(
+        std::vector<std::vector<std::shared_ptr<Block>>> block_groups) {
+    return std::vector<std::shared_ptr<Block>>();
+}
 
-    std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
-        right_table) {
+std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
+    right_table) {
 
     arrow::Status status;
+
+    arrow::SchemaBuilder schema_builder;
+    status = schema_builder.AddSchema(left_table->get_schema());
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    for (auto &field : right_table->get_schema()->fields()) {
+        if (field->name() != column_name_) {
+            status = schema_builder.AddField(field);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        }
+    }
+
+    status = schema_builder.Finish().status();
+    evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
+    auto out_schema = schema_builder.Finish().ValueOrDie();
+
+    auto out_table = std::make_shared<Table>("out", out_schema,
+                                             BLOCK_SIZE);
     std::unordered_map<int64_t, record_id> hash(right_table->get_num_rows());
     std::vector<std::shared_ptr<Block>> out_blocks;
-    auto out_table = std::make_shared<Table>("out",left_table->get_schema(),
-            BLOCK_SIZE);
+
     int out_block_counter = 0;
+
     // Build phase
     for (int i=0; i<right_table->get_num_blocks(); i++) {
 
@@ -40,6 +58,7 @@ Join::Join(std::string column_name) {
                 join_col);
 
         for (int row=0; row<right_block->get_num_rows(); row++) {
+            // TODO(nicholas): Should I store block_row_offset + row instead?
             record_id rid = {right_block->get_id(), row};
             hash[join_col_casted->Value(row)] = rid;
         }
@@ -48,7 +67,11 @@ Join::Join(std::string column_name) {
     auto test = out_table->get_schema()->fields();
 
     arrow::Int64Builder left_indices_builder;
+    arrow::Int64Builder right_indices_builder;
+    // TODO(nicholas): left_indicies can be a ChunkedArray. It is not
+    //  necessary to force its values to be contiguous
     std::shared_ptr<arrow::Int64Array> left_indices;
+    std::shared_ptr<arrow::Int64Array> right_indices;
 
     std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
 
@@ -64,9 +87,16 @@ Join::Join(std::string column_name) {
 
         for (int row=0; row<left_block->get_num_rows(); row++) {
             auto key = join_col_casted->Value(row);
+
             if (hash.count(key)) {
                 record_id rid = hash[key];
+
                 status = left_indices_builder.Append(row);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+                int right_index = right_table->get_block_row_offset(rid
+                        .block_id) + rid.row_index;
+                status = right_indices_builder.Append(right_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
@@ -76,6 +106,8 @@ Join::Join(std::string column_name) {
         // calling Finish()
         status = left_indices_builder.Finish(&left_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        status = right_indices_builder.Finish(&right_indices);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
         // If no tuples will be outputted, do not create a new block.
         if (left_indices->length() > 0) {
@@ -84,8 +116,7 @@ Join::Join(std::string column_name) {
             arrow::compute::TakeOptions take_options;
             auto *left_col = new arrow::compute::Datum();
 
-            // Skip valid column; valid column is added
-            for (int k = 0; k < left_block->get_schema()->num_fields(); k++) {
+            for (int k = 0; k < left_table->get_schema()->num_fields(); k++) {
                 status = arrow::compute::Take(&function_context,
                                               left_block->get_column(k),
                                               left_indices, take_options,
@@ -94,9 +125,30 @@ Join::Join(std::string column_name) {
                 out_block_data.push_back(left_col->array());
             }
 
+            // NOTE: Arrow's Take API is a little weird. If you pass in an
+            // Array of indices to select from a ChunkedArray of values, you
+            // must use a ChunkedArray for the output. A Datum will not work.
+            // Furthermore, the values and indices objects cannot be
+            // shared_ptrs; only the output object is.
+            std::shared_ptr<arrow::ChunkedArray> right_col;
+
+            for (int k = 0; k < right_table->get_schema()->num_fields(); k++) {
+                // Do not duplicate the join column (natural join)
+
+                auto test = right_table->get_column(i);
+                if (right_table->get_schema()->field(k)->name() !=
+                column_name_) {
+                    status = arrow::compute::Take(&function_context,
+                                                  *right_table->get_column(k),
+                                                  *right_indices, take_options,
+                                                  &right_col);
+                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                    out_block_data.push_back(right_col-);
+                }
+            }
 
             auto out_block = std::make_shared<Block>(out_block_counter,
-                                                     left_block->get_schema(),
+                                                     out_schema,
                                                      BLOCK_SIZE);
             out_block->insert_records(out_block_data);
             out_blocks.push_back(out_block);
@@ -108,12 +160,12 @@ Join::Join(std::string column_name) {
     return out_table;
 }
 
-    std::vector<std::shared_ptr<Block>>
-    Join::runOperator(std::shared_ptr<arrow::Schema> out_schema,
-                      arrow::compute::Datum left_join_val,
-                      std::shared_ptr<Table> right) {
-        return std::vector<std::shared_ptr<Block>>();
-    }
+std::vector<std::shared_ptr<Block>>
+Join::runOperator(std::shared_ptr<arrow::Schema> out_schema,
+                  arrow::compute::Datum left_join_val,
+                  std::shared_ptr<Table> right) {
+    return std::vector<std::shared_ptr<Block>>();
+}
 
 
 // TODO(nicholas): This entire function can be ignored.
