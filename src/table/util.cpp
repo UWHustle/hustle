@@ -192,7 +192,8 @@ int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema) {
 
 #include <sys/mman.h>
 
-Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
+std::shared_ptr<Table> read_from_csv_file(const char* path,
+        std::shared_ptr<arrow::Schema>
         schema, int block_size) {
 
     arrow::Status status;
@@ -310,7 +311,7 @@ Table read_from_csv_file(const char* path, std::shared_ptr<arrow::Schema>
 
     file.close();
 
-    return Table("table", record_batches, block_size);
+    return std::make_shared<Table>("table", record_batches, block_size);
 
 //    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 //
