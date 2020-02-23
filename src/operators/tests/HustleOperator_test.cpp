@@ -558,7 +558,7 @@ protected:
 
         std::ofstream left_table_csv;
         left_table_csv.open("left_table.csv");
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 9; i++) {
 
             left_table_csv<< std::to_string(i) + "|Mon dessin ne representait"
                                                  "  pas un chapeau.|Il "
@@ -573,7 +573,7 @@ protected:
 
         std::ofstream right_table_csv;
         right_table_csv.open("right_table.csv");
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 9; i++) {
             right_table_csv<< "4242|Mon dessin ne representait pas un chapeau"
                             ".|Il "
                              "representait un serpent boa qui digerait un elephant"
@@ -626,7 +626,7 @@ TEST_F(OperatorsTestFixture2, SelectFromCSV) {
             EXPECT_EQ(column3->GetString(row),
                       "Twice two makes five is sometimes a very charming "
                       "thing too.");
-            EXPECT_EQ(column4->Value(row), 1789);
+            EXPECT_EQ(column4->Value(row), 0);
         }
     }
 }
