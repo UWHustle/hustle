@@ -365,10 +365,11 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto in_offsets_data =
                         column_data[i]->GetMutableValues<int32_t>(
-                                1, 0);
+                                1, offset);
+                std::cout << "OFFSET = " << in_offsets_data[0] << std::endl;
                 auto in_values_data =
                         column_data[i]->GetMutableValues<uint8_t>(
-                                2, 0);
+                                2, in_offsets_data[0]);
 
                 // Insert new offset
 
@@ -387,12 +388,13 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto *values_data = columns[i]->GetMutableValues<uint8_t>(
                         2, offsets_data[num_rows]);
-                std::memcpy(values_data, in_values_data,
-                            column_data[i]->buffers[2]->size());
+                int string_size = in_offsets_data[n] - in_offsets_data[0];
+                std::memcpy(values_data, in_values_data, string_size);
+
 
                 columns[i]->length += n;
 
-                increment_num_bytes(in_offsets_data[n]);
+                increment_num_bytes(string_size);
                 break;
             }
                 // This works with any fixed-width type, but for now, I specify INT64
