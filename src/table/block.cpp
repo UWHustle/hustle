@@ -305,6 +305,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
         }
     }
 
+    // TODO(nicholas): What to do when the records cannot all fit in one block?
     if (data_size > get_bytes_left()) {
         return false;
     }
