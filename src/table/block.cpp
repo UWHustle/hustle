@@ -26,11 +26,16 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
     int init_rows = capacity /
                     (fixed_record_width + ESTIMATED_STR_LEN * num_string_cols);
 
-    // Add the valid column to the schema
-    status = in_schema->AddField(0,
-                                 arrow::field("valid", arrow::boolean()),
-                                 &schema);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    // If schema doesn't include a valid column, add one.
+    if (in_schema->field(0)->name() != "valid") {
+        status = in_schema->AddField(0,
+                                     arrow::field("valid", arrow::boolean()),
+                                     &schema);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+    }
+    else {
+        schema = in_schema;
+    }
 
     for (const auto &field : schema->fields()) {
 
@@ -266,18 +271,22 @@ void Block::print() {
 //  the buffers are too small.
 bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                            column_data) {
-    // TODO(nicholas): Currently, no check is done to assure that the Block
-    //  can hold all of the records to be inserted.
+
+    if (column_data[0]->length == 0) {
+        return true;
+    }
+
+    auto test = schema->fields();
     int data_size = 0;
 
-    for (int i = 1; i < schema->num_fields(); i++) {
+    for (int i = 0; i < schema->num_fields(); i++) {
 
         std::shared_ptr<arrow::Field> field = schema->field(i);
         switch (field->type()->id()) {
 
             case arrow::Type::STRING: {
                 auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
-                data_size += offsets[column_data[0]->length];
+                data_size += offsets[column_data[i]->length];
                 break;
             }
             case arrow::Type::BOOL:
@@ -296,6 +305,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
         }
     }
 
+    // TODO(nicholas): What to do when the records cannot all fit in one block?
     if (data_size > get_bytes_left()) {
         return false;
     }
@@ -303,6 +313,9 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     arrow::Status status;
 
     int n = column_data[0]->length; // number of elements to be inserted
+
+    // NOTE: buffers do NOT account for Slice offsets!!!
+    int offset = column_data[0]->offset;
 
     for (int i = 0; i < schema->num_fields(); i++) {
 
@@ -352,10 +365,10 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto in_offsets_data =
                         column_data[i]->GetMutableValues<int32_t>(
-                                1, 0);
+                                1, offset);
                 auto in_values_data =
                         column_data[i]->GetMutableValues<uint8_t>(
-                                2, 0);
+                                2, in_offsets_data[0]);
 
                 // Insert new offset
 
@@ -374,12 +387,13 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto *values_data = columns[i]->GetMutableValues<uint8_t>(
                         2, offsets_data[num_rows]);
-                std::memcpy(values_data, in_values_data,
-                            column_data[i]->buffers[2]->size());
+                int string_size = in_offsets_data[n] - in_offsets_data[0];
+                std::memcpy(values_data, in_values_data, string_size);
+
 
                 columns[i]->length += n;
 
-                increment_num_bytes(in_offsets_data[n]);
+                increment_num_bytes(string_size);
                 break;
             }
                 // This works with any fixed-width type, but for now, I specify INT64
@@ -393,8 +407,8 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto *dest = columns[i]->GetMutableValues<uint8_t>(
                         1, num_rows * sizeof(int64_t));
-                std::memcpy(dest, column_data[i]->GetMutableValues<uint8_t>
-                        (1, 0), sizeof(int64_t) * n);
+                std::memcpy(dest, column_data[i]->GetMutableValues<uint64_t>
+                        (1, offset), sizeof(int64_t) * n);
 
                 columns[i]->length += n;
                 increment_num_bytes(n * sizeof(int64_t));
@@ -519,6 +533,10 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     increment_num_rows();
 
     return true;
+}
+
+std::shared_ptr<arrow::Schema> Block::get_schema() {
+    return schema;
 }
 
 

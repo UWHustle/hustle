@@ -537,6 +537,7 @@ class OperatorsTestFixture2 : public testing::Test {
 protected:
 
     std::shared_ptr<arrow::Schema> schema;
+    std::shared_ptr<arrow::Schema> schema_2;
 
     std::shared_ptr<arrow::BooleanArray> valid;
     std::shared_ptr<arrow::Int64Array> column1;
@@ -547,44 +548,79 @@ protected:
     void SetUp() override {
         arrow::Status status;
 
-        std::shared_ptr<arrow::Field> field1 = arrow::field("A",
+        std::shared_ptr<arrow::Field> field1 = arrow::field("id",
                                                             arrow::int64());
         std::shared_ptr<arrow::Field> field2 = arrow::field("B", arrow::utf8());
         std::shared_ptr<arrow::Field> field3 = arrow::field("C", arrow::utf8());
         std::shared_ptr<arrow::Field> field4 = arrow::field("D",
                                                             arrow::int64());
-        schema = arrow::schema(
-                {field1, field2, field3, field4});
+        schema = arrow::schema({field1, field2, field3, field4});
+        schema_2 = arrow::schema({field1, field2});
 
-        std::ofstream csv_file;
-        csv_file.open("table_test.csv");
-        for (int i = 0; i < 8; i++) {
-            csv_file<< "4242|Mon dessin ne representait pas un chapeau.|Il "
-                       "representait un serpent boa qui digerait un elephant"
-                       ".|37373737\n";
-            csv_file << "1776|Twice two makes four is an excellent thing"
+        std::ofstream left_table_csv;
+        left_table_csv.open("left_table.csv");
+        for (int i = 0; i < 9; i++) {
+
+            left_table_csv<< std::to_string(i) + "|Mon dessin ne representait"
+                                                 "  pas un chapeau.|Il "
+                                                 "representait un serpent boa qui digerait un elephant"
+                                                 ".|0\n";
+            left_table_csv << "1776|Twice two makes four is an excellent thing"
                         ".|Twice two makes five is sometimes a very charming "
-                        "thing too.|1789\n";
+                        "thing too.|0\n";
         }
-        csv_file.close();
+        left_table_csv.close();
+
+
+        std::ofstream right_table_csv;
+        right_table_csv.open("right_table.csv");
+        for (int i = 0; i < 9; i++) {
+            right_table_csv<< "4242|Mon dessin ne representait pas un chapeau"
+                            ".|Il "
+                             "representait un serpent boa qui digerait un elephant"
+                             ".|37373737\n";
+            right_table_csv << std::to_string(i) + "|Twice two makes four is "
+                                                   "an excellent thing"
+                              ".|Twice two makes five is sometimes a very charming "
+                              "thing too.|1789\n";
+        }
+        right_table_csv.close();
+
+
+        std::ofstream left_table_csv_2;
+        left_table_csv_2.open("left_table_2.csv");
+        for (int i = 0; i < 100; i++) {
+            left_table_csv_2 << std::to_string(i) + "|My key is " +
+                                std::to_string(i) + "\n";
+        }
+        left_table_csv_2.close();
+
+        std::ofstream right_table_csv_2;
+        right_table_csv_2.open("right_table_2.csv");
+        for (int i = 0; i < 100; i++) {
+            right_table_csv_2 << std::to_string(i) + "|And my key is also " +
+            std::to_string(i)+ "\n";
+        }
+        right_table_csv_2.close();
+
 
     }
 };
 
 TEST_F(OperatorsTestFixture2, SelectFromCSV) {
 
-    Table table_from_csv = read_from_csv_file
-            ("table_test.csv", schema, BLOCK_SIZE);
+    auto table_from_csv = read_from_csv_file
+            ("left_table.csv", schema, BLOCK_SIZE);
 
     std::vector<std::shared_ptr<Block>> blocks;
-    for (int i=0; i<table_from_csv.get_num_blocks(); i++){
-        blocks.push_back(table_from_csv.get_block(i));
+    for (int i=0; i<table_from_csv->get_num_blocks(); i++){
+        blocks.push_back(table_from_csv->get_block(i));
     }
 
     auto *select_op = new hustle::operators::Select(
             arrow::compute::CompareOperator::EQUAL,
-            "A",
-            arrow::compute::Datum((int64_t) 4242)
+            "id",
+            arrow::compute::Datum((int64_t) 1776)
     );
 
     auto out_blocks = select_op->runOperator({blocks});
@@ -604,15 +640,72 @@ TEST_F(OperatorsTestFixture2, SelectFromCSV) {
 
         for (int row = 0; row < block->get_num_rows(); row++) {
             EXPECT_EQ(valid->Value(row), true);
-            EXPECT_EQ(column1->Value(row), 4242);
+            EXPECT_EQ(column1->Value(row), 1776);
             EXPECT_EQ(column2->GetString(row),
-                      "Mon dessin ne representait pas un chapeau.");
+                      "Twice two makes four is an excellent thing.");
             EXPECT_EQ(column3->GetString(row),
-                      "Il representait un serpent boa qui digerait un "
-                      "elephant.");
-            EXPECT_EQ(column4->Value(row), 37373737);
+                      "Twice two makes five is sometimes a very charming "
+                      "thing too.");
+            EXPECT_EQ(column4->Value(row), 0);
         }
     }
+}
 
+TEST_F(OperatorsTestFixture2, HashJoin) {
 
+    auto left_table = read_from_csv_file
+            ("left_table_2.csv", schema_2, BLOCK_SIZE);
+
+    auto right_table = read_from_csv_file
+            ("right_table_2.csv", schema_2, BLOCK_SIZE);
+
+    auto join_op = hustle::operators::Join("id");
+
+    auto out_table = join_op.hash_join(left_table, right_table);
+
+    out_table->print();
+
+    for (int i=0; i<out_table->get_num_blocks(); i++) {
+
+        auto block = out_table->get_block(i);
+
+        valid = std::static_pointer_cast<arrow::BooleanArray>
+                (block->get_column(0));
+        column1 = std::static_pointer_cast<arrow::Int64Array>
+                (block->get_column(1));
+        column2 = std::static_pointer_cast<arrow::StringArray>
+                (block->get_column(2));
+        column3 = std::static_pointer_cast<arrow::StringArray>
+                (block->get_column(3));
+
+        int table_row = 0;
+
+        for (int block_row = 0; block_row < block->get_num_rows(); block_row++) {
+
+            table_row = block_row + out_table->get_block_row_offset(i);
+
+            EXPECT_EQ(valid->Value(block_row), true);
+            EXPECT_EQ(column1->Value(block_row), table_row);
+            EXPECT_EQ(column2->GetString(block_row),
+                      "My key is " + std::to_string(table_row));
+            EXPECT_EQ(column3->GetString(block_row),
+                      "And my key is also " + std::to_string(table_row));
+        }
+    }
+}
+
+TEST_F(OperatorsTestFixture2, HashJoinEmptyResult) {
+
+    auto left_table = read_from_csv_file
+            ("left_table.csv", schema, BLOCK_SIZE);
+
+    auto right_table = read_from_csv_file
+            ("right_table.csv", schema, BLOCK_SIZE);
+
+    auto join_op = hustle::operators::Join("D");
+
+    auto out_table = join_op.hash_join(left_table, right_table);
+
+    EXPECT_EQ(out_table->get_num_rows(), 0);
+    EXPECT_EQ(out_table->get_num_blocks(), 0);
 }
