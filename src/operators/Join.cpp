@@ -32,6 +32,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     status = schema_builder.AddSchema(left_table->get_schema());
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
+    //TODO(nicholas): Output table schema can see valid column
     for (auto &field : right_table->get_schema()->fields()) {
         // Exclude extra join column and the right table's valid column
         if (field->name() != column_name_) {
@@ -44,7 +45,21 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
     auto out_schema = schema_builder.Finish().ValueOrDie();
 
-    auto out_table = std::make_shared<Table>("out", out_schema,
+    arrow::SchemaBuilder schema_builder_2;
+    status = schema_builder_2.AddSchema(left_table->get_schema());
+    //TODO(nicholas): Output table schema can see valid column
+    for (auto &field : right_table->get_schema()->fields()) {
+        // Exclude extra join column and the right table's valid column
+        if (field->name() != column_name_) {
+            status = schema_builder_2.AddField(field);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        }
+    }
+
+    status = schema_builder.Finish().status();
+    evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
+    auto out_schema_2 = schema_builder.Finish().ValueOrDie();
+    auto out_table = std::make_shared<Table>("out", out_schema_2,
                                              BLOCK_SIZE);
     std::unordered_map<int64_t, record_id> hash(right_table->get_num_rows());
     std::vector<std::shared_ptr<Block>> out_blocks;

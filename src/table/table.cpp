@@ -10,7 +10,7 @@
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
         : table_name(std::move(name)), schema(schema), block_counter(0),
-          num_rows(0), block_capacity(block_capacity), block_row_offsets({0}) {
+          num_rows(0), block_capacity(block_capacity) {
 
     fixed_record_width = compute_fixed_record_width(schema);
 }
@@ -22,7 +22,8 @@ Table::Table(
         int block_capacity)
         : table_name(std::move(name)), block_counter(0), num_rows(0),
           block_capacity(block_capacity), block_row_offsets({0}) {
-
+    // TODO(nicholas): Be consistent with how/when block_row_offsets is
+    //  initialized.
     // The first column of the record batch is the valid column, which should
     // not be visible to Table. So we remove it.
     auto fields = record_batches[0]->schema()->fields();
@@ -94,7 +95,6 @@ std::shared_ptr<Block> Table::get_block(int block_id) const {
 std::shared_ptr<Block> Table::get_block_for_insert() {
     std::scoped_lock insert_pool_lock(insert_pool_mutex);
     if (insert_pool.empty()) {
-        block_row_offsets.push_back(num_rows);
         return create_block();
     }
 
