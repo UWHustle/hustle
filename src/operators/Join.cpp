@@ -161,6 +161,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
                 }
             }
 
+
             std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
             // TODO(nicholas): insert_records_assumes we pass in a valid
             //  column too! we don't have the valid column here!
@@ -168,7 +169,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
 
             for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
             chunk_i++) {
-
+                int c = 0;
                 for (auto &col : out_table_data) {
                     out_block_data.push_back(col->chunk(chunk_i)->data());
                 }
