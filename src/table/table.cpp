@@ -58,6 +58,8 @@ std::shared_ptr<Block> Table::create_block() {
     return block;
 }
 
+
+
 void Table::add_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
 
     if (input_blocks.empty()) {
@@ -129,43 +131,22 @@ void Table::print() {
 std::unordered_map<int, std::shared_ptr<Block>>
 Table::get_blocks() { return blocks; }
 
-
-// Tuple is passed in as an array of bytes which must be parsed.
-void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
-
-    std::shared_ptr<Block> block = get_block_for_insert();
-
-    int32_t record_size = 0;
-    for (int i = 0; i < schema->num_fields(); i++) {
-        record_size += byte_widths[i];
-    }
-
-    if (block->get_bytes_left() < record_size) {
-        block = create_block();
-    }
-
-    block->insert_record(record, byte_widths);
-    num_rows++;
-
-    if (block->get_bytes_left() > fixed_record_width) {
-        insert_pool[block->get_id()] = block;
-    }
-}
-
-// Tuple is passed in as an array of bytes which must be parsed.
 void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                            column_data) {
 
+    // Figure out how many records you can fit in a block
+    auto test = schema->fields();
     int data_size = 0;
-    // Start at i=1 to skip valid column
-    for (int i = 1; i < schema->num_fields(); i++) {
+    
+    for (int i = 0; i < schema->num_fields(); i++) {
 
         std::shared_ptr<arrow::Field> field = schema->field(i);
+
         switch (field->type()->id()) {
 
             case arrow::Type::STRING: {
                 auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
-                data_size += offsets[column_data[0]->length];
+                data_size += offsets[column_data[i]->length];
                 break;
             }
             case arrow::Type::BOOL:
@@ -184,14 +165,71 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
         }
     }
 
-    std::shared_ptr<Block> block = get_block_for_insert();
+    auto block = get_block_for_insert();
 
-    if (block->get_bytes_left() < data_size) {
+    if (data_size > block->get_bytes_left()) {
         block = create_block();
     }
 
-    block->insert_records(column_data);
-    num_rows += column_data[0]->length;
+    if (data_size <= block_capacity) {
+        block->insert_records(column_data);
+        num_rows += column_data[0]->length;
+
+        if (block->get_bytes_left() > fixed_record_width) {
+            insert_pool[block->get_id()] = block;
+        }
+    }
+
+    else {
+        std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
+
+        int l = column_data[0]->length;
+
+        for (int i=0; i<column_data.size(); i++) {
+            auto sliced_data = std::make_shared<arrow::ArrayData>
+                    (column_data[i]->Slice(0,l/2));
+            sliced_column_data.push_back(sliced_data);
+        }
+
+        block->insert_records(sliced_column_data);
+        num_rows += l/2;
+
+        if (block->get_bytes_left() > fixed_record_width) {
+            insert_pool[block->get_id()] = block;
+        }
+        sliced_column_data.clear();
+
+        for (int i=0; i<column_data.size(); i++) {
+            auto sliced_data = std::make_shared<arrow::ArrayData>
+                    (column_data[i]->Slice(l/2,l - l/2));
+            sliced_column_data.push_back(sliced_data);
+        }
+
+        block = create_block();
+        block->insert_records(sliced_column_data);
+        if (block->get_bytes_left() > fixed_record_width) {
+            insert_pool[block->get_id()] = block;
+        }
+    }
+
+}
+
+// Tuple is passed in as an array of bytes which must be parsed.
+void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
+
+    std::shared_ptr<Block> block = get_block_for_insert();
+
+    int32_t record_size = 0;
+    for (int i = 0; i < schema->num_fields(); i++) {
+        record_size += byte_widths[i];
+    }
+
+    if (block->get_bytes_left() < record_size) {
+        block = create_block();
+    }
+
+    block->insert_record(record, byte_widths);
+    num_rows++;
 
     if (block->get_bytes_left() > fixed_record_width) {
         insert_pool[block->get_id()] = block;
