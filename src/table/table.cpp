@@ -134,84 +134,84 @@ Table::get_blocks() { return blocks; }
 void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                            column_data) {
 
-    // Figure out how many records you can fit in a block
-    auto test = schema->fields();
+    int l = column_data[0]->length;
     int data_size = 0;
-    
-    for (int i = 0; i < schema->num_fields(); i++) {
-
-        std::shared_ptr<arrow::Field> field = schema->field(i);
-
-        switch (field->type()->id()) {
-
-            case arrow::Type::STRING: {
-                auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
-                data_size += offsets[column_data[i]->length];
-                break;
-            }
-            case arrow::Type::BOOL:
-            case arrow::Type::INT64: {
-                // buffer at index 1 is the data buffer.
-                int byte_width = field->type()->layout().bit_widths[1] / 8;
-                data_size += byte_width * column_data[i]->length;
-                break;
-            }
-            default: {
-                throw std::logic_error(
-                        std::string(
-                                "Cannot compute record width. Unsupported type: ") +
-                        field->type()->ToString());
-            }
-        }
-    }
 
     auto block = get_block_for_insert();
 
-    if (data_size > block->get_bytes_left()) {
-        block = create_block();
+    int offset = 0;
+    int length = l;
+
+    std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
+
+    for (int row=0; row<l; row++) {
+
+        int record_size = 0;
+
+        for (int i = 0; i < schema->num_fields(); i++) {
+
+            std::shared_ptr<arrow::Field> field = schema->field(i);
+
+            switch (field->type()->id()) {
+
+                case arrow::Type::STRING: {
+                    auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
+                    record_size += offsets[row+1] - offsets[row];
+                    break;
+                }
+                case arrow::Type::BOOL:
+                case arrow::Type::INT64: {
+                    // buffer at index 1 is the data buffer.
+                    int byte_width = field->type()->layout().bit_widths[1] / 8;
+                    record_size += byte_width;
+                    break;
+                }
+                default: {
+                    throw std::logic_error(
+                            std::string(
+                                    "Cannot compute record width. Unsupported type: ") +
+                            field->type()->ToString());
+                }
+            }
+        }
+
+        if (data_size + record_size > block->get_bytes_left()) {
+
+            for (int i=0; i<schema->num_fields(); i++) {
+                // Note that row is equal to the index of the first record we
+                // cannot fit in the block.
+                auto sliced_data = std::make_shared<arrow::ArrayData>
+                        (column_data[i]->Slice(offset,row-offset));
+                sliced_column_data.push_back(sliced_data);
+            }
+
+            block->insert_records(sliced_column_data);
+            sliced_column_data.clear();
+
+            num_rows += row - offset;
+            offset = row;
+            data_size = 0;
+
+            block = create_block();
+        }
+
+        data_size += record_size;
     }
 
-    if (data_size <= block_capacity) {
-        block->insert_records(column_data);
-        num_rows += column_data[0]->length;
-
-        if (block->get_bytes_left() > fixed_record_width) {
-            insert_pool[block->get_id()] = block;
-        }
+    // Insert the last of the records
+    for (int i=0; i<schema->num_fields(); i++) {
+        // Note that row is equal to the index of the first record we
+        // cannot fit in the block.
+        auto sliced_data = std::make_shared<arrow::ArrayData>
+                (column_data[i]->Slice(offset,l-offset));
+        sliced_column_data.push_back(sliced_data);
     }
+    block->insert_records(sliced_column_data);
+    sliced_column_data.clear();
 
-    else {
-        std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
-
-        int l = column_data[0]->length;
-
-        for (int i=0; i<column_data.size(); i++) {
-            auto sliced_data = std::make_shared<arrow::ArrayData>
-                    (column_data[i]->Slice(0,l/2));
-            sliced_column_data.push_back(sliced_data);
-        }
-
-        block->insert_records(sliced_column_data);
-        num_rows += l/2;
-
-        if (block->get_bytes_left() > fixed_record_width) {
-            insert_pool[block->get_id()] = block;
-        }
-        sliced_column_data.clear();
-
-        for (int i=0; i<column_data.size(); i++) {
-            auto sliced_data = std::make_shared<arrow::ArrayData>
-                    (column_data[i]->Slice(l/2,l - l/2));
-            sliced_column_data.push_back(sliced_data);
-        }
-
-        block = create_block();
-        block->insert_records(sliced_column_data);
-        if (block->get_bytes_left() > fixed_record_width) {
-            insert_pool[block->get_id()] = block;
-        }
+    if (block->get_bytes_left() > fixed_record_width) {
+        insert_pool[block->get_id()] = block;
     }
-
 }
 
 // Tuple is passed in as an array of bytes which must be parsed.
