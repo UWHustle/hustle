@@ -45,21 +45,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
     auto out_schema = schema_builder.Finish().ValueOrDie();
 
-    arrow::SchemaBuilder schema_builder_2;
-    status = schema_builder_2.AddSchema(left_table->get_schema());
-    //TODO(nicholas): Output table schema can see valid column
-    for (auto &field : right_table->get_schema()->fields()) {
-        // Exclude extra join column and the right table's valid column
-        if (field->name() != column_name_) {
-            status = schema_builder_2.AddField(field);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        }
-    }
-
-    status = schema_builder.Finish().status();
-    evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
-    auto out_schema_2 = schema_builder.Finish().ValueOrDie();
-    auto out_table = std::make_shared<Table>("out", out_schema_2,
+    auto out_table = std::make_shared<Table>("out", out_schema,
                                              BLOCK_SIZE);
     std::unordered_map<int64_t, record_id> hash(right_table->get_num_rows());
     std::vector<std::shared_ptr<Block>> out_blocks;
@@ -176,11 +162,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
                 }
             }
 
-
             std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
-            // TODO(nicholas): insert_records_assumes we pass in a valid
-            //  column too! we don't have the valid column here!
-//            out_block_data.push_back(nullptr);
 
             for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
             chunk_i++) {
@@ -192,14 +174,11 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
                 auto out_block = std::make_shared<Block>(out_block_counter++,
                                                          out_schema,
                                                          BLOCK_SIZE);
-//                out_block->insert_records(out_block_data);
                 out_table->insert_records(out_block_data);
-//                out_blocks.push_back(out_block);
                 out_block_data.clear();
             }
         }
 
-//    out_table->add_blocks(out_blocks);
     return out_table;
 }
 

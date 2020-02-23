@@ -41,7 +41,13 @@ public:
      */
     std::shared_ptr<Block> create_block();
 
-
+    /**
+     * Add a vector of blocks to the table. This functions does not check if
+     * the blocks are consistent with the table or with each other. No memory
+     * copying is done.
+     *
+     * @param intput_blocks Vector of blocks to be inserted into the table.
+     */
     void add_blocks(std::vector<std::shared_ptr<Block>> intput_blocks);
 
     /**
@@ -64,14 +70,6 @@ public:
 
     int get_num_blocks() const;
 
-    //
-    // record: data to be inserted
-    // byte_widths: width of each value to be inserted
-    //
-    // With the current implementation, if the first block we fetch from the
-    // insert pool does not have enough space to hold the record, we simply
-    // create a new block. In other words, there is no reasonable mechanism
-    // in place to
     /**
      * Insert a record into a block in the insert pool.
      *
@@ -126,8 +124,10 @@ public:
      */
     std::shared_ptr<arrow::ChunkedArray> get_column(int i);
 
-    // Print the contents of all blocks in the table, including the valid
-    // column.
+    /**
+     * Print the contents of all blocks in the table, including the valid
+     * column.
+     */
     void print();
 
 private:

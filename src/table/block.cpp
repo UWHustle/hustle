@@ -366,7 +366,6 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 auto in_offsets_data =
                         column_data[i]->GetMutableValues<int32_t>(
                                 1, offset);
-                std::cout << "OFFSET = " << in_offsets_data[0] << std::endl;
                 auto in_values_data =
                         column_data[i]->GetMutableValues<uint8_t>(
                                 2, in_offsets_data[0]);
