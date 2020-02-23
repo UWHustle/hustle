@@ -176,13 +176,14 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
                 auto out_block = std::make_shared<Block>(out_block_counter++,
                                                          out_schema,
                                                          BLOCK_SIZE);
-                out_block->insert_records(out_block_data);
-                out_blocks.push_back(out_block);
+//                out_block->insert_records(out_block_data);
+                out_table->insert_records(out_block_data);
+//                out_blocks.push_back(out_block);
                 out_block_data.clear();
             }
         }
 
-    out_table->add_blocks(out_blocks);
+//    out_table->add_blocks(out_blocks);
     return out_table;
 }
 
