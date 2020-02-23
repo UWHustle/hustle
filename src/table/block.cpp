@@ -314,6 +314,9 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
     int n = column_data[0]->length; // number of elements to be inserted
 
+    // NOTE: buffers do NOT account for Slice offsets!!!
+    int offset = column_data[0]->offset;
+
     for (int i = 0; i < schema->num_fields(); i++) {
 
         std::shared_ptr<arrow::Field> field = schema->field(i);
@@ -403,8 +406,8 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto *dest = columns[i]->GetMutableValues<uint8_t>(
                         1, num_rows * sizeof(int64_t));
-                std::memcpy(dest, column_data[i]->GetMutableValues<uint8_t>
-                        (1, 0), sizeof(int64_t) * n);
+                std::memcpy(dest, column_data[i]->GetMutableValues<uint64_t>
+                        (1, offset), sizeof(int64_t) * n);
 
                 columns[i]->length += n;
                 increment_num_bytes(n * sizeof(int64_t));
