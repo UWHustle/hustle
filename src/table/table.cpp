@@ -249,6 +249,7 @@ std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index)  {
     return std::make_shared<arrow::ChunkedArray>(array_vector);
 }
 
-std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(const char*name) {
+std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(std::string
+name) {
     return get_column(schema->GetFieldIndex(name));
 }
