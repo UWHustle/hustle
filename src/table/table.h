@@ -48,7 +48,7 @@ public:
      *
      * @param intput_blocks Vector of blocks to be inserted into the table.
      */
-    void add_blocks(std::vector<std::shared_ptr<Block>> intput_blocks);
+    void insert_blocks(std::vector<std::shared_ptr<Block>> intput_blocks);
 
     /**
      * @param block_id Block ID
