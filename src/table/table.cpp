@@ -61,7 +61,7 @@ std::shared_ptr<Block> Table::create_block() {
 
 
 
-void Table::add_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
+void Table::insert_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
 
     if (input_blocks.empty()) {
         return;
