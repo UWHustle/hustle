@@ -130,7 +130,8 @@ public:
      * @param name Column name
      * @return a ChunkedArray of column "name" over all blocks in the table.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(const char* name);
+    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string
+    name);
 
     /**
      * Print the contents of all blocks in the table, including the valid
