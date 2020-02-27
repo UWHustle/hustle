@@ -160,6 +160,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                     break;
                 }
                 case arrow::Type::BOOL:
+                case arrow::Type::DOUBLE:
                 case arrow::Type::INT64: {
                     // buffer at index 1 is the data buffer.
                     int byte_width = field->type()->layout().bit_widths[1] / 8;
@@ -177,7 +178,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
         if (data_size + record_size > block->get_bytes_left()) {
 
-            for (int i=0; i<schema->num_fields(); i++) {
+            for (int i=0; i<column_data.size(); i++) {
                 // Note that row is equal to the index of the first record we
                 // cannot fit in the block.
                 auto sliced_data = std::make_shared<arrow::ArrayData>
@@ -199,7 +200,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     }
 
     // Insert the last of the records
-    for (int i=0; i<schema->num_fields(); i++) {
+    for (int i=0; i<column_data.size(); i++) {
         // Note that row is equal to the index of the first record we
         // cannot fit in the block.
         auto sliced_data = std::make_shared<arrow::ArrayData>
@@ -212,6 +213,8 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     if (block->get_bytes_left() > fixed_record_width) {
         insert_pool[block->get_id()] = block;
     }
+
+    num_rows += l;
 }
 
 // Tuple is passed in as an array of bytes which must be parsed.
@@ -251,5 +254,7 @@ std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index)  {
 
 std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(std::string
 name) {
-    return get_column(schema->GetFieldIndex(name));
+    // TODO(nicholas): create internal_schema so table can internally see
+    //  valid column.
+    return get_column(schema->GetFieldIndex(name)+1);
 }
