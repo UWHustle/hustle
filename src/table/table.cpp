@@ -152,7 +152,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 case arrow::Type::STRING: {
                     // TODO(nicholas) schema offsets!!!!
-                    auto *offsets = column_data[i+1]->GetValues<int32_t>(1, 0);
+                    auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
                     record_size += offsets[row+1] - offsets[row];
                     break;
                 }
