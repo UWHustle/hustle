@@ -274,14 +274,6 @@ TEST_F(HustleBlockTest, ArrayInsert) {
     EXPECT_EQ(column3->GetString(row),
               "c");
     EXPECT_EQ(column4->Value(row), 33);
-
-
-
-    // NOTE: It is not generally a good idea to compare RecordBatches like
-    // this. This will say two RecordBatches are not equal even if they
-    // contain the same data if, for instance, the underlying buffers are
-    // sized differently.
-//    EXPECT_TRUE(record_batch->Equals(*block.get_records()));
 }
 
 
@@ -314,6 +306,8 @@ TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
     column3 = std::static_pointer_cast<arrow::StringArray>(block.get_column(2));
     column4 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(3));
 
+    EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE - 372);
+    
     row = 0;
     EXPECT_EQ(valid->Value(row), true);
     EXPECT_EQ(column1->Value(row), 4242);
@@ -367,7 +361,7 @@ TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
 TEST_F(HustleBlockTest, BlockFromRecordBatch) {
 
     auto record_batch_1 = arrow::RecordBatch::Make(schema,3,column_data);
-    
+
     Block block(0, record_batch_1, BLOCK_SIZE);
 
     int row;
