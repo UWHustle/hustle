@@ -97,7 +97,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
 int Block::compute_num_bytes() {
 
     // Start at i=1 to skip valid column
-    for (int i = 1; i < schema->num_fields(); i++) {
+    for (int i = 0; i < schema->num_fields(); i++) {
 
         std::shared_ptr<arrow::Field> field = schema->field(i);
         switch (field->type()->id()) {
@@ -124,9 +124,10 @@ int Block::compute_num_bytes() {
     }
 }
 
-Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
-             int capacity)
-        : capacity(capacity), id(id), num_bytes(0) {
+Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int
+capacity) : capacity(capacity), id(id), num_bytes(0) {
+
+    arrow::Status status;
 
     num_rows = record_batch->num_rows();
     // TODO
@@ -135,6 +136,17 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
         columns.push_back(record_batch->column_data(i));
     }
     compute_num_bytes();
+
+    // Initialize valid column separately
+    std::shared_ptr<arrow::ResizableBuffer> valid_buffer;
+    status = arrow::AllocateResizableBuffer(num_rows, &valid_buffer);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    valid = arrow::ArrayData::Make(arrow::boolean(),num_rows,{nullptr,
+                                                          valid_buffer});
+
+    for (int i=0; i<num_rows; i++) {
+        set_valid(i,true);
+    }
 }
 
 std::shared_ptr<arrow::RecordBatch> Block::get_records() {
