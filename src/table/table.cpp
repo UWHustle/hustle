@@ -24,11 +24,7 @@ Table::Table(
           block_capacity(block_capacity), block_row_offsets({0}) {
     // TODO(nicholas): Be consistent with how/when block_row_offsets is
     //  initialized.
-    // The first column of the record batch is the valid column, which should
-    // not be visible to Table. So we remove it.
-    auto fields = record_batches[0]->schema()->fields();
-    fields.erase(fields.begin());
-    schema = arrow::schema(fields);
+    schema = std::move(record_batches[0]->schema());
     // Must be called only after schema is set
     fixed_record_width = compute_fixed_record_width(schema);
 
@@ -155,11 +151,11 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             switch (field->type()->id()) {
 
                 case arrow::Type::STRING: {
-                    auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
+                    // TODO(nicholas) schema offsets!!!!
+                    auto *offsets = column_data[i+1]->GetValues<int32_t>(1, 0);
                     record_size += offsets[row+1] - offsets[row];
                     break;
                 }
-                case arrow::Type::BOOL:
                 case arrow::Type::DOUBLE:
                 case arrow::Type::INT64: {
                     // buffer at index 1 is the data buffer.
@@ -227,6 +223,7 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
         record_size += byte_widths[i];
     }
 
+    auto test = block->get_bytes_left();
     if (block->get_bytes_left() < record_size) {
         block = create_block();
     }
@@ -243,7 +240,6 @@ int Table::get_block_row_offset(int i) const{
     return block_row_offsets[i];
 }
 
-// TODO(nicholas): note that this function can "see" the valid columns
 std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index)  {
     arrow::ArrayVector array_vector;
     for (int i = 0; i < blocks.size(); i++) {
@@ -252,9 +248,17 @@ std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index)  {
     return std::make_shared<arrow::ChunkedArray>(array_vector);
 }
 
+
 std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(std::string
 name) {
-    // TODO(nicholas): create internal_schema so table can internally see
-    //  valid column.
-    return get_column(schema->GetFieldIndex(name)+1);
+    return get_column(schema->GetFieldIndex(name));
 }
+
+std::shared_ptr<arrow::ChunkedArray> Table::get_valid_column(){
+    arrow::ArrayVector array_vector;
+    for (int i = 0; i < blocks.size(); i++) {
+        array_vector.push_back(blocks[i]->get_valid_column());
+    }
+    return std::make_shared<arrow::ChunkedArray>(array_vector);
+}
+
