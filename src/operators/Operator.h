@@ -16,6 +16,23 @@ class Operator{
 
 };
 
+//class OperatorLeaf : public Operator {
+//    public:
+//
+//    virtual std::shared_ptr<Table> runOperator
+//            (std::vector<std::shared_ptr<Table>> tables) = 0;
+//
+//};
+//
+//class OperatorComposite : public Operator {
+//    public:
+//
+//    virtual std::shared_ptr<Table> runOperator
+//                (std::vector<std::shared_ptr<Table>> tables) = 0;
+//
+//    };
+
+
 } // namespace operators
 } // namespace hustle
 
