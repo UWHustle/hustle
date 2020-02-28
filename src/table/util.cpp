@@ -135,9 +135,7 @@ void write_to_file(const char *path, Table &table) {
     std::shared_ptr<arrow::ipc::RecordBatchWriter> record_batch_writer;
     arrow::Status status;
 
-    std::shared_ptr<arrow::Schema> write_schema;
-    status = table.get_schema()->AddField(0, arrow::field(
-            "valid", arrow::boolean()), &write_schema);
+
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     status = arrow::io::FileOutputStream::Open(path, &file);
@@ -148,7 +146,7 @@ void write_to_file(const char *path, Table &table) {
 
     if (status.ok()) {
         record_batch_writer = arrow::ipc::RecordBatchFileWriter::Open(
-                &*file, write_schema).ValueOrDie();
+                &*file, table.get_schema()).ValueOrDie();
     }
 
     auto blocks = table.get_blocks();
@@ -175,6 +173,7 @@ int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema) {
                 break;
             }
             case arrow::Type::BOOL:
+            case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 fixed_width += field->type()->layout().bit_widths[1] / 8;
                 break;
@@ -198,14 +197,11 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
 
     arrow::Status status;
 
-    // Add valid column
-    status = schema->AddField(0,arrow::field("valid", arrow::boolean()),
-            &schema);
-
     // RecordBatchBuilder initializes ArrayBuilders for each field in schema
     std::unique_ptr<arrow::RecordBatchBuilder> record_batch_builder;
-    arrow::RecordBatchBuilder::Make(schema,arrow::default_memory_pool(),
-                                    &record_batch_builder);
+    status = arrow::RecordBatchBuilder::Make(schema,
+            arrow::default_memory_pool(), &record_batch_builder);
+    evaluate_status(status, __FUNCTION__, __LINE__);
     record_batch_builder->SetInitialCapacity(8192);
 
     // We will output a table constructed from these RecordBatches
@@ -224,7 +220,7 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
 
     std::vector<int> string_column_indices;
 
-    for (int i = 1; i < schema->num_fields(); i++) {
+    for (int i = 0; i < schema->num_fields(); i++) {
         switch (schema->field(i)->type()->id()) {
             case arrow::Type::STRING: {
                 string_column_indices.push_back(i);
@@ -245,7 +241,7 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
 
         variable_record_width = 0;
         for (int index : string_column_indices) {
-            variable_record_width += values[index-1].length();
+            variable_record_width += values[index].length();
         }
 
         // If adding this record will make the current RecordBatch exceed our
@@ -253,18 +249,14 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
         if (num_bytes + fixed_record_width + variable_record_width >
         block_size) {
             std::shared_ptr<arrow::RecordBatch> record_batch;
-            record_batch_builder->Flush(&record_batch);
+            status = record_batch_builder->Flush(&record_batch);
+            evaluate_status(status, __FUNCTION__, __LINE__);
             record_batches.push_back(record_batch);
             num_bytes = 0;
         }
 
-        // Update valid column
-        auto builder = record_batch_builder->
-                GetFieldAs<arrow::BooleanBuilder>(0);
-        builder->Append(true);
-
         // Start at i=1 to skip the valid column
-        for (int i = 1; i < schema->num_fields(); i++) {
+        for (int i = 0; i < schema->num_fields(); i++) {
 
             // Use index i-1 when indexing values, because it does not include
             // valid column.
@@ -272,16 +264,17 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
                 case arrow::Type::STRING: {
                     auto builder = record_batch_builder->
                             GetFieldAs<arrow::StringBuilder>(i);
-                    builder->Append(values[i-1]);
-                    num_bytes += values[i-1].length();
+                    status = builder->Append(values[i]);
+                    num_bytes += values[i].length();
                     break;
                 }
                 case arrow::Type::INT64: {
                     int64_t out;
-                    absl::SimpleAtoi(values[i-1], &out);
+                    absl::SimpleAtoi(values[i], &out);
                     auto builder = record_batch_builder->
                             GetFieldAs<arrow::Int64Builder>(i);
-                    builder->Append(out);
+                    status = builder->Append(out);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
                     num_bytes += sizeof(out);
                     break;
                 }
