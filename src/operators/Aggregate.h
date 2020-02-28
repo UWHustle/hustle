@@ -3,6 +3,7 @@
 
 #include <string>
 #include <table/block.h>
+#include <table/table.h>
 #include <arrow/compute/api.h>
 
 #include "Operator.h"
@@ -21,7 +22,7 @@ class Aggregate : public Operator{
   Aggregate(AggregateKernels aggregate_kernel, std::string column_name);
 
   // Operator.h
-  std::vector<std::shared_ptr<Block>> runOperator(std::vector<std::vector<std::shared_ptr<Block>>> block_groups) override;
+  std::shared_ptr<Table> runOperator(std::vector<std::shared_ptr<Table>> tables) override;
 
  private:
   AggregateKernels aggregate_kernel_;

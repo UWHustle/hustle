@@ -3,6 +3,7 @@
 
 #include <string>
 #include <table/block.h>
+#include <table/table.h>
 
 namespace hustle {
 namespace operators {
@@ -10,10 +11,8 @@ namespace operators {
 class Operator{
  public:
 
-    // TODO(nicholas): I don't like the whole vector of Tables stuff going on
-    //  here. Try to find a better call signature.
-  virtual std::vector<std::shared_ptr<Block>> runOperator
-  (std::vector<std::vector<std::shared_ptr<Block>>> block_groups) = 0;
+  virtual std::shared_ptr<Table> runOperator
+  (std::vector<std::shared_ptr<Table>> tables) = 0;
 
 };
 
