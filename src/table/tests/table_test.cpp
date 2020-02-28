@@ -53,31 +53,26 @@ protected:
 
         //*****************************
 
-        arrow::BooleanBuilder valid_builder;
         arrow::Int64Builder col1_builder;
         arrow::StringBuilder col2_builder;
         arrow::StringBuilder col3_builder;
         arrow::Int64Builder col4_builder;
 
-        valid_builder.AppendValues(3, true);
         col1_builder.AppendValues({1, 2, 3});
         col2_builder.AppendValues({"nicholas", "edward", "corrado"});
         col3_builder.AppendValues({"a", "b", "c"});
         col4_builder.AppendValues({11, 22, 33});
 
-        std::shared_ptr<arrow::BooleanArray> valid;
         std::shared_ptr<arrow::Int64Array> col1;
         std::shared_ptr<arrow::StringArray> col2;
         std::shared_ptr<arrow::StringArray> col3;
         std::shared_ptr<arrow::Int64Array> col4;
 
-        valid_builder.Finish(&valid);
         col1_builder.Finish(&col1);
         col2_builder.Finish(&col2);
         col3_builder.Finish(&col3);
         col4_builder.Finish(&col4);
 
-        column_data.push_back(valid->data());
         column_data.push_back(col1->data());
         column_data.push_back(col2->data());
         column_data.push_back(col3->data());
@@ -167,6 +162,8 @@ TEST_F(HustleTableTest, TableIO) {
     write_to_file("table.hsl", table);
     Table table_from_file = read_from_file("table.hsl");
 
+    EXPECT_TRUE(table_from_file.get_block(0)->get_valid_column()->Equals
+    (*table.get_block(0)->get_valid_column()));
     EXPECT_TRUE(table_from_file.get_block(0)->get_records()->
             Equals(*table.get_block(0)->get_records()));
     EXPECT_TRUE(table_from_file.get_block(1)->get_records()->
@@ -190,11 +187,11 @@ TEST_F(HustleTableTest, ReadTableFromCSV) {
     table.insert_record((uint8_t *) record_string.data(),
                         byte_widths);
 
-    Table table_from_csv = read_from_csv_file
+    auto table_from_csv = read_from_csv_file
             ("table_test.csv", schema, BLOCK_SIZE);
 
-    EXPECT_TRUE(table_from_csv.get_block(0)->get_records()->
+    EXPECT_TRUE(table_from_csv->get_block(0)->get_records()->
             Equals(*table.get_block(0)->get_records()));
-    EXPECT_TRUE(table_from_csv.get_block(1)->get_records()->
+    EXPECT_TRUE(table_from_csv->get_block(1)->get_records()->
             Equals(*table.get_block(1)->get_records()));
 }
