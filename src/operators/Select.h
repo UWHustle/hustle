@@ -3,6 +3,7 @@
 
 #include <string>
 #include <table/block.h>
+#include <table/table.h>
 #include <arrow/compute/api.h>
 
 #include "Operator.h"
@@ -15,7 +16,8 @@ class Select : public Operator{
   Select(arrow::compute::CompareOperator compare_operator, std::string column_name, arrow::compute::Datum column_value);
 
   // Operator.h
-  std::vector<std::shared_ptr<Block>> runOperator(std::vector<std::vector<std::shared_ptr<Block>>> block_groups) override;
+  std::shared_ptr<Table> runOperator
+  (std::vector<std::shared_ptr<Table>> tables) override;
   std::shared_ptr<Block> runOperatorOnBlock (std::shared_ptr<Block> block);
 
 private:

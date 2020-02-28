@@ -16,23 +16,15 @@ Join::Join(std::string column_name) {
     column_name_ = std::move(column_name);
 }
 
-std::vector<std::shared_ptr<Block>> Join::runOperator(
-        std::vector<std::vector<std::shared_ptr<Block>>> block_groups) {
-    return std::vector<std::shared_ptr<Block>>();
-}
-
 std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
     right_table) {
 
     arrow::Status status;
 
     arrow::SchemaBuilder schema_builder;
-    status = schema_builder.AddField(arrow::field("valid",arrow::boolean()));
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     status = schema_builder.AddSchema(left_table->get_schema());
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    //TODO(nicholas): Output table schema can see valid column
     for (auto &field : right_table->get_schema()->fields()) {
         // Exclude extra join column and the right table's valid column
         if (field->name() != column_name_) {
@@ -45,9 +37,10 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
     auto out_schema = schema_builder.Finish().ValueOrDie();
 
-    auto out_table = std::make_shared<Table>("out", out_schema,
-                                             BLOCK_SIZE);
+    auto out_table = std::make_shared<Table>("out", out_schema, BLOCK_SIZE);
+
     std::unordered_map<int64_t, record_id> hash(right_table->get_num_rows());
+
     std::vector<std::shared_ptr<Block>> out_blocks;
 
     int out_block_counter = 0;
@@ -128,8 +121,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             // TODO(nicholas): Note that we are skipping the valid column,
             //  since Table cannot see it!
 
-            // +1 to include the valid column
-            for (int k = 0; k < left_table->get_schema()->num_fields()+1; k++) {
+            for (int k = 0; k < left_table->get_schema()->num_fields(); k++) {
                 status = arrow::compute::Take(&function_context,
                                               *left_table->get_column(k),
                                               *left_indices, take_options,
@@ -148,7 +140,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             // Skip the valid column, since we already took the bvalid column
             // from the left table.
             //TODO(nicholas) make the valid column visible to Table somehow.
-            for (int k = 1; k < right_table->get_block(0)->get_schema()->
+            for (int k = 0; k < right_table->get_block(0)->get_schema()->
             num_fields(); k++) {
                 // Do not duplicate the join column (natural join)
                 if (right_table->get_block(0)->get_schema()->field(k)->name() !=
@@ -170,10 +162,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
                 for (auto &col : out_table_data) {
                     out_block_data.push_back(col->chunk(chunk_i)->data());
                 }
-
-                auto out_block = std::make_shared<Block>(out_block_counter++,
-                                                         out_schema,
-                                                         BLOCK_SIZE);
                 out_table->insert_records(out_block_data);
                 out_block_data.clear();
             }
@@ -188,6 +176,11 @@ Join::runOperator(std::shared_ptr<arrow::Schema> out_schema,
                   std::shared_ptr<Table> right) {
     return std::vector<std::shared_ptr<Block>>();
 }
+
+    std::shared_ptr<Table> Join::runOperator(
+            std::vector<std::shared_ptr<Table>> tables) {
+        return nullptr;
+    }
 
 
 // TODO(nicholas): This entire function can be ignored.
