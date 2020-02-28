@@ -139,6 +139,8 @@ public:
      */
     void print();
 
+    std::shared_ptr<arrow::ChunkedArray> get_valid_column();
+
 private:
     std::string table_name;
 
