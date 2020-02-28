@@ -130,7 +130,6 @@ capacity) : capacity(capacity), id(id), num_bytes(0) {
     arrow::Status status;
 
     num_rows = record_batch->num_rows();
-    // TODO
     schema = std::move(record_batch->schema());
     for (int i = 0; i < record_batch->num_columns(); i++) {
         columns.push_back(record_batch->column_data(i));
@@ -330,14 +329,13 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             valid->buffers[1]);
 
-    if (valid_buffer->size() % 8 == 0 && num_rows > 0) {
-        status = valid_buffer->Resize(valid_buffer->size() + 1);
-        valid_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
-    }
+
+    status = valid_buffer->Resize(valid_buffer->size() + 1);
+    valid_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
 
     // TODO(nicholas)
     for (int k = 0; k < n; k++) {
-        set_valid(num_rows + k, true);
+        set_valid(num_rows+k, true);
     }
 
     valid->length += n;
