@@ -9,11 +9,16 @@ namespace hustle {
 namespace operators {
 
 class Operator{
- public:
+public:
 
-  virtual std::shared_ptr<Table> runOperator
-  (std::vector<std::shared_ptr<Table>> tables) = 0;
+    std::shared_ptr<Operator> left_child;
+    std::shared_ptr<Operator> right_child;
 
+    virtual std::shared_ptr<Table> runOperator
+        (std::vector<std::shared_ptr<Table>> tables) = 0;
+
+    virtual void set_children(std::shared_ptr<Operator> left_child,
+            std::shared_ptr<Operator> right_child) = 0;
 };
 
 //class OperatorLeaf : public Operator {
@@ -30,7 +35,10 @@ class Operator{
 //    virtual std::shared_ptr<Table> runOperator
 //                (std::vector<std::shared_ptr<Table>> tables) = 0;
 //
-//    };
+//    std::shared_ptr<Operator> left_child;
+//
+//
+//};
 
 
 } // namespace operators
