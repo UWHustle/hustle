@@ -89,12 +89,19 @@ public:
 
     /**
      * Get a column from the Block by index. The indexing of columns is defined
-     * by the schema definition. Index 0 always corresponds to the valid column.
+     * by the schema definition.
      *
      * @param column_index Index of the column to be returned.
      * @return A read-only pointer to the column.
      */
     std::shared_ptr<arrow::Array> get_column(int column_index) const;
+
+    /**
+     *
+     *
+     * @return
+     */
+    std::shared_ptr<arrow::Array> get_valid_column() const;
 
     /**
      * Get a column from the Block by name. Column names are defined by the
@@ -216,6 +223,7 @@ private:
     int id;
 
     std::shared_ptr<arrow::Schema> schema;
+    std::shared_ptr<arrow::ArrayData> valid;
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
 
     /**

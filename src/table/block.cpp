@@ -8,14 +8,14 @@
 
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
              int capacity)
-        : num_rows(0), num_bytes(0), capacity(capacity), id(id) {
+        : num_rows(0), num_bytes(0), capacity(capacity), id(id), schema(in_schema) {
 
     arrow::Status status;
 
 
-    int fixed_record_width = compute_fixed_record_width(in_schema);
+    int fixed_record_width = compute_fixed_record_width(schema);
     int num_string_cols = 0;
-    for (const auto &field : in_schema->fields()) {
+    for (const auto &field : schema->fields()) {
         if (field->type()->id() == arrow::Type::STRING) {
             num_string_cols++;
         }
@@ -26,16 +26,11 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
     int init_rows = capacity /
                     (fixed_record_width + ESTIMATED_STR_LEN * num_string_cols);
 
-    // If schema doesn't include a valid column, add one.
-    if (in_schema->field(0)->name() != "valid") {
-        status = in_schema->AddField(0,
-                                     arrow::field("valid", arrow::boolean()),
-                                     &schema);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-    }
-    else {
-        schema = in_schema;
-    }
+    // Initialize valid column separately
+    std::shared_ptr<arrow::ResizableBuffer> valid_buffer;
+    status = arrow::AllocateResizableBuffer(0, &valid_buffer);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    valid = arrow::ArrayData::Make(arrow::boolean(),0,{nullptr,valid_buffer});
 
     for (const auto &field : schema->fields()) {
 
@@ -76,7 +71,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
                 break;
             }
 
-            case arrow::Type::BOOL:
+            case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
 
                 status = arrow::AllocateResizableBuffer
@@ -112,7 +107,7 @@ int Block::compute_num_bytes() {
                 num_bytes += offsets[num_rows];
                 break;
             }
-            case arrow::Type::BOOL:
+            case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
                 int byte_width = field->type()->layout().bit_widths[1] / 8;
@@ -134,6 +129,7 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
         : capacity(capacity), id(id), num_bytes(0) {
 
     num_rows = record_batch->num_rows();
+    // TODO
     schema = std::move(record_batch->schema());
     for (int i = 0; i < record_batch->num_columns(); i++) {
         columns.push_back(record_batch->column_data(i));
@@ -163,7 +159,7 @@ int Block::get_free_row_index() const {
     //TODO(nicholas): This may need to change when we reserve space in blocks.
     // In particular, num_rows is the number valid rows. We will need another
     // way to fetch the total number of rows in the block (valid + invalid)
-    auto *data = columns[0]->GetMutableValues<uint8_t>(1, 0);
+    auto *data = valid->GetMutableValues<uint8_t>(1, 0);
     for (int i = 0; i < num_rows; i++) {
         if (data[i / 8] >> (i % 8u)) {
             return i;
@@ -173,14 +169,14 @@ int Block::get_free_row_index() const {
 }
 
 bool Block::get_valid(unsigned int row_index) const {
-    auto *data = columns[0]->GetMutableValues<uint8_t>(1, 0);
+    auto *data = valid->GetMutableValues<uint8_t>(1, 0);
     uint8_t byte = data[row_index / 8];
     return (byte >> (row_index % 8u)) == 1u;
 
 }
 
 void Block::set_valid(unsigned int row_index, bool val) {
-    auto *data = columns[0]->GetMutableValues<uint8_t>(1, 0);
+    auto *data = valid->GetMutableValues<uint8_t>(1, 0);
     if (val) {
         data[row_index / 8] |= (1u << (row_index % 8u));
     } else {
@@ -225,6 +221,11 @@ void Block::print() {
     }
 
     for (int row = 0; row < num_rows; row++) {
+
+        auto valid_col = std::static_pointer_cast<arrow::BooleanArray>
+                (arrow::MakeArray(valid));
+        std::cout << valid_col->Value(row) << "\t";
+
         for (int i = 0; i < schema->num_fields(); i++) {
 
             int type = schema->field(i)->type()->id();
@@ -249,8 +250,8 @@ void Block::print() {
                     std::cout << col->Value(row) << "\t";
                     break;
                 }
-                case arrow::Type::BOOL: {
-                    auto col = std::static_pointer_cast<arrow::BooleanArray>(
+                case arrow::Type::type::DOUBLE: {
+                    auto col = std::static_pointer_cast<arrow::DoubleArray>(
                             arrays[i]);
                     std::cout << col->Value(row) << "\t";
                     break;
@@ -269,6 +270,7 @@ void Block::print() {
 
 // TODO(nicholas) cuyrrently there is no attempt to allocate new memory if
 //  the buffers are too small.
+// Note that this funciton assumes that the valid column is in column_data
 bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                            column_data) {
 
@@ -289,7 +291,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 data_size += offsets[column_data[i]->length];
                 break;
             }
-            case arrow::Type::BOOL:
+            case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
                 int byte_width = field->type()->layout().bit_widths[1] / 8;
@@ -311,8 +313,22 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     }
 
     arrow::Status status;
-
     int n = column_data[0]->length; // number of elements to be inserted
+
+    auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+            valid->buffers[1]);
+
+    if (valid_buffer->size() % 8 == 0 && num_rows > 0) {
+        status = valid_buffer->Resize(valid_buffer->size() + 1);
+        valid_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
+    }
+
+    // TODO(nicholas)
+    for (int k = 0; k < n; k++) {
+        set_valid(num_rows + k, true);
+    }
+
+    valid->length += n;
 
     // NOTE: buffers do NOT account for Slice offsets!!!
     int offset = column_data[0]->offset;
@@ -321,28 +337,6 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
         std::shared_ptr<arrow::Field> field = schema->field(i);
         switch (field->type()->id()) {
-            // Although BOOL is a fixed-width type, we must handle it
-            // separately, since data is stored at the bit-level rather than
-            // the byte level.
-            case arrow::Type::BOOL: {
-                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-                        columns[i]->buffers[1]);
-
-                // Extended the underlying buffers. This may result in copying
-                // the data.
-                if (data_buffer->size() % 8 == 0 && num_rows > 0) {
-                    status = data_buffer->Resize(data_buffer->size() + 1);
-                    data_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
-                }
-
-                for (int k = 0; k < n; k++) {
-                    set_valid(num_rows + k, true);
-                }
-
-                columns[i]->length += n;
-                break;
-            }
-
             case arrow::Type::STRING: {
                 auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
@@ -356,8 +350,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 status = offsets_buffer->Resize(
                         offsets_buffer->size() + sizeof(int32_t) * (n + 1));
                 evaluate_status(status, __FUNCTION__, __LINE__);
-                // Use index i-1 because byte_widths does not include the byte
-                // width of the valid column.
+
                 status = data_buffer->Resize(
                         data_buffer->size() +
                         column_data[i]->buffers[2]->size());
@@ -396,7 +389,6 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 increment_num_bytes(string_size);
                 break;
             }
-                // This works with any fixed-width type, but for now, I specify INT64
             case arrow::Type::INT64: {
 
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
@@ -414,7 +406,23 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 increment_num_bytes(n * sizeof(int64_t));
                 break;
             }
+            case arrow::Type::DOUBLE: {
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                        columns[i]->buffers[1]);
+                status = data_buffer->Resize(
+                        data_buffer->size() + sizeof(double_t) * n);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
+                auto *dest = columns[i]->GetMutableValues<double_t>(
+                        1, num_rows);
+                auto asdf = dest[0];
+                std::memcpy(dest, column_data[i]->GetMutableValues<double_t>
+                        (1, offset), sizeof(double_t) * n);
+
+                columns[i]->length += n;
+                increment_num_bytes(n * sizeof(double_t));
+                break;
+            }
             default:
                 throw std::logic_error(
                         std::string(
@@ -430,9 +438,8 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
     int record_size = 0;
-    // start at i=1 to skip valid column
-    for (int i = 1; i < schema->num_fields(); i++) {
-        record_size += byte_widths[i - 1];
+    for (int i = 0; i < schema->num_fields(); i++) {
+        record_size += byte_widths[i];
     }
 
     // record does not fit in the block.
@@ -443,6 +450,14 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     arrow::Status status;
     std::vector<arrow::Array> new_columns;
 
+    // Set valid bit
+    auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+            valid->buffers[1]);
+    status = valid_buffer->Resize(valid_buffer->size() + 1);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    set_valid(num_rows, true);
+    valid->length++;
+
     // Position in the record array
     int head = 0;
 
@@ -450,18 +465,6 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
         std::shared_ptr<arrow::Field> field = schema->field(i);
         switch (field->type()->id()) {
-            // Although BOOL is a fixed-width type, we must handle it
-            // separately, since data is stored at the bit-level rather than
-            // the byte level.
-            case arrow::Type::BOOL: {
-                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-                        columns[i]->buffers[1]);
-                status = data_buffer->Resize(data_buffer->size() + 1);
-
-                set_valid(num_rows, true);
-                columns[i]->length++;
-                break;
-            }
             case arrow::Type::STRING: {
                 auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
@@ -473,7 +476,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 // Use index i-1 because byte_widths does not include the byte
                 // width of the valid column.
                 status = data_buffer->Resize(
-                        data_buffer->size() + byte_widths[i - 1]);
+                        data_buffer->size() + byte_widths[i]);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
@@ -486,36 +489,35 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 auto *offsets_data = columns[i]->GetMutableValues<int32_t>(
                         1, 0);
                 int32_t new_offset =
-                        offsets_data[num_rows] + byte_widths[i - 1];
+                        offsets_data[num_rows] + byte_widths[i];
                 std::memcpy(&offsets_data[num_rows + 1], &new_offset,
                             sizeof(new_offset));
-                auto x = offsets_data[num_rows + 1];
-                // Insert new data
-                auto g = offsets_data[num_rows];
+
                 auto *values_data = columns[i]->GetMutableValues<uint8_t>(
                         2, offsets_data[num_rows]);
-                std::memcpy(values_data, &record[head], byte_widths[i - 1]);
+                std::memcpy(values_data, &record[head], byte_widths[i]);
 
                 columns[i]->length++;
-                head += byte_widths[i - 1];
+                head += byte_widths[i];
                 break;
             }
                 // This works with any fixed-width type, but for now, I specify INT64
+            case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
 
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
 
                 status = data_buffer->Resize(
-                        data_buffer->size() + byte_widths[i - 1]);
+                        data_buffer->size() + byte_widths[i]);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
                 auto *dest = columns[i]->GetMutableValues<uint8_t>(
-                        1, num_rows * byte_widths[i - 1]);
-                std::memcpy(dest, &record[head], byte_widths[i - 1]);
+                        1, num_rows * byte_widths[i]);
+                std::memcpy(dest, &record[head], byte_widths[i]);
 
-                head += byte_widths[i - 1];
+                head += byte_widths[i];
                 columns[i]->length++;
                 break;
             }
@@ -537,6 +539,10 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
 std::shared_ptr<arrow::Schema> Block::get_schema() {
     return schema;
+}
+
+std::shared_ptr<arrow::Array> Block::get_valid_column() const{
+    return arrow::MakeArray(valid);
 }
 
 
