@@ -21,7 +21,7 @@ using hustle::catalog::TableSchema;
 using hustle::catalog::Catalog;
 
 char project[1024];
-char indexPred[1024];
+char loopPred[1024];
 char otherPred[1024];
 
 TEST(ColumnSchema, HappyPath) {
