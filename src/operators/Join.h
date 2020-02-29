@@ -18,7 +18,7 @@ struct record_id {
 
 class Join : public Operator{
  public:
-  explicit Join(std::string column_name);
+    Join(std::string left_column_name, std::string right_column_name);
 
   // TODO(nicholas): These function are not implemented.
   std::shared_ptr<Table> runOperator
@@ -39,8 +39,9 @@ class Join : public Operator{
   std::shared_ptr<Table> hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
           right_table);
 
- private:
-  std::string column_name_;
+private:
+    std::string left_join_column_name_;
+    std::string right_join_column_name_;
 
 };
 
