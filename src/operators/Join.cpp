@@ -12,8 +12,9 @@
 namespace hustle {
 namespace operators {
 
-Join::Join(std::string column_name) {
-    column_name_ = std::move(column_name);
+Join::Join(std::string left_column_name, std::string right_column_name) {
+    left_join_column_name_ = std::move(left_column_name);
+    right_join_column_name_ = std::move(right_column_name);
 }
 
 std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
@@ -27,7 +28,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
 
     for (auto &field : right_table->get_schema()->fields()) {
         // Exclude extra join column and the right table's valid column
-        if (field->name() != column_name_) {
+        if (field->name() != right_join_column_name_) {
             status = schema_builder.AddField(field);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
         }
@@ -49,7 +50,8 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     for (int i=0; i<right_table->get_num_blocks(); i++) {
 
         auto right_block = right_table->get_block(i);
-        auto join_col = right_block->get_column_by_name(column_name_);
+        auto join_col = right_block->get_column_by_name
+                (right_join_column_name_);
         // TODO(nicholas): for now, we assume the join column is INT64 type.
         auto join_col_casted = std::static_pointer_cast<arrow::Int64Array>(
                 join_col);
@@ -78,7 +80,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     for (int i=0; i<left_table->get_num_blocks(); i++) {
 
         auto left_block = left_table->get_block(i);
-        auto join_col = left_block->get_column_by_name(column_name_);
+        auto join_col = left_block->get_column_by_name(left_join_column_name_);
         // TODO(nicholas): for now, we assume the join column is INT64 type.
         auto join_col_casted = std::static_pointer_cast<arrow::Int64Array>(
                 join_col);
@@ -101,7 +103,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             }
         }
     }
-
 
         // Note that ArrayBuilders are automatically reset by default after
         // calling Finish()
@@ -144,7 +145,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             num_fields(); k++) {
                 // Do not duplicate the join column (natural join)
                 if (right_table->get_block(0)->get_schema()->field(k)->name() !=
-                column_name_) {
+                right_join_column_name_) {
                     status = arrow::compute::Take(&function_context,
                                                   *right_table->get_column(k),
                                                   *right_indices, take_options,
@@ -181,6 +182,7 @@ Join::runOperator(std::shared_ptr<arrow::Schema> out_schema,
             std::vector<std::shared_ptr<Table>> tables) {
         return nullptr;
     }
+
 
 
 // TODO(nicholas): This entire function can be ignored.
