@@ -37,3 +37,5 @@ add_subdirectory(sqlite3)
 include_directories(sqlite3)
 
 include_directories(cereal)
+
+include_directories(nlohmann)
