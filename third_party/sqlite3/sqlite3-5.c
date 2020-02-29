@@ -1,5 +1,5 @@
 extern char project[];
-extern char indexPred[];
+extern char loopPred[];
 extern char otherPred[];
 
 /************** Begin file select.c ******************************************/
@@ -20282,9 +20282,9 @@ static int exprIsDeterministic(Expr *p){
 SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
   if (pExpr->pLeft == NULL || pExpr->pRight == NULL) {
     if (pExpr->op == TK_INTEGER) {
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"value\": %d, \"i_table\": %d, \"i_column\": %d}", "INTEGER", pExpr->u.iValue, 0, 0);
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"value\": %d}", "INTEGER", pExpr->u.iValue);
     } else if (pExpr->op == TK_COLUMN) {
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"value\": %d, \"i_table\": %d, \"i_column\": %d}", "COLUMN", 0, pExpr->iTable, pExpr->iColumn);
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"i_table\": %d, \"i_column\": %d}", "COLUMN", pExpr->iTable, pExpr->iColumn);
     }
   } else {
     currPos += sprintf(currPos, "{");
@@ -20608,7 +20608,7 @@ WhereInfo *sqlite3WhereBegin(
       }
     }
     
-    currPos = indexPred;
+    currPos = loopPred;
 
     for (int i = 0; i < pWInfo->nLevel; i++) {
       WhereLevel level = pWInfo->a[i];
