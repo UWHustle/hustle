@@ -9,9 +9,10 @@
 #include "frontend/ParseTree.h"
 
 using namespace testing;
+using nlohmann::json;
 
 char project[1024];
-char indexPred[1024];
+char loopPred[1024];
 char otherPred[1024];
 
 void createTable() {
@@ -49,7 +50,7 @@ TEST(Frontend, test1) {
   hustle::HustleDB hustleDB("db_directory");
 
   memset(project, 0, 1024);
-  memset(indexPred, 0, 1024);
+  memset(loopPred, 0, 1024);
   memset(otherPred, 0, 1024);
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
@@ -60,11 +61,30 @@ TEST(Frontend, test1) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  fprintf(stdout, R"({"execution_plan": {"project": [%s], "index_pred": [%s], "other_pred": [%s]}})", project, indexPred, otherPred);
-  EXPECT_STREQ(project, R"("Subscriber.c1")");
-  EXPECT_STREQ(indexPred, R"({"fromtable": 0, "predicates": []}, {"fromtable": 1, "predicates": [{"left": {"i_table": 1, "i_column": 0}, "op": 53, "right": {"i_table": 0, "i_column": 0}}]})");
-  EXPECT_STREQ(otherPred, R"()");
+  std::string text = "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": [" + std::string(otherPred) + "]}";
 
+  json j = json::parse(text);
+  hustle::frontend::ParseTree my_parse_tree = j;
+  auto out = j.dump(4);
+  std::cout << out << std::endl;
+
+  /// build validation parse tree
+  auto c00 = std::make_shared<hustle::frontend::Column>(0, 0);
+  auto c10 = std::make_shared<hustle::frontend::Column>(1, 0);
+
+  hustle::frontend::LoopPredicate loop_predicate_0(0, std::vector<hustle::frontend::Predicate>{});
+  hustle::frontend::Predicate pred = hustle::frontend::Predicate(c10, 53, c00);
+  hustle::frontend::LoopPredicate loop_predicate_1(1, std::vector<hustle::frontend::Predicate>{std::move(pred)});
+
+  hustle::frontend::ParseTree parse_tree_val = hustle::frontend::ParseTree(
+      std::vector<std::string>({"Subscriber.c1"}),
+      std::vector<hustle::frontend::LoopPredicate>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
+      std::vector<hustle::frontend::Predicate>{});
+
+  json j_val = parse_tree_val;
+  auto out_val = j_val.dump(4);
+
+  EXPECT_EQ(out, out_val);
 }
 
 TEST(Frontend, test2) {
@@ -75,7 +95,7 @@ TEST(Frontend, test2) {
   hustle::HustleDB hustleDB("db_directory");
 
   memset(project, 0, 1024);
-  memset(indexPred, 0, 1024);
+  memset(loopPred, 0, 1024);
   memset(otherPred, 0, 1024);
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
@@ -86,11 +106,37 @@ TEST(Frontend, test2) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  fprintf(stdout, R"({"execution_plan": {"project": [%s], "index_pred": [%s], "other_pred": [%s]}})", project, indexPred, otherPred);
-  EXPECT_STREQ(project, R"("Subscriber.c1")");
-  EXPECT_STREQ(indexPred, R"({"fromtable": 0, "predicates": [{"left": {"i_table": 0, "i_column": 1}, "op": 54, "right": {"value": 2}}]}, {"fromtable": 1, "predicates": [{"left": {"i_table": 1, "i_column": 0}, "op": 53, "right": {"i_table": 0, "i_column": 0}}]})");
-  EXPECT_STREQ(otherPred, R"({"left": {"i_table": 1, "i_column": 1}, "op": 56, "right": {"value": 5}})");
+  std::string text = "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": [" + std::string(otherPred) + "]}";
+
+  json j = json::parse(text);
+  hustle::frontend::ParseTree my_parse_tree = j;
+  auto out = j.dump(4);
+  std::cout << out << std::endl;
+
+  /// build validation parse tree
+  auto c00 = std::make_shared<hustle::frontend::Column>(0, 0);
+  auto c01 = std::make_shared<hustle::frontend::Column>(0, 1);
+  auto c10 = std::make_shared<hustle::frontend::Column>(1, 0);
+  auto c11 = std::make_shared<hustle::frontend::Column>(1, 1);
+  auto i2 = std::make_shared<hustle::frontend::Integer>(2);
+  auto i5 = std::make_shared<hustle::frontend::Integer>(5);
+
+  hustle::frontend::Predicate pred = hustle::frontend::Predicate(c01, 54, i2);
+  hustle::frontend::LoopPredicate loop_predicate_0(0, std::vector<hustle::frontend::Predicate>{std::move(pred)});
+  pred = hustle::frontend::Predicate(c10, 53, c00);
+  hustle::frontend::LoopPredicate loop_predicate_1(1, std::vector<hustle::frontend::Predicate>{std::move(pred)});
+  hustle::frontend::Predicate other_pred = hustle::frontend::Predicate(std::move(c11), 56, std::move(i5));
+
+  hustle::frontend::ParseTree parse_tree_val = hustle::frontend::ParseTree(
+      std::vector<std::string>({"Subscriber.c1"}),
+      std::vector<hustle::frontend::LoopPredicate>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
+      std::vector<hustle::frontend::Predicate>{std::move(other_pred)});
+
+
+  json j_val = parse_tree_val;
+  auto out_val = j_val.dump(4);
+
+  EXPECT_EQ(out, out_val);
 
 }
-
 
