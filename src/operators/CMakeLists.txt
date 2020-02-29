@@ -21,3 +21,5 @@ target_link_libraries(hustle_operator_test
         operators
         )
 add_test(HustleOperator_test hustle_operator_test)
+
+add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
