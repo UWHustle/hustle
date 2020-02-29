@@ -676,6 +676,104 @@ TEST_F(OperatorsTestFixture2, SelectFromCSV) {
     }
 }
 
+
+TEST_F(OperatorsTestFixture2, SelectFromCSVTwoConditionsSame) {
+
+    in_left_table = read_from_csv_file
+            ("left_table.csv", schema, BLOCK_SIZE);
+
+    auto left_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "id",
+            arrow::compute::Datum((int64_t) 1776)
+    );
+    auto right_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "id",
+            arrow::compute::Datum((int64_t) 1776)
+    );
+
+    auto composite_select_op = new hustle::operators::SelectComposite(
+            left_select_op, right_select_op,
+            hustle::operators::FilterOperator::AND
+            );
+
+    auto out_table = composite_select_op->runOperator({in_left_table});
+
+    for (int i=0; i<out_table->get_num_blocks(); i++) {
+        auto block = out_table->get_block(i);
+
+        valid = std::static_pointer_cast<arrow::BooleanArray>
+                (block->get_valid_column());
+        column1 = std::static_pointer_cast<arrow::Int64Array>
+                (block->get_column(0));
+        column2 = std::static_pointer_cast<arrow::StringArray>
+                (block->get_column(1));
+        column3 = std::static_pointer_cast<arrow::StringArray>
+                (block->get_column(2));
+        column4 = std::static_pointer_cast<arrow::Int64Array>
+                (block->get_column(3));
+
+        for (int row = 0; row < block->get_num_rows(); row++) {
+            EXPECT_EQ(valid->Value(row), true);
+            EXPECT_EQ(column1->Value(row), 1776);
+            EXPECT_EQ(column2->GetString(row),
+                      "Twice two makes four is an excellent thing.");
+            EXPECT_EQ(column3->GetString(row),
+                      "Twice two makes five is sometimes a very charming "
+                      "thing too.");
+            EXPECT_EQ(column4->Value(row), 0);
+        }
+    }
+}
+
+
+TEST_F(OperatorsTestFixture2, SelectFromCSVTwoConditionsDifferent) {
+
+    in_left_table = read_from_csv_file
+            ("left_table_2.csv", schema_2, BLOCK_SIZE);
+
+    auto left_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "id",
+            arrow::compute::Datum((int64_t) 42)
+    );
+
+
+    std::shared_ptr<arrow::Scalar> string =
+            std::make_shared<arrow::StringScalar>("My key is 42");
+
+    auto k = string->type->name();
+
+    auto right_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "B",
+            arrow::compute::Datum(string)
+    );
+
+    auto composite_select_op = new hustle::operators::SelectComposite(
+            left_select_op, right_select_op,
+            hustle::operators::FilterOperator::AND
+    );
+
+    auto out_table = composite_select_op->runOperator({in_left_table});
+
+    auto block = out_table->get_block(0);
+
+    valid = std::static_pointer_cast<arrow::BooleanArray>
+            (block->get_valid_column());
+    column1 = std::static_pointer_cast<arrow::Int64Array>
+            (block->get_column(0));
+    column2 = std::static_pointer_cast<arrow::StringArray>
+            (block->get_column(1));
+
+    EXPECT_EQ(valid->Value(0), true);
+    EXPECT_EQ(column1->Value(0), 42);
+    EXPECT_EQ(column2->GetString(0),"My key is 42");
+
+}
+
+
 TEST_F(OperatorsTestFixture2, HashJoin) {
 
     auto left_table = read_from_csv_file
@@ -684,7 +782,7 @@ TEST_F(OperatorsTestFixture2, HashJoin) {
     auto right_table = read_from_csv_file
             ("right_table_2.csv", schema_2, BLOCK_SIZE);
 
-    auto join_op = hustle::operators::Join("id");
+    auto join_op = hustle::operators::Join("id","id");
 
     auto out_table = join_op.hash_join(left_table, right_table);
 
@@ -725,10 +823,201 @@ TEST_F(OperatorsTestFixture2, HashJoinEmptyResult) {
     auto right_table = read_from_csv_file
             ("right_table.csv", schema, BLOCK_SIZE);
 
-    auto join_op = hustle::operators::Join("D");
+    auto join_op = hustle::operators::Join("D", "D");
 
     auto out_table = join_op.hash_join(left_table, right_table);
 
     EXPECT_EQ(out_table->get_num_rows(), 0);
     EXPECT_EQ(out_table->get_num_blocks(), 0);
+}
+
+
+
+
+class SSBTestFixture : public testing::Test {
+protected:
+
+    std::shared_ptr<arrow::Schema> lineorder_schema;
+    std::shared_ptr<arrow::Schema> date_schema;
+
+    std::shared_ptr<arrow::BooleanArray> valid;
+    std::shared_ptr<arrow::Int64Array> column1;
+    std::shared_ptr<arrow::StringArray> column2;
+    std::shared_ptr<arrow::StringArray> column3;
+    std::shared_ptr<arrow::Int64Array> column4;
+
+    std::shared_ptr<Table> lineorder;
+    std::shared_ptr<Table> date;
+
+    void SetUp() override {
+
+        arrow::Status status;
+
+        std::shared_ptr<arrow::Field> field1 = arrow::field("order key",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field2 = arrow::field("line number",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field3 = arrow::field("cust key",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field4 = arrow::field("part key",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field5 = arrow::field("supp key",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field6 = arrow::field("order date",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field7 = arrow::field("ord priority",
+                arrow::utf8());
+        std::shared_ptr<arrow::Field> field8 = arrow::field("ship priority",
+                arrow::utf8());
+        std::shared_ptr<arrow::Field> field9 = arrow::field("quantity",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field10 = arrow::field("extended price",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field11 = arrow::field("ord total price",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field12 = arrow::field("discount",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field> field13 = arrow::field("revenue",
+                                                             arrow::int64());
+        std::shared_ptr<arrow::Field> field14 = arrow::field("supply cost",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field15 = arrow::field("tax",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field16 = arrow::field("commit date",
+                arrow::int64());
+        std::shared_ptr<arrow::Field> field17 = arrow::field("ship mode",
+                arrow::utf8());
+        lineorder_schema = arrow::schema({field1, field2, field3, field4,
+                                          field5,
+                                field6, field7, field8, field9, field10,
+                                field11, field12, field13, field14, field15,
+                                field16, field17});
+
+
+        std::shared_ptr<arrow::Field> d_field1 = arrow::field("date key",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field> d_field2 = arrow::field("date",
+                                                            arrow::utf8());
+        std::shared_ptr<arrow::Field> d_field3 = arrow::field("day of week",
+                                                            arrow::utf8());
+        std::shared_ptr<arrow::Field> d_field4 = arrow::field("month",
+                                                            arrow::utf8());
+        std::shared_ptr<arrow::Field> d_field5 = arrow::field("year",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field> d_field6 = arrow::field("year month num",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field> d_field7 = arrow::field("year month",
+                                                            arrow::utf8());
+        std::shared_ptr<arrow::Field> d_field8 = arrow::field("day num in week",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field> d_field9 = arrow::field("day num in "
+                                                              "month",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field> d_field10 = arrow::field("day num in "
+                                                               "year",
+                                                             arrow::int64());
+        std::shared_ptr<arrow::Field> d_field11 = arrow::field("month num in "
+                                                               "year",
+                                                             arrow::int64());
+        std::shared_ptr<arrow::Field> d_field12 = arrow::field("week num in "
+                                                               "year",
+                                                             arrow::int64());
+        std::shared_ptr<arrow::Field> d_field13 = arrow::field("selling season",
+                                                             arrow::utf8());
+        std::shared_ptr<arrow::Field> d_field14 = arrow::field("last day in "
+                                                               "week fl",
+                                                             arrow::int64());
+        std::shared_ptr<arrow::Field> d_field15 = arrow::field("last day in "
+                                                               "month fl",
+                                                             arrow::int64());
+        std::shared_ptr<arrow::Field> d_field16 = arrow::field("holiday fl",
+                                                             arrow::int64());
+        std::shared_ptr<arrow::Field> d_field17 = arrow::field("weekday fl",
+                                                             arrow::int64());
+
+        date_schema = arrow::schema({ d_field1,  d_field2,  d_field3,  d_field4,  d_field5,
+                                 d_field6,  d_field7,  d_field8,  d_field9,  d_field10,
+                                 d_field11,  d_field12,  d_field13,  d_field14,  d_field15,
+                                 d_field16,  d_field17});
+    }
+};
+
+TEST_F(SSBTestFixture, SSBQ1) {
+
+    lineorder = read_from_csv_file
+            ("lineorder_small.tbl", lineorder_schema, BLOCK_SIZE);
+
+    date = read_from_csv_file
+            ("date.tbl", date_schema, BLOCK_SIZE);
+
+    auto date_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "year",
+            arrow::compute::Datum((int64_t) 1993)
+    );
+    auto lineorder_select_op_1 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::GREATER_EQUAL,
+            "discount",
+            arrow::compute::Datum((int64_t) 1)
+    );
+    auto lineorder_select_op_2 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::LESS_EQUAL,
+            "discount",
+            arrow::compute::Datum((int64_t) 3)
+    );
+    auto join_op = std::make_shared<hustle::operators::Join>("order date",
+            "date key");
+
+    auto lineorder_select_op_composite =
+            std::make_shared<hustle::operators::SelectComposite>
+                    (lineorder_select_op_1, lineorder_select_op_2,
+                            hustle::operators::FilterOperator::AND);
+
+    auto lineorder_2 = lineorder_select_op_composite->runOperator({lineorder});
+    auto date_2 = date_select_op->runOperator({date});
+
+    auto join_table = join_op->hash_join(lineorder_2, date_2);
+
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>
+            (hustle::operators::AggregateKernels::SUM, "revenue");
+
+    auto aggregate = aggregate_op->runOperator({join_table});
+
+    if (aggregate != nullptr) aggregate->print();
+
+//    std::shared_ptr<arrow::Scalar> string =
+//            std::make_shared<arrow::StringScalar>("My key is 42");
+//
+//    auto k = string->type->name();
+//
+//    auto right_select_op = std::make_shared<hustle::operators::Select>(
+//            arrow::compute::CompareOperator::EQUAL,
+//            "B",
+//            arrow::compute::Datum(string)
+//    );
+//
+//    auto composite_select_op = new hustle::operators::SelectComposite(
+//            left_select_op, right_select_op,
+//            hustle::operators::FilterOperator::AND
+//    );
+
+//    auto out_table = left_select_op->runOperator({in_left_table});
+
+//    auto out_table = composite_select_op->runOperator({in_left_table});
+
+//    out_table->print();
+//    std::cout << out_table->get_num_rows() << std::endl;
+//    auto block = out_table->get_block(0);
+//
+//    valid = std::static_pointer_cast<arrow::BooleanArray>
+//            (block->get_valid_column());
+//    column1 = std::static_pointer_cast<arrow::Int64Array>
+//            (block->get_column(0));
+//    column2 = std::static_pointer_cast<arrow::StringArray>
+//            (block->get_column(1));
+//
+//    EXPECT_EQ(valid->Value(0), true);
+//    EXPECT_EQ(column1->Value(0), 42);
+//    EXPECT_EQ(column2->GetString(0),"My key is 42");
+
 }
