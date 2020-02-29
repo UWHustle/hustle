@@ -185,7 +185,6 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             block->insert_records(sliced_column_data);
             sliced_column_data.clear();
 
-            num_rows += row - offset;
             offset = row;
             data_size = 0;
 
