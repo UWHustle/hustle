@@ -9,7 +9,7 @@
 using hustle::frontend::ParseTree;
 
 char project[1024];
-char indexPred[1024];
+char loopPred[1024];
 char otherPred[1024];
 
 int main(int argc, char *argv[]) {
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   hustleDB.createTable(ts1);
 
   memset(project, 0, 1024);
-  memset(indexPred, 0, 1024);
+  memset(loopPred, 0, 1024);
   memset(otherPred, 0, 1024);
 
   // Get Execution Plan
@@ -52,8 +52,8 @@ int main(int argc, char *argv[]) {
 
   std::string plan_path = "db_directory/plan.json";
   FILE* fp = fopen(plan_path.c_str(), "w");
-  fprintf(fp, R"({"execution_plan": {"project": [%s], "index_pred": [%s], "other_pred": [%s]}})", project, indexPred, otherPred);
-  fprintf(stdout, R"({"execution_plan": {"project": [%s], "index_pred": [%s], "other_pred": [%s]}})", project, indexPred, otherPred);
+  fprintf(fp, R"({"execution_plan": {"project": [%s], "loop_pred": [%s], "other_pred": [%s]}})", project, loopPred, otherPred);
+  fprintf(stdout, R"({"execution_plan": {"project": [%s], "loop_pred": [%s], "other_pred": [%s]}})", project, loopPred, otherPred);
   fclose(fp);
 
   ParseTree parseTree;
@@ -63,8 +63,6 @@ int main(int argc, char *argv[]) {
     cereal::JSONInputArchive iarchive(in);
     iarchive(parseTree);
   }
-
-
 
   cereal::JSONOutputArchive output(std::cout);
 
