@@ -6,6 +6,7 @@
 
 #include <table/util.h>
 
+
 namespace hustle {
 namespace operators {
 
@@ -19,10 +20,18 @@ std::shared_ptr<Table> Aggregate::runOperator
 (std::vector<std::shared_ptr<Table>> tables) {
     // operator only uses first table, ignore others
     auto table = tables[0];
+
+    if (table == nullptr) {
+        return nullptr;
+    }
     //
     arrow::Status status;
 
     auto full_column = table->get_column_by_name(column_name_);
+
+    if (full_column == nullptr) {
+        return nullptr;
+    }
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
@@ -100,6 +109,7 @@ std::shared_ptr<Table> Aggregate::runOperator
 
     return out_table;
 }
+
 
 } // namespace operators
 } // namespace hustle
