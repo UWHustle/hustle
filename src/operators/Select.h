@@ -37,21 +37,27 @@ private:
 
 };
 
-class SelectComposite : public Select{
+class SelectComposite : Operator{
 public:
     SelectComposite(
-        arrow::compute::CompareOperator compare_operator,
-        std::string column_name,
-        arrow::compute::Datum column_value,
-        std::shared_ptr<Operator> left_child,
-        std::shared_ptr<Operator> right_child,
+        std::shared_ptr<Select> left_child,
+        std::shared_ptr<Select> right_child,
         FilterOperator filter_operator
     );
 
+    std::shared_ptr<Table> runOperator
+            (std::vector<std::shared_ptr<Table>> tables) override;
+
+    std::shared_ptr<arrow::ChunkedArray> get_filter
+            (std::shared_ptr<Table> table);
+
+    arrow::compute::Datum* get_filter
+            (std::shared_ptr<Block> block);
+
 private:
-    std::shared_ptr<Operator> left_child;
-    std::shared_ptr<Operator> right_child;
-    FilterOperator filter_operator;
+    std::shared_ptr<Select> left_child_;
+    std::shared_ptr<Select> right_child_;
+    FilterOperator filter_operator_;
 };
 
 } // namespace operators
