@@ -944,80 +944,62 @@ protected:
 
 TEST_F(SSBTestFixture, SSBQ1) {
 
+    // NOTE: I forgot to include the selection Lineorder.lo_quantity < 25
+
     lineorder = read_from_csv_file
-            ("lineorder_small.tbl", lineorder_schema, BLOCK_SIZE);
+            ("/Users/corrado/hustle/cmake-build-debug/src/operators/lineorder_small.tbl", lineorder_schema, BLOCK_SIZE);
 
     date = read_from_csv_file
-            ("date.tbl", date_schema, BLOCK_SIZE);
+            ("/Users/corrado/hustle/cmake-build-debug/src/operators/date.tbl", date_schema, BLOCK_SIZE);
 
+    // Create select operator for Date.year = 1993
     auto date_select_op = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::EQUAL,
             "year",
             arrow::compute::Datum((int64_t) 1993)
     );
+
+    // Create select operator for Lineorder.discount >= 1
     auto lineorder_select_op_1 = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::GREATER_EQUAL,
             "discount",
             arrow::compute::Datum((int64_t) 1)
     );
+
+    // Create select operator for Lineorder.discount <= 3
     auto lineorder_select_op_2 = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::LESS_EQUAL,
             "discount",
             arrow::compute::Datum((int64_t) 3)
     );
-    auto join_op = std::make_shared<hustle::operators::Join>("order date",
-            "date key");
 
+    // Combine select operators for lineorder into one composite operator.
     auto lineorder_select_op_composite =
             std::make_shared<hustle::operators::SelectComposite>
                     (lineorder_select_op_1, lineorder_select_op_2,
-                            hustle::operators::FilterOperator::AND);
+                     hustle::operators::FilterOperator::AND);
 
+    // Create natural join operator for left.order date == right.date key
+    // For this query, left corresponds to Lineorder, and right corresponds
+    // to Date.
+    auto join_op = std::make_shared<hustle::operators::Join>("order date",
+            "date key");
+
+    // Perform selection on Lineorder
     auto lineorder_2 = lineorder_select_op_composite->runOperator({lineorder});
+    // Perform selection on Date
     auto date_2 = date_select_op->runOperator({date});
 
+    // Join the resulting Lineorder and Date tables
     auto join_table = join_op->hash_join(lineorder_2, date_2);
 
+    // Create aggregate operator
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>
             (hustle::operators::AggregateKernels::SUM, "revenue");
 
+    // Perform aggregate over resulting join table
     auto aggregate = aggregate_op->runOperator({join_table});
 
+    // Print the result. The valid bit will be printed as the first column.
     if (aggregate != nullptr) aggregate->print();
-
-//    std::shared_ptr<arrow::Scalar> string =
-//            std::make_shared<arrow::StringScalar>("My key is 42");
-//
-//    auto k = string->type->name();
-//
-//    auto right_select_op = std::make_shared<hustle::operators::Select>(
-//            arrow::compute::CompareOperator::EQUAL,
-//            "B",
-//            arrow::compute::Datum(string)
-//    );
-//
-//    auto composite_select_op = new hustle::operators::SelectComposite(
-//            left_select_op, right_select_op,
-//            hustle::operators::FilterOperator::AND
-//    );
-
-//    auto out_table = left_select_op->runOperator({in_left_table});
-
-//    auto out_table = composite_select_op->runOperator({in_left_table});
-
-//    out_table->print();
-//    std::cout << out_table->get_num_rows() << std::endl;
-//    auto block = out_table->get_block(0);
-//
-//    valid = std::static_pointer_cast<arrow::BooleanArray>
-//            (block->get_valid_column());
-//    column1 = std::static_pointer_cast<arrow::Int64Array>
-//            (block->get_column(0));
-//    column2 = std::static_pointer_cast<arrow::StringArray>
-//            (block->get_column(1));
-//
-//    EXPECT_EQ(valid->Value(0), true);
-//    EXPECT_EQ(column1->Value(0), 42);
-//    EXPECT_EQ(column2->GetString(0),"My key is 42");
-
 }
