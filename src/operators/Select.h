@@ -23,9 +23,6 @@ class Select : public Operator{
     std::shared_ptr<Table> runOperator
     (std::vector<std::shared_ptr<Table>> tables) override;
 
-    std::shared_ptr<arrow::ChunkedArray> get_filter
-    (std::shared_ptr<Table> table);
-
     arrow::compute::Datum* get_filter
             (std::shared_ptr<Block> block);
 
@@ -48,8 +45,6 @@ public:
     std::shared_ptr<Table> runOperator
             (std::vector<std::shared_ptr<Table>> tables) override;
 
-    std::shared_ptr<arrow::ChunkedArray> get_filter
-            (std::shared_ptr<Table> table);
 
     arrow::compute::Datum* get_filter
             (std::shared_ptr<Block> block);
