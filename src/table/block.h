@@ -216,6 +216,14 @@ public:
     bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         column_data);
 
+    bool
+    insert_record(std::vector<std::string_view> record, int32_t *byte_widths,
+            int
+    delimiter_size);
+
+    bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
+            column_data,
+            int32_t offset, int64_t length);
 
 private:
 
@@ -225,6 +233,7 @@ private:
     std::shared_ptr<arrow::Schema> schema;
     std::shared_ptr<arrow::ArrayData> valid;
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
+    std::vector<int> column_sizes;
 
     /**
      * Compute the number of bytes in the block. This function is only called
@@ -248,6 +257,7 @@ private:
 
     // Number of rows in the Block, including valid and invalid rows.
     int num_rows;
+
 };
 
 #endif //HUSTLE_OFFLINE_BLOCK_H

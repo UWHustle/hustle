@@ -127,6 +127,7 @@ void Table::print() {
 std::unordered_map<int, std::shared_ptr<Block>>
 Table::get_blocks() { return blocks; }
 
+
 void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                            column_data) {
 
@@ -211,7 +212,6 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
     num_rows += l;
 }
-
 // Tuple is passed in as an array of bytes which must be parsed.
 void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
 
@@ -228,6 +228,31 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
     }
 
     block->insert_record(record, byte_widths);
+    num_rows++;
+
+    if (block->get_bytes_left() > fixed_record_width) {
+        insert_pool[block->get_id()] = block;
+    }
+}
+
+void Table::insert_record(std::vector<std::string_view> values, int32_t
+*byte_widths, int
+delimiter_size) {
+
+    std::shared_ptr<Block> block = get_block_for_insert();
+
+    int32_t record_size = 0;
+    // record size is incorrectly computed!
+    for (int i = 0; i < schema->num_fields(); i++) {
+        record_size += byte_widths[i];
+    }
+
+    auto test = block->get_bytes_left();
+    if (block->get_bytes_left() < record_size) {
+        block = create_block();
+    }
+
+    block->insert_record(values, byte_widths, delimiter_size);
     num_rows++;
 
     if (block->get_bytes_left() > fixed_record_width) {

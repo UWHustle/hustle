@@ -141,6 +141,11 @@ public:
 
     std::shared_ptr<arrow::ChunkedArray> get_valid_column();
 
+    void
+    insert_record(std::vector<std::string_view> values, int32_t *byte_widths,
+            int
+    delimiter_size);
+
 private:
     std::string table_name;
 
