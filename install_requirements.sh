@@ -12,11 +12,4 @@ elif [[ `uname` == "Linux" ]]; then
 		sudo apt-get update
 		sudo apt-get install gcc-9 g++-9 --yes
 		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
-		# For arrow
-		#sudo apt-get install \
-		#     build-essential \
-		#     cmake \
-		#     libboost-filesystem-dev \
-		#     libboost-regex-dev \
-		#     libboost-system-dev
 fi

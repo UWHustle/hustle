@@ -53,7 +53,6 @@ int main(int argc, char *argv[]) {
                 "The plan is: " << std::endl <<
                 hustleDB.getPlan(query) << std::endl;
 
-
   std::string plan_path = "db_directory/plan.json";
   FILE* fp = fopen(plan_path.c_str(), "w");
   fprintf(fp, R"({"execution_plan": {"project": [%s], "loop_pred": [%s], "other_pred": [%s]}})", project, loopPred, otherPred);
