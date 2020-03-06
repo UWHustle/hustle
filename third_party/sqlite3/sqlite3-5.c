@@ -1,3 +1,4 @@
+extern int SERIAL_BLOCK_SIZE;
 extern char project[];
 extern char loopPred[];
 extern char otherPred[];
@@ -20676,11 +20677,11 @@ WhereInfo *sqlite3WhereBegin(
 
   /// Lichengxi: entry of serialization
   if (pLoop != NULL) {
-    memset(project, 0, 4096);
-    memset(loopPred, 0, 4096);
-    memset(otherPred, 0, 4096);
-    memset(groupBy, 0, 4096);
-    memset(orderBy, 0, 4096);
+    memset(project, 0, SERIAL_BLOCK_SIZE);
+    memset(loopPred, 0, SERIAL_BLOCK_SIZE);
+    memset(otherPred, 0, SERIAL_BLOCK_SIZE);
+    memset(groupBy, 0, SERIAL_BLOCK_SIZE);
+    memset(orderBy, 0, SERIAL_BLOCK_SIZE);
     currPos = otherPred;
   }
   /// END

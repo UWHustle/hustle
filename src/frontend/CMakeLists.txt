@@ -7,8 +7,8 @@ target_link_libraries(frontend
         catalog
 )
 
-add_executable(hustle_frontend_test "tests/HustleFrontend_test.cpp")
-target_link_libraries(hustle_frontend_test
+add_executable(hustle_frontend_simple_test "tests/HustleFrontend_simple_test.cpp")
+target_link_libraries(hustle_frontend_simple_test
         gtest
         gtest_main
         gmock
@@ -16,9 +16,9 @@ target_link_libraries(hustle_frontend_test
         sqlite3
         hustleDB
         )
-add_test(HustleFrontend_test hustle_frontend_test)
+add_test(HustleFrontend_test hustle_frontend_simple_test)
 
-add_executable(hustle_frontend_ssb_test "tests/HustleFrontend_SSB_test.cpp")
+add_executable(hustle_frontend_ssb_test "tests/HustleFrontend_ssb_test.cpp")
 target_link_libraries(hustle_frontend_ssb_test
         gtest
         gtest_main

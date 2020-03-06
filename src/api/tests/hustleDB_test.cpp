@@ -15,10 +15,13 @@ using hustle::catalog::ColumnSchema;
 using hustle::catalog::TableSchema;
 using hustle::catalog::Catalog;
 
-char project[1024];
-char loopPred[4096];
-char otherPred[4096];
-char* currPos = NULL;
+// extern const int SERIAL_BLOCK_SIZE = 4096;
+// char project[SERIAL_BLOCK_SIZE];
+// char loopPred[SERIAL_BLOCK_SIZE];
+// char otherPred[SERIAL_BLOCK_SIZE];
+// char groupBy[SERIAL_BLOCK_SIZE];
+// char orderBy[SERIAL_BLOCK_SIZE];
+// char* currPos = nullptr;
 
 TEST(HustleDB, Create) {
   std::filesystem::remove_all("db_directory");
