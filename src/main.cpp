@@ -9,8 +9,11 @@
 using hustle::frontend::ParseTree;
 
 char project[1024];
-char loopPred[1024];
-char otherPred[1024];
+char loopPred[4096];
+char otherPred[4096];
+char groupBy[4096];
+char orderBy[4096];
+char* currPos = nullptr;
 
 int main(int argc, char *argv[]) {
   std::filesystem::remove_all("db_directory");
@@ -58,15 +61,15 @@ int main(int argc, char *argv[]) {
 
   ParseTree parseTree;
 
-  std::ifstream in(plan_path);
-  {
-    cereal::JSONInputArchive iarchive(in);
-    iarchive(parseTree);
-  }
-
-  cereal::JSONOutputArchive output(std::cout);
-
-  output( cereal::make_nvp("execution_plan", parseTree) );
+  // std::ifstream in(plan_path);
+  // {
+  //   cereal::JSONInputArchive iarchive(in);
+  //   iarchive(parseTree);
+  // }
+  //
+  // cereal::JSONOutputArchive output(std::cout);
+  //
+  // output( cereal::make_nvp("execution_plan", parseTree) );
 
   return 0;
 }

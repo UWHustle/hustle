@@ -21,8 +21,9 @@ using hustle::catalog::TableSchema;
 using hustle::catalog::Catalog;
 
 char project[1024];
-char loopPred[1024];
-char otherPred[1024];
+char loopPred[4096];
+char otherPred[4096];
+char* currPos = NULL;
 
 TEST(ColumnSchema, HappyPath) {
   ColumnSchema cs("c1", {HustleType::INTEGER}, false, true);

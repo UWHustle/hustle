@@ -6298,8 +6298,7 @@ static void exprCodeBetween(
     compRight.op = TK_LE;
     compRight.pLeft = pDel;
     compRight.pRight = pExpr->x.pList->a[1].pExpr;
-    //TODO(Lichengxi) commented for physical plan:
-    // exprToRegister(pDel, exprCodeVector(pParse, pDel, &regFree1));
+    exprToRegister(pDel, exprCodeVector(pParse, pDel, &regFree1));
     if( xJump ){
       xJump(pParse, &exprAnd, dest, jumpIfNull);
     }else{
@@ -6473,7 +6472,6 @@ SQLITE_PRIVATE void sqlite3ExprIfTrue(Parse *pParse, Expr *pExpr, int dest, int 
   sqlite3ReleaseTempReg(pParse, regFree2);  
 }
 
-char* currPos = NULL;
 /*
 ** Generate code for a boolean expression such that a jump is made
 ** to the label "dest" if the expression is false but execution
@@ -6484,11 +6482,6 @@ char* currPos = NULL;
 ** is 0.
 */
 SQLITE_PRIVATE void sqlite3ExprIfFalse(Parse *pParse, Expr *pExpr, int dest, int jumpIfNull){
-  if (pExpr != NULL && pExpr->op != TK_AND && pExpr->op != TK_BETWEEN) {
-    resolveExpr(pExpr);
-    currPos += sprintf(currPos, ", ");
-  }
-
   Vdbe *v = pParse->pVdbe;
   int op = 0;
   int regFree1 = 0;
