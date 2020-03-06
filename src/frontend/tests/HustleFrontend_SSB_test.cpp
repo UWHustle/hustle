@@ -12,11 +12,12 @@ using namespace testing;
 using namespace hustle::frontend;
 using nlohmann::json;
 
-char project[4096];
-char loopPred[4096];
-char otherPred[4096];
-char groupBy[4096];
-char orderBy[4096];
+extern const int SERIAL_BLOCK_SIZE = 4096;
+char project[SERIAL_BLOCK_SIZE];
+char loopPred[SERIAL_BLOCK_SIZE];
+char otherPred[SERIAL_BLOCK_SIZE];
+char groupBy[SERIAL_BLOCK_SIZE];
+char orderBy[SERIAL_BLOCK_SIZE];
 char* currPos = nullptr;
 
 static void createTableSSB() {
