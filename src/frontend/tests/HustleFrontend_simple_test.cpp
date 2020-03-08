@@ -20,38 +20,39 @@ char groupBy[SERIAL_BLOCK_SIZE];
 char orderBy[SERIAL_BLOCK_SIZE];
 char* currPos = nullptr;
 
-static void createTable() {
-  std::filesystem::remove_all("db_directory");
-  EXPECT_FALSE(std::filesystem::exists("db_directory"));
+class FrontendSimpleTest : public Test {
+  void SetUp() override {
+    std::filesystem::remove_all("db_directory");
+    EXPECT_FALSE(std::filesystem::exists("db_directory"));
 
-  hustle::HustleDB hustleDB("db_directory");
+    hustle::HustleDB hustleDB("db_directory");
 
-  // Create table Subscriber
-  hustle::catalog::TableSchema ts("Subscriber");
-  hustle::catalog::ColumnSchema c1("c1", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-  hustle::catalog::ColumnSchema c2("c2", {hustle::catalog::HustleType::CHAR, 10}, false, true);
-  ts.addColumn(c1);
-  ts.addColumn(c2);
-  // ts.setPrimaryKey({"c1", "c2"});
-  ts.setPrimaryKey({});
+    // Create table Subscriber
+    hustle::catalog::TableSchema ts("Subscriber");
+    hustle::catalog::ColumnSchema c1("c1", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+    hustle::catalog::ColumnSchema c2("c2", {hustle::catalog::HustleType::CHAR, 10}, false, true);
+    ts.addColumn(c1);
+    ts.addColumn(c2);
+    // ts.setPrimaryKey({"c1", "c2"});
+    ts.setPrimaryKey({});
 
-  hustleDB.createTable(ts);
+    hustleDB.createTable(ts);
 
-  // Create table AccessInfo
-  hustle::catalog::TableSchema ts1("AccessInfo");
-  hustle::catalog::ColumnSchema c3("c3", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-  hustle::catalog::ColumnSchema c4("c4", {hustle::catalog::HustleType::CHAR, 5}, false, true);
-  ts1.addColumn(c3);
-  ts1.addColumn(c4);
-  // ts1.setPrimaryKey({"c3"});
-  ts1.setPrimaryKey({});
+    // Create table AccessInfo
+    hustle::catalog::TableSchema ts1("AccessInfo");
+    hustle::catalog::ColumnSchema c3("c3", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+    hustle::catalog::ColumnSchema c4("c4", {hustle::catalog::HustleType::CHAR, 5}, false, true);
+    ts1.addColumn(c3);
+    ts1.addColumn(c4);
+    // ts1.setPrimaryKey({"c3"});
+    ts1.setPrimaryKey({});
 
-  hustleDB.createTable(ts1);
-}
+    hustleDB.createTable(ts1);
+  }
+};
 
-TEST(Frontend, test1) {
-  createTable();
 
+TEST_F(FrontendSimpleTest, test1) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
@@ -93,11 +94,7 @@ TEST(Frontend, test1) {
   EXPECT_EQ(out, out_val);
 }
 
-TEST(Frontend, test2) {
-//  if (!std::filesystem::exists("db_directory")) {
-    createTable();
-//  }
-
+TEST_F(FrontendSimpleTest, test2) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
