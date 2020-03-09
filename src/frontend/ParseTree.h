@@ -89,6 +89,18 @@ class Project {
 };
 
 /**
+ * OrderBy
+ */
+class OrderBy {
+ public:
+  OrderBy() {}
+  OrderBy(int f, std::shared_ptr<Expr> e) : sort_flag(f), expr(std::move(e)) {}
+
+  int sort_flag;
+  std::shared_ptr<Expr> expr;
+};
+
+/**
  * ParseTree
  */
 class ParseTree {
@@ -98,14 +110,14 @@ class ParseTree {
             std::vector<std::shared_ptr<LoopPredicate>>&& l_pred,
             std::vector<std::shared_ptr<Expr>> o_pred,
             std::vector<std::shared_ptr<Expr>> group_by,
-            std::vector<std::shared_ptr<Expr>> order_by
+            std::vector<std::shared_ptr<OrderBy>> order_by
             ) : project(std::move(proj)), loop_pred(std::move(l_pred)), other_pred(std::move(o_pred)), group_by(std::move(group_by)), order_by(std::move(order_by)) {}
 
   std::vector<std::shared_ptr<Project>> project;
   std::vector<std::shared_ptr<LoopPredicate>> loop_pred;
   std::vector<std::shared_ptr<Expr>> other_pred;
   std::vector<std::shared_ptr<Expr>> group_by;
-  std::vector<std::shared_ptr<Expr>> order_by;
+  std::vector<std::shared_ptr<OrderBy>> order_by;
 };
 
 
@@ -119,6 +131,9 @@ void to_json(json& j, const std::shared_ptr<LoopPredicate>& loop_pred);
 
 void from_json(const json& j, std::shared_ptr<Project>& proj);
 void to_json(json& j, const std::shared_ptr<Project>& proj);
+
+void from_json(const json& j, std::shared_ptr<OrderBy>& proj);
+void to_json(json& j, const std::shared_ptr<OrderBy>& proj);
 
 void from_json(const json& j, std::shared_ptr<Column>& c);
 void from_json(const json& j, std::shared_ptr<IntLiteral>& i);
@@ -243,12 +258,22 @@ void to_json(json &j, const std::shared_ptr<Project> &proj) {
           {"expr", proj->expr}
       };
 }
+void from_json(const json &j, std::shared_ptr<OrderBy> &order_by) {
+  order_by = std::make_shared<OrderBy>(j.at("sort_flag"), j.at("expr"));
+}
+void to_json(json &j, const std::shared_ptr<OrderBy> &order_by) {
+  j = json
+      {
+          {"sort_flag", order_by->sort_flag},
+          {"expr", order_by->expr}
+      };
+}
 void from_json(const json &j, ParseTree &parse_tree) {
   parse_tree.project = j.at("project").get<std::vector<std::shared_ptr<Project>>>();
   parse_tree.loop_pred = j.at("loop_pred").get<std::vector<std::shared_ptr<LoopPredicate>>>();
   parse_tree.other_pred = j.at("other_pred").get<std::vector<std::shared_ptr<Expr>>>();
   parse_tree.group_by = j.at("group_by").get<std::vector<std::shared_ptr<Expr>>>();
-  parse_tree.order_by = j.at("order_by").get<std::vector<std::shared_ptr<Expr>>>();
+  parse_tree.order_by = j.at("order_by").get<std::vector<std::shared_ptr<OrderBy>>>();
 }
 void to_json(json &j, const ParseTree &parse_tree) {
   j = json

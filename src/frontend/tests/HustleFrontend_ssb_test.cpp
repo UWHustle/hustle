@@ -303,10 +303,6 @@ TEST_F(FrontendSSBTest, ssb_q2) {
 TEST_F(FrontendSSBTest, ssb_q3) {
   hustle::HustleDB hustleDB("db_directory");
 
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice*lo_discount) as revenue\n"
                       "from lineorder, ddate\n"
                       "where lo_orderdate = d_datekey\n"
@@ -330,10 +326,6 @@ TEST_F(FrontendSSBTest, ssb_q3) {
 
 TEST_F(FrontendSSBTest, ssb_q4) {
   hustle::HustleDB hustleDB("db_directory");
-
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
 
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_revenue), d_year, p_brand1\n"
                       "from lineorder, ddate, part, supplier\n"
@@ -362,10 +354,6 @@ TEST_F(FrontendSSBTest, ssb_q4) {
 TEST_F(FrontendSSBTest, ssb_q5) {
   hustle::HustleDB hustleDB("db_directory");
 
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_revenue), d_year, p_brand1\n"
                       "\tfrom lineorder, ddate, part, supplier\n"
                       "\twhere lo_partkey = p_partkey\n"
@@ -393,10 +381,6 @@ TEST_F(FrontendSSBTest, ssb_q5) {
 TEST_F(FrontendSSBTest, ssb_q6) {
   hustle::HustleDB hustleDB("db_directory");
 
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_revenue), d_year, p_brand1\n"
                       "\tfrom lineorder, ddate, part, supplier\n"
                       "\twhere lo_partkey = p_partkey\n"
@@ -423,10 +407,6 @@ TEST_F(FrontendSSBTest, ssb_q6) {
 
 TEST_F(FrontendSSBTest, ssb_q7) {
   hustle::HustleDB hustleDB("db_directory");
-
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
 
   std::string query = "EXPLAIN QUERY PLAN select c_nation, s_nation, d_year, sum(lo_revenue) as revenue\n"
                       "\tfrom customer, lineorder, supplier, ddate\n"
@@ -456,10 +436,6 @@ TEST_F(FrontendSSBTest, ssb_q7) {
 TEST_F(FrontendSSBTest, ssb_q8) {
   hustle::HustleDB hustleDB("db_directory");
 
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-
   std::string query = "EXPLAIN QUERY PLAN select c_city, s_city, d_year, sum(lo_revenue) as revenue\n"
                       "\tfrom customer, lineorder, supplier, ddate\n"
                       "\twhere lo_custkey = c_custkey\n"
@@ -488,11 +464,6 @@ TEST_F(FrontendSSBTest, ssb_q8) {
 TEST_F(FrontendSSBTest, ssb_q9) {
   hustle::HustleDB hustleDB("db_directory");
 
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-  currPos = nullptr;
-
   std::string query = "EXPLAIN QUERY PLAN select c_city, s_city, d_year, sum(lo_revenue) as revenue\n"
                       "\tfrom customer, lineorder, supplier, ddate\n"
                       "\twhere lo_custkey = c_custkey\n"
@@ -514,7 +485,7 @@ TEST_F(FrontendSSBTest, ssb_q9) {
 
   json j = json::parse(text);
   auto out = j.dump(4);
-//  std::cout << out << std::endl;
+  // std::cout << out << std::endl;
 
   hustle::frontend::ParseTree my_parse_tree = j;
 
@@ -524,11 +495,6 @@ TEST_F(FrontendSSBTest, ssb_q9) {
 
 TEST_F(FrontendSSBTest, ssb_q10) {
   hustle::HustleDB hustleDB("db_directory");
-
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-  currPos = nullptr;
 
   std::string query = "EXPLAIN QUERY PLAN select c_city, s_city, d_year, sum(lo_revenue) as revenue\n"
                       "\tfrom customer, lineorder, supplier, ddate\n"
@@ -562,11 +528,6 @@ TEST_F(FrontendSSBTest, ssb_q10) {
 TEST_F(FrontendSSBTest, ssb_q11) {
   hustle::HustleDB hustleDB("db_directory");
 
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-  currPos = nullptr;
-
   std::string query = "EXPLAIN QUERY PLAN select d_year, c_nation, sum(lo_revenue-lo_supplycost) as profit1\n"
                       "\tfrom ddate, customer, supplier, part, lineorder\n"
                       "\twhere lo_partkey = p_partkey\n"
@@ -599,11 +560,6 @@ TEST_F(FrontendSSBTest, ssb_q11) {
 
 TEST_F(FrontendSSBTest, ssb_q12) {
   hustle::HustleDB hustleDB("db_directory");
-
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-  currPos = nullptr;
 
   std::string query = "EXPLAIN QUERY PLAN select d_year, s_nation, p_category, sum(lo_revenue-lo_supplycost) as profit1\n"
                       "\tfrom ddate, customer, supplier, part, lineorder\n"
@@ -672,8 +628,5 @@ TEST_F(FrontendSSBTest, ssb_q13) {
   json j1 = my_parse_tree;
   std::cout << j1.dump(4) << std::endl;
 }
-
-
-
 
 

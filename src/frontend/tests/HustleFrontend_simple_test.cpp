@@ -91,7 +91,7 @@ TEST_F(FrontendSimpleTest, test1) {
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{},
       std::vector<std::shared_ptr<Expr>>{},
-      std::vector<std::shared_ptr<Expr>>{});
+      std::vector<std::shared_ptr<OrderBy>>{});
 
   json j_val = parse_tree_val;
   auto out_val = j_val.dump(4);
@@ -140,7 +140,7 @@ TEST_F(FrontendSimpleTest, test2) {
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{std::move(other_pred)},
       std::vector<std::shared_ptr<Expr>>{},
-      std::vector<std::shared_ptr<Expr>>{});
+      std::vector<std::shared_ptr<OrderBy>>{});
 
 
   json j_val = parse_tree_val;
