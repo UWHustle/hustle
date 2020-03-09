@@ -24,8 +24,9 @@ public:
 
 class Column : public Expr {
 public:
-  Column(int t, int c) : Expr("Column"), i_table(t), i_column(c) {}
+  Column(std::string col_name, int t, int c) : Expr("Column"), column_name(std::move(col_name)), i_table(t), i_column(c) {}
 
+  std::string column_name;
   int i_table;
   int i_column;
 };
@@ -81,9 +82,9 @@ class LoopPredicate {
 class Project {
  public:
   Project() {}
-  Project(std::string str, std::shared_ptr<Expr> e) : name(std::move(str)), expr(std::move(e)) {}
+  Project(std::string name, std::shared_ptr<Expr> e) : proj_name(std::move(name)), expr(std::move(e)) {}
 
-  std::string name;
+  std::string proj_name;
   std::shared_ptr<Expr> expr;
 };
 
@@ -136,7 +137,7 @@ void to_json(json& j, const std::shared_ptr<AggFunc>& agg);
 
 
 void from_json(const json &j, std::shared_ptr<Column> &c) {
-  c = std::make_shared<Column>(j.at("i_table"), j.at("i_column"));
+  c = std::make_shared<Column>(j.at("column_name"), j.at("i_table"), j.at("i_column"));
 //  c->i_table = j.at("i_table");
 //  c->i_column = j.at("i_column");
 //  j.at("i_table").get_to(c->i_table);
@@ -173,6 +174,7 @@ void to_json(json &j, const std::shared_ptr<Column> &c) {
   j = json
       {
           {"type", c->type},
+          {"column_name", c->column_name},
           {"i_table", c->i_table},
           {"i_column", c->i_column}
       };
@@ -232,12 +234,12 @@ void to_json(json &j, const std::shared_ptr<LoopPredicate> &loop_pred) {
       };
 }
 void from_json(const json &j, std::shared_ptr<Project> &proj) {
-  proj = std::make_shared<Project>(j.at("name"), j.at("expr"));
+  proj = std::make_shared<Project>(j.at("proj_name"), j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<Project> &proj) {
   j = json
       {
-          {"name", proj->name},
+          {"proj_name", proj->proj_name},
           {"expr", proj->expr}
       };
 }

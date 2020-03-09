@@ -6691,7 +6691,7 @@ SQLITE_PRIVATE int sqlite3Select(
   if (currPos != NULL) {
     currPos = project;
     for (int k = 0; k < pEList->nExpr; k++) {
-      currPos += sprintf(currPos, "{\"name\": \"%s\", \"expr\": ", pEList->a[k].zName ? pEList->a[k].zName : pEList->a[k].zSpan);
+      currPos += sprintf(currPos, "{\"proj_name\": \"%s\", \"expr\": ", pEList->a[k].zName ? pEList->a[k].zName : pEList->a[k].zSpan);
       resolveExpr(pEList->a[k].pExpr);
       currPos += sprintf(currPos, "}");
       if (k != pEList->nExpr - 1) {
@@ -20333,7 +20333,7 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
 
     case TK_COLUMN:
     case TK_AGG_COLUMN:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"i_table\": %d, \"i_column\": %d}", "Column", pExpr->iTable, pExpr->iColumn);
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"column_name\": \"%s\", \"i_table\": %d, \"i_column\": %d}", "Column", pExpr->y.pTab->aCol[pExpr->iColumn].zName, pExpr->iTable, pExpr->iColumn);
       break;
 
     case TK_BETWEEN:

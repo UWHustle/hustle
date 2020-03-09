@@ -22,6 +22,11 @@ char* currPos = nullptr;
 
 class FrontendSimpleTest : public Test {
   void SetUp() override {
+    /**
+      CREATE TABLE Subscriber(c1 INT  NOT NULL , c2 CHAR(10)  UNIQUE);
+      CREATE TABLE AccessInfo(c3 INT  NOT NULL , c4 CHAR(5)  UNIQUE);
+     */
+
     std::filesystem::remove_all("db_directory");
     EXPECT_FALSE(std::filesystem::exists("db_directory"));
 
@@ -73,8 +78,8 @@ TEST_F(FrontendSimpleTest, test1) {
   // std::cout << out << std::endl;
 
   /// build validation parse tree
-  auto c00 = std::make_shared<hustle::frontend::Column>(0, 0);
-  auto c10 = std::make_shared<hustle::frontend::Column>(1, 0);
+  auto c00 = std::make_shared<Column>("c1", 0, 0);
+  auto c10 = std::make_shared<Column>("c3", 1, 0);
 
   std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<Expr>>{});
   std::shared_ptr<Expr> pred = std::make_shared<CompositeExpr>(c10, 53, c00);
@@ -115,10 +120,10 @@ TEST_F(FrontendSimpleTest, test2) {
   std::cout << out << std::endl;
 
   /// build validation parse tree
-  auto c00 = std::make_shared<Column>(0, 0);
-  auto c01 = std::make_shared<Column>(0, 1);
-  auto c10 = std::make_shared<Column>(1, 0);
-  auto c11 = std::make_shared<Column>(1, 1);
+  auto c00 = std::make_shared<Column>("c1", 0, 0);
+  auto c01 = std::make_shared<Column>("c2", 0, 1);
+  auto c10 = std::make_shared<Column>("c3", 1, 0);
+  auto c11 = std::make_shared<Column>("c4", 1, 1);
   auto i2 = std::make_shared<IntLiteral>(2);
   auto i5 = std::make_shared<IntLiteral>(5);
 
