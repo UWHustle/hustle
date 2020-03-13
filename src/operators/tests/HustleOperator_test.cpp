@@ -14,8 +14,6 @@
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
 
-#define BLOCK_SIZE 1024
-
 using namespace testing;
 using hustle::operators::Aggregate;
 using hustle::operators::Join;

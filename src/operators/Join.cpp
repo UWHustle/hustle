@@ -6,9 +6,6 @@
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
-
-#define BLOCK_SIZE 1024
-
 namespace hustle {
 namespace operators {
 

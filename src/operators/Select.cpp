@@ -6,7 +6,7 @@
 #include <table/util.h>
 #include <iostream>
 
-#define BLOCK_SIZE 1024
+
 
 namespace hustle {
 namespace operators {
@@ -69,17 +69,22 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
         auto out_table = std::make_shared<Table>("out", table->get_schema(),
                                                  BLOCK_SIZE);
 
-        std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
+
         auto* out_col = new arrow::compute::Datum;
-        arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+
 
         for (int i=0; i<table->get_num_blocks(); i++) {
             auto block = table->get_block(i);
             auto block_filter = get_filter(block);
+            arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
-            for (int i = 0; i < table->get_schema()->num_fields(); i++) {
+            std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
+            out_cols.reserve(table->get_schema()->num_fields());
+
+
+            for (int j = 0; j < table->get_schema()->num_fields(); j++) {
                 status = arrow::compute::Filter(&function_context,
-                                                block->get_column(i),
+                                                block->get_column(j),
                                                 *block_filter,
                                                 out_col);
 
@@ -87,7 +92,7 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
                 out_cols.push_back(out_col->array());
             }
             out_table->insert_records(out_cols);
-            out_cols.clear();
+//            out_cols.clear();
         }
 
         return out_table;
@@ -140,6 +145,7 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
                                                  BLOCK_SIZE);
 
         std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
+        out_cols.reserve(table->get_schema()->num_fields());
         auto* out_col = new arrow::compute::Datum;
         arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
@@ -147,14 +153,16 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
             auto block = table->get_block(i);
             auto block_filter = get_filter(block);
 
-            for (int i = 0; i < table->get_schema()->num_fields(); i++) {
+            for (int j = 0; j < table->get_schema()->num_fields(); j++) {
                 status = arrow::compute::Filter(&function_context,
-                                                block->get_column(i),
+                                                block->get_column(j),
                                                 *block_filter,
                                                 out_col);
 
                 evaluate_status(status, __FUNCTION__, __LINE__);
+//                out_cols[j] = out_col->array();
                 out_cols.push_back(out_col->array());
+
             }
             out_table->insert_records(out_cols);
             out_cols.clear();

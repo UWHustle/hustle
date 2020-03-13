@@ -9,7 +9,8 @@
 
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
              int capacity)
-        : num_rows(0), num_bytes(0), capacity(capacity), id(id), schema(in_schema) {
+        : num_rows(0), num_bytes(0), capacity(capacity), id(id), schema
+        (std::move(in_schema)) {
 
     arrow::Status status;
 
