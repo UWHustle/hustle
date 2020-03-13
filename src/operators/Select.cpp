@@ -25,11 +25,9 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
 
     arrow::Status status;
 
-    auto* left_child_filter = left_child_->get_filter(block);
-    auto* right_child_filter = right_child_->get_filter(block);
+    auto left_child_filter = left_child_->get_filter(block);
+    auto right_child_filter = right_child_->get_filter(block);
 
-    auto testleft = left_child_filter->array();
-    auto testright = right_child_filter->array();
     // We should never have to check for null children, since
     // SelectComposite is only relevant if it has two children. Otherwise,
     // we would just use Select.
@@ -42,7 +40,6 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
         case AND: {
             status = arrow::compute::And(&function_context, *left_child_filter,
                                          *right_child_filter, block_filter);
-            auto test = block_filter->array();
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
@@ -70,19 +67,24 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
                                                  BLOCK_SIZE);
 
 
-        auto* out_col = new arrow::compute::Datum;
 
+        auto* out_col = new arrow::compute::Datum;
+        std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
+        out_cols.reserve(table->get_schema()->num_fields());
 
         for (int i=0; i<table->get_num_blocks(); i++) {
             auto block = table->get_block(i);
             auto block_filter = get_filter(block);
             arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
-            std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
-            out_cols.reserve(table->get_schema()->num_fields());
+
 
 
             for (int j = 0; j < table->get_schema()->num_fields(); j++) {
+
+                auto t1 = &function_context;
+                auto t2 = block->get_column(j);
+                auto t3 = *block_filter;
                 status = arrow::compute::Filter(&function_context,
                                                 block->get_column(j),
                                                 *block_filter,
@@ -90,9 +92,10 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
 
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 out_cols.push_back(out_col->array());
+//out_cols[i] = out_col->array();
             }
             out_table->insert_records(out_cols);
-//            out_cols.clear();
+            out_cols.clear();
         }
 
         return out_table;
@@ -121,8 +124,6 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
 
         auto select_col = block->get_column_by_name(column_name_);
 
-        auto j = column_value_.type()->name();
-
         status = arrow::compute::Compare(&function_context,
                                          select_col,
                                          column_value_,
@@ -141,7 +142,16 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
         arrow::Status status;
         // operator only uses first table
         auto table = tables[0];
-        auto out_table = std::make_shared<Table>("out", table->get_schema(),
+
+        arrow::SchemaBuilder out_schema_builder;
+        status = out_schema_builder.AddSchema(table->get_schema());
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        std::shared_ptr<arrow::Schema> out_schema;
+        auto result = out_schema_builder.Finish();
+        status = result.status();
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        out_schema = result.ValueOrDie();
+        auto out_table = std::make_shared<Table>("out", out_schema,
                                                  BLOCK_SIZE);
 
         std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;

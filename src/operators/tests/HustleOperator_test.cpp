@@ -866,7 +866,7 @@ protected:
         std::shared_ptr<arrow::Field> field7 = arrow::field("ord priority",
                 arrow::utf8());
         std::shared_ptr<arrow::Field> field8 = arrow::field("ship priority",
-                arrow::utf8());
+                arrow::int64());
         std::shared_ptr<arrow::Field> field9 = arrow::field("quantity",
                 arrow::int64());
         std::shared_ptr<arrow::Field> field10 = arrow::field("extended price",
@@ -983,10 +983,11 @@ TEST_F(SSBTestFixture, SSBQ1) {
     auto join_op = std::make_shared<hustle::operators::Join>("order date",
             "date key");
 
-    // Perform selection on Lineorder
-    auto lineorder_2 = lineorder_select_op_composite->runOperator({lineorder});
     // Perform selection on Date
     auto date_2 = date_select_op->runOperator({date});
+    // Perform selection on Lineorder
+    auto lineorder_2 = lineorder_select_op_1->runOperator({lineorder});
+
 
     // Join the resulting Lineorder and Date tables
     auto join_table = join_op->hash_join(lineorder_2, date_2);

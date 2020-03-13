@@ -10,7 +10,7 @@
 Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
              int block_capacity)
         : table_name(std::move(name)), schema(schema), block_counter(0),
-          num_rows(0), block_capacity(block_capacity), block_row_offsets({0}) {
+          num_rows(0), block_capacity(block_capacity), block_row_offsets({}) {
 
     fixed_record_width = compute_fixed_record_width(schema);
 }
@@ -139,7 +139,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     int offset = 0;
     int length = l;
 
-    std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
+
 
     for (int row=0; row<l; row++) {
 
@@ -173,6 +173,8 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             }
         }
 
+        std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
+
         if (data_size + record_size > block->get_bytes_left()) {
 
             for (int i=0; i<column_data.size(); i++) {
@@ -182,9 +184,10 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         (column_data[i]->Slice(offset,row-offset));
                 sliced_column_data.push_back(sliced_data);
             }
-
+            std::cout << "l-offset = " << row-offset << std::endl;
             block->insert_records(sliced_column_data);
-            sliced_column_data.clear();
+//            sliced_column_data.clear(); // no need to clear; a new vector
+//            is declared in each loop.
 
             offset = row;
             data_size = 0;
@@ -195,6 +198,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
         data_size += record_size;
     }
 
+    std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
     // Insert the last of the records
     for (int i=0; i<column_data.size(); i++) {
         // Note that row is equal to the index of the first record we
@@ -203,8 +207,10 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 (column_data[i]->Slice(offset,l-offset));
         sliced_column_data.push_back(sliced_data);
     }
+    std::cout << "l-offset = " << l-offset << std::endl;
     block->insert_records(sliced_column_data);
-    sliced_column_data.clear();
+//    sliced_column_data.clear();
+// no need to clear. We only use this vector once.
 
     if (block->get_bytes_left() > fixed_record_width) {
         insert_pool[block->get_id()] = block;

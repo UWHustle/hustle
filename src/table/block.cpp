@@ -10,7 +10,7 @@
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
              int capacity)
         : num_rows(0), num_bytes(0), capacity(capacity), id(id), schema
-        (std::move(in_schema)) {
+        (in_schema) {
 
     arrow::Status status;
 
@@ -410,9 +410,9 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         data_buffer->size() + sizeof(int64_t) * n);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
-                auto *dest = columns[i]->GetMutableValues<uint8_t>(
-                        1, num_rows * sizeof(int64_t));
-                std::memcpy(dest, column_data[i]->GetMutableValues<uint64_t>
+                auto *dest = columns[i]->GetMutableValues<int64_t>(
+                        1, num_rows);
+                std::memcpy(dest, column_data[i]->GetMutableValues<int64_t>
                         (1, offset), sizeof(int64_t) * n);
 
                 columns[i]->length += n;
