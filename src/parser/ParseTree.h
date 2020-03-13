@@ -5,7 +5,7 @@
 #include <utility>
 
 namespace hustle {
-namespace frontend {
+namespace parser {
 
 using nlohmann::json;
 

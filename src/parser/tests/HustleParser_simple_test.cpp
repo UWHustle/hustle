@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <iostream>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "sqlite3/sqlite3.h"
@@ -6,10 +6,10 @@
 #include "api/HustleDB.h"
 #include "catalog/Catalog.h"
 
-#include "frontend/ParseTree.h"
+#include "parser/ParseTree.h"
 
 using namespace testing;
-using namespace hustle::frontend;
+using namespace hustle::parser;
 using nlohmann::json;
 
 extern const int SERIAL_BLOCK_SIZE = 4096;
@@ -20,7 +20,7 @@ char groupBy[SERIAL_BLOCK_SIZE];
 char orderBy[SERIAL_BLOCK_SIZE];
 char* currPos = nullptr;
 
-class FrontendSimpleTest : public Test {
+class ParserSimpleTest : public Test {
   void SetUp() override {
     /**
       CREATE TABLE Subscriber(c1 INT  NOT NULL , c2 CHAR(10)  UNIQUE);
@@ -57,7 +57,7 @@ class FrontendSimpleTest : public Test {
 };
 
 
-TEST_F(FrontendSimpleTest, test1) {
+TEST_F(ParserSimpleTest, test1) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
@@ -73,7 +73,7 @@ TEST_F(FrontendSimpleTest, test1) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   // std::cout << out << std::endl;
 
@@ -99,7 +99,7 @@ TEST_F(FrontendSimpleTest, test1) {
   EXPECT_EQ(out, out_val);
 }
 
-TEST_F(FrontendSimpleTest, test2) {
+TEST_F(ParserSimpleTest, test2) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
@@ -115,7 +115,7 @@ TEST_F(FrontendSimpleTest, test2) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 

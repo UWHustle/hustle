@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <iostream>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "sqlite3/sqlite3.h"
@@ -6,10 +6,10 @@
 #include "api/HustleDB.h"
 #include "catalog/Catalog.h"
 
-#include "frontend/ParseTree.h"
+#include "parser/ParseTree.h"
 
 using namespace testing;
-using namespace hustle::frontend;
+using namespace hustle::parser;
 using nlohmann::json;
 
 extern const int SERIAL_BLOCK_SIZE = 4096;
@@ -20,7 +20,7 @@ char groupBy[SERIAL_BLOCK_SIZE];
 char orderBy[SERIAL_BLOCK_SIZE];
 char* currPos = nullptr;
 
-class FrontendSSBTest : public Test {
+class ParserSSBTest : public Test {
   void SetUp() override {
     /**
       CREATE TABLE part
@@ -253,7 +253,7 @@ class FrontendSSBTest : public Test {
 };
 
 
-TEST_F(FrontendSSBTest, ssb_q1) {
+TEST_F(ParserSSBTest, ssb_q1) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select lo_extendedprice, sum(lo_extendedprice * lo_discount) as revenue "
@@ -270,12 +270,12 @@ TEST_F(FrontendSSBTest, ssb_q1) {
 
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q2) {
+TEST_F(ParserSSBTest, ssb_q2) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice * lo_discount) as revenue\n"
@@ -294,13 +294,13 @@ TEST_F(FrontendSSBTest, ssb_q2) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
 
-TEST_F(FrontendSSBTest, ssb_q3) {
+TEST_F(ParserSSBTest, ssb_q3) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice*lo_discount) as revenue\n"
@@ -319,12 +319,12 @@ TEST_F(FrontendSSBTest, ssb_q3) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q4) {
+TEST_F(ParserSSBTest, ssb_q4) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_revenue), d_year, p_brand1\n"
@@ -346,12 +346,12 @@ TEST_F(FrontendSSBTest, ssb_q4) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q5) {
+TEST_F(ParserSSBTest, ssb_q5) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_revenue), d_year, p_brand1\n"
@@ -373,12 +373,12 @@ TEST_F(FrontendSSBTest, ssb_q5) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q6) {
+TEST_F(ParserSSBTest, ssb_q6) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select sum(lo_revenue), d_year, p_brand1\n"
@@ -400,12 +400,12 @@ TEST_F(FrontendSSBTest, ssb_q6) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q7) {
+TEST_F(ParserSSBTest, ssb_q7) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select c_nation, s_nation, d_year, sum(lo_revenue) as revenue\n"
@@ -428,12 +428,12 @@ TEST_F(FrontendSSBTest, ssb_q7) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q8) {
+TEST_F(ParserSSBTest, ssb_q8) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select c_city, s_city, d_year, sum(lo_revenue) as revenue\n"
@@ -456,12 +456,12 @@ TEST_F(FrontendSSBTest, ssb_q8) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   auto out = j.dump(4);
   std::cout << out << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q9) {
+TEST_F(ParserSSBTest, ssb_q9) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select c_city, s_city, d_year, sum(lo_revenue) as revenue\n"
@@ -487,13 +487,13 @@ TEST_F(FrontendSSBTest, ssb_q9) {
   auto out = j.dump(4);
   // std::cout << out << std::endl;
 
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
 
   json j1 = my_parse_tree;
   std::cout << j1.dump(4) << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q10) {
+TEST_F(ParserSSBTest, ssb_q10) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select c_city, s_city, d_year, sum(lo_revenue) as revenue\n"
@@ -519,13 +519,13 @@ TEST_F(FrontendSSBTest, ssb_q10) {
   auto out = j.dump(4);
 //  std::cout << out << std::endl;
 
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
 
   json j1 = my_parse_tree;
   std::cout << j1.dump(4) << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q11) {
+TEST_F(ParserSSBTest, ssb_q11) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select d_year, c_nation, sum(lo_revenue-lo_supplycost) as profit1\n"
@@ -552,13 +552,13 @@ TEST_F(FrontendSSBTest, ssb_q11) {
   auto out = j.dump(4);
 //  std::cout << out << std::endl;
 
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
 
   json j1 = my_parse_tree;
   std::cout << j1.dump(4) << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q12) {
+TEST_F(ParserSSBTest, ssb_q12) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select d_year, s_nation, p_category, sum(lo_revenue-lo_supplycost) as profit1\n"
@@ -586,13 +586,13 @@ TEST_F(FrontendSSBTest, ssb_q12) {
   auto out = j.dump(4);
 //  std::cout << out << std::endl;
 
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
 
   json j1 = my_parse_tree;
   std::cout << j1.dump(4) << std::endl;
 }
 
-TEST_F(FrontendSSBTest, ssb_q13) {
+TEST_F(ParserSSBTest, ssb_q13) {
   hustle::HustleDB hustleDB("db_directory");
 
   memset(project, 0, 1024);
@@ -624,7 +624,7 @@ TEST_F(FrontendSSBTest, ssb_q13) {
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
-  hustle::frontend::ParseTree my_parse_tree = j;
+  ParseTree my_parse_tree = j;
   json j1 = my_parse_tree;
   std::cout << j1.dump(4) << std::endl;
 }

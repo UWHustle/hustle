@@ -4,9 +4,8 @@
 #include "catalog/Catalog.h"
 #include "catalog/TableSchema.h"
 #include "catalog/ColumnSchema.h"
-#include <frontend/ParseTree.h>
+#include <parser/ParseTree.h>
 
-using hustle::frontend::ParseTree;
 
 extern const int SERIAL_BLOCK_SIZE = 4096;
 char project[SERIAL_BLOCK_SIZE];
@@ -59,17 +58,7 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, R"({"execution_plan": {"project": [%s], "loop_pred": [%s], "other_pred": [%s]}})", project, loopPred, otherPred);
   fclose(fp);
 
-  ParseTree parseTree;
-
-  // std::ifstream in(plan_path);
-  // {
-  //   cereal::JSONInputArchive iarchive(in);
-  //   iarchive(parseTree);
-  // }
-  //
-  // cereal::JSONOutputArchive output(std::cout);
-  //
-  // output( cereal::make_nvp("execution_plan", parseTree) );
+  hustle::parser::ParseTree parseTree;
 
   return 0;
 }
