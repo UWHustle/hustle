@@ -5,6 +5,7 @@
 #include "catalog/TableSchema.h"
 #include "catalog/ColumnSchema.h"
 #include <parser/ParseTree.h>
+#include <resolver/Resolver.h>
 
 
 extern const int SERIAL_BLOCK_SIZE = 4096;
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]) {
   hustle::catalog::ColumnSchema c2("c2", {hustle::catalog::HustleType::CHAR, 10}, false, true);
   ts.addColumn(c1);
   ts.addColumn(c2);
-  ts.setPrimaryKey({"c1", "c2"});
+  ts.setPrimaryKey({});
 
   hustleDB.createTable(ts);
 
@@ -35,30 +36,30 @@ int main(int argc, char *argv[]) {
   hustle::catalog::ColumnSchema c4("c4", {hustle::catalog::HustleType::CHAR, 5}, false, true);
   ts1.addColumn(c3);
   ts1.addColumn(c4);
-  ts1.setPrimaryKey({"c3"});
+  ts1.setPrimaryKey({});
 
   hustleDB.createTable(ts1);
-
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 1024);
-  memset(otherPred, 0, 1024);
 
   // Get Execution Plan
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
                       "from Subscriber, AccessInfo "
-                      "where Subscriber.c1 = AccessInfo.c3 and Subscriber.c1 > 2;";
+                      "where Subscriber.c1 = AccessInfo.c3 and Subscriber.c2 > 2 and AccessInfo.c4 < 5;";
 
   std::cout << "For query: " << query << std::endl <<
                 "The plan is: " << std::endl <<
                 hustleDB.getPlan(query) << std::endl;
 
-  std::string plan_path = "db_directory/plan.json";
-  FILE* fp = fopen(plan_path.c_str(), "w");
-  fprintf(fp, R"({"execution_plan": {"project": [%s], "loop_pred": [%s], "other_pred": [%s]}})", project, loopPred, otherPred);
-  fprintf(stdout, R"({"execution_plan": {"project": [%s], "loop_pred": [%s], "other_pred": [%s]}})", project, loopPred, otherPred);
-  fclose(fp);
+  std::string text =
+      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
+          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
-  hustle::parser::ParseTree parseTree;
+  nlohmann::json j = nlohmann::json::parse(text);
+  std::shared_ptr<hustle::parser::ParseTree> parse_tree = std::make_shared<hustle::parser::ParseTree>(j);
+  std::cout << j.dump(4) << std::endl;
+
+  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+
+  auto plan = resolver->resolve(parse_tree);
 
   return 0;
 }
