@@ -1,5 +1,6 @@
 add_library(
         parser
+        Parser.h Parser.cpp
         ParseTree.h
 )
 

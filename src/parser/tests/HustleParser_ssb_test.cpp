@@ -6,19 +6,14 @@
 #include "api/HustleDB.h"
 #include "catalog/Catalog.h"
 
+#include "parser/Parser.h"
 #include "parser/ParseTree.h"
+
 
 using namespace testing;
 using namespace hustle::parser;
 using nlohmann::json;
 
-extern const int SERIAL_BLOCK_SIZE = 4096;
-char project[SERIAL_BLOCK_SIZE];
-char loopPred[SERIAL_BLOCK_SIZE];
-char otherPred[SERIAL_BLOCK_SIZE];
-char groupBy[SERIAL_BLOCK_SIZE];
-char orderBy[SERIAL_BLOCK_SIZE];
-char* currPos = nullptr;
 
 class ParserSSBTest : public Test {
   void SetUp() override {
@@ -264,15 +259,9 @@ TEST_F(ParserSSBTest, ssb_q1) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q2) {
@@ -289,14 +278,9 @@ TEST_F(ParserSSBTest, ssb_q2) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 
@@ -314,14 +298,9 @@ TEST_F(ParserSSBTest, ssb_q3) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q4) {
@@ -341,14 +320,9 @@ TEST_F(ParserSSBTest, ssb_q4) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q5) {
@@ -368,14 +342,9 @@ TEST_F(ParserSSBTest, ssb_q5) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q6) {
@@ -395,14 +364,9 @@ TEST_F(ParserSSBTest, ssb_q6) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q7) {
@@ -423,14 +387,9 @@ TEST_F(ParserSSBTest, ssb_q7) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q8) {
@@ -451,14 +410,9 @@ TEST_F(ParserSSBTest, ssb_q8) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q9) {
@@ -479,18 +433,9 @@ TEST_F(ParserSSBTest, ssb_q9) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  auto out = j.dump(4);
-  // std::cout << out << std::endl;
-
-  ParseTree my_parse_tree = j;
-
-  json j1 = my_parse_tree;
-  std::cout << j1.dump(4) << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q10) {
@@ -511,18 +456,9 @@ TEST_F(ParserSSBTest, ssb_q10) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  auto out = j.dump(4);
-//  std::cout << out << std::endl;
-
-  ParseTree my_parse_tree = j;
-
-  json j1 = my_parse_tree;
-  std::cout << j1.dump(4) << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q11) {
@@ -544,18 +480,9 @@ TEST_F(ParserSSBTest, ssb_q11) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  auto out = j.dump(4);
-//  std::cout << out << std::endl;
-
-  ParseTree my_parse_tree = j;
-
-  json j1 = my_parse_tree;
-  std::cout << j1.dump(4) << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q12) {
@@ -582,25 +509,13 @@ TEST_F(ParserSSBTest, ssb_q12) {
       "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
           + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
 
-  json j = json::parse(text);
-  auto out = j.dump(4);
-//  std::cout << out << std::endl;
-
-  ParseTree my_parse_tree = j;
-
-  json j1 = my_parse_tree;
-  std::cout << j1.dump(4) << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 TEST_F(ParserSSBTest, ssb_q13) {
   hustle::HustleDB hustleDB("db_directory");
-
-  memset(project, 0, 1024);
-  memset(loopPred, 0, 4096);
-  memset(otherPred, 0, 4096);
-  memset(groupBy, 0, 4096);
-  memset(orderBy, 0, 4096);
-  currPos = nullptr;
 
   std::string query = "EXPLAIN QUERY PLAN select d_year, s_city, p_brand1, sum(lo_revenue-lo_supplycost) as profit1\n"
                       "\tfrom ddate, customer, supplier, part, lineorder\n"
@@ -619,14 +534,9 @@ TEST_F(ParserSSBTest, ssb_q13) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  json j1 = my_parse_tree;
-  std::cout << j1.dump(4) << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  std::cout << parser->to_string(4) << std::endl;
 }
 
 

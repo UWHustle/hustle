@@ -20339,13 +20339,13 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
       break;
 
     case TK_BETWEEN:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "CompositeExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ComparativeExpr");
       resolveExpr(pExpr->pLeft);
       currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", TK_GE);
       resolveExpr(pExpr->x.pList->a[0].pExpr);
       currPos += sprintf(currPos, "}, ");
 
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "CompositeExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ComparativeExpr");
       resolveExpr(pExpr->pLeft);
       currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", TK_LE);
       resolveExpr(pExpr->x.pList->a[1].pExpr);
@@ -20353,18 +20353,39 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
       break;
 
     case TK_OR:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "DisjunctiveExpr");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"right\": ");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
     case TK_AND:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ConjunctiveExpr");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"right\": ");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
     case TK_NE:
     case TK_EQ:
     case TK_GT:
     case TK_LE:
     case TK_LT:
     case TK_GE:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ComparativeExpr");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", pExpr->op);
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
     case TK_PLUS:
     case TK_MINUS:
     case TK_STAR:
     case TK_SLASH:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "CompositeExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ArithmeticExpr");
       resolveExpr(pExpr->pLeft);
       currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", pExpr->op);
       resolveExpr(pExpr->pRight);

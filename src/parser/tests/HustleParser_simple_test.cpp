@@ -5,20 +5,12 @@
 
 #include "api/HustleDB.h"
 #include "catalog/Catalog.h"
-
+#include "parser/Parser.h"
 #include "parser/ParseTree.h"
 
 using namespace testing;
 using namespace hustle::parser;
 using nlohmann::json;
-
-extern const int SERIAL_BLOCK_SIZE = 4096;
-char project[SERIAL_BLOCK_SIZE];
-char loopPred[SERIAL_BLOCK_SIZE];
-char otherPred[SERIAL_BLOCK_SIZE];
-char groupBy[SERIAL_BLOCK_SIZE];
-char orderBy[SERIAL_BLOCK_SIZE];
-char* currPos = nullptr;
 
 class ParserSimpleTest : public Test {
   void SetUp() override {
@@ -68,29 +60,24 @@ TEST_F(ParserSimpleTest, test1) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  // std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  auto out = parser->to_string(4);
 
   /// build validation parse tree
   auto c00 = std::make_shared<Column>("c1", 0, 0);
   auto c10 = std::make_shared<Column>("c3", 1, 0);
 
-  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<Expr>>{});
-  std::shared_ptr<Expr> pred = std::make_shared<CompositeExpr>(c10, 53, c00);
-  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<Expr>>{std::move(pred)});
+  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<ComparativeExpr>>{});
+  std::shared_ptr<ComparativeExpr> pred = std::make_shared<ComparativeExpr>(c10, 53, c00);
+  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<ComparativeExpr>>{std::move(pred)});
   std::shared_ptr<Project> proj_0 = std::make_shared<Project>("Subscriber.c1", c00);
 
-  ParseTree parse_tree_val = ParseTree(
+  std::shared_ptr<ParseTree> parse_tree_val = std::make_shared<ParseTree>(
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{},
-      std::vector<std::shared_ptr<Expr>>{},
+      std::vector<std::shared_ptr<Column>>{},
       std::vector<std::shared_ptr<OrderBy>>{});
 
   json j_val = parse_tree_val;
@@ -110,14 +97,10 @@ TEST_F(ParserSimpleTest, test2) {
             "The plan is: " << std::endl <<
             hustleDB.getPlan(query) << std::endl;
 
-  std::string text =
-      "{\"project\": [" + std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) + "], \"other_pred\": ["
-          + std::string(otherPred) + "], \"group_by\": [" + std::string(groupBy) + "], \"order_by\": [" + std::string(orderBy) + "]}";
-
-  json j = json::parse(text);
-  ParseTree my_parse_tree = j;
-  auto out = j.dump(4);
-  std::cout << out << std::endl;
+  auto parser = std::make_shared<hustle::parser::Parser>();
+  parser->parse(query, hustleDB);
+  auto out = parser->to_string(4);
+  std::cout << out;
 
   /// build validation parse tree
   auto c00 = std::make_shared<Column>("c1", 0, 0);
@@ -127,27 +110,25 @@ TEST_F(ParserSimpleTest, test2) {
   auto i2 = std::make_shared<IntLiteral>(2);
   auto i5 = std::make_shared<IntLiteral>(5);
 
-  std::shared_ptr<Expr> pred = std::make_shared<CompositeExpr>(c01, 54, i2);
-  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<Expr>>{std::move(pred)});
-  pred = std::make_shared<CompositeExpr>(c10, 53, c00);
-  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<Expr>>{std::move(pred)});
-  std::shared_ptr<Expr> other_pred = std::make_shared<CompositeExpr>(std::move(c11), 56, std::move(i5));
+  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<ComparativeExpr>>{});
+  std::shared_ptr<ComparativeExpr> pred = std::make_shared<ComparativeExpr>(c10, 53, c00);
+  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<ComparativeExpr>>{std::move(pred)});
+
+  std::shared_ptr<Expr> other_pred_0 = std::make_shared<ComparativeExpr>(std::move(c11), 56, std::move(i5));
+  std::shared_ptr<Expr> other_pred_1 = std::make_shared<ComparativeExpr>(std::move(c01), 54, std::move(i2));
   std::shared_ptr<Project> proj_0 = std::make_shared<Project>("Subscriber.c1", c00);
 
-
-  ParseTree parse_tree_val = ParseTree(
+  std::shared_ptr<ParseTree> parse_tree_val = std::make_shared<ParseTree>(
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
-      std::vector<std::shared_ptr<Expr>>{std::move(other_pred)},
-      std::vector<std::shared_ptr<Expr>>{},
+      std::vector<std::shared_ptr<Expr>>{std::move(other_pred_0), std::move(other_pred_1)},
+      std::vector<std::shared_ptr<Column>>{},
       std::vector<std::shared_ptr<OrderBy>>{});
-
 
   json j_val = parse_tree_val;
   auto out_val = j_val.dump(4);
 
   EXPECT_EQ(out, out_val);
-
 }
 
 
