@@ -945,10 +945,10 @@ TEST_F(SSBTestFixture, SSBQ1) {
     // NOTE: I forgot to include the selection Lineorder.lo_quantity < 25
 
     lineorder = read_from_csv_file
-            ("/Users/corrado/hustle/cmake-build-debug/src/operators/lineorder_small.tbl", lineorder_schema, BLOCK_SIZE);
+            ("/Users/corrado/hustle/src/table/tests/lineorder_small.tbl", lineorder_schema, BLOCK_SIZE);
 
     date = read_from_csv_file
-            ("/Users/corrado/hustle/cmake-build-debug/src/operators/date.tbl", date_schema, BLOCK_SIZE);
+            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
 
     // Create select operator for Date.year = 1993
     auto date_select_op = std::make_shared<hustle::operators::Select>(
@@ -986,7 +986,8 @@ TEST_F(SSBTestFixture, SSBQ1) {
     // Perform selection on Date
     auto date_2 = date_select_op->runOperator({date});
     // Perform selection on Lineorder
-    auto lineorder_2 = lineorder_select_op_1->runOperator({lineorder});
+    auto lineorder_2 = lineorder_select_op_2->runOperator({lineorder});
+//    lineorder_2->print();
 
 
     // Join the resulting Lineorder and Date tables

@@ -20,7 +20,7 @@ SelectComposite::SelectComposite(
   filter_operator_ = filter_operator;
 }
 
-arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
+arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         block) {
 
     arrow::Status status;
@@ -34,18 +34,18 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
 
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
-    auto* block_filter = new arrow::compute::Datum();
+    arrow::compute::Datum block_filter;
 
     switch(filter_operator_) {
         case AND: {
-            status = arrow::compute::And(&function_context, *left_child_filter,
-                                         *right_child_filter, block_filter);
+            status = arrow::compute::And(&function_context, left_child_filter,
+                                         right_child_filter, &block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case OR: {
-            status = arrow::compute::Or(&function_context, *left_child_filter,
-                                        *right_child_filter, block_filter);
+            status = arrow::compute::Or(&function_context, left_child_filter,
+                                        right_child_filter, &block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
@@ -82,12 +82,9 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
 
             for (int j = 0; j < table->get_schema()->num_fields(); j++) {
 
-                auto t1 = &function_context;
-                auto t2 = block->get_column(j);
-                auto t3 = *block_filter;
                 status = arrow::compute::Filter(&function_context,
                                                 block->get_column(j),
-                                                *block_filter,
+                                                block_filter,
                                                 out_col);
 
                 evaluate_status(status, __FUNCTION__, __LINE__);
@@ -113,14 +110,14 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
     }
 
 
-    arrow::compute::Datum* Select::get_filter
+    arrow::compute::Datum Select::get_filter
             (std::shared_ptr<Block> block) {
 
         arrow::Status status;
 
         arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
         arrow::compute::CompareOptions compare_options(compare_operator_);
-        auto* block_filter = new arrow::compute::Datum();
+        arrow::compute::Datum block_filter;
 
         auto select_col = block->get_column_by_name(column_name_);
 
@@ -128,7 +125,7 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
                                          select_col,
                                          column_value_,
                                          compare_options,
-                                         block_filter);
+                                         &block_filter);
         evaluate_status(status, __FUNCTION__, __LINE__);
 
         return block_filter;
@@ -155,8 +152,7 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
                                                  BLOCK_SIZE);
 
         std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
-        out_cols.reserve(table->get_schema()->num_fields());
-        auto* out_col = new arrow::compute::Datum;
+        arrow::compute::Datum out_col;
         arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
         for (int i=0; i<table->get_num_blocks(); i++) {
@@ -166,13 +162,12 @@ arrow::compute::Datum* SelectComposite::get_filter(std::shared_ptr<Block>
             for (int j = 0; j < table->get_schema()->num_fields(); j++) {
                 status = arrow::compute::Filter(&function_context,
                                                 block->get_column(j),
-                                                *block_filter,
-                                                out_col);
+                                                block_filter,
+                                                &out_col);
 
                 evaluate_status(status, __FUNCTION__, __LINE__);
 //                out_cols[j] = out_col->array();
-                out_cols.push_back(out_col->array());
-
+                out_cols.push_back(out_col.array());
             }
             out_table->insert_records(out_cols);
             out_cols.clear();

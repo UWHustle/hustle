@@ -23,7 +23,7 @@ class Select : public Operator{
     std::shared_ptr<Table> runOperator
     (std::vector<std::shared_ptr<Table>> tables) override;
 
-    arrow::compute::Datum* get_filter
+    arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block);
 
 
@@ -46,7 +46,7 @@ public:
             (std::vector<std::shared_ptr<Table>> tables) override;
 
 
-    arrow::compute::Datum* get_filter
+    arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block);
 
 private:
