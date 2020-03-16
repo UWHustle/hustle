@@ -20334,26 +20334,30 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
       break;
 
     case TK_COLUMN:
-    case TK_AGG_COLUMN:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"column_name\": \"%s\", \"i_table\": %d, \"i_column\": %d}", "Column", pExpr->y.pTab->aCol[pExpr->iColumn].zName, pExpr->iTable, pExpr->iColumn);
+    case TK_AGG_COLUMN:currPos += sprintf(currPos,
+                                          "{\"type\": \"%s\", \"column_name\": \"%s\", \"i_table\": %d, \"i_column\": %d}",
+                                          "ColumnReference",
+                                          pExpr->y.pTab->aCol[pExpr->iColumn].zName,
+                                          pExpr->iTable,
+                                          pExpr->iColumn);
       break;
 
     case TK_BETWEEN:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ComparativeExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
       resolveExpr(pExpr->pLeft);
-      currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", TK_GE);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "GE");
       resolveExpr(pExpr->x.pList->a[0].pExpr);
       currPos += sprintf(currPos, "}, ");
 
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ComparativeExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
       resolveExpr(pExpr->pLeft);
-      currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", TK_LE);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "LE");
       resolveExpr(pExpr->x.pList->a[1].pExpr);
       currPos += sprintf(currPos, "}");
       break;
 
     case TK_OR:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "DisjunctiveExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Disjunctive");
       resolveExpr(pExpr->pLeft);
       currPos += sprintf(currPos, ", \"right\": ");
       resolveExpr(pExpr->pRight);
@@ -20361,7 +20365,7 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
       break;
 
     case TK_AND:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ConjunctiveExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Conjunctive");
       resolveExpr(pExpr->pLeft);
       currPos += sprintf(currPos, ", \"right\": ");
       resolveExpr(pExpr->pRight);
@@ -20369,25 +20373,81 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
       break;
 
     case TK_NE:
-    case TK_EQ:
-    case TK_GT:
-    case TK_LE:
-    case TK_LT:
-    case TK_GE:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ComparativeExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
       resolveExpr(pExpr->pLeft);
-      currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", pExpr->op);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "NE");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_EQ:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "EQ");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_GT:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "GT");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_LE:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "LE");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_LT:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "LT");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_GE:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Comparative");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "GE");
       resolveExpr(pExpr->pRight);
       currPos += sprintf(currPos, "}");
       break;
 
     case TK_PLUS:
-    case TK_MINUS:
-    case TK_STAR:
-    case TK_SLASH:
-      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "ArithmeticExpr");
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Arithmetic");
       resolveExpr(pExpr->pLeft);
-      currPos += sprintf(currPos, ", \"op\": %d, \"right\": ", pExpr->op);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "PLUS");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_MINUS:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Arithmetic");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "MINUS");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_STAR:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Arithmetic");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "STAR");
+      resolveExpr(pExpr->pRight);
+      currPos += sprintf(currPos, "}");
+      break;
+
+    case TK_SLASH:
+      currPos += sprintf(currPos, "{\"type\": \"%s\", \"left\": ", "Arithmetic");
+      resolveExpr(pExpr->pLeft);
+      currPos += sprintf(currPos, ", \"op\": \"%s\", \"right\": ", "SLASH");
       resolveExpr(pExpr->pRight);
       currPos += sprintf(currPos, "}");
       break;

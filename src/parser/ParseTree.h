@@ -4,10 +4,13 @@
 #include <nlohmann/json.hpp>
 #include <utility>
 
-using nlohmann::json;
+#include "types/types.h"
 
 namespace hustle {
 namespace parser {
+
+using nlohmann::json;
+using namespace hustle::types;
 
 /**
  * Expr
@@ -15,16 +18,15 @@ namespace parser {
 class Expr {
  public:
   virtual ~Expr() = default;
-  Expr() {}
-  Expr(std::string &&t) : type(std::move(t)) {}
+  Expr(ExprType _type) : type(_type) {}
 
-  std::string type;
+  ExprType type;
 };
 
-class Column : public Expr {
+class ColumnReference : public Expr {
  public:
-  Column(std::string col_name, int t, int c)
-      : Expr("Column"), column_name(std::move(col_name)), i_table(t), i_column(c) {}
+  ColumnReference(std::string col_name, int t, int c)
+      : Expr(ExprType::ColumnReference), column_name(std::move(col_name)), i_table(t), i_column(c) {}
 
   std::string column_name;
   int i_table;
@@ -33,26 +35,31 @@ class Column : public Expr {
 
 class IntLiteral : public Expr {
  public:
-  explicit IntLiteral(int v) : Expr("IntLiteral"), value(v) {}
+  explicit IntLiteral(int v) : Expr(ExprType::IntLiteral), value(v) {}
 
   int value;
 };
 
 class StrLiteral : public Expr {
  public:
-  explicit StrLiteral(std::string &&str) : Expr("StrLiteral"), value(std::move(str)) {}
+  explicit StrLiteral(std::string str) : Expr(ExprType::StrLiteral), value(std::move(str)) {}
 
   std::string value;
 };
 
-class ComparativeExpr : public Expr {
+class Comparative : public Expr {
  public:
-  ComparativeExpr() {}
-  ComparativeExpr(std::shared_ptr<Expr> l, int o, std::shared_ptr<Expr> r)
-      : Expr("ComparativeExpr"), left(std::move(l)), op(o), right(std::move(r)), plan_type(get_plan_type()) {}
+  Comparative(std::shared_ptr<Expr> l,
+              ComparativeType _op,
+              std::shared_ptr<Expr> r)
+      : Expr(ExprType::Comparative),
+        left(std::move(l)),
+        op(_op),
+        right(std::move(r)),
+        plan_type(get_plan_type()) {}
 
   std::shared_ptr<Expr> left;
-  int op;
+  ComparativeType op;
   std::shared_ptr<Expr> right;
   std::string plan_type;
 
@@ -60,12 +67,12 @@ class ComparativeExpr : public Expr {
   std::string get_plan_type();
 };
 
-std::string ComparativeExpr::get_plan_type() {
-  if (left->type == "Column" and right->type == "Column") {
+std::string Comparative::get_plan_type() {
+  if (left->type == +ExprType::ColumnReference and right->type == +ExprType::ColumnReference) {
     return "JOIN_Pred";
-  } else if (left->type == "Column" and right->type != "Column") {
+  } else if (left->type == +ExprType::ColumnReference and right->type != +ExprType::ColumnReference) {
     return "SELECT_Pred";
-  } else if (left->type != "Column" and right->type == "Column") {
+  } else if (left->type != +ExprType::ColumnReference and right->type == +ExprType::ColumnReference) {
     auto temp = left;
     left = right;
     right = temp;
@@ -75,41 +82,43 @@ std::string ComparativeExpr::get_plan_type() {
   }
 }
 
-class DisjunctiveExpr : public Expr {
+class Disjunctive : public Expr {
  public:
-  DisjunctiveExpr() {}
-  DisjunctiveExpr(std::shared_ptr<Expr> l, std::shared_ptr<Expr> r)
-      : Expr("DisjunctiveExpr"), left(std::move(l)), right(std::move(r)) {}
+  Disjunctive(std::shared_ptr<Expr> l, std::shared_ptr<Expr> r)
+      : Expr(ExprType::Disjunctive), left(std::move(l)), right(std::move(r)) {}
 
   std::shared_ptr<Expr> left;
   std::shared_ptr<Expr> right;
 };
 
-class ConjunctiveExpr : public Expr {
+class Conjunctive : public Expr {
  public:
-  ConjunctiveExpr() {}
-  ConjunctiveExpr(std::shared_ptr<Expr> l, std::shared_ptr<Expr> r)
-      : Expr("ConjunctiveExpr"), left(std::move(l)), right(std::move(r)) {}
+  Conjunctive(std::shared_ptr<Expr> l, std::shared_ptr<Expr> r)
+      : Expr(ExprType::Conjunctive), left(std::move(l)), right(std::move(r)) {}
 
   std::shared_ptr<Expr> left;
   std::shared_ptr<Expr> right;
 };
 
-class ArithmeticExpr : public Expr {
+class Arithmetic : public Expr {
  public:
-  ArithmeticExpr() {}
-  ArithmeticExpr(std::shared_ptr<Expr> l, int o, std::shared_ptr<Expr> r)
-      : Expr("ArithmeticExpr"), left(std::move(l)), op(o), right(std::move(r)) {}
+  Arithmetic(std::shared_ptr<Expr> _left,
+             ArithmeticType _op,
+             std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Arithmetic),
+        left(std::move(_left)),
+        op(_op),
+        right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
-  int op;
+  ArithmeticType op;
   std::shared_ptr<Expr> right;
 };
 
 class AggFunc : public Expr {
  public:
-  AggFunc() {}
-  AggFunc(std::string f, std::shared_ptr<Expr> e) : Expr("AggFunc"), func(std::move(f)), expr(std::move(e)) {}
+  AggFunc(std::string f, std::shared_ptr<Expr> e)
+      : Expr(ExprType::AggFunc), func(std::move(f)), expr(std::move(e)) {}
 
   std::string func;
   std::shared_ptr<Expr> expr;
@@ -121,11 +130,11 @@ class AggFunc : public Expr {
 class LoopPredicate {
  public:
   LoopPredicate() {}
-  LoopPredicate(int i, std::vector<std::shared_ptr<ComparativeExpr>> preds)
+  LoopPredicate(int i, std::vector<std::shared_ptr<Comparative>> preds)
       : fromtable(i), predicates(std::move(preds)) {}
 
   int fromtable;
-  std::vector<std::shared_ptr<ComparativeExpr>> predicates;
+  std::vector<std::shared_ptr<Comparative>> predicates;
 };
 
 /**
@@ -161,9 +170,8 @@ class ParseTree {
   ParseTree(std::vector<std::shared_ptr<Project>> proj,
             std::vector<std::shared_ptr<LoopPredicate>> &&l_pred,
             std::vector<std::shared_ptr<Expr>> o_pred,
-            std::vector<std::shared_ptr<Column>> group_by,
-            std::vector<std::shared_ptr<OrderBy>> order_by
-  )
+            std::vector<std::shared_ptr<ColumnReference>> group_by,
+            std::vector<std::shared_ptr<OrderBy>> order_by)
       : project(std::move(proj)),
         loop_pred(std::move(l_pred)),
         other_pred(std::move(o_pred)),
@@ -173,12 +181,12 @@ class ParseTree {
   std::vector<std::shared_ptr<Project>> project;
   std::vector<std::shared_ptr<LoopPredicate>> loop_pred;
   std::vector<std::shared_ptr<Expr>> other_pred;
-  std::vector<std::shared_ptr<Column>> group_by;
+  std::vector<std::shared_ptr<ColumnReference>> group_by;
   std::vector<std::shared_ptr<OrderBy>> order_by;
 };
 
-void from_json(const json &j, ParseTree &parse_tree);
-void to_json(json &j, const ParseTree &parse_tree);
+void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree);
+void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree);
 
 void from_json(const json &j, std::shared_ptr<LoopPredicate> &loop_pred);
 void to_json(json &j, const std::shared_ptr<LoopPredicate> &loop_pred);
@@ -189,157 +197,41 @@ void to_json(json &j, const std::shared_ptr<Project> &proj);
 void from_json(const json &j, std::shared_ptr<OrderBy> &order_by);
 void to_json(json &j, const std::shared_ptr<OrderBy> &order_by);
 
-void from_json(const json &j, std::shared_ptr<Column> &c);
+void from_json(const json &j, std::shared_ptr<Expr> &expr);
+void from_json(const json &j, std::shared_ptr<ColumnReference> &c);
 void from_json(const json &j, std::shared_ptr<IntLiteral> &i);
 void from_json(const json &j, std::shared_ptr<StrLiteral> &s);
-void from_json(const json &j, std::shared_ptr<ComparativeExpr> &pred);
-void from_json(const json &j, std::shared_ptr<DisjunctiveExpr> &pred);
-void from_json(const json &j, std::shared_ptr<ConjunctiveExpr> &pred);
-void from_json(const json &j, std::shared_ptr<ArithmeticExpr> &pred);
+void from_json(const json &j, std::shared_ptr<Comparative> &pred);
+void from_json(const json &j, std::shared_ptr<Disjunctive> &pred);
+void from_json(const json &j, std::shared_ptr<Conjunctive> &pred);
+void from_json(const json &j, std::shared_ptr<Arithmetic> &pred);
 void from_json(const json &j, std::shared_ptr<AggFunc> &agg);
-void from_json(const json &j, std::shared_ptr<Expr> &expr);
-void to_json(json &j, const std::shared_ptr<Column> &c);
+void to_json(json &j, const std::shared_ptr<Expr> &expr);
+void to_json(json &j, const std::shared_ptr<ColumnReference> &c);
 void to_json(json &j, const std::shared_ptr<IntLiteral> &i);
 void to_json(json &j, const std::shared_ptr<StrLiteral> &s);
-void to_json(json &j, const std::shared_ptr<Expr> &expr);
-void to_json(json &j, const std::shared_ptr<ComparativeExpr> &pred);
-void to_json(json &j, const std::shared_ptr<DisjunctiveExpr> &pred);
-void to_json(json &j, const std::shared_ptr<ConjunctiveExpr> &pred);
-void to_json(json &j, const std::shared_ptr<ArithmeticExpr> &pred);
+void to_json(json &j, const std::shared_ptr<Comparative> &pred);
+void to_json(json &j, const std::shared_ptr<Disjunctive> &pred);
+void to_json(json &j, const std::shared_ptr<Conjunctive> &pred);
+void to_json(json &j, const std::shared_ptr<Arithmetic> &pred);
 void to_json(json &j, const std::shared_ptr<AggFunc> &agg);
 
-void from_json(const json &j, std::shared_ptr<Column> &c) {
-  c = std::make_shared<Column>(j.at("column_name"), j.at("i_table"), j.at("i_column"));
-//  c->i_table = j.at("i_table");
-//  c->i_column = j.at("i_column");
-//  j.at("i_table").get_to(c->i_table);
-//  j.at("i_column").get_to(c->i_column);
+void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree) {
+  parse_tree = std::make_shared<ParseTree>();
+  parse_tree->project = j.at("project").get<std::vector<std::shared_ptr<Project>>>();
+  parse_tree->loop_pred = j.at("loop_pred").get<std::vector<std::shared_ptr<LoopPredicate>>>();
+  parse_tree->other_pred = j.at("other_pred").get<std::vector<std::shared_ptr<Expr>>>();
+  parse_tree->group_by = j.at("group_by").get<std::vector<std::shared_ptr<ColumnReference>>>();
+  parse_tree->order_by = j.at("order_by").get<std::vector<std::shared_ptr<OrderBy>>>();
 }
-void from_json(const json &j, std::shared_ptr<IntLiteral> &i) {
-  i = std::make_shared<IntLiteral>(j.at("value"));
-}
-void from_json(const json &j, std::shared_ptr<StrLiteral> &s) {
-  s = std::make_shared<StrLiteral>(j.at("value"));
-}
-void from_json(const json &j, std::shared_ptr<ComparativeExpr> &pred) {
-  pred = std::make_shared<ComparativeExpr>(j.at("left"), j.at("op"), j.at("right"));
-}
-void from_json(const json &j, std::shared_ptr<DisjunctiveExpr> &pred) {
-  pred = std::make_shared<DisjunctiveExpr>(j.at("left"), j.at("right"));
-}
-void from_json(const json &j, std::shared_ptr<ConjunctiveExpr> &pred) {
-  pred = std::make_shared<ConjunctiveExpr>(j.at("left"), j.at("right"));
-}
-void from_json(const json &j, std::shared_ptr<ArithmeticExpr> &pred) {
-  pred = std::make_shared<ArithmeticExpr>(j.at("left"), j.at("op"), j.at("right"));
-}
-void from_json(const json &j, std::shared_ptr<AggFunc> &agg) {
-  agg = std::make_shared<AggFunc>(j.at("func"), j.at("expr"));
-}
-void from_json(const json &j, std::shared_ptr<Expr> &expr) {
-  auto type = j.at("type").get<std::string>();
-
-  if (type == "Column") {
-    expr = j.get<std::shared_ptr<Column>>();
-  } else if (type == "IntLiteral") {
-    expr = j.get<std::shared_ptr<IntLiteral>>();
-  } else if (type == "StrLiteral") {
-    expr = j.get<std::shared_ptr<StrLiteral>>();
-  } else if (type == "ComparativeExpr") {
-    expr = j.get<std::shared_ptr<ComparativeExpr>>();
-  } else if (type == "DisjunctiveExpr") {
-    expr = j.get<std::shared_ptr<DisjunctiveExpr>>();
-  } else if (type == "ConjunctiveExpr") {
-    expr = j.get<std::shared_ptr<ConjunctiveExpr>>();
-  } else if (type == "ArithmeticExpr") {
-    expr = j.get<std::shared_ptr<ArithmeticExpr>>();
-  } else if (type == "AggFunc") {
-    expr = j.get<std::shared_ptr<AggFunc>>();
-  }
-}
-void to_json(json &j, const std::shared_ptr<Column> &c) {
+void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree) {
   j = json
       {
-          {"type", c->type},
-          {"column_name", c->column_name},
-          {"i_table", c->i_table},
-          {"i_column", c->i_column}
-      };
-}
-void to_json(json &j, const std::shared_ptr<IntLiteral> &i) {
-  j = json
-      {
-          {"type", i->type},
-          {"value", i->value}
-      };
-}
-void to_json(json &j, const std::shared_ptr<StrLiteral> &s) {
-  j = json
-      {
-          {"type", s->type},
-          {"value", s->value}
-      };
-}
-void to_json(json &j, const std::shared_ptr<Expr> &expr) {
-  if (expr->type == "Column") {
-    j = json(std::dynamic_pointer_cast<Column>(expr));
-  } else if (expr->type == "IntLiteral") {
-    j = json(std::dynamic_pointer_cast<IntLiteral>(expr));
-  } else if (expr->type == "StrLiteral") {
-    j = json(std::dynamic_pointer_cast<StrLiteral>(expr));
-  } else if (expr->type == "ComparativeExpr") {
-    j = json(std::dynamic_pointer_cast<ComparativeExpr>(expr));
-  } else if (expr->type == "DisjunctiveExpr") {
-    j = json(std::dynamic_pointer_cast<DisjunctiveExpr>(expr));
-  } else if (expr->type == "ConjunctiveExpr") {
-    j = json(std::dynamic_pointer_cast<ConjunctiveExpr>(expr));
-  } else if (expr->type == "ArithmeticExpr") {
-    j = json(std::dynamic_pointer_cast<ArithmeticExpr>(expr));
-  } else if (expr->type == "AggFunc") {
-    j = json(std::dynamic_pointer_cast<AggFunc>(expr));
-  }
-}
-void to_json(json &j, const std::shared_ptr<ComparativeExpr> &pred) {
-  j = json
-      {
-          {"type", pred->type},
-          {"left", pred->left},
-          {"op", pred->op},
-          {"right", pred->right},
-          {"plan_type", pred->plan_type}
-      };
-}
-void to_json(json &j, const std::shared_ptr<DisjunctiveExpr> &pred) {
-  j = json
-      {
-          {"type", pred->type},
-          {"left", pred->left},
-          {"right", pred->right},
-      };
-}
-void to_json(json &j, const std::shared_ptr<ConjunctiveExpr> &pred) {
-  j = json
-      {
-          {"type", pred->type},
-          {"left", pred->left},
-          {"right", pred->right},
-      };
-}
-void to_json(json &j, const std::shared_ptr<ArithmeticExpr> &pred) {
-  j = json
-      {
-          {"type", pred->type},
-          {"left", pred->left},
-          {"op", pred->op},
-          {"right", pred->right},
-      };
-}
-void to_json(json &j, const std::shared_ptr<AggFunc> &agg) {
-  j = json
-      {
-          {"type", agg->type},
-          {"func", agg->func},
-          {"expr", agg->expr},
+          {"project", parse_tree->project},
+          {"loop_pred", parse_tree->loop_pred},
+          {"other_pred", parse_tree->other_pred},
+          {"group_by", parse_tree->group_by},
+          {"order_by", parse_tree->order_by}
       };
 }
 void from_json(const json &j, std::shared_ptr<LoopPredicate> &loop_pred) {
@@ -372,22 +264,144 @@ void to_json(json &j, const std::shared_ptr<OrderBy> &order_by) {
           {"expr", order_by->expr}
       };
 }
-void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree) {
-  parse_tree = std::make_shared<ParseTree>();
-  parse_tree->project = j.at("project").get<std::vector<std::shared_ptr<Project>>>();
-  parse_tree->loop_pred = j.at("loop_pred").get<std::vector<std::shared_ptr<LoopPredicate>>>();
-  parse_tree->other_pred = j.at("other_pred").get<std::vector<std::shared_ptr<Expr>>>();
-  parse_tree->group_by = j.at("group_by").get<std::vector<std::shared_ptr<Column>>>();
-  parse_tree->order_by = j.at("order_by").get<std::vector<std::shared_ptr<OrderBy>>>();
+void from_json(const json &j, std::shared_ptr<Expr> &expr) {
+  auto type = ExprType::_from_string(j.at("type").get<std::string>().c_str());
+
+  switch (type) {
+    case ExprType::ColumnReference : expr = j.get<std::shared_ptr<ColumnReference>>();
+      break;
+    case ExprType::IntLiteral : expr = j.get<std::shared_ptr<IntLiteral>>();
+      break;
+    case ExprType::StrLiteral : expr = j.get<std::shared_ptr<StrLiteral>>();
+      break;
+    case ExprType::Comparative : expr = j.get<std::shared_ptr<Comparative>>();
+      break;
+    case ExprType::Disjunctive : expr = j.get<std::shared_ptr<Disjunctive>>();
+      break;
+    case ExprType::Conjunctive : expr = j.get<std::shared_ptr<Conjunctive>>();
+      break;
+    case ExprType::Arithmetic : expr = j.get<std::shared_ptr<Arithmetic>>();
+      break;
+    case ExprType::AggFunc : expr = j.get<std::shared_ptr<AggFunc>>();
+      break;
+  }
 }
-void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree) {
+void from_json(const json &j, std::shared_ptr<ColumnReference> &c) {
+  c = std::make_shared<ColumnReference>(j.at("column_name"), j.at("i_table"), j.at("i_column"));
+//  c->i_table = j.at("i_table");
+//  c->i_column = j.at("i_column");
+//  j.at("i_table").get_to(c->i_table);
+//  j.at("i_column").get_to(c->i_column);
+}
+void from_json(const json &j, std::shared_ptr<IntLiteral> &i) {
+  i = std::make_shared<IntLiteral>(j.at("value"));
+}
+void from_json(const json &j, std::shared_ptr<StrLiteral> &s) {
+  s = std::make_shared<StrLiteral>(j.at("value"));
+}
+void from_json(const json &j, std::shared_ptr<Comparative> &pred) {
+  pred = std::make_shared<Comparative>(j.at("left"),
+                                       ComparativeType::_from_string(j.at("op").get<std::string>().c_str()),
+                                       j.at("right"));
+}
+void from_json(const json &j, std::shared_ptr<Disjunctive> &pred) {
+  pred = std::make_shared<Disjunctive>(j.at("left"), j.at("right"));
+}
+void from_json(const json &j, std::shared_ptr<Conjunctive> &pred) {
+  pred = std::make_shared<Conjunctive>(j.at("left"), j.at("right"));
+}
+void from_json(const json &j, std::shared_ptr<Arithmetic> &pred) {
+  pred = std::make_shared<Arithmetic>(j.at("left"),
+                                      ArithmeticType::_from_string(j.at("op").get<std::string>().c_str()),
+                                      j.at("right"));
+}
+void from_json(const json &j, std::shared_ptr<AggFunc> &agg) {
+  agg = std::make_shared<AggFunc>(j.at("func"), j.at("expr"));
+}
+void to_json(json &j, const std::shared_ptr<Expr> &expr) {
+  switch (expr->type) {
+    case ExprType::ColumnReference : j = json(std::dynamic_pointer_cast<ColumnReference>(expr));
+      break;
+    case ExprType::IntLiteral : j = json(std::dynamic_pointer_cast<IntLiteral>(expr));
+      break;
+    case ExprType::StrLiteral : j = json(std::dynamic_pointer_cast<StrLiteral>(expr));
+      break;
+    case ExprType::Comparative : j = json(std::dynamic_pointer_cast<Comparative>(expr));
+      break;
+    case ExprType::Disjunctive : j = json(std::dynamic_pointer_cast<Disjunctive>(expr));
+      break;
+    case ExprType::Conjunctive : j = json(std::dynamic_pointer_cast<Conjunctive>(expr));
+      break;
+    case ExprType::Arithmetic : j = json(std::dynamic_pointer_cast<Arithmetic>(expr));
+      break;
+    case ExprType::AggFunc : j = json(std::dynamic_pointer_cast<AggFunc>(expr));
+      break;
+  }
+}
+void to_json(json &j, const std::shared_ptr<ColumnReference> &c) {
   j = json
       {
-          {"project", parse_tree->project},
-          {"loop_pred", parse_tree->loop_pred},
-          {"other_pred", parse_tree->other_pred},
-          {"group_by", parse_tree->group_by},
-          {"order_by", parse_tree->order_by}
+          {"type", c->type._to_string()},
+          {"column_name", c->column_name},
+          {"i_table", c->i_table},
+          {"i_column", c->i_column}
+      };
+}
+void to_json(json &j, const std::shared_ptr<IntLiteral> &i) {
+  j = json
+      {
+          {"type", i->type._to_string()},
+          {"value", i->value}
+      };
+}
+void to_json(json &j, const std::shared_ptr<StrLiteral> &s) {
+  j = json
+      {
+          {"type", s->type._to_string()},
+          {"value", s->value}
+      };
+}
+void to_json(json &j, const std::shared_ptr<Comparative> &pred) {
+  j = json
+      {
+          {"type", pred->type._to_string()},
+          {"left", pred->left},
+          {"op", pred->op._to_string()},
+          {"right", pred->right},
+          {"plan_type", pred->plan_type}
+      };
+}
+void to_json(json &j, const std::shared_ptr<Disjunctive> &pred) {
+  j = json
+      {
+          {"type", pred->type._to_string()},
+          {"left", pred->left},
+          {"right", pred->right},
+      };
+}
+void to_json(json &j, const std::shared_ptr<Conjunctive> &pred) {
+  j = json
+      {
+          {"type", pred->type._to_string()},
+          {"left", pred->left},
+          {"right", pred->right},
+      };
+}
+void to_json(json &j, const std::shared_ptr<Arithmetic> &pred) {
+  j = json
+      {
+          {"type", pred->type._to_string()},
+          {"left", pred->left},
+          {"op", pred->op._to_string()},
+          {"right", pred->right},
+      };
+}
+void to_json(json &j, const std::shared_ptr<AggFunc> &agg) {
+  j = json
+      {
+          {"type", agg->type._to_string()},
+          {"func", agg->func},
+          {"expr", agg->expr},
       };
 }
 

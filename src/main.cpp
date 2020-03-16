@@ -4,10 +4,8 @@
 #include "catalog/Catalog.h"
 #include "catalog/TableSchema.h"
 #include "catalog/ColumnSchema.h"
-#include <parser/Parser.h>
-#include <resolver/Resolver.h>
-
-
+#include "parser/Parser.h"
+#include "resolver/Resolver.h"
 
 int main(int argc, char *argv[]) {
   std::filesystem::remove_all("db_directory");
@@ -38,15 +36,13 @@ int main(int argc, char *argv[]) {
                       "from Subscriber, AccessInfo "
                       "where Subscriber.c1 = AccessInfo.c3 and Subscriber.c2 > 2 and AccessInfo.c4 < 5;";
 
-
-
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  // std::cout << parser->to_string(4) << std::endl;
 
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
-
-  auto plan = resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree());
+  std::cout << resolver->to_string(4) << std::endl;
 
   return 0;
 }

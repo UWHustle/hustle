@@ -65,19 +65,19 @@ TEST_F(ParserSimpleTest, test1) {
   auto out = parser->to_string(4);
 
   /// build validation parse tree
-  auto c00 = std::make_shared<Column>("c1", 0, 0);
-  auto c10 = std::make_shared<Column>("c3", 1, 0);
+  auto c00 = std::make_shared<ColumnReference>("c1", 0, 0);
+  auto c10 = std::make_shared<ColumnReference>("c3", 1, 0);
 
-  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<ComparativeExpr>>{});
-  std::shared_ptr<ComparativeExpr> pred = std::make_shared<ComparativeExpr>(c10, 53, c00);
-  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<ComparativeExpr>>{std::move(pred)});
+  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<Comparative>>{});
+  std::shared_ptr<Comparative> pred = std::make_shared<Comparative>(c10, ComparativeType::EQ, c00);
+  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<Comparative>>{std::move(pred)});
   std::shared_ptr<Project> proj_0 = std::make_shared<Project>("Subscriber.c1", c00);
 
   std::shared_ptr<ParseTree> parse_tree_val = std::make_shared<ParseTree>(
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{},
-      std::vector<std::shared_ptr<Column>>{},
+      std::vector<std::shared_ptr<ColumnReference>>{},
       std::vector<std::shared_ptr<OrderBy>>{});
 
   json j_val = parse_tree_val;
@@ -100,29 +100,29 @@ TEST_F(ParserSimpleTest, test2) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
   auto out = parser->to_string(4);
-  std::cout << out;
+  // std::cout << out << std::endl;
 
   /// build validation parse tree
-  auto c00 = std::make_shared<Column>("c1", 0, 0);
-  auto c01 = std::make_shared<Column>("c2", 0, 1);
-  auto c10 = std::make_shared<Column>("c3", 1, 0);
-  auto c11 = std::make_shared<Column>("c4", 1, 1);
+  auto c00 = std::make_shared<ColumnReference>("c1", 0, 0);
+  auto c01 = std::make_shared<ColumnReference>("c2", 0, 1);
+  auto c10 = std::make_shared<ColumnReference>("c3", 1, 0);
+  auto c11 = std::make_shared<ColumnReference>("c4", 1, 1);
   auto i2 = std::make_shared<IntLiteral>(2);
   auto i5 = std::make_shared<IntLiteral>(5);
 
-  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<ComparativeExpr>>{});
-  std::shared_ptr<ComparativeExpr> pred = std::make_shared<ComparativeExpr>(c10, 53, c00);
-  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<ComparativeExpr>>{std::move(pred)});
+  std::shared_ptr<LoopPredicate> loop_predicate_0 = std::make_shared<LoopPredicate>(0, std::vector<std::shared_ptr<Comparative>>{});
+  std::shared_ptr<Comparative> pred = std::make_shared<Comparative>(c10, ComparativeType::EQ, c00);
+  std::shared_ptr<LoopPredicate> loop_predicate_1 = std::make_shared<LoopPredicate>(1, std::vector<std::shared_ptr<Comparative>>{std::move(pred)});
 
-  std::shared_ptr<Expr> other_pred_0 = std::make_shared<ComparativeExpr>(std::move(c11), 56, std::move(i5));
-  std::shared_ptr<Expr> other_pred_1 = std::make_shared<ComparativeExpr>(std::move(c01), 54, std::move(i2));
+  std::shared_ptr<Expr> other_pred_0 = std::make_shared<Comparative>(std::move(c11), ComparativeType::LT, std::move(i5));
+  std::shared_ptr<Expr> other_pred_1 = std::make_shared<Comparative>(std::move(c01), ComparativeType::GT, std::move(i2));
   std::shared_ptr<Project> proj_0 = std::make_shared<Project>("Subscriber.c1", c00);
 
   std::shared_ptr<ParseTree> parse_tree_val = std::make_shared<ParseTree>(
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{std::move(other_pred_0), std::move(other_pred_1)},
-      std::vector<std::shared_ptr<Column>>{},
+      std::vector<std::shared_ptr<ColumnReference>>{},
       std::vector<std::shared_ptr<OrderBy>>{});
 
   json j_val = parse_tree_val;

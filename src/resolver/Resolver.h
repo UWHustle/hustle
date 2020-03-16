@@ -2,6 +2,7 @@
 #define HUSTLE_RESOLVER_H
 
 #include <vector>
+#include <assert.h>
 
 #include <parser/ParseTree.h>
 #include <resolver/Plan.h>
@@ -9,81 +10,109 @@
 namespace hustle {
 namespace resolver {
 
-enum PLAN_TYPE {
-  SELECT,
-  JOIN,
-  UNKNOWN
-};
-
 class Resolver {
  public:
-  std::shared_ptr<Plan> resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree) {
-    std::vector<std::shared_ptr<QueryOperator>> query_operators(parse_tree->loop_pred.size());
-    for (int i = 0; i < query_operators.size(); i++) {
-      auto table = std::make_shared<TableReference>(i);
-      auto select = std::make_shared<Select>();
-      select->input = std::move(table);
-      query_operators[i] = std::move(select);
+  void resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree) {
+    std::vector<std::shared_ptr<Select>> select_operators(parse_tree->loop_pred.size());
+    for (int i = 0; i < select_operators.size(); i++) {
+      select_operators[i] = std::make_shared<Select>(std::make_shared<TableReference>(i));
     }
 
+    // resolve select
     for (auto &pred : parse_tree->other_pred) {
-      if (pred->type == "ComparativeExpr") {
-        auto expr = std::dynamic_pointer_cast<hustle::parser::ComparativeExpr>(pred);
-        std::shared_ptr<Comparative> e = resolve_ComparativeExpr(expr);
-        std::dynamic_pointer_cast<Select>(query_operators[e->left->i_table])->and_filter.push_back(e);
-      } else if (pred->type == "DisjunctiveExpr") {
-        auto expr = std::dynamic_pointer_cast<hustle::parser::DisjunctiveExpr>(pred);
-        std::vector<std::shared_ptr<Comparative>> curr_exprs = resolve_DisjunctiveExpr(expr);
-        for (std::shared_ptr<Comparative> &e : curr_exprs) {
-          std::dynamic_pointer_cast<Select>(query_operators[e->left->i_table])->or_filter.push_back(e);
-        }
+      if (pred->type == +ExprType::Comparative) {
+        std::shared_ptr<Comparative>
+            e = resolve_ComparativeExpr(std::dynamic_pointer_cast<hustle::parser::Comparative>(pred));
+        select_operators[e->left->i_table]->filter.push_back(e);
+      } else { // pred->type == +ExprType::Disjunctive
+        assert(pred->type == +ExprType::Disjunctive);
+        std::shared_ptr<Disjunctive>
+            e = resolve_DisjunctiveExpr(std::dynamic_pointer_cast<hustle::parser::Disjunctive>(pred));
+        select_operators[e->i_table]->filter.push_back(e);
       }
     }
 
-    return nullptr;
-  }
+    // resolve join
+    std::shared_ptr<QueryOperator> root;
+    for (auto &lpred : parse_tree->loop_pred) {
+      if (root == nullptr) {
+        root = std::move(select_operators[lpred->fromtable]);
+      } else {
+        std::vector<std::shared_ptr<Comparative>> join_preds;
+        for (auto &pred : lpred->predicates) {
+          join_preds.push_back(resolve_ComparativeExpr(pred));
+        }
+        std::shared_ptr<QueryOperator> right = std::move(select_operators[lpred->fromtable]);
+        root = std::make_shared<Join>(std::move(root), std::move(right), std::move(join_preds));
+      }
+    }
 
-  std::shared_ptr<Expr> resolve_expr(
-      const std::shared_ptr<hustle::parser::Expr> &expr) {
-    if (expr->type == "Column") {
-      return resolve_Column(std::dynamic_pointer_cast<hustle::parser::Column>(expr));
-    } else if (expr->type == "IntLiteral") {
-      return resolve_IntLiteral(std::dynamic_pointer_cast<hustle::parser::IntLiteral>(expr));
-    } else if (expr->type == "IntLiteral") {
-      return resolve_StrLiteral(std::dynamic_pointer_cast<hustle::parser::StrLiteral>(expr));
-    } else if (expr->type == "Comparative") {
-      return resolve_ComparativeExpr(std::dynamic_pointer_cast<hustle::parser::ComparativeExpr>(expr));
-    } else {
-      return nullptr;
+    // resolve groupby
+    if (!parse_tree->group_by.empty()) {
+      std::vector<std::shared_ptr<ColumnReference>> groupby_cols;
+      for (auto &col : parse_tree->group_by) {
+        groupby_cols.push_back(resolve_ColumnReference(col));
+      }
+      root = std::make_shared<GroupBy>(std::move(root), std::move(groupby_cols));
+    }
+
+    // resolve project
+    {
+      std::vector<std::shared_ptr<Expr>> proj_exprs;
+      std::vector<std::string> proj_names;
+
+      for (auto &proj : parse_tree->project) {
+        proj_exprs.push_back(resolve_expr(proj->expr));
+        proj_names.push_back(proj->proj_name);
+      }
+      root = std::make_shared<Project>(std::move(root), std::move(proj_exprs), std::move(proj_names));
+    }
+
+    plan_ = std::make_shared<Query>(root);
+  }
+  std::shared_ptr<Expr> resolve_expr(const std::shared_ptr<hustle::parser::Expr> &expr) {
+    switch (expr->type) {
+      case ExprType::ColumnReference:
+        return resolve_ColumnReference(std::dynamic_pointer_cast<hustle::parser::ColumnReference>(expr));
+      case ExprType::IntLiteral:return resolve_IntLiteral(std::dynamic_pointer_cast<hustle::parser::IntLiteral>(expr));
+      case ExprType::StrLiteral:return resolve_StrLiteral(std::dynamic_pointer_cast<hustle::parser::StrLiteral>(expr));
+      case ExprType::Comparative:
+        return resolve_ComparativeExpr(std::dynamic_pointer_cast<hustle::parser::Comparative>(expr));
+      default:return nullptr;
     }
   }
-
-  std::shared_ptr<Comparative> resolve_ComparativeExpr(const std::shared_ptr<hustle::parser::ComparativeExpr> &expr) {
+  std::shared_ptr<Comparative> resolve_ComparativeExpr(const std::shared_ptr<hustle::parser::Comparative> &expr) {
     return std::make_shared<Comparative>(
-        resolve_Column(std::dynamic_pointer_cast<hustle::parser::Column>(expr->left)),
+        resolve_ColumnReference(std::dynamic_pointer_cast<hustle::parser::ColumnReference>(expr->left)),
         expr->op,
         resolve_expr(expr->right));
   }
-
-  std::shared_ptr<ColumnReference> resolve_Column(const std::shared_ptr<hustle::parser::Column> &expr) {
+  std::shared_ptr<ColumnReference> resolve_ColumnReference(const std::shared_ptr<hustle::parser::ColumnReference> &expr) {
     return std::make_shared<ColumnReference>(expr->column_name, expr->i_table, expr->i_column);
   }
-
   std::shared_ptr<IntLiteral> resolve_IntLiteral(const std::shared_ptr<hustle::parser::IntLiteral> &expr) {
     return std::make_shared<IntLiteral>(expr->value);
   }
-
   std::shared_ptr<StrLiteral> resolve_StrLiteral(const std::shared_ptr<hustle::parser::StrLiteral> &expr) {
     return std::make_shared<StrLiteral>(expr->value);
   }
+  std::shared_ptr<Disjunctive> resolve_DisjunctiveExpr(const std::shared_ptr<hustle::parser::Disjunctive> &expr) {
+    std::shared_ptr<Comparative>
+        left = resolve_ComparativeExpr(std::dynamic_pointer_cast<hustle::parser::Comparative>(expr->left));
+    std::shared_ptr<Comparative>
+        right = resolve_ComparativeExpr(std::dynamic_pointer_cast<hustle::parser::Comparative>(expr->right));
+    int i_table = left->left->i_table;
 
-  std::vector<std::shared_ptr<Comparative>> resolve_DisjunctiveExpr(const std::shared_ptr<hustle::parser::DisjunctiveExpr> &expr) {
-    return std::vector<std::shared_ptr<Comparative>>{
-        std::move(std::dynamic_pointer_cast<Comparative>(expr->left)),
-        std::move(std::dynamic_pointer_cast<Comparative>(expr->right))
-    };
+    return std::make_shared<Disjunctive>(i_table,
+                                         std::vector<std::shared_ptr<Comparative>>{std::move(left), std::move(right)});
+  }
+  std::string to_string(int indent) {
+    json j = plan_;
+    return j.dump(indent);
   }
 
+ private:
+  std::shared_ptr<Plan> plan_;
 };
 
 }
