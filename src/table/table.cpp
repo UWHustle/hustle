@@ -139,7 +139,6 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     int offset = 0;
     int length = l;
 
-
     for (int row=0; row<l; row++) {
 
         int record_size = 0;
@@ -159,7 +158,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 case arrow::Type::DOUBLE:
                 case arrow::Type::INT64: {
                     // buffer at index 1 is the data buffer.
-                    int byte_width = field->type()->layout().bit_widths[1]/8;
+                    int byte_width = field->type()->layout().bit_widths[1] / 8;
                     record_size += byte_width;
                     break;
                 }
@@ -183,6 +182,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         (column_data[i]->Slice(offset,row-offset));
                 sliced_column_data.push_back(sliced_data);
             }
+
             block->insert_records(sliced_column_data);
 //            sliced_column_data.clear(); // no need to clear; a new vector
 //            is declared in each loop.

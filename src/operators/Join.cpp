@@ -6,6 +6,7 @@
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
+
 namespace hustle {
 namespace operators {
 

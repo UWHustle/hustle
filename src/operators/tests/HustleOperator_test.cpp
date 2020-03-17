@@ -866,7 +866,7 @@ protected:
         std::shared_ptr<arrow::Field> field7 = arrow::field("ord priority",
                 arrow::utf8());
         std::shared_ptr<arrow::Field> field8 = arrow::field("ship priority",
-                arrow::int64());
+                arrow::utf8());
         std::shared_ptr<arrow::Field> field9 = arrow::field("quantity",
                 arrow::int64());
         std::shared_ptr<arrow::Field> field10 = arrow::field("extended price",
@@ -945,7 +945,7 @@ TEST_F(SSBTestFixture, SSBQ1) {
     // NOTE: I forgot to include the selection Lineorder.lo_quantity < 25
 
     lineorder = read_from_csv_file
-            ("/Users/corrado/hustle/src/table/tests/lineorder_small.tbl", lineorder_schema, BLOCK_SIZE);
+            ("/Users/corrado/hustle/src/table/tests/lineorder.tbl", lineorder_schema, BLOCK_SIZE);
 
     date = read_from_csv_file
             ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
@@ -983,12 +983,13 @@ TEST_F(SSBTestFixture, SSBQ1) {
     auto join_op = std::make_shared<hustle::operators::Join>("order date",
             "date key");
 
+    auto t1 = std::chrono::high_resolution_clock::now();
+
     // Perform selection on Date
     auto date_2 = date_select_op->runOperator({date});
     // Perform selection on Lineorder
     auto lineorder_2 = lineorder_select_op_2->runOperator({lineorder});
 //    lineorder_2->print();
-
 
     // Join the resulting Lineorder and Date tables
     auto join_table = join_op->hash_join(lineorder_2, date_2);
@@ -1002,4 +1003,11 @@ TEST_F(SSBTestFixture, SSBQ1) {
 
     // Print the result. The valid bit will be printed as the first column.
     if (aggregate != nullptr) aggregate->print();
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "QUERY EXECUTION TIME = " <<
+              std::chrono::duration_cast<std::chrono::milliseconds>
+                      (t2-t1).count
+                      () <<
+              std::endl;
 }

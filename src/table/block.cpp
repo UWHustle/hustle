@@ -77,7 +77,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
             case arrow::Type::INT64: {
 
                 status = arrow::AllocateResizableBuffer
-                        (field->type()->layout().bit_widths[1] * init_rows/8,
+                        (field->type()->layout().bit_widths[1] * init_rows / 8,
                          &data);
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 data->ZeroPadding();
@@ -112,7 +112,7 @@ int Block::compute_num_bytes() {
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
-                int byte_width = field->type()->layout().bit_widths[1];;
+                int byte_width = field->type()->layout().bit_widths[1] / 8;
                 num_bytes += byte_width * columns[i]->length;
                 break;
             }
@@ -308,7 +308,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
-                int byte_width = field->type()->layout().bit_widths[1]/8;;
+                int byte_width = field->type()->layout().bit_widths[1] / 8;
                 data_size += byte_width * column_data[i]->length;
                 break;
             }
@@ -331,7 +331,6 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
     auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             valid->buffers[1]);
-
 
     status = valid_buffer->Resize(valid_buffer->size() + n/8 + 1);
     valid_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
@@ -756,7 +755,7 @@ delimiter_size) {
 //            case arrow::Type::DOUBLE:
 //            case arrow::Type::INT64: {
 //                // buffer at index 1 is the data buffer.
-//                int byte_width = field->type()->layout().buffers[1].byte_width;;
+//                int byte_width = field->type()->layout().bit_widths[1] / 8;
 //                data_size += byte_width * column_data[i].length;
 //                break;
 //            }
@@ -936,7 +935,9 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
-                int byte_width = field->type()->layout().bit_widths[1]/8;
+
+                int byte_width = field->type()->layout().bit_widths[1] / 8;
+
                 data_size += byte_width * length;
                 break;
             }
