@@ -122,10 +122,13 @@ class QueryOperator {
 
 class TableReference : public QueryOperator {
  public:
-  TableReference(int i) : QueryOperator(QueryOperatorType::TableReference),
-                          i_table(i) {}
+  TableReference(int i, std::string _table_name)
+      : QueryOperator(QueryOperatorType::TableReference),
+        i_table(i),
+        table_name(std::move(_table_name)) {}
 
   int i_table;
+  std::string table_name;
 };
 
 class Select : public QueryOperator {
@@ -300,6 +303,7 @@ void to_json(json &j, const std::shared_ptr<TableReference> &table_reference) {
       {
           {"type", table_reference->type._to_string()},
           {"i_table", table_reference->i_table},
+          {"table_name", table_reference->table_name},
       };
 }
 void to_json(json &j, const std::shared_ptr<Select> &select) {

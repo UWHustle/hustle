@@ -184,17 +184,20 @@ class OrderBy {
  */
 class ParseTree {
  public:
-  ParseTree(std::vector<std::shared_ptr<Project>> _project,
+  ParseTree(std::vector<std::string> _tableList,
+            std::vector<std::shared_ptr<Project>> _project,
             std::vector<std::shared_ptr<LoopPredicate>> _loop_pred,
             std::vector<std::shared_ptr<Expr>> _other_pred,
             std::vector<std::shared_ptr<ColumnReference>> _group_by,
             std::vector<std::shared_ptr<OrderBy>> _order_by
-  ) : project(std::move(_project)),
+  ) : tableList(std::move(_tableList)),
+      project(std::move(_project)),
       loop_pred(std::move(_loop_pred)),
       other_pred(std::move(_other_pred)),
       group_by(std::move(_group_by)),
       order_by(std::move(_order_by)) {}
 
+  std::vector<std::string> tableList;
   std::vector<std::shared_ptr<Project>> project;
   std::vector<std::shared_ptr<LoopPredicate>> loop_pred;
   std::vector<std::shared_ptr<Expr>> other_pred;
@@ -235,6 +238,7 @@ void to_json(json &j, const std::shared_ptr<AggFunc> &agg);
 
 void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree) {
   parse_tree = std::make_shared<ParseTree>(
+      j.at("tableList").get<std::vector<std::string>>(),
       j.at("project").get<std::vector<std::shared_ptr<Project>>>(),
       j.at("loop_pred").get<std::vector<std::shared_ptr<LoopPredicate>>>(),
       j.at("other_pred").get<std::vector<std::shared_ptr<Expr>>>(),
@@ -244,6 +248,7 @@ void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree) {
 void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree) {
   j = json
       {
+          {"tableList", parse_tree->tableList},
           {"project", parse_tree->project},
           {"loop_pred", parse_tree->loop_pred},
           {"other_pred", parse_tree->other_pred},
@@ -310,14 +315,9 @@ void from_json(const json &j, std::shared_ptr<Expr> &expr) {
   }
 }
 void from_json(const json &j, std::shared_ptr<ColumnReference> &c) {
-  c = std::make_shared<ColumnReference>(
-      j.at("column_name"),
-      j.at("i_table"),
-      j.at("i_column"));
-//  c->i_table = j.at("i_table");
-//  c->i_column = j.at("i_column");
-//  j.at("i_table").get_to(c->i_table);
-//  j.at("i_column").get_to(c->i_column);
+  c = std::make_shared<ColumnReference>(j.at("column_name"),
+                                        j.at("i_table"),
+                                        j.at("i_column"));
 }
 void from_json(const json &j, std::shared_ptr<IntLiteral> &i) {
   i = std::make_shared<IntLiteral>(j.at("value"));

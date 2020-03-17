@@ -7,6 +7,7 @@
 #include "ParseTree.h"
 
 extern const int SERIAL_BLOCK_SIZE = 4096;
+char tableList[SERIAL_BLOCK_SIZE];
 char project[SERIAL_BLOCK_SIZE];
 char loopPred[SERIAL_BLOCK_SIZE];
 char otherPred[SERIAL_BLOCK_SIZE];
@@ -31,10 +32,13 @@ class Parser {
    */
   void parse(const std::string &sql, hustle::HustleDB &hustleDB) {
     check_explain(sql);
+
+    // TODO(Lichengxi): enable concurrency, add locks
     hustleDB.getPlan(sql);
 
     std::string text =
-        "{\"project\": [" + std::string(project) +
+        "{\"tableList\": [" + std::string(tableList) +
+        "], \"project\": [" + std::string(project) +
         "], \"loop_pred\": [" + std::string(loopPred) +
         "], \"other_pred\": [" + std::string(otherPred) +
         "], \"group_by\": [" + std::string(groupBy) +
@@ -58,6 +62,9 @@ class Parser {
    * Move select predicates from loop_pred to other_pred
    */
   void preprocessing() {
+
+
+
     for (auto &loop_pred : parse_tree_->loop_pred) {
       for (auto it = loop_pred->predicates.begin();
            it != loop_pred->predicates.end();) {

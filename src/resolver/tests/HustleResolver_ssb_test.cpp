@@ -257,7 +257,7 @@ TEST_F(ResolverSSBTest, ssb_qtemp) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -276,7 +276,7 @@ TEST_F(ResolverSSBTest, ssb_q1) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -298,7 +298,7 @@ TEST_F(ResolverSSBTest, ssb_q2) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -320,7 +320,7 @@ TEST_F(ResolverSSBTest, ssb_q3) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -344,7 +344,7 @@ TEST_F(ResolverSSBTest, ssb_q4) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -368,7 +368,7 @@ TEST_F(ResolverSSBTest, ssb_q5) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -392,7 +392,7 @@ TEST_F(ResolverSSBTest, ssb_q6) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -417,7 +417,7 @@ TEST_F(ResolverSSBTest, ssb_q7) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -442,7 +442,7 @@ TEST_F(ResolverSSBTest, ssb_q8) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -467,7 +467,7 @@ TEST_F(ResolverSSBTest, ssb_q9) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -492,7 +492,7 @@ TEST_F(ResolverSSBTest, ssb_q10) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -518,7 +518,7 @@ TEST_F(ResolverSSBTest, ssb_q11) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -546,7 +546,7 @@ TEST_F(ResolverSSBTest, ssb_q12) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
@@ -573,7 +573,7 @@ TEST_F(ResolverSSBTest, ssb_q13) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << "Plan:" << resolver->to_string(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan

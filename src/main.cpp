@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   auto parser = std::make_shared<hustle::parser::Parser>();
   auto resolver = std::make_shared<hustle::resolver::Resolver>();
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree());
+  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
   std::cout << resolver->to_string(4) << std::endl;
 
   return 0;

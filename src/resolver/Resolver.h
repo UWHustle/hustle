@@ -3,9 +3,11 @@
 
 #include <vector>
 #include <cassert>
+#include <api/HustleDB.h>
 
-#include <parser/ParseTree.h>
-#include <resolver/Plan.h>
+#include "catalog/TableSchema.h"
+#include "parser/ParseTree.h"
+#include "resolver/Plan.h"
 
 namespace hustle {
 namespace resolver {
@@ -30,13 +32,24 @@ class Resolver {
    * and OrderBy.
    *
    * @param parse_tree: input parse tree from parser
+   * @param hustleDB: input hustle database
    */
-  void resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree) {
+  void resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree,
+               hustle::catalog::Catalog *catalog) {
+    // initialize the maps given parse_tree->tableList
+    for (int i = 0; i < parse_tree->tableList.size(); i++) {
+      std::string name = parse_tree->tableList[i];
+      map_vir_to_real[i] = catalog->getTableIdbyName(name);
+      map_real_to_vir[catalog->getTableIdbyName(name)] = i;
+    }
+
+    // resolve TableReference
     std::vector<std::shared_ptr<Select>>
-        select_operators(parse_tree->loop_pred.size());
+        select_operators(parse_tree->tableList.size());
     for (int i = 0; i < select_operators.size(); i++) {
       select_operators[i] = std::make_shared<Select>(
-          std::make_shared<TableReference>(i));
+          std::make_shared<TableReference>(map_vir_to_real[i],
+                                           parse_tree->tableList[i]));
     }
 
     // resolve Select
@@ -44,12 +57,12 @@ class Resolver {
       if (pred->type == +ExprType::Comparative) {
         auto e = resolve_Comparative(
             std::dynamic_pointer_cast<hustle::parser::Comparative>(pred));
-        select_operators[e->left->i_table]->filter.push_back(e);
+        select_operators[map_real_to_vir[e->left->i_table]]->filter.push_back(e);
       } else { // pred->type == +ExprType::Disjunctive
         assert(pred->type == +ExprType::Disjunctive);
         auto e = resolve_Disjunctive(
             std::dynamic_pointer_cast<hustle::parser::Disjunctive>(pred));
-        select_operators[e->i_table]->filter.push_back(e);
+        select_operators[map_real_to_vir[e->i_table]]->filter.push_back(e);
       }
     }
 
@@ -170,7 +183,7 @@ class Resolver {
   std::shared_ptr<ColumnReference> resolve_ColumnReference(
       const std::shared_ptr<hustle::parser::ColumnReference> &expr) {
     return std::make_shared<ColumnReference>(expr->column_name,
-                                             expr->i_table,
+                                             map_vir_to_real[expr->i_table],
                                              expr->i_column);
   }
 
@@ -238,6 +251,8 @@ class Resolver {
 
  private:
   std::shared_ptr<Plan> plan_;
+  std::map<int, int> map_vir_to_real; // matching from virtual to real table id
+  std::map<int, int> map_real_to_vir; // matching from real to virtual table id
 };
 
 }

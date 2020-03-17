@@ -72,6 +72,7 @@ TEST_F(ParserSimpleTest, test1) {
   std::shared_ptr<Project> proj_0 = std::make_shared<Project>("Subscriber.c1", c00);
 
   std::shared_ptr<ParseTree> parse_tree_val = std::make_shared<ParseTree>(
+      std::vector<std::string>({"Subscriber", "AccessInfo"}),
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{},
@@ -117,6 +118,7 @@ TEST_F(ParserSimpleTest, test2) {
   std::shared_ptr<Project> proj_0 = std::make_shared<Project>("Subscriber.c1", c00);
 
   std::shared_ptr<ParseTree> parse_tree_val = std::make_shared<ParseTree>(
+      std::vector<std::string>({"Subscriber", "AccessInfo"}),
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{std::move(other_pred_0), std::move(other_pred_1)},

@@ -38,6 +38,10 @@ class Catalog {
 
   void print() const;
 
+  int getTableIdbyName(const std::string& name) {
+    return name_to_id_[name];
+  }
+
   // Used by cereal for serialization/deserialization
   template<class Archive>
   void serialize(Archive &archive) {
