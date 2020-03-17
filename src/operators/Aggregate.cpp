@@ -32,11 +32,9 @@ std::shared_ptr<Table> Aggregate::runOperator
     if (full_column == nullptr) {
         return nullptr;
     }
-
-    arrow::compute::FunctionContext function_context(
-            arrow::default_memory_pool());
-    std::vector<arrow::compute::Datum*> out_aggregates;
-    auto *out_aggregate = new arrow::compute::Datum();
+    auto* memory_pool = arrow::default_memory_pool();
+    arrow::compute::FunctionContext function_context(memory_pool);
+    arrow::compute::Datum out_aggregate;
 
     std::shared_ptr<arrow::Schema> out_schema;
 
@@ -46,7 +44,7 @@ std::shared_ptr<Table> Aggregate::runOperator
             status = arrow::compute::Sum(
                     &function_context,
                     full_column,
-                    out_aggregate
+                    &out_aggregate
             );
             evaluate_status(status, __FUNCTION__, __LINE__);
             out_schema = arrow::schema({arrow::field("aggregate",
@@ -69,7 +67,7 @@ std::shared_ptr<Table> Aggregate::runOperator
                     &function_context,
                     count_options,
                     full_column,
-                    out_aggregate
+                    &out_aggregate
             );
             evaluate_status(status, __FUNCTION__, __LINE__);
             out_schema = arrow::schema({arrow::field("aggregate",
@@ -81,7 +79,7 @@ std::shared_ptr<Table> Aggregate::runOperator
             status = arrow::compute::Mean(
                     &function_context,
                     full_column,
-                    out_aggregate
+                    &out_aggregate
             );
             evaluate_status(status, __FUNCTION__, __LINE__);
             out_schema = arrow::schema({arrow::field("aggregate",
@@ -95,7 +93,7 @@ std::shared_ptr<Table> Aggregate::runOperator
     std::shared_ptr<arrow::ArrayData> out_data;
     status = arrow::MakeArrayFromScalar(
             arrow::default_memory_pool(),
-            *out_aggregate->scalar(),
+            *out_aggregate.scalar(),
             1,
             &out_array);
     evaluate_status(status, __FUNCTION__, __LINE__);
