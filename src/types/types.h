@@ -26,6 +26,12 @@ BETTER_ENUM (
     SLASH
 )
 
+BETTER_ENUM (
+    AggFuncType,
+    int,
+    SUM,
+    AVG
+)
 
 BETTER_ENUM (
     ExprType,
@@ -51,6 +57,14 @@ BETTER_ENUM (
     OrderBy
 )
 
+BETTER_ENUM (
+    OrderByType,
+    int,
+    ASC,
+    DESC
+)
+
+// TODO(Lichengxi): to add more
 BETTER_ENUM (
     PlanType,
     int,

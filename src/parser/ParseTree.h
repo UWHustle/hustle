@@ -117,10 +117,10 @@ class Arithmetic : public Expr {
 
 class AggFunc : public Expr {
  public:
-  AggFunc(std::string f, std::shared_ptr<Expr> e)
-      : Expr(ExprType::AggFunc), func(std::move(f)), expr(std::move(e)) {}
+  AggFunc(AggFuncType _func, std::shared_ptr<Expr> _expr)
+      : Expr(ExprType::AggFunc), func(_func), expr(std::move(_expr)) {}
 
-  std::string func;
+  AggFuncType func;
   std::shared_ptr<Expr> expr;
 };
 
@@ -154,10 +154,9 @@ class Project {
  */
 class OrderBy {
  public:
-  OrderBy() {}
-  OrderBy(int f, std::shared_ptr<Expr> e) : sort_flag(f), expr(std::move(e)) {}
+  OrderBy(OrderByType _order, std::shared_ptr<Expr> _expr) : order(_order), expr(std::move(_expr)) {}
 
-  int sort_flag;
+  OrderByType order;
   std::shared_ptr<Expr> expr;
 };
 
@@ -255,12 +254,12 @@ void to_json(json &j, const std::shared_ptr<Project> &proj) {
       };
 }
 void from_json(const json &j, std::shared_ptr<OrderBy> &order_by) {
-  order_by = std::make_shared<OrderBy>(j.at("sort_flag"), j.at("expr"));
+  order_by = std::make_shared<OrderBy>(OrderByType::_from_index(j.at("order")), j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<OrderBy> &order_by) {
   j = json
       {
-          {"sort_flag", order_by->sort_flag},
+          {"order", order_by->order._to_string()},
           {"expr", order_by->expr}
       };
 }
@@ -316,7 +315,8 @@ void from_json(const json &j, std::shared_ptr<Arithmetic> &pred) {
                                       j.at("right"));
 }
 void from_json(const json &j, std::shared_ptr<AggFunc> &agg) {
-  agg = std::make_shared<AggFunc>(j.at("func"), j.at("expr"));
+  agg = std::make_shared<AggFunc>(AggFuncType::_from_string_nocase(j.at("func").get<std::string>().c_str()),
+                                  j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<Expr> &expr) {
   switch (expr->type) {
@@ -400,7 +400,7 @@ void to_json(json &j, const std::shared_ptr<AggFunc> &agg) {
   j = json
       {
           {"type", agg->type._to_string()},
-          {"func", agg->func},
+          {"func", agg->func._to_string()},
           {"expr", agg->expr},
       };
 }

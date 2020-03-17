@@ -77,6 +77,30 @@ class Disjunctive : public Expr {
   std::vector<std::shared_ptr<Comparative>> exprs;
 };
 
+class Arithmetic : public Expr {
+ public:
+  Arithmetic(std::shared_ptr<Expr> _left,
+             ArithmeticType _op,
+             std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Arithmetic),
+        left(std::move(_left)),
+        op(_op),
+        right(std::move(_right)) {}
+
+  std::shared_ptr<Expr> left;
+  ArithmeticType op;
+  std::shared_ptr<Expr> right;
+};
+
+class AggFunc : public Expr {
+ public:
+  AggFunc(AggFuncType _func, std::shared_ptr<Expr> _expr)
+      : Expr(ExprType::AggFunc), func(_func), expr(std::move(_expr)) {}
+
+  AggFuncType func;
+  std::shared_ptr<Expr> expr;
+};
+
 class QueryOperator {
  public:
   QueryOperator(QueryOperatorType _type) : type(_type) {}
@@ -155,10 +179,17 @@ class GroupBy : public QueryOperator {
 class OrderBy : public QueryOperator {
  public:
   OrderBy() : QueryOperator(QueryOperatorType::OrderBy) {}
+  OrderBy(std::shared_ptr<QueryOperator> _input,
+          std::vector<std::shared_ptr<Expr>> _orderby_cols,
+          std::vector<OrderByType> _orders)
+      : QueryOperator(QueryOperatorType::OrderBy),
+        input(std::move(_input)),
+        orderby_cols(std::move(_orderby_cols)),
+        orders(std::move(_orders)) {}
 
   std::shared_ptr<QueryOperator> input;
-  std::vector<std::shared_ptr<ColumnReference>> orderby_cols;
-  std::vector<bool> order; // 0 : asc, 1 : desc
+  std::vector<std::shared_ptr<Expr>> orderby_cols;
+  std::vector<OrderByType> orders;
 };
 
 class Plan {
@@ -204,6 +235,10 @@ void to_json(json &j, const std::shared_ptr<IntLiteral> &int_literal);
 void to_json(json &j, const std::shared_ptr<StrLiteral> &str_literal);
 void to_json(json &j, const std::shared_ptr<Comparative> &comparative);
 void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive);
+void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic);
+void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc);
+
+void to_json(json &j, const OrderByType &type);
 
 void to_json(json &j, const std::shared_ptr<Plan> &plan) {
   switch (plan->type) {
@@ -282,12 +317,18 @@ void to_json(json &j, const std::shared_ptr<GroupBy> &groupby) {
       };
 }
 void to_json(json &j, const std::shared_ptr<OrderBy> &orderby) {
+  int size = orderby->orders.size();
+  std::vector<std::string> orders(size);
+  for (int i = 0; i < size; i++) {
+    orders[i] = orderby->orders[i]._to_string();
+  }
+
   j = json
       {
           {"type", orderby->type._to_string()},
           {"input", orderby->input},
           {"orderby_cols", orderby->orderby_cols},
-          {"order", orderby->order},
+          {"orders", orders},
       };
 }
 
@@ -302,6 +343,10 @@ void to_json(json &j, const std::shared_ptr<Expr> &expr) {
     case ExprType::Comparative : j = json(std::dynamic_pointer_cast<Comparative>(expr));
       break;
     case ExprType::Disjunctive : j = json(std::dynamic_pointer_cast<Disjunctive>(expr));
+      break;
+    case ExprType::Arithmetic : j = json(std::dynamic_pointer_cast<Arithmetic>(expr));
+      break;
+    case ExprType::AggFunc : j = json(std::dynamic_pointer_cast<AggFunc>(expr));
       break;
     default:break;
   }
@@ -346,7 +391,21 @@ void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive) {
           {"exprs", disjunctive->exprs},
       };
 }
-
+void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic) {
+  j = json
+      {
+          {"left", arithmetic->left},
+          {"op", arithmetic->op._to_string()},
+          {"right", arithmetic->right},
+      };
+}
+void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc) {
+  j = json
+      {
+          {"func", aggfunc->func._to_string()},
+          {"expr", aggfunc->expr}
+      };
+}
 }
 }
 
