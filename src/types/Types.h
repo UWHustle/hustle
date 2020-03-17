@@ -1,5 +1,5 @@
-#ifndef HUSTLE_SRC_RESOLVER_TYPES_H_
-#define HUSTLE_SRC_RESOLVER_TYPES_H_
+#ifndef HUSTLE_SRC_TYPES_TYPES_H_
+#define HUSTLE_SRC_TYPES_TYPES_H_
 
 #include <better-enums/enum.h>
 
@@ -58,7 +58,7 @@ BETTER_ENUM (
 )
 
 BETTER_ENUM (
-    OrderByType,
+    OrderByDirection,
     int,
     ASC,
     DESC
@@ -74,4 +74,4 @@ BETTER_ENUM (
 
 }
 }
-#endif //HUSTLE_SRC_RESOLVER_TYPES_H_
+#endif //HUSTLE_SRC_TYPES_TYPES_H_

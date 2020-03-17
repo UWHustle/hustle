@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <utility>
 
-#include "types/types.h"
+#include "types/Types.h"
 
 namespace hustle {
 namespace parser {
@@ -25,8 +25,12 @@ class Expr {
 
 class ColumnReference : public Expr {
  public:
-  ColumnReference(std::string col_name, int t, int c)
-      : Expr(ExprType::ColumnReference), column_name(std::move(col_name)), i_table(t), i_column(c) {}
+  ColumnReference(std::string _column_name,
+                  int _i_table,
+                  int _i_column) : Expr(ExprType::ColumnReference),
+                                   column_name(std::move(_column_name)),
+                                   i_table(_i_table),
+                                   i_column(_i_column) {}
 
   std::string column_name;
   int i_table;
@@ -35,28 +39,29 @@ class ColumnReference : public Expr {
 
 class IntLiteral : public Expr {
  public:
-  explicit IntLiteral(int v) : Expr(ExprType::IntLiteral), value(v) {}
+  explicit IntLiteral(int _value) : Expr(ExprType::IntLiteral),
+                                    value(_value) {}
 
   int value;
 };
 
 class StrLiteral : public Expr {
  public:
-  explicit StrLiteral(std::string str) : Expr(ExprType::StrLiteral), value(std::move(str)) {}
+  explicit StrLiteral(std::string _value) : Expr(ExprType::StrLiteral),
+                                            value(std::move(_value)) {}
 
   std::string value;
 };
 
 class Comparative : public Expr {
  public:
-  Comparative(std::shared_ptr<Expr> l,
+  Comparative(std::shared_ptr<Expr> _left,
               ComparativeType _op,
-              std::shared_ptr<Expr> r)
-      : Expr(ExprType::Comparative),
-        left(std::move(l)),
-        op(_op),
-        right(std::move(r)),
-        plan_type(get_plan_type()) {}
+              std::shared_ptr<Expr> _right) : Expr(ExprType::Comparative),
+                                              left(std::move(_left)),
+                                              op(_op),
+                                              right(std::move(_right)),
+                                              plan_type(get_plan_type()) {}
 
   std::shared_ptr<Expr> left;
   ComparativeType op;
@@ -68,11 +73,14 @@ class Comparative : public Expr {
 };
 
 std::string Comparative::get_plan_type() {
-  if (left->type == +ExprType::ColumnReference and right->type == +ExprType::ColumnReference) {
+  if (left->type == +ExprType::ColumnReference and
+      right->type == +ExprType::ColumnReference) {
     return "JOIN_Pred";
-  } else if (left->type == +ExprType::ColumnReference and right->type != +ExprType::ColumnReference) {
+  } else if (left->type == +ExprType::ColumnReference and
+      right->type != +ExprType::ColumnReference) {
     return "SELECT_Pred";
-  } else if (left->type != +ExprType::ColumnReference and right->type == +ExprType::ColumnReference) {
+  } else if (left->type != +ExprType::ColumnReference and
+      right->type == +ExprType::ColumnReference) {
     auto temp = left;
     left = right;
     right = temp;
@@ -84,8 +92,10 @@ std::string Comparative::get_plan_type() {
 
 class Disjunctive : public Expr {
  public:
-  Disjunctive(std::shared_ptr<Expr> l, std::shared_ptr<Expr> r)
-      : Expr(ExprType::Disjunctive), left(std::move(l)), right(std::move(r)) {}
+  Disjunctive(std::shared_ptr<Expr> _left,
+              std::shared_ptr<Expr> _right) : Expr(ExprType::Disjunctive),
+                                              left(std::move(_left)),
+                                              right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   std::shared_ptr<Expr> right;
@@ -93,8 +103,10 @@ class Disjunctive : public Expr {
 
 class Conjunctive : public Expr {
  public:
-  Conjunctive(std::shared_ptr<Expr> l, std::shared_ptr<Expr> r)
-      : Expr(ExprType::Conjunctive), left(std::move(l)), right(std::move(r)) {}
+  Conjunctive(std::shared_ptr<Expr> _left,
+              std::shared_ptr<Expr> _right) : Expr(ExprType::Conjunctive),
+                                              left(std::move(_left)),
+                                              right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   std::shared_ptr<Expr> right;
@@ -104,11 +116,10 @@ class Arithmetic : public Expr {
  public:
   Arithmetic(std::shared_ptr<Expr> _left,
              ArithmeticType _op,
-             std::shared_ptr<Expr> _right)
-      : Expr(ExprType::Arithmetic),
-        left(std::move(_left)),
-        op(_op),
-        right(std::move(_right)) {}
+             std::shared_ptr<Expr> _right) : Expr(ExprType::Arithmetic),
+                                             left(std::move(_left)),
+                                             op(_op),
+                                             right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   ArithmeticType op;
@@ -117,8 +128,10 @@ class Arithmetic : public Expr {
 
 class AggFunc : public Expr {
  public:
-  AggFunc(AggFuncType _func, std::shared_ptr<Expr> _expr)
-      : Expr(ExprType::AggFunc), func(_func), expr(std::move(_expr)) {}
+  AggFunc(AggFuncType _func,
+          std::shared_ptr<Expr> _expr) : Expr(ExprType::AggFunc),
+                                         func(_func),
+                                         expr(std::move(_expr)) {}
 
   AggFuncType func;
   std::shared_ptr<Expr> expr;
@@ -129,9 +142,10 @@ class AggFunc : public Expr {
  */
 class LoopPredicate {
  public:
-  LoopPredicate() {}
-  LoopPredicate(int i, std::vector<std::shared_ptr<Comparative>> preds)
-      : fromtable(i), predicates(std::move(preds)) {}
+  LoopPredicate(int _fromtable,
+                std::vector<std::shared_ptr<Comparative>> _predicates
+  ) : fromtable(_fromtable),
+      predicates(std::move(_predicates)) {}
 
   int fromtable;
   std::vector<std::shared_ptr<Comparative>> predicates;
@@ -142,8 +156,9 @@ class LoopPredicate {
  */
 class Project {
  public:
-  Project() {}
-  Project(std::string name, std::shared_ptr<Expr> e) : proj_name(std::move(name)), expr(std::move(e)) {}
+  Project(std::string _proj_name,
+          std::shared_ptr<Expr> _expr) : proj_name(std::move(_proj_name)),
+                                         expr(std::move(_expr)) {}
 
   std::string proj_name;
   std::shared_ptr<Expr> expr;
@@ -154,9 +169,11 @@ class Project {
  */
 class OrderBy {
  public:
-  OrderBy(OrderByType _order, std::shared_ptr<Expr> _expr) : order(_order), expr(std::move(_expr)) {}
+  OrderBy(OrderByDirection _order,
+          std::shared_ptr<Expr> _expr) : order(_order),
+                                         expr(std::move(_expr)) {}
 
-  OrderByType order;
+  OrderByDirection order;
   std::shared_ptr<Expr> expr;
 };
 
@@ -165,17 +182,16 @@ class OrderBy {
  */
 class ParseTree {
  public:
-  ParseTree() : project(), loop_pred(), other_pred() {}
-  ParseTree(std::vector<std::shared_ptr<Project>> proj,
-            std::vector<std::shared_ptr<LoopPredicate>> &&l_pred,
-            std::vector<std::shared_ptr<Expr>> o_pred,
-            std::vector<std::shared_ptr<ColumnReference>> group_by,
-            std::vector<std::shared_ptr<OrderBy>> order_by)
-      : project(std::move(proj)),
-        loop_pred(std::move(l_pred)),
-        other_pred(std::move(o_pred)),
-        group_by(std::move(group_by)),
-        order_by(std::move(order_by)) {}
+  ParseTree(std::vector<std::shared_ptr<Project>> _project,
+            std::vector<std::shared_ptr<LoopPredicate>> _loop_pred,
+            std::vector<std::shared_ptr<Expr>> _other_pred,
+            std::vector<std::shared_ptr<ColumnReference>> _group_by,
+            std::vector<std::shared_ptr<OrderBy>> _order_by
+  ) : project(std::move(_project)),
+      loop_pred(std::move(_loop_pred)),
+      other_pred(std::move(_other_pred)),
+      group_by(std::move(_group_by)),
+      order_by(std::move(_order_by)) {}
 
   std::vector<std::shared_ptr<Project>> project;
   std::vector<std::shared_ptr<LoopPredicate>> loop_pred;
@@ -216,12 +232,12 @@ void to_json(json &j, const std::shared_ptr<Arithmetic> &pred);
 void to_json(json &j, const std::shared_ptr<AggFunc> &agg);
 
 void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree) {
-  parse_tree = std::make_shared<ParseTree>();
-  parse_tree->project = j.at("project").get<std::vector<std::shared_ptr<Project>>>();
-  parse_tree->loop_pred = j.at("loop_pred").get<std::vector<std::shared_ptr<LoopPredicate>>>();
-  parse_tree->other_pred = j.at("other_pred").get<std::vector<std::shared_ptr<Expr>>>();
-  parse_tree->group_by = j.at("group_by").get<std::vector<std::shared_ptr<ColumnReference>>>();
-  parse_tree->order_by = j.at("order_by").get<std::vector<std::shared_ptr<OrderBy>>>();
+  parse_tree = std::make_shared<ParseTree>(
+      j.at("project").get<std::vector<std::shared_ptr<Project>>>(),
+      j.at("loop_pred").get<std::vector<std::shared_ptr<LoopPredicate>>>(),
+      j.at("other_pred").get<std::vector<std::shared_ptr<Expr>>>(),
+      j.at("group_by").get<std::vector<std::shared_ptr<ColumnReference>>>(),
+      j.at("order_by").get<std::vector<std::shared_ptr<OrderBy>>>());
 }
 void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree) {
   j = json
@@ -234,7 +250,9 @@ void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree) {
       };
 }
 void from_json(const json &j, std::shared_ptr<LoopPredicate> &loop_pred) {
-  loop_pred = std::make_shared<LoopPredicate>(j.at("fromtable"), j.at("predicates"));
+  loop_pred = std::make_shared<LoopPredicate>(
+      j.at("fromtable"),
+      j.at("predicates"));
 }
 void to_json(json &j, const std::shared_ptr<LoopPredicate> &loop_pred) {
   j = json
@@ -244,7 +262,9 @@ void to_json(json &j, const std::shared_ptr<LoopPredicate> &loop_pred) {
       };
 }
 void from_json(const json &j, std::shared_ptr<Project> &proj) {
-  proj = std::make_shared<Project>(j.at("proj_name"), j.at("expr"));
+  proj = std::make_shared<Project>(
+      j.at("proj_name"),
+      j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<Project> &proj) {
   j = json
@@ -254,7 +274,9 @@ void to_json(json &j, const std::shared_ptr<Project> &proj) {
       };
 }
 void from_json(const json &j, std::shared_ptr<OrderBy> &order_by) {
-  order_by = std::make_shared<OrderBy>(OrderByType::_from_index(j.at("order")), j.at("expr"));
+  order_by = std::make_shared<OrderBy>(
+      OrderByDirection::_from_index(j.at("order")),
+      j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<OrderBy> &order_by) {
   j = json
@@ -286,7 +308,10 @@ void from_json(const json &j, std::shared_ptr<Expr> &expr) {
   }
 }
 void from_json(const json &j, std::shared_ptr<ColumnReference> &c) {
-  c = std::make_shared<ColumnReference>(j.at("column_name"), j.at("i_table"), j.at("i_column"));
+  c = std::make_shared<ColumnReference>(
+      j.at("column_name"),
+      j.at("i_table"),
+      j.at("i_column"));
 //  c->i_table = j.at("i_table");
 //  c->i_column = j.at("i_column");
 //  j.at("i_table").get_to(c->i_table);
@@ -299,9 +324,10 @@ void from_json(const json &j, std::shared_ptr<StrLiteral> &s) {
   s = std::make_shared<StrLiteral>(j.at("value"));
 }
 void from_json(const json &j, std::shared_ptr<Comparative> &pred) {
-  pred = std::make_shared<Comparative>(j.at("left"),
-                                       ComparativeType::_from_string(j.at("op").get<std::string>().c_str()),
-                                       j.at("right"));
+  pred = std::make_shared<Comparative>(
+      j.at("left"),
+      ComparativeType::_from_string(j.at("op").get<std::string>().c_str()),
+      j.at("right"));
 }
 void from_json(const json &j, std::shared_ptr<Disjunctive> &pred) {
   pred = std::make_shared<Disjunctive>(j.at("left"), j.at("right"));
@@ -310,31 +336,41 @@ void from_json(const json &j, std::shared_ptr<Conjunctive> &pred) {
   pred = std::make_shared<Conjunctive>(j.at("left"), j.at("right"));
 }
 void from_json(const json &j, std::shared_ptr<Arithmetic> &pred) {
-  pred = std::make_shared<Arithmetic>(j.at("left"),
-                                      ArithmeticType::_from_string(j.at("op").get<std::string>().c_str()),
-                                      j.at("right"));
+  pred = std::make_shared<Arithmetic>(
+      j.at("left"),
+      ArithmeticType::_from_string(j.at("op").get<std::string>().c_str()),
+      j.at("right"));
 }
 void from_json(const json &j, std::shared_ptr<AggFunc> &agg) {
-  agg = std::make_shared<AggFunc>(AggFuncType::_from_string_nocase(j.at("func").get<std::string>().c_str()),
-                                  j.at("expr"));
+  agg = std::make_shared<AggFunc>(
+      AggFuncType::_from_string_nocase(j.at("func").get<std::string>().c_str()),
+      j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<Expr> &expr) {
   switch (expr->type) {
-    case ExprType::ColumnReference : j = json(std::dynamic_pointer_cast<ColumnReference>(expr));
+    case ExprType::ColumnReference:
+      j = json(std::dynamic_pointer_cast<ColumnReference>(expr));
       break;
-    case ExprType::IntLiteral : j = json(std::dynamic_pointer_cast<IntLiteral>(expr));
+    case ExprType::IntLiteral:
+      j = json(std::dynamic_pointer_cast<IntLiteral>(expr));
       break;
-    case ExprType::StrLiteral : j = json(std::dynamic_pointer_cast<StrLiteral>(expr));
+    case ExprType::StrLiteral:
+      j = json(std::dynamic_pointer_cast<StrLiteral>(expr));
       break;
-    case ExprType::Comparative : j = json(std::dynamic_pointer_cast<Comparative>(expr));
+    case ExprType::Comparative:
+      j = json(std::dynamic_pointer_cast<Comparative>(expr));
       break;
-    case ExprType::Disjunctive : j = json(std::dynamic_pointer_cast<Disjunctive>(expr));
+    case ExprType::Disjunctive:
+      j = json(std::dynamic_pointer_cast<Disjunctive>(expr));
       break;
-    case ExprType::Conjunctive : j = json(std::dynamic_pointer_cast<Conjunctive>(expr));
+    case ExprType::Conjunctive:
+      j = json(std::dynamic_pointer_cast<Conjunctive>(expr));
       break;
-    case ExprType::Arithmetic : j = json(std::dynamic_pointer_cast<Arithmetic>(expr));
+    case ExprType::Arithmetic:
+      j = json(std::dynamic_pointer_cast<Arithmetic>(expr));
       break;
-    case ExprType::AggFunc : j = json(std::dynamic_pointer_cast<AggFunc>(expr));
+    case ExprType::AggFunc:
+      j = json(std::dynamic_pointer_cast<AggFunc>(expr));
       break;
   }
 }

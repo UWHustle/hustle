@@ -1,6 +1,8 @@
 #ifndef HUSTLE_SRC_PARSER_PARSER_H_
 #define HUSTLE_SRC_PARSER_PARSER_H_
 
+#include "absl/strings/match.h"
+
 #include "api/HustleDB.h"
 #include "ParseTree.h"
 
@@ -18,15 +20,16 @@ namespace parser {
 class Parser {
  public:
   void parse(const std::string &sql, hustle::HustleDB &hustleDB) {
+    check_explain(sql);
     hustleDB.getPlan(sql);
 
     std::string text =
         "{\"project\": [" + std::string(project) +
-            "], \"loop_pred\": [" + std::string(loopPred) +
-            "], \"other_pred\": [" + std::string(otherPred) +
-            "], \"group_by\": [" + std::string(groupBy) +
-            "], \"order_by\": [" + std::string(orderBy) +
-            "]}";
+        "], \"loop_pred\": [" + std::string(loopPred) +
+        "], \"other_pred\": [" + std::string(otherPred) +
+        "], \"group_by\": [" + std::string(groupBy) +
+        "], \"order_by\": [" + std::string(orderBy) +
+        "]}";
 
     json j = json::parse(text);
     parse_tree_ = j;
@@ -46,7 +49,8 @@ class Parser {
    */
   void preprocessing() {
     for (auto &loop_pred : parse_tree_->loop_pred) {
-      for (auto it = loop_pred->predicates.begin(); it != loop_pred->predicates.end();) {
+      for (auto it = loop_pred->predicates.begin();
+           it != loop_pred->predicates.end();) {
         if ((*it)->plan_type == "SELECT_Pred") {
           parse_tree_->other_pred.push_back(std::move(*it));
           loop_pred->predicates.erase(it);
@@ -68,6 +72,18 @@ class Parser {
   }
 
  private:
+  /**
+   * check if the sql query start with a "explain"
+   * @param sql
+   * @return
+   */
+  static void check_explain(const std::string &sql) {
+    if (!absl::StartsWithIgnoreCase(sql, "EXPLAIN")) {
+      std::cerr << "Not starting with EXPLAIN keyword" << std::endl;
+      exit(-1);
+    }
+  }
+
   std::shared_ptr<ParseTree> parse_tree_;
 };
 

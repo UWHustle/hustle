@@ -6,7 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "types/types.h"
+#include "types/Types.h"
 
 namespace hustle {
 namespace resolver {
@@ -16,7 +16,7 @@ using namespace hustle::types;
 
 class Expr {
  public:
-  Expr(ExprType _type) : type(_type) {}
+  explicit Expr(ExprType _type) : type(_type) {}
   virtual ~Expr() = default;
 
   ExprType type;
@@ -24,13 +24,12 @@ class Expr {
 
 class ColumnReference : public Expr {
  public:
-  ColumnReference(std::string column_name_,
-                  int i_tab,
-                  int i_col)
-      : Expr(ExprType::ColumnReference),
-        column_name(std::move(column_name_)),
-        i_table(i_tab),
-        i_column(i_col) {}
+  ColumnReference(std::string _column_name,
+                  int _i_table,
+                  int _i_column) : Expr(ExprType::ColumnReference),
+                                   column_name(std::move(_column_name)),
+                                   i_table(_i_table),
+                                   i_column(_i_column) {}
 
   std::string column_name;
   int i_table;
@@ -39,14 +38,15 @@ class ColumnReference : public Expr {
 
 class IntLiteral : public Expr {
  public:
-  IntLiteral(int v) : Expr(ExprType::IntLiteral), value(v) {}
+  IntLiteral(int _value) : Expr(ExprType::IntLiteral), value(_value) {}
 
   int value;
 };
 
 class StrLiteral : public Expr {
  public:
-  StrLiteral(std::string v) : Expr(ExprType::StrLiteral), value(std::move(v)) {}
+  StrLiteral(std::string _value) : Expr(ExprType::StrLiteral),
+                                   value(std::move(_value)) {}
 
   std::string value;
 };
@@ -55,11 +55,10 @@ class Comparative : public Expr {
  public:
   Comparative(std::shared_ptr<ColumnReference> _left,
               ComparativeType _op,
-              std::shared_ptr<Expr> _right)
-      : Expr(ExprType::Comparative),
-        left(std::move(_left)),
-        op(_op),
-        right(std::move(_right)) {}
+              std::shared_ptr<Expr> _right) : Expr(ExprType::Comparative),
+                                              left(std::move(_left)),
+                                              op(_op),
+                                              right(std::move(_right)) {}
 
   std::shared_ptr<ColumnReference> left;
   ComparativeType op;
@@ -68,7 +67,8 @@ class Comparative : public Expr {
 
 class Disjunctive : public Expr {
  public:
-  Disjunctive(int _i_table, std::vector<std::shared_ptr<Comparative>> _exprs)
+  Disjunctive(int _i_table,
+              std::vector<std::shared_ptr<Comparative>> _exprs)
       : Expr(ExprType::Disjunctive),
         i_table(_i_table),
         exprs(std::move(_exprs)) {}
@@ -79,13 +79,13 @@ class Disjunctive : public Expr {
 
 class Arithmetic : public Expr {
  public:
-  Arithmetic(std::shared_ptr<Expr> _left,
-             ArithmeticType _op,
-             std::shared_ptr<Expr> _right)
-      : Expr(ExprType::Arithmetic),
-        left(std::move(_left)),
-        op(_op),
-        right(std::move(_right)) {}
+  Arithmetic(
+      std::shared_ptr<Expr> _left,
+      ArithmeticType _op,
+      std::shared_ptr<Expr> _right) : Expr(ExprType::Arithmetic),
+                                      left(std::move(_left)),
+                                      op(_op),
+                                      right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   ArithmeticType op;
@@ -94,8 +94,10 @@ class Arithmetic : public Expr {
 
 class AggFunc : public Expr {
  public:
-  AggFunc(AggFuncType _func, std::shared_ptr<Expr> _expr)
-      : Expr(ExprType::AggFunc), func(_func), expr(std::move(_expr)) {}
+  AggFunc(AggFuncType _func,
+          std::shared_ptr<Expr> _expr) : Expr(ExprType::AggFunc),
+                                         func(_func),
+                                         expr(std::move(_expr)) {}
 
   AggFuncType func;
   std::shared_ptr<Expr> expr;
@@ -111,7 +113,8 @@ class QueryOperator {
 
 class TableReference : public QueryOperator {
  public:
-  TableReference(int i) : QueryOperator(QueryOperatorType::TableReference), i_table(i) {}
+  TableReference(int i) : QueryOperator(QueryOperatorType::TableReference),
+                          i_table(i) {}
 
   int i_table;
 };
@@ -165,12 +168,11 @@ class Join : public QueryOperator {
 
 class GroupBy : public QueryOperator {
  public:
-  GroupBy() : QueryOperator(QueryOperatorType::GroupBy) {}
   GroupBy(std::shared_ptr<QueryOperator> _input,
-          std::vector<std::shared_ptr<ColumnReference>> _groupby_cols)
+          std::vector<std::shared_ptr<ColumnReference>> _cols)
       : QueryOperator(QueryOperatorType::GroupBy),
         input(std::move(_input)),
-        groupby_cols(std::move(_groupby_cols)) {}
+        groupby_cols(std::move(_cols)) {}
 
   std::shared_ptr<QueryOperator> input;
   std::vector<std::shared_ptr<ColumnReference>> groupby_cols;
@@ -178,18 +180,17 @@ class GroupBy : public QueryOperator {
 
 class OrderBy : public QueryOperator {
  public:
-  OrderBy() : QueryOperator(QueryOperatorType::OrderBy) {}
   OrderBy(std::shared_ptr<QueryOperator> _input,
-          std::vector<std::shared_ptr<Expr>> _orderby_cols,
-          std::vector<OrderByType> _orders)
+          std::vector<std::shared_ptr<Expr>> _cols,
+          std::vector<OrderByDirection> _orders)
       : QueryOperator(QueryOperatorType::OrderBy),
         input(std::move(_input)),
-        orderby_cols(std::move(_orderby_cols)),
+        orderby_cols(std::move(_cols)),
         orders(std::move(_orders)) {}
 
   std::shared_ptr<QueryOperator> input;
   std::vector<std::shared_ptr<Expr>> orderby_cols;
-  std::vector<OrderByType> orders;
+  std::vector<OrderByDirection> orders;
 };
 
 class Plan {
@@ -238,8 +239,6 @@ void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive);
 void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic);
 void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc);
 
-void to_json(json &j, const OrderByType &type);
-
 void to_json(json &j, const std::shared_ptr<Plan> &plan) {
   switch (plan->type) {
     case PlanType::Query : j = json(std::dynamic_pointer_cast<Query>(plan));
@@ -261,17 +260,23 @@ void to_json(json &j, const std::shared_ptr<Create> &create) {
 
 void to_json(json &j, const std::shared_ptr<QueryOperator> &query_operator) {
   switch (query_operator->type) {
-    case QueryOperatorType::TableReference : j = json(std::dynamic_pointer_cast<TableReference>(query_operator));
+    case QueryOperatorType::TableReference :
+      j = json(std::dynamic_pointer_cast<TableReference>(query_operator));
       break;
-    case QueryOperatorType::Select : j = json(std::dynamic_pointer_cast<Select>(query_operator));
+    case QueryOperatorType::Select :
+      j = json(std::dynamic_pointer_cast<Select>(query_operator));
       break;
-    case QueryOperatorType::Project : j = json(std::dynamic_pointer_cast<Project>(query_operator));
+    case QueryOperatorType::Project :
+      j = json(std::dynamic_pointer_cast<Project>(query_operator));
       break;
-    case QueryOperatorType::Join : j = json(std::dynamic_pointer_cast<Join>(query_operator));
+    case QueryOperatorType::Join :
+      j = json(std::dynamic_pointer_cast<Join>(query_operator));
       break;
-    case QueryOperatorType::GroupBy : j = json(std::dynamic_pointer_cast<GroupBy>(query_operator));
+    case QueryOperatorType::GroupBy :
+      j = json(std::dynamic_pointer_cast<GroupBy>(query_operator));
       break;
-    case QueryOperatorType::OrderBy : j = json(std::dynamic_pointer_cast<OrderBy>(query_operator));
+    case QueryOperatorType::OrderBy :
+      j = json(std::dynamic_pointer_cast<OrderBy>(query_operator));
       break;
   }
 }
@@ -334,21 +339,29 @@ void to_json(json &j, const std::shared_ptr<OrderBy> &orderby) {
 
 void to_json(json &j, const std::shared_ptr<Expr> &expr) {
   switch (expr->type) {
-    case ExprType::ColumnReference : j = json(std::dynamic_pointer_cast<ColumnReference>(expr));
+    case ExprType::ColumnReference:
+      j = json(std::dynamic_pointer_cast<ColumnReference>(expr));
       break;
-    case ExprType::IntLiteral : j = json(std::dynamic_pointer_cast<IntLiteral>(expr));
+    case ExprType::IntLiteral:
+      j = json(std::dynamic_pointer_cast<IntLiteral>(expr));
       break;
-    case ExprType::StrLiteral : j = json(std::dynamic_pointer_cast<StrLiteral>(expr));
+    case ExprType::StrLiteral:
+      j = json(std::dynamic_pointer_cast<StrLiteral>(expr));
       break;
-    case ExprType::Comparative : j = json(std::dynamic_pointer_cast<Comparative>(expr));
+    case ExprType::Comparative:
+      j = json(std::dynamic_pointer_cast<Comparative>(expr));
       break;
-    case ExprType::Disjunctive : j = json(std::dynamic_pointer_cast<Disjunctive>(expr));
+    case ExprType::Disjunctive:
+      j = json(std::dynamic_pointer_cast<Disjunctive>(expr));
       break;
-    case ExprType::Arithmetic : j = json(std::dynamic_pointer_cast<Arithmetic>(expr));
+    case ExprType::Arithmetic:
+      j = json(std::dynamic_pointer_cast<Arithmetic>(expr));
       break;
-    case ExprType::AggFunc : j = json(std::dynamic_pointer_cast<AggFunc>(expr));
+    case ExprType::AggFunc:
+      j = json(std::dynamic_pointer_cast<AggFunc>(expr));
       break;
-    default:break;
+    default:
+      break;
   }
 }
 void to_json(json &j, const std::shared_ptr<ColumnReference> &column_reference) {

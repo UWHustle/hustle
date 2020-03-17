@@ -11,43 +11,43 @@ using namespace testing;
 using namespace hustle::parser;
 using nlohmann::json;
 
-static void init() {
-  /**
-    CREATE TABLE Subscriber(c1 INT  NOT NULL , c2 CHAR(10)  UNIQUE);
-    CREATE TABLE AccessInfo(c3 INT  NOT NULL , c4 CHAR(5)  UNIQUE);
-   */
+class ParserSimpleTest : public Test {
+  void SetUp() override {
+    /**
+      CREATE TABLE Subscriber(c1 INT  NOT NULL , c2 CHAR(10)  UNIQUE);
+      CREATE TABLE AccessInfo(c3 INT  NOT NULL , c4 CHAR(5)  UNIQUE);
+     */
 
-  std::filesystem::remove_all("db_directory");
-  EXPECT_FALSE(std::filesystem::exists("db_directory"));
+    std::filesystem::remove_all("db_directory");
+    EXPECT_FALSE(std::filesystem::exists("db_directory"));
 
-  hustle::HustleDB hustleDB("db_directory");
+    hustle::HustleDB hustleDB("db_directory");
 
-  // Create table Subscriber
-  hustle::catalog::TableSchema ts("Subscriber");
-  hustle::catalog::ColumnSchema c1("c1", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-  hustle::catalog::ColumnSchema c2("c2", {hustle::catalog::HustleType::CHAR, 10}, false, true);
-  ts.addColumn(c1);
-  ts.addColumn(c2);
-  // ts.setPrimaryKey({"c1", "c2"});
-  ts.setPrimaryKey({});
+    // Create table Subscriber
+    hustle::catalog::TableSchema ts("Subscriber");
+    hustle::catalog::ColumnSchema c1("c1", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+    hustle::catalog::ColumnSchema c2("c2", {hustle::catalog::HustleType::CHAR, 10}, false, true);
+    ts.addColumn(c1);
+    ts.addColumn(c2);
+    // ts.setPrimaryKey({"c1", "c2"});
+    ts.setPrimaryKey({});
 
-  hustleDB.createTable(ts);
+    hustleDB.createTable(ts);
 
-  // Create table AccessInfo
-  hustle::catalog::TableSchema ts1("AccessInfo");
-  hustle::catalog::ColumnSchema c3("c3", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-  hustle::catalog::ColumnSchema c4("c4", {hustle::catalog::HustleType::CHAR, 5}, false, true);
-  ts1.addColumn(c3);
-  ts1.addColumn(c4);
-  // ts1.setPrimaryKey({"c3"});
-  ts1.setPrimaryKey({});
+    // Create table AccessInfo
+    hustle::catalog::TableSchema ts1("AccessInfo");
+    hustle::catalog::ColumnSchema c3("c3", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+    hustle::catalog::ColumnSchema c4("c4", {hustle::catalog::HustleType::CHAR, 5}, false, true);
+    ts1.addColumn(c3);
+    ts1.addColumn(c4);
+    // ts1.setPrimaryKey({"c3"});
+    ts1.setPrimaryKey({});
 
-  hustleDB.createTable(ts1);
-}
+    hustleDB.createTable(ts1);
+  }
+};
 
-
-TEST(ParserSimpleTest, test1) {
-  init();
+TEST_F(ParserSimpleTest, test1) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
@@ -84,8 +84,7 @@ TEST(ParserSimpleTest, test1) {
   EXPECT_EQ(out, out_val);
 }
 
-TEST(ParserSimpleTest, test2) {
-  init();
+TEST_F(ParserSimpleTest, test2) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
