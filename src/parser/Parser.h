@@ -19,6 +19,16 @@ namespace parser {
 
 class Parser {
  public:
+  /**
+   * This function takes as input an "EXPLAIN" sql query as well as the
+   * hustleDB, calls the SQLite3's library function through sqlite3_exec,
+   * extracts the optimized parse tree which maintains the nested loop
+   * order as well as the predicates. Project, GroupBy and OrderBy are also
+   * perserved in the parse tree.
+   *
+   * @param sql: input sql query
+   * @param hustleDB: input hustle database
+   */
   void parse(const std::string &sql, hustle::HustleDB &hustleDB) {
     check_explain(sql);
     hustleDB.getPlan(sql);
@@ -73,9 +83,8 @@ class Parser {
 
  private:
   /**
-   * check if the sql query start with a "explain"
-   * @param sql
-   * @return
+   * check if the sql query starts with an "EXPLAIN"
+   * @param sql: input sql query string
    */
   static void check_explain(const std::string &sql) {
     if (!absl::StartsWithIgnoreCase(sql, "EXPLAIN")) {

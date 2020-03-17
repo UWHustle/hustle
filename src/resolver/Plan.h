@@ -14,6 +14,11 @@ namespace resolver {
 using nlohmann::json;
 using namespace hustle::types;
 
+/**
+ * abstract class: Expr
+ * derived class: ColumnReference, IntLiteral, StrLiteral, Comparative,
+ *                Disjunctive, Arithmetic, AggFunc
+ */
 class Expr {
  public:
   explicit Expr(ExprType _type) : type(_type) {}
@@ -103,6 +108,10 @@ class AggFunc : public Expr {
   std::shared_ptr<Expr> expr;
 };
 
+/**
+ * abstract class: QueryOperator
+ * derived class: TableReference, Select, Project, Join, GroupBy, OrderBy
+ */
 class QueryOperator {
  public:
   QueryOperator(QueryOperatorType _type) : type(_type) {}
@@ -193,6 +202,10 @@ class OrderBy : public QueryOperator {
   std::vector<OrderByDirection> orders;
 };
 
+/**
+ * abstract class: Plan
+ * derived class: Query, Create ...
+ */
 class Plan {
  public:
   Plan(PlanType _type) : type(_type) {}
@@ -217,6 +230,8 @@ class Create : public Plan {
   /// TODO(Lichengxi): add Create class
 
 };
+
+/// TODO(Lichengxi): add more classes derived from Plan
 
 void to_json(json &j, const std::shared_ptr<Plan> &plan);
 void to_json(json &j, const std::shared_ptr<Query> &query);

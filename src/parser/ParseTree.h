@@ -13,7 +13,9 @@ using nlohmann::json;
 using namespace hustle::types;
 
 /**
- * Expr
+ * abstract class: Expr
+ * derived class: ColumnReference, IntLiteral, StrLiteral, Comparative,
+ *                Disjunctive, Arithmetic, AggFunc
  */
 class Expr {
  public:

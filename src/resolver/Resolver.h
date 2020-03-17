@@ -12,6 +12,25 @@ namespace resolver {
 
 class Resolver {
  public:
+  /**
+   * This function takes as input a parse tree from the parser, builds the plan
+   * from bottom to top given the predicates and expressions preserved in the
+   * parse tree.
+   *
+   * First of all, a number of TableReference objects are built. On top of each
+   * TableReference, a Select object is built to contain it. By traversing
+   * the parse_tree->other_pred, we match each select predicate as a filter
+   * onto the corresponding Select object. This step is to push all the select
+   * predicates down to the TableReference objects as much as possible. The
+   * Join objects are then built on top of these Select objects by traversing
+   * parse_tree->loop_pred. The topmost Join object is then captured as an
+   * input to the GroupBy, Project, and OrderBy.
+   *
+   * The resolving order is: TableReference, Select, Join, GroupBy, Project
+   * and OrderBy.
+   *
+   * @param parse_tree: input parse tree from parser
+   */
   void resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree) {
     std::vector<std::shared_ptr<Select>>
         select_operators(parse_tree->loop_pred.size());
@@ -20,7 +39,7 @@ class Resolver {
           std::make_shared<TableReference>(i));
     }
 
-    // resolve select
+    // resolve Select
     for (auto &pred : parse_tree->other_pred) {
       if (pred->type == +ExprType::Comparative) {
         auto e = resolve_Comparative(
@@ -34,7 +53,7 @@ class Resolver {
       }
     }
 
-    // resolve join
+    // resolve Join
     std::shared_ptr<QueryOperator> root;
     for (auto &lpred : parse_tree->loop_pred) {
       if (root == nullptr) {
@@ -53,7 +72,7 @@ class Resolver {
       }
     }
 
-    // resolve groupby
+    // resolve GroupBy
     if (!parse_tree->group_by.empty()) {
       std::vector<std::shared_ptr<ColumnReference>> groupby_cols;
       for (auto &col : parse_tree->group_by) {
@@ -64,13 +83,13 @@ class Resolver {
           std::move(groupby_cols));
     }
 
-    // resolve project
+    // resolve Project
     {
       std::vector<std::shared_ptr<Expr>> proj_exprs;
       std::vector<std::string> proj_names;
 
       for (auto &proj : parse_tree->project) {
-        proj_exprs.push_back(resolve_expr(proj->expr));
+        proj_exprs.push_back(resolve_Expr(proj->expr));
         proj_names.push_back(proj->proj_name);
       }
       root = std::make_shared<Project>(std::move(root),
@@ -78,13 +97,13 @@ class Resolver {
                                        std::move(proj_names));
     }
 
-    // resolve orderby
+    // resolve OrderBy
     if (!parse_tree->order_by.empty()) {
       std::vector<std::shared_ptr<Expr>> orderby_cols;
       std::vector<OrderByDirection> orders;
 
       for (auto &orderby : parse_tree->order_by) {
-        orderby_cols.push_back(resolve_expr(orderby->expr));
+        orderby_cols.push_back(resolve_Expr(orderby->expr));
         orders.push_back(orderby->order);
       }
       root = std::make_shared<OrderBy>(std::move(root),
@@ -95,7 +114,10 @@ class Resolver {
     plan_ = std::make_shared<Query>(root);
   }
 
-  std::shared_ptr<Expr> resolve_expr(
+  /**
+   * Function to resolve hustle::parser::Expr
+   */
+  std::shared_ptr<Expr> resolve_Expr(
       const std::shared_ptr<hustle::parser::Expr> &expr) {
     switch (expr->type) {
       case ExprType::ColumnReference:
@@ -131,14 +153,20 @@ class Resolver {
     }
   }
 
+  /**
+   * Function to resolve hustle::parser::Comparative
+   */
   std::shared_ptr<Comparative> resolve_Comparative(
       const std::shared_ptr<hustle::parser::Comparative> &expr) {
     return std::make_shared<Comparative>(resolve_ColumnReference(
         std::dynamic_pointer_cast<hustle::parser::ColumnReference>(expr->left)),
                                          expr->op,
-                                         resolve_expr(expr->right));
+                                         resolve_Expr(expr->right));
   }
 
+  /**
+   * Function to resolve hustle::parser::ColumnReference
+   */
   std::shared_ptr<ColumnReference> resolve_ColumnReference(
       const std::shared_ptr<hustle::parser::ColumnReference> &expr) {
     return std::make_shared<ColumnReference>(expr->column_name,
@@ -146,16 +174,25 @@ class Resolver {
                                              expr->i_column);
   }
 
+  /**
+   * Function to resolve hustle::parser::IntLiteral
+   */
   std::shared_ptr<IntLiteral> resolve_IntLiteral(
       const std::shared_ptr<hustle::parser::IntLiteral> &expr) {
     return std::make_shared<IntLiteral>(expr->value);
   }
 
+  /**
+   * Function to resolve hustle::parser::StrLiteral
+   */
   std::shared_ptr<StrLiteral> resolve_StrLiteral(
       const std::shared_ptr<hustle::parser::StrLiteral> &expr) {
     return std::make_shared<StrLiteral>(expr->value);
   }
 
+  /**
+   * Function to resolve hustle::parser::Disjunctive
+   */
   std::shared_ptr<Disjunctive> resolve_Disjunctive(
       const std::shared_ptr<hustle::parser::Disjunctive> &expr) {
     auto left = resolve_Comparative(
@@ -172,19 +209,28 @@ class Resolver {
         });
   }
 
+  /**
+   * Function to resolve hustle::parser::Arithmetic
+   */
   std::shared_ptr<Arithmetic> resolve_Arithmetic(
       const std::shared_ptr<hustle::parser::Arithmetic> &expr) {
-    return std::make_shared<Arithmetic>(resolve_expr(expr->left),
+    return std::make_shared<Arithmetic>(resolve_Expr(expr->left),
                                         expr->op,
-                                        resolve_expr(expr->right));
+                                        resolve_Expr(expr->right));
   }
 
+  /**
+   * Function to resolve hustle::parser::AggFunc
+   */
   std::shared_ptr<AggFunc> resolve_AggFunc(
       const std::shared_ptr<hustle::parser::AggFunc> &expr) {
     return std::make_shared<AggFunc>(expr->func,
-                                     resolve_expr(expr->expr));
+                                     resolve_Expr(expr->expr));
   }
 
+  /**
+   * Function to serialize the parse tree
+   */
   std::string to_string(int indent) {
     json j = plan_;
     return j.dump(indent);
