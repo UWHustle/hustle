@@ -18,9 +18,7 @@ namespace parser {
 class Parser {
  public:
   void parse(const std::string &sql, hustle::HustleDB &hustleDB) {
-    std::cout << "For query: " << sql << std::endl <<
-              "The plan is: " << std::endl <<
-              hustleDB.getPlan(sql) << std::endl;
+    hustleDB.getPlan(sql);
 
     std::string text =
         "{\"project\": [" + std::string(project) +
