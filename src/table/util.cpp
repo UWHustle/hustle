@@ -262,37 +262,6 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
         }
 
         test->insert_record(values, byte_widths);
-
-//        test->insert_record((uint8_t*) buf, byte_widths, 1);
-//
-//        int offset = 0;
-//        for (int i = 0; i < schema->num_fields(); i++) {
-//
-//
-//
-//            // Use index i-1 when indexing values, because it does not include
-//            // valid column.
-//            switch (schema->field(i)->type()->id()) {
-//                case arrow::Type::STRING: {
-//                    num_bytes += values[i].length();
-//                    break;
-//                }
-//                case arrow::Type::INT64: {
-//                    int64_t out;
-//                    absl::SimpleAtoi(values[i], &out);
-//                    std::memcpy(&buf[offset],&out,1);
-//                    break;
-//                }
-//                default: {
-//                    throw std::logic_error(
-//                            std::string("Cannot load data of type ") +
-//                            schema->field(i)->type()->ToString());
-//                }
-//            }
-//            offset += byte_widths[i];
-//        }
-//
-//        test->insert_record((uint8_t*) buf, byte_widths, 1);
     }
 
 
