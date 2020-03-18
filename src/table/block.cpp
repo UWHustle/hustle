@@ -495,8 +495,8 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
-                auto *dest = columns[i]->GetMutableValues<uint8_t>(
-                        1, num_rows * byte_widths[i]);
+                auto *dest = columns[i]->GetMutableValues<int64_t>(
+                        1, num_rows);
                 std::memcpy(dest, &record[head], byte_widths[i]);
 
                 head += byte_widths[i];
