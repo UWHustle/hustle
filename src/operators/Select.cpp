@@ -65,7 +65,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         auto out_table = std::make_shared<Table>("out", table->get_schema(),
                                                  BLOCK_SIZE);
 
-        auto* out_col = new arrow::compute::Datum;
+        arrow::compute::Datum out_col;
         std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
         out_cols.reserve(table->get_schema()->num_fields());
 
@@ -82,10 +82,10 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
                 status = arrow::compute::Filter(&function_context,
                                                 block->get_column(j),
                                                 block_filter,
-                                                out_col);
+                                                &out_col);
 
                 evaluate_status(status, __FUNCTION__, __LINE__);
-                out_cols.push_back(out_col->array());
+                out_cols.push_back(out_col.array());
             }
             out_table->insert_records(out_cols);
             out_cols.clear();
