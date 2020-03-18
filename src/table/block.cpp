@@ -537,7 +537,7 @@ std::shared_ptr<arrow::Array> Block::get_valid_column() const{
 
 // Return true is insertion was successful, false otherwise
 bool Block::insert_record(std::vector<std::string_view> record, int32_t
-*byte_widths, int delimiter_size) {
+*byte_widths) {
 
     int record_size = 0;
     for (int i = 0; i < schema->num_fields(); i++) {

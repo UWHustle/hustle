@@ -239,8 +239,7 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
 }
 
 void Table::insert_record(std::vector<std::string_view> values, int32_t
-*byte_widths, int
-delimiter_size) {
+*byte_widths) {
 
     std::shared_ptr<Block> block = get_block_for_insert();
 
@@ -250,12 +249,11 @@ delimiter_size) {
         record_size += byte_widths[i];
     }
 
-    auto test = block->get_bytes_left();
     if (block->get_bytes_left() < record_size) {
         block = create_block();
     }
 
-    block->insert_record(values, byte_widths, delimiter_size);
+    block->insert_record(values, byte_widths);
     num_rows++;
 
     if (block->get_bytes_left() > fixed_record_width) {

@@ -217,9 +217,7 @@ public:
                         column_data);
 
     bool
-    insert_record(std::vector<std::string_view> record, int32_t *byte_widths,
-            int
-    delimiter_size);
+    insert_record(std::vector<std::string_view> record, int32_t *byte_widths);
 
     bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             column_data,

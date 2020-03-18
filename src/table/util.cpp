@@ -261,7 +261,7 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
             byte_widths[index] = values[index].length();
         }
 
-        test->insert_record(values, byte_widths, 1);
+        test->insert_record(values, byte_widths);
 
 //        test->insert_record((uint8_t*) buf, byte_widths, 1);
 //
