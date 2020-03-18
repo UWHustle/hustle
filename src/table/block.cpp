@@ -77,7 +77,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
             case arrow::Type::INT64: {
 
                 status = arrow::AllocateResizableBuffer
-                        (field->type()->layout().bit_widths[1] * init_rows / 8,
+                        (sizeof(int64_t) * init_rows,
                          &data);
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 data->ZeroPadding();
@@ -112,7 +112,7 @@ int Block::compute_num_bytes() {
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
-                int byte_width = field->type()->layout().bit_widths[1] / 8;
+                int byte_width = sizeof(int64_t);
                 num_bytes += byte_width * columns[i]->length;
                 break;
             }
@@ -308,7 +308,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
-                int byte_width = field->type()->layout().bit_widths[1] / 8;
+                int byte_width = sizeof(int64_t);
                 data_size += byte_width * column_data[i]->length;
                 break;
             }
@@ -663,9 +663,6 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
 
                 if (column_sizes[i] + sizeof(int64_t) > data_buffer->capacity
                 ()) {
-//                    std::cout << "BEFORE: col size = " << column_sizes[i] << " "
-//                                                                           "capacity = " <<
-//                    data_buffer->capacity() << std::endl;
                     // Resize will not resize the buffer if the inputted size
                     // equals the current size of the buffer. To force
                     // resizing in this case, we add +1.
@@ -673,9 +670,6 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                             data_buffer->capacity() + sizeof(int64_t)+1);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                 }
-//                    std::cout << "AFTER: col size = " << column_sizes[i] << " "
-//                                                                             "capacity = " <<
-//                              data_buffer->capacity() << std::endl;
 
 
                 int64_t out;

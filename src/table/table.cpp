@@ -158,7 +158,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 case arrow::Type::DOUBLE:
                 case arrow::Type::INT64: {
                     // buffer at index 1 is the data buffer.
-                    int byte_width = field->type()->layout().bit_widths[1] / 8;
+                    int byte_width = sizeof(int64_t);
                     record_size += byte_width;
                     break;
                 }
