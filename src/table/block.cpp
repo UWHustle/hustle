@@ -323,27 +323,34 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 // Extended the underlying data and offsets buffer. This may
                 // result in copying the data.
-                // n+1 because we also need to specify the endpoint of the
-                // last string.
+                // The column currently has num_rows + 1 offsets, and we are
+                // inserting n + 1 additional offsets
+                if ((num_rows + 1 + n + 1) * sizeof(int32_t) >
+                    offsets_buffer->capacity()) {
                     status = offsets_buffer->Resize(
-                            offsets_buffer->size() + sizeof(int32_t) * (n + 1));
+                            offsets_buffer->capacity() + sizeof(int32_t) * (n +
+                            1));
                     evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-                status = data_buffer->Resize(
-                        data_buffer->size() +
-                        column_data[i]->buffers[2]->size());
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                }
 
                 auto in_offsets_data =
                         column_data[i]->GetMutableValues<int32_t>(
                                 1, offset);
+
+                int string_size = in_offsets_data[n] - in_offsets_data[0];
+
+                if ( column_sizes[i] + string_size > data_buffer->capacity()) {
+                    status = data_buffer->Resize(
+                            data_buffer->capacity() + string_size);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                }
+
+
                 auto in_values_data =
                         column_data[i]->GetMutableValues<uint8_t>(
                                 2, in_offsets_data[0]);
 
                 // Insert new offset
-
                 auto *offsets_data = columns[i]->GetMutableValues<int32_t>(
                         1, 0);
 
@@ -359,7 +366,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto *values_data = columns[i]->GetMutableValues<uint8_t>(
                         2, offsets_data[num_rows]);
-                int string_size = in_offsets_data[n] - in_offsets_data[0];
+
                 std::memcpy(values_data, in_values_data, string_size);
 
 
@@ -372,9 +379,12 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
-                status = data_buffer->Resize(
-                        data_buffer->size() + sizeof(int64_t) * n);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                if ((num_rows + n) * sizeof(int64_t) >
+                    data_buffer->capacity()) {
+                    status = data_buffer->Resize(
+                            data_buffer->size() + sizeof(int64_t) * n);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                }
 
                 auto *dest = columns[i]->GetMutableValues<int64_t>(
                         1, num_rows);
@@ -389,9 +399,13 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             case arrow::Type::DOUBLE: {
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
-                status = data_buffer->Resize(
-                        data_buffer->size() + sizeof(double_t) * n);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+
+                if ((num_rows + n) * sizeof(double_t) >
+                    data_buffer->capacity()) {
+                    status = data_buffer->Resize(
+                            data_buffer->size() + sizeof(double_t) * n);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                }
 
                 auto *dest = columns[i]->GetMutableValues<double_t>(
                         1, num_rows);
