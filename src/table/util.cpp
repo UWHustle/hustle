@@ -166,7 +166,7 @@ int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema) {
 
     int fixed_width = 0;
 
-    for (auto field : schema->fields()) {
+    for (auto &field : schema->fields()) {
 
         switch (field->type()->id()) {
             case arrow::Type::STRING: {

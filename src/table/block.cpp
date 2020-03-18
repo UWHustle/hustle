@@ -458,8 +458,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
     for (int i = 0; i < schema->num_fields(); i++) {
 
-        std::shared_ptr<arrow::Field> field = schema->field(i);
-        switch (field->type()->id()) {
+        switch (schema->field(i)->type()->id()) {
             case arrow::Type::STRING: {
                 auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
@@ -523,7 +522,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 throw std::logic_error(
                         std::string(
                                 "Cannot insert tuple with unsupported type: ") +
-                        field->type()->ToString());
+                                schema->field(i)->type()->ToString());
         }
 
 
