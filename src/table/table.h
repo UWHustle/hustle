@@ -41,7 +41,15 @@ public:
      */
     std::shared_ptr<Block> create_block();
 
-    //
+    /**
+     * Add a vector of blocks to the table. This functions does not check if
+     * the blocks are consistent with the table or with each other. No memory
+     * copying is done.
+     *
+     * @param intput_blocks Vector of blocks to be inserted into the table.
+     */
+    void insert_blocks(std::vector<std::shared_ptr<Block>> intput_blocks);
+
     /**
      * @param block_id Block ID
      * @return Block with the specified ID
@@ -58,16 +66,10 @@ public:
      */
     void mark_block_for_insert(const std::shared_ptr<Block> &block);
 
+    int get_num_rows() const;
+
     int get_num_blocks() const;
 
-    //
-    // record: data to be inserted
-    // byte_widths: width of each value to be inserted
-    //
-    // With the current implementation, if the first block we fetch from the
-    // insert pool does not have enough space to hold the record, we simply
-    // create a new block. In other words, there is no reasonable mechanism
-    // in place to
     /**
      * Insert a record into a block in the insert pool.
      *
@@ -105,9 +107,44 @@ public:
      */
     std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
 
-    // Print the contents of all blocks in the table, including the valid
-    // column.
+    /**
+     * Return the number of rows that appear before a specific block in the
+     * table (the block's row offset)
+     *
+     * @param i Block index
+     * @return The number of rows that appear before block i in the table.
+     */
+    int get_block_row_offset(int i) const;
+
+    /**
+     * Return a specific column as a ChunkedArray over all blocks in the table.
+     *
+     * @param i Column index
+     * @return a ChunkedArray of column i over all blocks in the table.
+     */
+    std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+
+    /**
+     * Return a specific column as a ChunkedArray over all blocks in the table.
+     *
+     * @param name Column name
+     * @return a ChunkedArray of column "name" over all blocks in the table.
+     */
+    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string
+    name);
+
+    /**
+     * Print the contents of all blocks in the table, including the valid
+     * column.
+     */
     void print();
+
+    std::shared_ptr<arrow::ChunkedArray> get_valid_column();
+
+    void
+    insert_record(std::vector<std::string_view> values, int32_t *byte_widths,
+            int
+    delimiter_size);
 
 private:
     std::string table_name;
@@ -140,6 +177,12 @@ private:
 
     // Total number of rows in all blocks of the table.
     int num_rows;
+
+    // The value at index i is the number of records before block i. The value
+    // at index 0 is always 0.
+    std::vector<int> block_row_offsets;
+
+
 
 };
 

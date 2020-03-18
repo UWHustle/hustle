@@ -35,7 +35,7 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath, const
 
   if (rc) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n", sqlite3_errmsg(db));
-    return "";
+    exit(-1);
   } else {
 //    fprintf(stdout, "Opened database successfully\n");
   }
@@ -45,7 +45,7 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath, const
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
-    return "";
+    exit(-1);
   } else {
 //    fprintf(stdout, "Query ececuted successfully\n");
   }
