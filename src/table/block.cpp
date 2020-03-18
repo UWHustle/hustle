@@ -292,40 +292,6 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
         return true;
     }
 
-    auto test = schema->fields();
-    int data_size = 0;
-
-    for (int i = 0; i < schema->num_fields(); i++) {
-
-        std::shared_ptr<arrow::Field> field = schema->field(i);
-        switch (field->type()->id()) {
-
-            case arrow::Type::STRING: {
-                auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
-                data_size += offsets[column_data[i]->length];
-                break;
-            }
-            case arrow::Type::DOUBLE:
-            case arrow::Type::INT64: {
-                // buffer at index 1 is the data buffer.
-                int byte_width = sizeof(int64_t);
-                data_size += byte_width * column_data[i]->length;
-                break;
-            }
-            default: {
-                throw std::logic_error(
-                        std::string(
-                                "Cannot compute record width. Unsupported type: ") +
-                        field->type()->ToString());
-            }
-        }
-    }
-
-    // TODO(nicholas): What to do when the records cannot all fit in one block?
-    if (data_size > get_bytes_left()) {
-        return false;
-    }
-
     arrow::Status status;
     int n = column_data[0]->length; // number of elements to be inserted
 
