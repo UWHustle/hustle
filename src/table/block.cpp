@@ -325,9 +325,10 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 // result in copying the data.
                 // n+1 because we also need to specify the endpoint of the
                 // last string.
-                status = offsets_buffer->Resize(
-                        offsets_buffer->size() + sizeof(int32_t) * (n + 1));
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                    status = offsets_buffer->Resize(
+                            offsets_buffer->size() + sizeof(int32_t) * (n + 1));
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+
 
                 status = data_buffer->Resize(
                         data_buffer->size() +
@@ -363,7 +364,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
 
                 columns[i]->length += n;
-
+                column_sizes[i] += string_size;
                 increment_num_bytes(string_size);
                 break;
             }
@@ -381,6 +382,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         (1, offset), sizeof(int64_t) * n);
 
                 columns[i]->length += n;
+                column_sizes[i] += sizeof(int64_t) * n;
                 increment_num_bytes(n * sizeof(int64_t));
                 break;
             }
@@ -398,6 +400,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                         (1, offset), sizeof(double_t) * n);
 
                 columns[i]->length += n;
+                column_sizes[i] += sizeof(double_t) * n;
                 increment_num_bytes(n * sizeof(double_t));
                 break;
             }
@@ -476,6 +479,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 std::memcpy(values_data, &record[head], byte_widths[i]);
 
                 columns[i]->length++;
+                column_sizes[i] += byte_widths[i];
                 head += byte_widths[i];
                 break;
             }
@@ -496,6 +500,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 std::memcpy(dest, &record[head], byte_widths[i]);
 
                 head += byte_widths[i];
+                column_sizes[i] += byte_widths[i];
                 columns[i]->length++;
                 break;
             }
