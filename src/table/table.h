@@ -141,6 +141,8 @@ public:
 
     std::shared_ptr<arrow::ChunkedArray> get_valid_column();
 
+    int get_num_cols() const;
+
     void
     insert_record(std::vector<std::string_view> values, int32_t *byte_widths);
 
@@ -175,6 +177,8 @@ private:
 
     // Total number of rows in all blocks of the table.
     int num_rows;
+
+    int num_cols;
 
     // The value at index i is the number of records before block i. The value
     // at index 0 is always 0.

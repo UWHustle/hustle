@@ -13,6 +13,7 @@ Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
           num_rows(0), block_capacity(block_capacity), block_row_offsets({}) {
 
     fixed_record_width = compute_fixed_record_width(schema);
+    num_cols = schema->num_fields();
 }
 
 
@@ -25,6 +26,7 @@ Table::Table(
     // TODO(nicholas): Be consistent with how/when block_row_offsets is
     //  initialized.
     schema = std::move(record_batches[0]->schema());
+    num_cols = schema->num_fields();
     // Must be called only after schema is set
     fixed_record_width = compute_fixed_record_width(schema);
 
@@ -80,6 +82,10 @@ void Table::insert_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
 }
 
 int Table::get_num_rows() const{
+    return num_rows;
+}
+
+int Table::get_num_cols() const{
     return num_rows;
 }
 
