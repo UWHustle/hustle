@@ -96,14 +96,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         return out_table;
 
     }
-
-//    void SelectComposite::set_children(std::shared_ptr<Operator> left_child,
-//                                       std::shared_ptr<Operator> right_child,
-//                                       FilterOperator filter_operator) {
-//
-//    }
-
-
+    
     Select::Select(
             arrow::compute::CompareOperator compare_operator,
             std::string column_name,
