@@ -57,8 +57,6 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
     std::shared_ptr<Table> SelectComposite::runOperator
             (std::vector<std::shared_ptr<Table>> tables) {
 
-
-
         arrow::Status status;
         // operator only uses first table
         auto table = tables[0];
@@ -170,6 +168,26 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         }
 
         return out_table;
+    }
+
+    // Convention: If the Operator has only one child, it should be the left
+    // child; the right child should be null.
+    void Select::set_children(std::shared_ptr<Operator> left_child,
+                              std::shared_ptr<Operator> right_child,
+                              FilterOperator filter_operator) {
+
+        left_child_ = left_child;
+        right_child_ = right_child;
+
+
+        // Make sure filter_operator_ is properly set if the node does not
+        // have two children. NONE lets us know (1) we have 0 or 1 child and
+        // (2) we do not need to AND/OR child filters.
+        if (left_child_ == nullptr || right_child == nullptr) {
+            filter_operator_ = NONE;
+        }
+
+        filter_operator_ = filter_operator;
     }
 
 } // namespace operators
