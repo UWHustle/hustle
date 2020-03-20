@@ -50,11 +50,6 @@ public:
     std::shared_ptr<Table> runOperator
             (std::vector<std::shared_ptr<Table>> tables) override;
 
-//    void set_children(
-//            std::shared_ptr<Operator> left_child,
-//            std::shared_ptr<Operator> right_child,
-//            FilterOperator filter_operator) override;
-
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block) override;
 
