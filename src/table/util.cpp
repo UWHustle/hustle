@@ -93,7 +93,14 @@ std::shared_ptr<Table> read_from_file(const char *path) {
     arrow::Status status;
 
     std::shared_ptr<arrow::io::ReadableFile> infile;
-    status = arrow::io::ReadableFile::Open(path, &infile);
+    auto result = arrow::io::ReadableFile::Open(path,
+            arrow::default_memory_pool());
+    if (result.ok()) {
+        infile = result.ValueOrDie();
+    }
+    else {
+        evaluate_status(result.status(), __FUNCTION__, __LINE__);
+    }
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> record_batch_reader;
@@ -138,7 +145,13 @@ void write_to_file(const char *path, Table &table) {
 
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    status = arrow::io::FileOutputStream::Open(path, &file);
+    auto result = arrow::io::FileOutputStream::Open(path, false);
+    if (result.ok()) {
+        file = result.ValueOrDie();
+    }
+    else {
+        evaluate_status(result.status(), __FUNCTION__, __LINE__);
+    }
     evaluate_status(status, __FUNCTION__, __LINE__);
     status = arrow::ipc::RecordBatchFileWriter::Open(
             &*file, table.get_schema()).status();
