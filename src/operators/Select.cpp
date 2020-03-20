@@ -67,7 +67,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
 
         arrow::compute::Datum out_col;
         std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
-        out_cols.reserve(table->get_schema()->num_fields());
+        out_cols.reserve(table->get_num_cols());
 
 
         for (int i=0; i<table->get_num_blocks(); i++) {
@@ -77,7 +77,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
             arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
 
-            for (int j = 0; j < table->get_schema()->num_fields(); j++) {
+            for (int j = 0; j < table->get_num_cols(); j++) {
 
                 status = arrow::compute::Filter(&function_context,
                                                 block->get_column(j),
@@ -155,7 +155,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
             auto block = table->get_block(i);
             auto block_filter = get_filter(block);
 
-            for (int j = 0; j < table->get_schema()->num_fields(); j++) {
+            for (int j = 0; j < table->get_num_cols(); j++) {
                 status = arrow::compute::Filter(&function_context,
                                                 block->get_column(j),
                                                 block_filter,

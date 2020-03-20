@@ -120,7 +120,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             // TODO(nicholas): Note that we are skipping the valid column,
             //  since Table cannot see it!
 
-            for (int k = 0; k < left_table->get_schema()->num_fields(); k++) {
+            for (int k = 0; k < left_table->get_num_cols(); k++) {
                 status = arrow::compute::Take(&function_context,
                                               *left_table->get_column(k),
                                               *left_indices, take_options,
@@ -139,8 +139,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             // Skip the valid column, since we already took the bvalid column
             // from the left table.
             //TODO(nicholas) make the valid column visible to Table somehow.
-            for (int k = 0; k < right_table->get_block(0)->get_schema()->
-            num_fields(); k++) {
+            for (int k = 0; k < right_table->get_block(0)->get_num_cols(); k++) {
                 // Do not duplicate the join column (natural join)
                 if (right_table->get_block(0)->get_schema()->field(k)->name() !=
                 right_join_column_name_) {
