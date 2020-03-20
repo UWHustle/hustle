@@ -119,9 +119,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
 //            auto *left_col = new arrow::compute::Datum();
             std::shared_ptr<arrow::ChunkedArray> left_col;
 
-            // TODO(nicholas): Note that we are skipping the valid column,
-            //  since Table cannot see it!
-
             for (int k = 0; k < left_table->get_num_cols(); k++) {
                 status = arrow::compute::Take(&function_context,
                                               *left_table->get_column(k),
@@ -131,16 +128,8 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
                 out_table_data.push_back(left_col);
             }
 
-            // NOTE: Arrow's Take API is a little weird. If you pass in an
-            // Array of indices to select from a ChunkedArray of values, you
-            // must use a ChunkedArray for the output. A Datum will not work.
-            // Furthermore, the values and indices objects cannot be
-            // shared_ptrs; only the output object is.
             std::shared_ptr<arrow::ChunkedArray> right_col;
 
-            // Skip the valid column, since we already took the bvalid column
-            // from the left table.
-            //TODO(nicholas) make the valid column visible to Table somehow.
             for (int k = 0; k < right_table->get_block(0)->get_num_cols(); k++) {
                 // Do not duplicate the join column (natural join)
                 if (right_table->get_block(0)->get_schema()->field(k)->name() !=
@@ -158,7 +147,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
 
             for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
             chunk_i++) {
-                int c = 0;
                 for (auto &col : out_table_data) {
                     out_block_data.push_back(col->chunk(chunk_i)->data());
                 }
