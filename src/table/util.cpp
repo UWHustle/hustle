@@ -142,7 +142,6 @@ void write_to_file(const char *path, Table &table) {
     std::shared_ptr<arrow::ipc::RecordBatchWriter> record_batch_writer;
     arrow::Status status;
 
-
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     auto result = arrow::io::FileOutputStream::Open(path, false);
@@ -165,6 +164,9 @@ void write_to_file(const char *path, Table &table) {
     auto blocks = table.get_blocks();
 
     for (int i = 0; i < blocks.size(); i++) {
+        // IMPORTANT: The buffer size must be consistent with the ArrayData
+        // length, or else data will not be properly written to file.
+        blocks[i]->truncate_buffers();
         status = record_batch_writer->WriteRecordBatch(
                 *blocks[i]->get_records());
         evaluate_status(status, __FUNCTION__, __LINE__);
