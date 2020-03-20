@@ -225,6 +225,8 @@ public:
             column_data,
             int32_t offset, int64_t length);
 
+    void truncate_buffers();
+
 private:
 
     // Block ID
