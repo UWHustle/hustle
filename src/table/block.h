@@ -189,6 +189,8 @@ public:
      */
     int get_num_rows() const;
 
+    int get_num_cols() const;
+
     /**
      * Insert a record into the Block.
      *
@@ -255,6 +257,9 @@ private:
 
     // Number of rows in the Block, including valid and invalid rows.
     int num_rows;
+
+    // Number of columns in the Block, excluding the valid column.
+    int num_cols;
 
 };
 

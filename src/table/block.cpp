@@ -14,6 +14,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
 
     arrow::Status status;
 
+    num_cols = schema->num_fields();
 
     int fixed_record_width = compute_fixed_record_width(schema);
     int num_string_cols = 0;
@@ -133,6 +134,7 @@ capacity) : capacity(capacity), id(id), num_bytes(0) {
 
     num_rows = record_batch->num_rows();
     schema = std::move(record_batch->schema());
+    num_cols = schema->num_fields();
     for (int i = 0; i < record_batch->num_columns(); i++) {
         columns.push_back(record_batch->column_data(i));
         column_sizes.push_back(0);
@@ -719,4 +721,8 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
     increment_num_rows();
 
     return true;
+}
+
+int Block::get_num_cols() const {
+    return num_cols;
 }
