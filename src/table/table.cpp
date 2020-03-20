@@ -145,13 +145,21 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     int offset = 0;
     int length = l;
 
+    // TODO(nicholas): Optimize this. Calls to schema->field(i) is non-
+    //  neglible since we call it once for each column of each record.
+    int column_types [num_cols];
+
+    for (int i=0; i<num_cols; i++) {
+        column_types[i] = schema->field(i)->type()->id();
+    }
+
     for (int row=0; row<l; row++) {
 
         int record_size = 0;
 
         for (int i = 0; i < num_cols; i++) {
 
-            switch (schema->field(i)->type()->id()) {
+            switch (column_types[i]) {
 
                 case arrow::Type::STRING: {
                     // TODO(nicholas) schema offsets!!!!
