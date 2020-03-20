@@ -108,6 +108,12 @@ std::shared_ptr<Table> Aggregate::runOperator
     return out_table;
 }
 
+    void Aggregate::set_children(std::shared_ptr<Operator> left_child,
+                                 std::shared_ptr<Operator> right_child,
+                                 FilterOperator filter_operator) {
+
+    }
+
 
 } // namespace operators
 } // namespace hustle

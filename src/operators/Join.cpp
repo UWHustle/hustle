@@ -15,6 +15,8 @@ Join::Join(std::string left_column_name, std::string right_column_name) {
     right_join_column_name_ = std::move(right_column_name);
 }
 
+
+
 std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
     right_table) {
 
@@ -173,6 +175,13 @@ Join::runOperator(std::shared_ptr<arrow::Schema> out_schema,
                   arrow::compute::Datum left_join_val,
                   std::shared_ptr<Table> right) {
     return std::vector<std::shared_ptr<Block>>();
+}
+
+    void Join::set_children(
+            std::shared_ptr<Operator> left_child,
+            std::shared_ptr<Operator> right_child,
+            FilterOperator filter_operator) {
+
 }
 
     std::shared_ptr<Table> Join::runOperator(

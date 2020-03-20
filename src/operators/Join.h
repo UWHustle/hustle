@@ -27,6 +27,10 @@ class Join : public Operator{
           std::shared_ptr<arrow::Schema> out_schema,
             arrow::compute::Datum left_join_val, std::shared_ptr<Table> right);
 
+    void set_children(
+            std::shared_ptr<Operator> left_child,
+            std::shared_ptr<Operator> right_child,
+            FilterOperator filter_operator) override;
   /**
    * Perform a natural join on two tables using hash join. Projections are not
    * yet supported; all columns from both tables will be returned in the
