@@ -149,7 +149,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
         int record_size = 0;
 
-        for (int i = 0; i < schema->num_fields(); i++) {
+        for (int i = 0; i < num_cols; i++) {
 
             switch (schema->field(i)->type()->id()) {
 
@@ -225,7 +225,7 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
     std::shared_ptr<Block> block = get_block_for_insert();
 
     int32_t record_size = 0;
-    for (int i = 0; i < schema->num_fields(); i++) {
+    for (int i = 0; i < num_cols; i++) {
         record_size += byte_widths[i];
     }
 
@@ -249,7 +249,7 @@ void Table::insert_record(std::vector<std::string_view> values, int32_t
 
     int32_t record_size = 0;
     // record size is incorrectly computed!
-    for (int i = 0; i < schema->num_fields(); i++) {
+    for (int i = 0; i < num_cols; i++) {
         record_size += byte_widths[i];
     }
 
