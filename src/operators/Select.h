@@ -11,9 +11,15 @@
 namespace hustle {
 namespace operators {
 
-class Select : public Operator{
- public:
-  Select(
+class SelectOperator : Operator {
+public:
+    virtual arrow::compute::Datum get_filter(std::shared_ptr<Block> block) = 0;
+};
+
+class Select : public SelectOperator{
+public:
+
+    Select(
         arrow::compute::CompareOperator compare_operator,
         std::string column_name,
         arrow::compute::Datum column_value
@@ -23,48 +29,38 @@ class Select : public Operator{
     std::shared_ptr<Table> runOperator
     (std::vector<std::shared_ptr<Table>> tables) override;
 
-    void set_children(
-            std::shared_ptr<Select> left_child,
-            std::shared_ptr<Select> right_child,
-            FilterOperator filter_operator);
-
     arrow::compute::Datum get_filter
-            (std::shared_ptr<Block> block);
+            (std::shared_ptr<Block> block) override;
 
 
 private:
     arrow::compute::CompareOperator compare_operator_;
     std::string column_name_;
     arrow::compute::Datum column_value_;
-
-    std::shared_ptr<Select> left_child_;
-    std::shared_ptr<Select> right_child_;
-    FilterOperator filter_operator_;
-
 };
 
-class SelectComposite : Operator{
+class SelectComposite : public SelectOperator{
 public:
     SelectComposite(
-        std::shared_ptr<Select> left_child,
-        std::shared_ptr<Select> right_child,
+        std::shared_ptr<SelectOperator> left_child,
+        std::shared_ptr<SelectOperator> right_child,
         FilterOperator filter_operator
     );
 
     std::shared_ptr<Table> runOperator
             (std::vector<std::shared_ptr<Table>> tables) override;
-//
+
 //    void set_children(
 //            std::shared_ptr<Operator> left_child,
 //            std::shared_ptr<Operator> right_child,
 //            FilterOperator filter_operator) override;
 
     arrow::compute::Datum get_filter
-            (std::shared_ptr<Block> block);
+            (std::shared_ptr<Block> block) override;
 
 private:
-    std::shared_ptr<Select> left_child_;
-    std::shared_ptr<Select> right_child_;
+    std::shared_ptr<SelectOperator> left_child_;
+    std::shared_ptr<SelectOperator> right_child_;
     FilterOperator filter_operator_;
 };
 
