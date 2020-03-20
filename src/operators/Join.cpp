@@ -170,13 +170,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     return out_table;
 }
 
-std::vector<std::shared_ptr<Block>>
-Join::runOperator(std::shared_ptr<arrow::Schema> out_schema,
-                  arrow::compute::Datum left_join_val,
-                  std::shared_ptr<Table> right) {
-    return std::vector<std::shared_ptr<Block>>();
-}
-
     void Join::set_children(
             std::shared_ptr<Operator> left_child,
             std::shared_ptr<Operator> right_child,
