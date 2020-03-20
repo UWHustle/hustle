@@ -12,12 +12,14 @@ namespace operators {
 SelectComposite::SelectComposite(
         std::shared_ptr<Select> left_child,
         std::shared_ptr<Select> right_child,
-        FilterOperator filter_operator) {
+        FilterOperator filter_operator){
   left_child_ = left_child;
   right_child_ = right_child;
   filter_operator_ = filter_operator;
 }
 
+// TODO(nicholas): If there is only one child, it is assumed to be the left
+//  child.
 arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         block) {
 
@@ -30,7 +32,6 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
     // we would just use Select.
 
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-
 
     arrow::compute::Datum block_filter;
 
@@ -47,6 +48,9 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
 
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
+        }
+        case NONE: {
+            block_filter = left_child_filter;
         }
     }
 
@@ -93,11 +97,11 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
 
     }
 
-    void SelectComposite::set_children(std::shared_ptr<Operator> left_child,
-                                       std::shared_ptr<Operator> right_child,
-                                       FilterOperator filter_operator) {
-
-    }
+//    void SelectComposite::set_children(std::shared_ptr<Operator> left_child,
+//                                       std::shared_ptr<Operator> right_child,
+//                                       FilterOperator filter_operator) {
+//
+//    }
 
 
     Select::Select(
@@ -178,8 +182,8 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
 
     // Convention: If the Operator has only one child, it should be the left
     // child; the right child should be null.
-    void Select::set_children(std::shared_ptr<Operator> left_child,
-                              std::shared_ptr<Operator> right_child,
+    void Select::set_children(std::shared_ptr<Select> left_child,
+                              std::shared_ptr<Select> right_child,
                               FilterOperator filter_operator) {
 
         left_child_ = left_child;

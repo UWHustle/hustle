@@ -24,9 +24,9 @@ class Select : public Operator{
     (std::vector<std::shared_ptr<Table>> tables) override;
 
     void set_children(
-            std::shared_ptr<Operator> left_child,
-            std::shared_ptr<Operator> right_child,
-            FilterOperator filter_operator) override;
+            std::shared_ptr<Select> left_child,
+            std::shared_ptr<Select> right_child,
+            FilterOperator filter_operator);
 
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block);
@@ -36,6 +36,9 @@ private:
     arrow::compute::CompareOperator compare_operator_;
     std::string column_name_;
     arrow::compute::Datum column_value_;
+
+    std::shared_ptr<Select> left_child_;
+    std::shared_ptr<Select> right_child_;
     FilterOperator filter_operator_;
 
 };
@@ -50,11 +53,11 @@ public:
 
     std::shared_ptr<Table> runOperator
             (std::vector<std::shared_ptr<Table>> tables) override;
-
-    void set_children(
-            std::shared_ptr<Operator> left_child,
-            std::shared_ptr<Operator> right_child,
-            FilterOperator filter_operator) override;
+//
+//    void set_children(
+//            std::shared_ptr<Operator> left_child,
+//            std::shared_ptr<Operator> right_child,
+//            FilterOperator filter_operator) override;
 
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block);

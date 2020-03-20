@@ -158,12 +158,12 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     return out_table;
 }
 
-    void Join::set_children(
-            std::shared_ptr<Operator> left_child,
-            std::shared_ptr<Operator> right_child,
-            FilterOperator filter_operator) {
-
-}
+//    void Join::set_children(
+//            std::shared_ptr<Operator> left_child,
+//            std::shared_ptr<Operator> right_child,
+//            FilterOperator filter_operator) {
+//
+//}
 
     std::shared_ptr<Table> Join::runOperator(
             std::vector<std::shared_ptr<Table>> tables) {

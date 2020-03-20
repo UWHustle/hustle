@@ -24,10 +24,10 @@ class Join : public Operator{
   std::shared_ptr<Table> runOperator
   (std::vector<std::shared_ptr<Table>> table) override;
 
-    void set_children(
-            std::shared_ptr<Operator> left_child,
-            std::shared_ptr<Operator> right_child,
-            FilterOperator filter_operator) override;
+//    void set_children(
+//            std::shared_ptr<Operator> left_child,
+//            std::shared_ptr<Operator> right_child,
+//            FilterOperator filter_operator) override;
   /**
    * Perform a natural join on two tables using hash join. Projections are not
    * yet supported; all columns from both tables will be returned in the

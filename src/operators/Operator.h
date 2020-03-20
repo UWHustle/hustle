@@ -24,15 +24,15 @@ public:
 
 //    virtual bool is_leaf() = 0;
 
-    virtual void set_children(
-            std::shared_ptr<Operator> left_child,
-            std::shared_ptr<Operator> right_child,
-            FilterOperator filter_operator) = 0;
+//    virtual void set_children(
+//            std::shared_ptr<Operator> left_child,
+//            std::shared_ptr<Operator> right_child,
+//            FilterOperator filter_operator) = 0;
 
-protected:
-    std::shared_ptr<Operator> left_child_;
-    std::shared_ptr<Operator> right_child_;
-    bool is_leaf;
+//protected:
+//    std::shared_ptr<Operator> left_child_;
+//    std::shared_ptr<Operator> right_child_;
+//    bool is_leaf;
 };
 
 //    virtual void set_children(std::shared_ptr<Operator> left_child,
