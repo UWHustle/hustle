@@ -86,7 +86,7 @@ int Table::get_num_rows() const{
 }
 
 int Table::get_num_cols() const{
-    return num_rows;
+    return num_cols;
 }
 
 std::shared_ptr<Block> Table::get_block(int block_id) const {
