@@ -14,11 +14,17 @@ enum FilterOperator {
 };
 
 // TODO(nicholas): should operators return empty table or nullptr?
-class Operator{
+class Operator {
 public:
+
+    std::shared_ptr<Operator> left_child;
+    std::shared_ptr<Operator> right_child;
+    bool is_leaf;
+
     // TODO(nicholas): abide by naming conventions
     virtual std::shared_ptr<Table> runOperator
-        (std::vector<std::shared_ptr<Table>> tables) = 0;
+            (std::vector<std::shared_ptr<Table>> tables) = 0;
+};
 
 //    virtual void set_children(std::shared_ptr<Operator> left_child,
 //            std::shared_ptr<Operator> right_child) = 0;
@@ -26,7 +32,7 @@ public:
 //    std::shared_ptr<Operator> left_child_;
 //    std::shared_ptr<Operator> right_child_;
 //    FilterOperator filter_operator_;
-};
+
 
 //class OperatorLeaf : public Operator {
 //    public:
