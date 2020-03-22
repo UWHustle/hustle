@@ -53,7 +53,10 @@ public:
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block) override;
 
-    std::vector<arrow::compute::Datum> get_filter
+//    std::vector<arrow::compute::Datum> get_filter
+//            (std::shared_ptr<Table> table);
+
+    arrow::compute::Datum get_filter
             (std::shared_ptr<Table> table);
 
 private:

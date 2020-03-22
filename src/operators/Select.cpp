@@ -18,18 +18,21 @@ SelectComposite::SelectComposite(
   filter_operator_ = filter_operator;
 }
 
-std::vector<arrow::compute::Datum> SelectComposite::get_filter
+arrow::compute::Datum SelectComposite::get_filter
     (std::shared_ptr<Table> table) {
 
+    arrow::ArrayVector array_vector;
     std::vector<arrow::compute::Datum> block_filters;
 
     for (int i=0; i<table->get_num_blocks(); i++) {
         auto block = table->get_block(i);
         auto block_filter = get_filter(block);
-        block_filters.push_back(block_filter);
+        array_vector.push_back(block_filter.make_array());
     }
 
-    return block_filters;
+    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
+    arrow::compute::Datum out(chunked_filter);
+    return out;
 }
 
 arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
