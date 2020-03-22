@@ -5,6 +5,7 @@
 #include <arrow/compute/api.h>
 
 #include <table/util.h>
+#include <iostream>
 
 
 namespace hustle {
@@ -32,8 +33,11 @@ std::unordered_map<std::string, arrow::compute::Datum> Aggregate::get_groups
                 std::static_pointer_cast<arrow::StringArray>(chunk);
 
         for (int row=0; row<group_by_chunk->length(); row++) {
-            auto int64_builder = hash[group_by_chunk->GetString(row)];
-            status = int64_builder->Append(row);
+            if (hash[group_by_chunk->GetString(row)] == nullptr) {
+                auto new_builder = std::make_shared<arrow::Int64Builder>();
+                hash[group_by_chunk->GetString(row)] = new_builder;
+        }
+            status = hash[group_by_chunk->GetString(row)]->Append(row);
             evaluate_status(status, __FUNCTION__, __LINE__);
         }
     }
@@ -57,6 +61,14 @@ std::shared_ptr<Table> Aggregate::run_operator
 (std::vector<std::shared_ptr<Table>> tables) {
     // operator only uses first table, ignore others
     auto table = tables[0];
+
+    if (group_by_column_name_ != "") {
+        auto group_map = get_groups(table);
+
+        for (auto &kv : group_map) {
+            std::cout << kv.first << std::endl;
+        }
+    }
 
     if (table == nullptr) {
         return nullptr;
