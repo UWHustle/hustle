@@ -311,7 +311,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             valid->buffers[1]);
 
-    status = valid_buffer->Resize(valid_buffer->size() + n/8 + 1);
+    status = valid_buffer->Resize(valid_buffer->size() + n/8 + 1, false);
     valid_buffer->ZeroPadding(); // Ensure the additional byte is zeroed
 
     // TODO(nicholas)
@@ -340,8 +340,8 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 if ((num_rows + n + 2)*sizeof(int64_t) >
                     offsets_buffer->capacity()) {
                     status = offsets_buffer->Resize(
-                            offsets_buffer->capacity() + sizeof(int32_t) * (n +
-                                                                            1));
+                            offsets_buffer->capacity() +
+                            sizeof(int32_t) * (n + 1), false);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                 }
 
@@ -355,7 +355,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
 
                 if ( column_sizes[i] + string_size > data_buffer->capacity()) {
                 status = data_buffer->Resize(
-                        column_sizes[i] + string_size);
+                        column_sizes[i] + string_size, false);
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 }
 
@@ -425,7 +425,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 if (column_sizes[i] + sizeof(int64_t) * n >
                     data_buffer->capacity()) {
                     status = data_buffer->Resize(
-                            data_buffer->size() + sizeof(int64_t) * n);
+                            data_buffer->size() + sizeof(int64_t) * n, false);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                 }
 
@@ -446,7 +446,7 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 if (column_sizes[i] + sizeof(double_t) * n >
                     data_buffer->capacity()) {
                     status = data_buffer->Resize(
-                            data_buffer->size() + sizeof(double_t) * n);
+                            data_buffer->size() + sizeof(double_t) * n, false);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                 }
 
@@ -491,7 +491,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     // Set valid bit
     auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             valid->buffers[1]);
-    status = valid_buffer->Resize(valid_buffer->size() + 1);
+    status = valid_buffer->Resize(valid_buffer->size() + 1, false);
     evaluate_status(status, __FUNCTION__, __LINE__);
     set_valid(num_rows, true);
     valid->length++;
@@ -513,12 +513,12 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 // Use index i-1 because byte_widths does not include the byte
                 // width of the valid column.
                 status = data_buffer->Resize(
-                        data_buffer->size() + byte_widths[i]);
+                        data_buffer->size() + byte_widths[i], false);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
                 status = offsets_buffer->Resize(
-                        offsets_buffer->size() + sizeof(int32_t));
+                        offsets_buffer->size() + sizeof(int32_t), false);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
@@ -547,7 +547,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                         columns[i]->buffers[1]);
 
                 status = data_buffer->Resize(
-                        data_buffer->size() + byte_widths[i]);
+                        data_buffer->size() + byte_widths[i], false);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
@@ -611,7 +611,7 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
     // Set valid bit
     auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             valid->buffers[1]);
-    status = valid_buffer->Resize(valid_buffer->size() + 1);
+    status = valid_buffer->Resize(valid_buffer->size() + 1, false);
     evaluate_status(status, __FUNCTION__, __LINE__);
     set_valid(num_rows, true);
     valid->length++;
@@ -641,7 +641,7 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                     data_buffer->capacity()) {
                     // TODO(nicholas): do we need a +1 here too?
                     status = data_buffer->Resize(
-                            data_buffer->size() + record[i].length());
+                            data_buffer->size() + record[i].length(), false);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                 }
 
@@ -653,7 +653,7 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                     // equals the current size of the buffer. To force
                     // resizing in this case, we add +1.
                     status = offsets_buffer->Resize(
-                            (num_rows + 2) * sizeof(int32_t)+1);
+                            (num_rows + 2) * sizeof(int32_t)+1), false;
                     evaluate_status(status, __FUNCTION__, __LINE__);
                     // TODO(nicholas): is this necessary?
                     offsets_buffer->ZeroPadding();
@@ -693,7 +693,7 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                     // equals the current size of the buffer. To force
                     // resizing in this case, we add +1.
                     status = data_buffer->Resize(
-                            data_buffer->capacity() + sizeof(int64_t)+1);
+                            data_buffer->capacity() + sizeof(int64_t)+1, false);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                 }
 
@@ -743,12 +743,12 @@ void Block::truncate_buffers() {
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[2]);
 
-                status = data_buffer->Resize(column_sizes[i]);
+                status = data_buffer->Resize(column_sizes[i], true);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
 
                 status = offsets_buffer->Resize((num_rows + 1)*sizeof
-                        (int32_t));
+                        (int32_t), true);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
                 break;
@@ -760,7 +760,7 @@ void Block::truncate_buffers() {
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
 
-                status = data_buffer->Resize(num_rows * sizeof(int64_t));
+                status = data_buffer->Resize(num_rows * sizeof(int64_t), true);
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 break;
             }
