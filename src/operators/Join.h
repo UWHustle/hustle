@@ -40,7 +40,9 @@ public:
     */
     std::shared_ptr<Table> hash_join(
             std::shared_ptr<Table> left_table,
-            std::shared_ptr<Table> right_table);
+            arrow::compute::Datum left_selection,
+            std::shared_ptr<Table> right_table,
+            arrow::compute::Datum right_selection);
 
 private:
     std::string left_join_column_name_;

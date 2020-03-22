@@ -15,13 +15,11 @@ Join::Join(std::string left_column_name, std::string right_column_name) {
     right_join_column_name_ = std::move(right_column_name);
 }
 
-void test(arrow::compute::Datum array) {
-
-
-}
-
-std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
-    right_table) {
+std::shared_ptr<Table> Join::hash_join(
+        std::shared_ptr<Table> left_table,
+        arrow::compute::Datum left_selection,
+        std::shared_ptr<Table> right_table,
+        arrow::compute::Datum right_selection) {
 
     arrow::Status status;
 
@@ -30,7 +28,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     for (auto &field : right_table->get_schema()->fields()) {
-        // Exclude extra join column and the right table's valid column
         if (field->name() != right_join_column_name_) {
             status = schema_builder.AddField(field);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -47,24 +44,35 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
 
     std::vector<std::shared_ptr<Block>> out_blocks;
 
-    int out_block_counter = 0;
+    // If a selection was previously performed on the left table, apply
+    // it to the join column.
+//    if (left_selection.is_collection()) {
+//        arrow::compute::FunctionContext function_context(
+//                arrow::default_memory_pool());
+//        arrow::compute::TakeOptions take_options;
+//        arrow::compute::out
+//
+//                arrow::compute::Take(&function_context, join_col, left_selection,
+//                                     take_options, join_col);
+//    }
 
     // Build phase
-    for (int i=0; i<right_table->get_num_blocks(); i++) {
-
-        auto right_block = right_table->get_block(i);
-        auto join_col = right_block->get_column_by_name
+    auto join_col = right_table->get_column_by_name
                 (right_join_column_name_);
-        // TODO(nicholas): for now, we assume the join column is INT64 type.
-        auto join_col_casted = std::static_pointer_cast<arrow::Int64Array>(
-                join_col);
 
-        for (int row=0; row<right_block->get_num_rows(); row++) {
+    for (int i=0; i<join_col->num_chunks(); i++) {
+        // TODO(nicholas): for now, we assume the join column is INT64 type.
+        auto join_chunk = std::static_pointer_cast<arrow::Int64Array>(
+                join_col->chunk(i));
+
+        for (int row=0; row<join_chunk->length(); row++) {
             // TODO(nicholas): Should I store block_row_offset + row instead?
-            record_id rid = {right_block->get_id(), row};
-            hash[join_col_casted->Value(row)] = rid;
+            // index i corresponds to the block id.
+            record_id rid = {i, row};
+            hash[join_chunk->Value(row)] = rid;
         }
     }
+
 
     arrow::Int64Builder left_indices_builder;
     arrow::Int64Builder right_indices_builder;
@@ -158,13 +166,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
 
     return out_table;
 }
-
-//    void Join::set_children(
-//            std::shared_ptr<Operator> left_child,
-//            std::shared_ptr<Operator> right_child,
-//            FilterOperator filter_operator) {
-//
-//}
 
     std::shared_ptr<Table> Join::run_operator(
             std::vector<std::shared_ptr<Table>> tables) {
