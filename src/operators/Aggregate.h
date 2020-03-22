@@ -19,9 +19,11 @@ enum AggregateKernels {
 
 class Aggregate : public Operator{
  public:
-  Aggregate(AggregateKernels aggregate_kernel, std::string column_name, 
+  Aggregate(AggregateKernels aggregate_kernel, std::string column_name,
           std::string group_by_column_name);
 
+    std::unordered_map<std::string, arrow::compute::Datum>  get_groups
+    (std::shared_ptr<Table> table);
   // Operator.h
   std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
   tables) override;
@@ -34,7 +36,9 @@ class Aggregate : public Operator{
   AggregateKernels aggregate_kernel_;
   std::string aggregate_column_name_;
   std::string group_by_column_name_;
-};
+
+
+    };
 
 } // namespace operators
 } // namespace hustle

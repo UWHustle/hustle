@@ -18,7 +18,40 @@ Aggregate::Aggregate(AggregateKernels aggregate_kernel,
     group_by_column_name_ = std::move(group_by_column_name);
 }
 
+std::unordered_map<std::string, arrow::compute::Datum> Aggregate::get_groups
+(std::shared_ptr<Table> table) {
 
+    arrow::Status status;
+    std::unordered_map<std::string, std::shared_ptr<arrow::Int64Builder>> hash;
+
+    // TODO(nicholas): For now, we assume the GROUP BY column is string type.
+    auto group_by_col = table->get_column_by_name(group_by_column_name_);
+
+    for (auto &chunk :  group_by_col->chunks()) {
+        auto group_by_chunk =
+                std::static_pointer_cast<arrow::StringArray>(chunk);
+
+        for (int row=0; row<group_by_chunk->length(); row++) {
+            auto int64_builder = hash[group_by_chunk->GetString(row)];
+            status = int64_builder->Append(row);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
+    }
+
+    std::unordered_map<std::string, arrow::compute::Datum> out_map;
+
+    for (auto &key_value_pair : hash) {
+
+        std::shared_ptr<arrow::Array> out_array;
+        status = hash[key_value_pair.first]->Finish(&out_array);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+
+        arrow::compute::Datum out_datum(out_array);
+        out_map[key_value_pair.first] = out_datum;
+    }
+
+    return out_map;
+}
 
 std::shared_ptr<Table> Aggregate::run_operator
 (std::vector<std::shared_ptr<Table>> tables) {
