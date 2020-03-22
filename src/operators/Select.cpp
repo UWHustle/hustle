@@ -18,8 +18,20 @@ SelectComposite::SelectComposite(
   filter_operator_ = filter_operator;
 }
 
-// TODO(nicholas): If there is only one child, it is assumed to be the left
-//  child.
+std::vector<arrow::compute::Datum> SelectComposite::get_filter
+    (std::shared_ptr<Table> table) {
+
+    std::vector<arrow::compute::Datum> block_filters;
+
+    for (int i=0; i<table->get_num_blocks(); i++) {
+        auto block = table->get_block(i);
+        auto block_filter = get_filter(block);
+        block_filters.push_back(block_filter);
+    }
+
+    return block_filters;
+}
+
 arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         block) {
 
