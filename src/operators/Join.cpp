@@ -104,56 +104,56 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
         }
     }
 
-        // Note that ArrayBuilders are automatically reset by default after
-        // calling Finish()
-        status = left_indices_builder.Finish(&left_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        status = right_indices_builder.Finish(&right_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    // Note that ArrayBuilders are automatically reset by default after
+    // calling Finish()
+    status = left_indices_builder.Finish(&left_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    status = right_indices_builder.Finish(&right_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-        // If no tuples will be outputted, do not create a new block.
-        if (left_indices->length() > 0) {
-            arrow::compute::FunctionContext function_context(
-                    arrow::default_memory_pool());
-            arrow::compute::TakeOptions take_options;
+    // If no tuples will be outputted, do not create a new block.
+    if (left_indices->length() > 0) {
+        arrow::compute::FunctionContext function_context(
+                arrow::default_memory_pool());
+        arrow::compute::TakeOptions take_options;
 //            auto *left_col = new arrow::compute::Datum();
-            std::shared_ptr<arrow::ChunkedArray> left_col;
+        std::shared_ptr<arrow::ChunkedArray> left_col;
 
-            for (int k = 0; k < left_table->get_num_cols(); k++) {
+        for (int k = 0; k < left_table->get_num_cols(); k++) {
+            status = arrow::compute::Take(&function_context,
+                                          *left_table->get_column(k),
+                                          *left_indices, take_options,
+                                          &left_col);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+            out_table_data.push_back(left_col);
+        }
+
+        std::shared_ptr<arrow::ChunkedArray> right_col;
+
+        for (int k = 0; k < right_table->get_block(0)->get_num_cols(); k++) {
+            // Do not duplicate the join column (natural join)
+            if (right_table->get_block(0)->get_schema()->field(k)->name() !=
+            right_join_column_name_) {
                 status = arrow::compute::Take(&function_context,
-                                              *left_table->get_column(k),
-                                              *left_indices, take_options,
-                                              &left_col);
+                                              *right_table->get_column(k),
+                                              *right_indices, take_options,
+                                              &right_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                out_table_data.push_back(left_col);
-            }
-
-            std::shared_ptr<arrow::ChunkedArray> right_col;
-
-            for (int k = 0; k < right_table->get_block(0)->get_num_cols(); k++) {
-                // Do not duplicate the join column (natural join)
-                if (right_table->get_block(0)->get_schema()->field(k)->name() !=
-                right_join_column_name_) {
-                    status = arrow::compute::Take(&function_context,
-                                                  *right_table->get_column(k),
-                                                  *right_indices, take_options,
-                                                  &right_col);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                    out_table_data.push_back(right_col);
-                }
-            }
-
-            std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
-
-            for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
-            chunk_i++) {
-                for (auto &col : out_table_data) {
-                    out_block_data.push_back(col->chunk(chunk_i)->data());
-                }
-                out_table->insert_records(out_block_data);
-                out_block_data.clear();
+                out_table_data.push_back(right_col);
             }
         }
+
+        std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
+
+        for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
+        chunk_i++) {
+            for (auto &col : out_table_data) {
+                out_block_data.push_back(col->chunk(chunk_i)->data());
+            }
+            out_table->insert_records(out_block_data);
+            out_block_data.clear();
+        }
+    }
 
     return out_table;
 }
