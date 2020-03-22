@@ -26,7 +26,7 @@ public:
         );
 
     // Operator.h
-    std::shared_ptr<Table> runOperator
+    std::shared_ptr<Table> run_operator
     (std::vector<std::shared_ptr<Table>> tables) override;
 
     arrow::compute::Datum get_filter
@@ -47,7 +47,7 @@ public:
         FilterOperator filter_operator
     );
 
-    std::shared_ptr<Table> runOperator
+    std::shared_ptr<Table> run_operator
             (std::vector<std::shared_ptr<Table>> tables) override;
 
     arrow::compute::Datum get_filter

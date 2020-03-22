@@ -142,7 +142,7 @@ TEST_F(OperatorsTestFixture, AggregateSumTest) {
     // result/out compare
 
     in_table->insert_blocks({block_1});
-    auto out_table = aggregate_op->runOperator({in_table});
+    auto out_table = aggregate_op->run_operator({in_table});
     EXPECT_TRUE(out_table->get_block(0)->get_records()->Equals(*res_block->get_records()));
 }
 
@@ -175,7 +175,7 @@ TEST_F(OperatorsTestFixture, AggregateSumTestTwoBlocks) {
     // result/out compare
 
     in_table->insert_blocks({block_1, block_2});
-    auto out_table = aggregate_op->runOperator({in_table});
+    auto out_table = aggregate_op->run_operator({in_table});
     EXPECT_TRUE(out_table->get_block(0)->get_records()->Equals(*res_block->get_records()));
 }
 
@@ -201,7 +201,7 @@ TEST_F(OperatorsTestFixture, AggregateSumTestTwoBlocks) {
 //  auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 1, {res_block_col});
 //  auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
 //  // result/out compare
-//  auto out_block = aggregate_op->runOperator(input_blocks);
+//  auto out_block = aggregate_op->run_operator(input_blocks);
 //  EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 //}
 //
@@ -227,7 +227,7 @@ TEST_F(OperatorsTestFixture, AggregateSumTestTwoBlocks) {
 //    auto res_block_record = arrow::RecordBatch::Make(res_block_schema, 1, {res_block_col});
 //    auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
 //    // result/out compare
-//    auto out_block = aggregate_op->runOperator(two_blocks);
+//    auto out_block = aggregate_op->run_operator(two_blocks);
 //    EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 //}
 
@@ -257,7 +257,7 @@ TEST_F(OperatorsTestFixture, AggregateMeanTest) {
     auto res_block = std::make_shared<Block>(Block(0, res_block_record,
                                                    BLOCK_SIZE));
     in_table->insert_blocks({block_1});
-    auto out_table = aggregate_op->runOperator({in_table});
+    auto out_table = aggregate_op->run_operator({in_table});
     EXPECT_TRUE(out_table->get_block(0)->get_records()->Equals(*res_block->get_records()));
 
 }
@@ -288,7 +288,7 @@ TEST_F(OperatorsTestFixture, AggregateMeanTwoBlocks) {
     auto res_block = std::make_shared<Block>(Block(0, res_block_record,
                                                    BLOCK_SIZE));
     in_table->insert_blocks({block_1, block_2});
-    auto out_table = aggregate_op->runOperator({in_table});
+    auto out_table = aggregate_op->run_operator({in_table});
     EXPECT_TRUE(out_table->get_block(0)->get_records()->Equals(*res_block->get_records()));
 }
 //
@@ -349,7 +349,7 @@ TEST_F(OperatorsTestFixture, AggregateMeanTwoBlocks) {
 //
 //
 //  // result/out compare
-//  auto out_block = join_op->runOperator(join_input_blocks);
+//  auto out_block = join_op->run_operator(join_input_blocks);
 //  //TODO(nicholas) output data values seem malformed. unsure why.
 //  EXPECT_TRUE(out_block[0]->get_records()->ApproxEquals(*res_block->get_records()));
 //
@@ -402,7 +402,7 @@ TEST_F(OperatorsTestFixture, AggregateMeanTwoBlocks) {
 //
 //
 //  // result/out compare
-//  auto out_block = select_op->runOperator(input_blocks);
+//  auto out_block = select_op->run_operator(input_blocks);
 //  EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
 //
 //  std::cout << std::endl;
@@ -443,7 +443,7 @@ TEST_F(OperatorsTestFixture, AggregateMeanTwoBlocks) {
 //    auto res_block = std::make_shared<Block>(Block(rand(), res_block_record, BLOCK_SIZE));
 //
 //    // result/out compare
-//    auto out_block = select_op->runOperator(input_blocks);
+//    auto out_block = select_op->run_operator(input_blocks);
 //    EXPECT_TRUE(out_block[0]->get_records()->Equals(*res_block->get_records()));
 //
 //    std::cout << std::endl;
@@ -493,7 +493,7 @@ TEST_F(OperatorsTestFixture, SelectTwoBlocks) {
 
     in_table->insert_blocks({block_1});
     // result/out compare
-    auto out_table = select_op->runOperator({in_table});
+    auto out_table = select_op->run_operator({in_table});
     EXPECT_TRUE(out_table->get_block(0)->get_records()->Equals
     (*res_block->get_records()));
 
@@ -549,7 +549,7 @@ TEST_F(OperatorsTestFixture, SelectTwoBlocksOneEmpty) {
 
     in_table->insert_blocks({block_1});
     // result/out compare
-    auto out_table = select_op->runOperator({in_table});
+    auto out_table = select_op->run_operator({in_table});
     EXPECT_TRUE(out_table->get_block(0)->get_records()->Equals
             (*res_block->get_records()));
 }
@@ -645,7 +645,7 @@ TEST_F(OperatorsTestFixture2, SelectFromCSV) {
             arrow::compute::Datum((int64_t) 1776)
     );
 
-    auto out_table = select_op->runOperator({in_left_table});
+    auto out_table = select_op->run_operator({in_left_table});
 
     for (int i=0; i<out_table->get_num_blocks(); i++) {
         auto block = out_table->get_block(i);
@@ -696,7 +696,7 @@ TEST_F(OperatorsTestFixture2, SelectFromCSVTwoConditionsSame) {
             hustle::operators::FilterOperator::AND
             );
 
-    auto out_table = composite_select_op->runOperator({in_left_table});
+    auto out_table = composite_select_op->run_operator({in_left_table});
 
     for (int i=0; i<out_table->get_num_blocks(); i++) {
         auto block = out_table->get_block(i);
@@ -754,7 +754,7 @@ TEST_F(OperatorsTestFixture2, SelectFromCSVTwoConditionsDifferent) {
             hustle::operators::FilterOperator::AND
     );
 
-    auto out_table = composite_select_op->runOperator({in_left_table});
+    auto out_table = composite_select_op->run_operator({in_left_table});
 
     auto block = out_table->get_block(0);
 
@@ -949,8 +949,16 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
 //    write_to_file("/Users/corrado/hustle/src/table/tests/lineorder.hsl",
 //            *lineorder);
 
+    auto t11 = std::chrono::high_resolution_clock::now();
     lineorder = read_from_file
             ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
+
+    auto t22 = std::chrono::high_resolution_clock::now();
+    std::cout << "READ FROM HUSTLE FILE TIME = " <<
+              std::chrono::duration_cast<std::chrono::milliseconds>
+                      (t22-t11).count
+                      () <<
+              std::endl;
 
 //    date = read_from_csv_file
 //            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
@@ -1010,11 +1018,11 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     auto t1 = std::chrono::high_resolution_clock::now();
 
     // Perform selection on Date
-    auto date_2 = date_select_op->runOperator({date});
+    auto date_2 = date_select_op->run_operator({date});
     std::cout << "NUM DATE ROWS SELECTED = "
               << date_2->get_num_rows() << std::endl;
     // Perform selection on Lineorder
-    auto lineorder_2 = lineorder_select_op_composite_2->runOperator
+    auto lineorder_2 = lineorder_select_op_composite_2->run_operator
             ({lineorder});
     std::cout << "NUM LINEORDER ROWS SELECTED = "
               << lineorder_2->get_num_rows() << std::endl;
@@ -1027,7 +1035,7 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
             (hustle::operators::AggregateKernels::SUM, "revenue");
 
     // Perform aggregate over resulting join table
-    auto aggregate = aggregate_op->runOperator({join_table});
+    auto aggregate = aggregate_op->run_operator({join_table});
 
     // Print the result. The valid bit will be printed as the first column.
     if (aggregate != nullptr) aggregate->print();
@@ -1112,9 +1120,9 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
     auto t1 = std::chrono::high_resolution_clock::now();
 
     // Perform selection on Date
-    auto date_2 = date_select_op->runOperator({date});
+    auto date_2 = date_select_op->run_operator({date});
     // Perform selection on Lineorder
-    auto lineorder_2 = lineorder_select_op_composite_3->runOperator
+    auto lineorder_2 = lineorder_select_op_composite_3->run_operator
             ({lineorder});
     std::cout << "NUM LINEORDER ROWS SELECTED = "
     << lineorder_2->get_num_rows() << std::endl;
@@ -1126,7 +1134,7 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
             (hustle::operators::AggregateKernels::SUM, "revenue");
 
     // Perform aggregate over resulting join table
-    auto aggregate = aggregate_op->runOperator({join_table});
+    auto aggregate = aggregate_op->run_operator({join_table});
 
     // Print the result. The valid bit will be printed as the first column.
     if (aggregate != nullptr) aggregate->print();

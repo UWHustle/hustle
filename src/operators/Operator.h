@@ -18,8 +18,7 @@ enum FilterOperator {
 class Operator {
 public:
 
-    // TODO(nicholas): abide by naming conventions
-    virtual std::shared_ptr<Table> runOperator
+    virtual std::shared_ptr<Table> run_operator
             (std::vector<std::shared_ptr<Table>> tables) = 0;
 
 //    virtual bool is_leaf() = 0;

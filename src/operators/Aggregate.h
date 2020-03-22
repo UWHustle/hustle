@@ -22,7 +22,8 @@ class Aggregate : public Operator{
   Aggregate(AggregateKernels aggregate_kernel, std::string column_name);
 
   // Operator.h
-  std::shared_ptr<Table> runOperator(std::vector<std::shared_ptr<Table>> tables) override;
+  std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
+  tables) override;
 //void set_children(
 //            std::shared_ptr<Operator> left_child,
 //            std::shared_ptr<Operator> right_child,

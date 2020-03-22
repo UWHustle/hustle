@@ -58,7 +58,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
 
 }
 
-    std::shared_ptr<Table> SelectComposite::runOperator
+    std::shared_ptr<Table> SelectComposite::run_operator
             (std::vector<std::shared_ptr<Table>> tables) {
 
         arrow::Status status;
@@ -96,7 +96,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         return out_table;
 
     }
-    
+
     Select::Select(
             arrow::compute::CompareOperator compare_operator,
             std::string column_name,
@@ -129,7 +129,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
     }
 
 
-    std::shared_ptr<Table> Select::runOperator
+    std::shared_ptr<Table> Select::run_operator
             (std::vector<std::shared_ptr<Table>> tables) {
 
 

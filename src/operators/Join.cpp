@@ -15,7 +15,10 @@ Join::Join(std::string left_column_name, std::string right_column_name) {
     right_join_column_name_ = std::move(right_column_name);
 }
 
+void test(arrow::compute::Datum array) {
 
+
+}
 
 std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::shared_ptr<Table>
     right_table) {
@@ -62,8 +65,6 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
             hash[join_col_casted->Value(row)] = rid;
         }
     }
-
-    auto test = out_table->get_schema()->fields();
 
     arrow::Int64Builder left_indices_builder;
     arrow::Int64Builder right_indices_builder;
@@ -165,7 +166,7 @@ std::shared_ptr<Table> Join::hash_join(std::shared_ptr<Table> left_table, std::s
 //
 //}
 
-    std::shared_ptr<Table> Join::runOperator(
+    std::shared_ptr<Table> Join::run_operator(
             std::vector<std::shared_ptr<Table>> tables) {
         return nullptr;
     }

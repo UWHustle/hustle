@@ -26,7 +26,7 @@ public:
     Join(std::string left_column_name, std::string right_column_name);
 
     // TODO(nicholas): These function are not implemented.
-    std::shared_ptr<Table> runOperator
+    std::shared_ptr<Table> run_operator
     (std::vector<std::shared_ptr<Table>> table) override;
 
     /**

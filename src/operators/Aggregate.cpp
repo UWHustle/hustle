@@ -16,7 +16,7 @@ Aggregate::Aggregate(AggregateKernels aggregate_kernel,
     column_name_ = std::move(column_name);
 }
 
-std::shared_ptr<Table> Aggregate::runOperator
+std::shared_ptr<Table> Aggregate::run_operator
 (std::vector<std::shared_ptr<Table>> tables) {
     // operator only uses first table, ignore others
     auto table = tables[0];
