@@ -29,8 +29,15 @@ public:
     std::shared_ptr<Table> run_operator
     (std::vector<std::shared_ptr<Table>> tables) override;
 
+    std::shared_ptr<Table> materialize
+            (std::vector<std::shared_ptr<Table>> tables,
+                    arrow::compute::Datum filter);
+
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block) override;
+
+    arrow::compute::Datum get_filter
+            (std::shared_ptr<Table> table);
 
 
 private:
@@ -49,6 +56,10 @@ public:
 
     std::shared_ptr<Table> run_operator
             (std::vector<std::shared_ptr<Table>> tables) override;
+
+    std::shared_ptr<Table> materialize
+            (std::vector<std::shared_ptr<Table>> tables,
+             arrow::compute::Datum filter);
 
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block) override;
