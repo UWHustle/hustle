@@ -11,10 +11,14 @@ namespace hustle {
 namespace operators {
 
 Aggregate::Aggregate(AggregateKernels aggregate_kernel,
-                     std::string column_name) {
+                     std::string aggregate_column_name,
+                     std::string group_by_column_name) {
     aggregate_kernel_ = aggregate_kernel;
-    column_name_ = std::move(column_name);
+    aggregate_column_name_ = std::move(aggregate_column_name);
+    group_by_column_name_ = std::move(group_by_column_name);
 }
+
+
 
 std::shared_ptr<Table> Aggregate::run_operator
 (std::vector<std::shared_ptr<Table>> tables) {
@@ -27,7 +31,7 @@ std::shared_ptr<Table> Aggregate::run_operator
     //
     arrow::Status status;
 
-    auto full_column = table->get_column_by_name(column_name_);
+    auto full_column = table->get_column_by_name(aggregate_column_name_);
 
     if (full_column == nullptr) {
         return nullptr;

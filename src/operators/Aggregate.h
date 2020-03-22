@@ -19,7 +19,8 @@ enum AggregateKernels {
 
 class Aggregate : public Operator{
  public:
-  Aggregate(AggregateKernels aggregate_kernel, std::string column_name);
+  Aggregate(AggregateKernels aggregate_kernel, std::string column_name, 
+          std::string group_by_column_name);
 
   // Operator.h
   std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
@@ -31,8 +32,8 @@ class Aggregate : public Operator{
 
  private:
   AggregateKernels aggregate_kernel_;
-  std::string column_name_;
-
+  std::string aggregate_column_name_;
+  std::string group_by_column_name_;
 };
 
 } // namespace operators
