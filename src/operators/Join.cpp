@@ -63,8 +63,6 @@ std::shared_ptr<Table> Join::hash_join(
         }
     }
 
-    std::cout << "TEST " << right_join_col->length() << std::endl;
-
     // Build phase
     for (int i=0; i<right_join_col->num_chunks(); i++) {
         // TODO(nicholas): for now, we assume the join column is INT64 type.
