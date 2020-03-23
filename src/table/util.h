@@ -37,11 +37,12 @@ void write_to_file(const char *path, Table &table);
  * Construct a table from RecordBatches read from a file.
  *
  * @param path Relative path to the file
+ * @param read_only Flag indicating that data need not be copied into memory
  * @return A Table containing data from all RecordBatches read from the file.
  *
  * TODO: Assuming all blocks are written to separate files, read in one block.
  */
-std::shared_ptr<Table>  read_from_file(const char *path);
+std::shared_ptr<Table>  read_from_file(const char *path, bool read_only=true);
 
 /**
  * Return the columns of a RecordBatch as a vector of Arrays. This is a special
