@@ -1099,6 +1099,9 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
 //    write_to_file("/Users/corrado/hustle/src/table/tests/date.hsl",
 //                  *date);
 
+    date = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/date.hsl");
+
     // Date.year month num = 199401
     auto date_select_op = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::EQUAL,
