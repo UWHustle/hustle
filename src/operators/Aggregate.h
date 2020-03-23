@@ -18,29 +18,28 @@ enum AggregateKernels {
 };
 
 class Aggregate : public Operator{
- public:
-  Aggregate(AggregateKernels aggregate_kernel, std::string column_name,
+public:
+    Aggregate(AggregateKernels aggregate_kernel, std::string column_name,
           std::string group_by_column_name);
 
     std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>>
     get_groups(std::shared_ptr<Table> table);
-  // Operator.h
-  std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
-  tables) override;
+    // Operator.h
+    std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
+    tables) override;
 
     std::shared_ptr<Table> run_operator_no_group_by
             (std::shared_ptr<Table> table);
     std::shared_ptr<Table> run_operator_with_group_by
             (std::shared_ptr<Table> table);
-//void set_children(
-//            std::shared_ptr<Operator> left_child,
-//            std::shared_ptr<Operator> right_child,
-//            FilterOperator filter_operator) override;
+    arrow::compute::Datum compute_aggregate(
+            std::shared_ptr<arrow::ChunkedArray> aggregate_col,
+            std::shared_ptr<arrow::ChunkedArray> group_indices);
 
- private:
-  AggregateKernels aggregate_kernel_;
-  std::string aggregate_column_name_;
-  std::string group_by_column_name_;
+private:
+    AggregateKernels aggregate_kernel_;
+    std::string aggregate_column_name_;
+    std::string group_by_column_name_;
 
 
     };
