@@ -111,7 +111,8 @@ class OperatorsTestFixture : public testing::Test {
 TEST_F(OperatorsTestFixture, AggregateSumTest) {
     auto *aggregate_op = new Aggregate(
       hustle::operators::AggregateKernels::SUM,
-      "int_val"
+      "int_val",
+      ""
     );
     std::string col_name = "int_val";
     int col_val = 235;
@@ -149,7 +150,8 @@ TEST_F(OperatorsTestFixture, AggregateSumTest) {
 TEST_F(OperatorsTestFixture, AggregateSumTestTwoBlocks) {
     auto *aggregate_op = new Aggregate(
             hustle::operators::AggregateKernels::SUM,
-            "int_val"
+            "int_val",
+            ""
     );
     std::string col_name = "int_val";
     int col_val = 235*2;
@@ -234,7 +236,8 @@ TEST_F(OperatorsTestFixture, AggregateSumTestTwoBlocks) {
 TEST_F(OperatorsTestFixture, AggregateMeanTest) {
   auto *aggregate_op = new Aggregate(
       hustle::operators::AggregateKernels::MEAN,
-      "int_val"
+      "int_val",
+      ""
   );
   std::string col_name = "int_val";
   int64_t col_val = 47; // 235 / 5
@@ -265,7 +268,8 @@ TEST_F(OperatorsTestFixture, AggregateMeanTest) {
 TEST_F(OperatorsTestFixture, AggregateMeanTwoBlocks) {
     auto *aggregate_op = new Aggregate(
             hustle::operators::AggregateKernels::MEAN,
-            "int_val"
+            "int_val",
+            ""
     );
     std::string col_name = "int_val";
     int64_t col_val = 47; // 235 / 5
@@ -940,6 +944,29 @@ protected:
     }
 };
 
+TEST_F(SSBTestFixture, GroupByTest) {
+
+//    date = read_from_csv_file
+//            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
+//
+//    write_to_file("/Users/corrado/hustle/src/table/tests/date.hsl",
+//                  *date);
+
+    date = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/date.hsl");
+
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>
+            (hustle::operators::AggregateKernels::SUM, "date key", "selling season");
+
+    // Perform aggregate
+    auto aggregate = aggregate_op->run_operator({date});
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
+
+}
+
+
 TEST_F(SSBTestFixture, SSBQ1_1) {
 
 //    lineorder = read_from_csv_file
@@ -997,12 +1024,11 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
             arrow::compute::Datum((int64_t) 25)
     );
 
-    // Combine select operators for lineorder into one composite operator.
+    // Combine select operators.
     auto lineorder_select_op_composite_1 =
             std::make_shared<hustle::operators::SelectComposite>
                     (lineorder_select_op_1, lineorder_select_op_2,
                      hustle::operators::FilterOperator::AND);
-
     auto lineorder_select_op_composite_2 =
             std::make_shared<hustle::operators::SelectComposite>
                     (lineorder_select_op_composite_1, lineorder_select_op_3,
@@ -1017,30 +1043,21 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
-
-//    auto date_2 = date_select_op->run_operator({date});
-//    std::cout << "NUM DATE ROWS SELECTED = "
-//              << date_2->get_num_rows() << std::endl;
-//
-//    auto lineorder_2 = lineorder_select_op_composite_2->run_operator
-//            ({lineorder});
-//    std::cout << "NUM LINEORDER ROWS SELECTED = "
-//              << lineorder_2->get_num_rows() << std::endl;
-
     arrow::compute::Datum left_selection =
             lineorder_select_op_composite_2->get_filter(lineorder);
-    arrow::compute::Datum right_selection = date_select_op->get_filter(date);
-//    date_select_op->materialize({date}, right_selection);
-//    lineorder_select_op_composite_2->materialize({lineorder}, left_selection);
-//    std::cout << left_selection.make_array()->ToString() << std::endl;
+    arrow::compute::Datum right_selection =
+            date_select_op->get_filter(date);
 
-    auto join_table = join_op->hash_join(lineorder, left_selection, date,
-            right_selection);
+    auto join_table = join_op->hash_join(
+            lineorder, left_selection,
+            date, right_selection);
+
     std::cout << "NUM ROWS JOINED = "
               << join_table->get_num_rows() << std::endl;
+
     // Create aggregate operator
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>
-            (hustle::operators::AggregateKernels::SUM, "revenue");
+            (hustle::operators::AggregateKernels::SUM, "revenue", "");
 
     // Perform aggregate over resulting join table
     auto aggregate = aggregate_op->run_operator({join_table});
@@ -1049,108 +1066,122 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     if (aggregate != nullptr) aggregate->print();
 
     auto t2 = std::chrono::high_resolution_clock::now();
+
     std::cout << "QUERY EXECUTION TIME = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2-t1).count
-                      () <<
-              std::endl;
+                      (t2-t1).count() << std::endl;
 }
 
-//
-//TEST_F(SSBTestFixture, SSBQ1_2) {
-//
+
+TEST_F(SSBTestFixture, SSBQ1_2) {
+
 //    lineorder = read_from_csv_file
 //            ("/Users/corrado/hustle/src/table/tests/lineorder.tbl",
-//             lineorder_schema, BLOCK_SIZE);
+//                    lineorder_schema, BLOCK_SIZE);
 //
+//    write_to_file("/Users/corrado/hustle/src/table/tests/lineorder.hsl",
+//            *lineorder);
+
+    auto t11 = std::chrono::high_resolution_clock::now();
+    lineorder = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
+
+    auto t22 = std::chrono::high_resolution_clock::now();
+    std::cout << "READ FROM HUSTLE FILE TIME = " <<
+              std::chrono::duration_cast<std::chrono::milliseconds>
+                      (t22-t11).count
+                      () <<
+              std::endl;
+
 //    date = read_from_csv_file
 //            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
 //
-//    // Date.year month num = 199401
-//    auto date_select_op = std::make_shared<hustle::operators::Select>(
-//            arrow::compute::CompareOperator::EQUAL,
-//            "year month num",
-//            arrow::compute::Datum((int64_t) 199401)
-//    );
-//
-//    // Create select operator for Lineorder.discount >= 4
-//    auto lineorder_select_op_1 = std::make_shared<hustle::operators::Select>(
-//            arrow::compute::CompareOperator::GREATER_EQUAL,
-//            "discount",
-//            arrow::compute::Datum((int64_t) 4)
-//    );
-//
-//    // Lineorder.discount <= 6
-//    auto lineorder_select_op_2 = std::make_shared<hustle::operators::Select>(
-//            arrow::compute::CompareOperator::LESS_EQUAL,
-//            "discount",
-//            arrow::compute::Datum((int64_t) 6)
-//    );
-//
-//    // Create select operator for Lineorder.quantity >= 26
-//    auto lineorder_select_op_3 = std::make_shared<hustle::operators::Select>(
-//            arrow::compute::CompareOperator::GREATER_EQUAL,
-//            "quantity",
-//            arrow::compute::Datum((int64_t) 26)
-//    );
-//
-//    // Create select operator for Lineorder.quantity <= 35
-//    auto lineorder_select_op_4 = std::make_shared<hustle::operators::Select>(
-//            arrow::compute::CompareOperator::GREATER_EQUAL,
-//            "quantity",
-//            arrow::compute::Datum((int64_t) 35)
-//    );
-//
-//
-//    // Combine select operators for lineorder into one composite operator.
-//    auto lineorder_select_op_composite_1 =
-//            std::make_shared<hustle::operators::SelectComposite>
-//                    (lineorder_select_op_1, lineorder_select_op_2,
-//                     hustle::operators::FilterOperator::AND);
-//
-//    auto lineorder_select_op_composite_2 =
-//            std::make_shared<hustle::operators::SelectComposite>
-//                    (lineorder_select_op_3, lineorder_select_op_4,
-//                     hustle::operators::FilterOperator::AND);
-//
-//    auto lineorder_select_op_composite_3 =
-//            std::make_shared<hustle::operators::SelectComposite>(
-//                    lineorder_select_op_composite_1,
-//                    lineorder_select_op_composite_2,
-//                    hustle::operators::FilterOperator::AND);
-//
-//    // Create natural join operator for left.order date == right.date key
-//    // For this query, left corresponds to Lineorder, and right corresponds
-//    // to Date.
-//    auto join_op = std::make_shared<hustle::operators::Join>("order date",
-//                                                             "date key");
-//
-//    auto t1 = std::chrono::high_resolution_clock::now();
-//
-//    // Perform selection on Date
-//    auto date_2 = date_select_op->run_operator({date});
-//    // Perform selection on Lineorder
-//    auto lineorder_2 = lineorder_select_op_composite_3->run_operator
-//            ({lineorder});
-//    std::cout << "NUM LINEORDER ROWS SELECTED = "
-//    << lineorder_2->get_num_rows() << std::endl;
-//    // Join the resulting Lineorder and Date tables
-//    auto join_table = join_op->hash_join(lineorder_2, date_2);
-//
-//    // Create aggregate operator
-//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>
-//            (hustle::operators::AggregateKernels::SUM, "revenue");
-//
-//    // Perform aggregate over resulting join table
-//    auto aggregate = aggregate_op->run_operator({join_table});
-//
-//    // Print the result. The valid bit will be printed as the first column.
-//    if (aggregate != nullptr) aggregate->print();
-//
-//    auto t2 = std::chrono::high_resolution_clock::now();
-//    std::cout << "QUERY EXECUTION TIME = " <<
-//              std::chrono::duration_cast<std::chrono::milliseconds>
-//                      (t2-t1).count
-//                      () <<
-//              std::endl;
-//}
+//    write_to_file("/Users/corrado/hustle/src/table/tests/date.hsl",
+//                  *date);
+
+    // Date.year month num = 199401
+    auto date_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "year month num",
+            arrow::compute::Datum((int64_t) 199401)
+    );
+
+    // Create select operator for Lineorder.discount >= 4
+    auto lineorder_select_op_1 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::GREATER_EQUAL,
+            "discount",
+            arrow::compute::Datum((int64_t) 4)
+    );
+
+    // Lineorder.discount <= 6
+    auto lineorder_select_op_2 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::LESS_EQUAL,
+            "discount",
+            arrow::compute::Datum((int64_t) 6)
+    );
+
+    // Create select operator for Lineorder.quantity >= 26
+    auto lineorder_select_op_3 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::GREATER_EQUAL,
+            "quantity",
+            arrow::compute::Datum((int64_t) 26)
+    );
+
+    // Create select operator for Lineorder.quantity <= 35
+    auto lineorder_select_op_4 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::GREATER_EQUAL,
+            "quantity",
+            arrow::compute::Datum((int64_t) 35)
+    );
+
+
+    // Combine select operators for lineorder into one composite operator.
+    auto lineorder_select_op_composite_1 =
+            std::make_shared<hustle::operators::SelectComposite>
+                    (lineorder_select_op_1, lineorder_select_op_2,
+                     hustle::operators::FilterOperator::AND);
+
+    auto lineorder_select_op_composite_2 =
+            std::make_shared<hustle::operators::SelectComposite>
+                    (lineorder_select_op_3, lineorder_select_op_4,
+                     hustle::operators::FilterOperator::AND);
+
+    auto lineorder_select_op_composite_3 =
+            std::make_shared<hustle::operators::SelectComposite>(
+                    lineorder_select_op_composite_1,
+                    lineorder_select_op_composite_2,
+                    hustle::operators::FilterOperator::AND);
+
+    // Create natural join operator for left.order date == right.date key
+    // For this query, left corresponds to Lineorder, and right corresponds
+    // to Date.
+    auto join_op = std::make_shared<hustle::operators::Join>("order date",
+                                                             "date key");
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    arrow::compute::Datum left_selection =
+            lineorder_select_op_composite_3->get_filter(lineorder);
+    arrow::compute::Datum right_selection =
+            date_select_op->get_filter(date);
+
+    auto join_table = join_op->hash_join(
+            lineorder, left_selection,
+            date, right_selection);
+
+    // Create aggregate operator
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>
+            (hustle::operators::AggregateKernels::SUM, "revenue", "");
+
+    // Perform aggregate over resulting join table
+    auto aggregate = aggregate_op->run_operator({join_table});
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    std::cout << "QUERY EXECUTION TIME = " <<
+              std::chrono::duration_cast<std::chrono::milliseconds>
+                      (t2-t1).count() << std::endl;
+}
