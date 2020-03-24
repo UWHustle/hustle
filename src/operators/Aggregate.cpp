@@ -67,7 +67,9 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
     auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                              BLOCK_SIZE);
 
-    auto unique_values = get_unique_values(table);
+    // Leaf Aggregate operator will only have one field in its GROUP BY column
+    auto unique_values = get_unique_values(table)->field(0);
+
     auto unique_values_casted = std::static_pointer_cast<arrow::StringArray>
             (unique_values);
 
@@ -175,7 +177,7 @@ std::shared_ptr<Table> Aggregate::run_operator_no_group_by
     return out_table;
 }
 
-std::shared_ptr<arrow::Array> Aggregate::get_unique_values
+std::shared_ptr<arrow::StructArray> Aggregate::get_unique_values
     (std::shared_ptr<Table> table) {
 
     arrow::Status status;
@@ -191,7 +193,10 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values
                                     &unique_values);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    return unique_values;
+    auto result = arrow::StructArray::Make({unique_values},{group_by_column_name_});
+    evaluate_status(result.status(), __FUNCTION__, __LINE__);
+
+    return result.ValueOrDie();
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
@@ -292,6 +297,55 @@ arrow::compute::Datum Aggregate::compute_aggregate(
     return out_aggregate;
 }
 
+AggregateComposite::AggregateComposite(
+            std::shared_ptr<AggregateOperator> left_child,
+            std::shared_ptr<AggregateOperator> right_child) {
+
+    left_child_ = left_child;
+    right_child_ = right_child;
+}
+
+//    for (int i=0; i<left_unique_values->length(); i++) {
+//    for (int j=0; j<right_unique_values->length(); j++) {
+//
+//
+//}
+//}
+
+std::shared_ptr<arrow::StructArray> AggregateComposite::get_unique_values(
+        std::shared_ptr<Table> table) {
+
+    arrow::Status status;
+    auto left_unique_values = left_child_->get_unique_values(table);
+    auto right_unique_values = right_child_->get_unique_values(table);
+
+    auto result = arrow::StructArray::Make({left_unique_values,
+                                        right_unique_values},
+            {arrow::field("left",arrow::utf8()),
+             arrow::field("right",arrow::utf8())});
+
+    status = result.status();
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    return result.ValueOrDie();
+}
+
+std::shared_ptr<arrow::ChunkedArray> AggregateComposite::get_filter(
+        std::shared_ptr<Table> table, arrow::compute::Datum value) {
+
+    arrow::Status status;
+
+    auto unique_values = get_unique_values(table);
+
+    auto left_unique_values = unique_values->field(0);
+    auto right_unique_values = unique_values->field(1);
+
+
+//
+//    auto left_filter = left_child_->get_filter(table, left_value);
+//    auto right_right = right_child_->get_filter(table, right_value);
+
+}
 
 } // namespace operators
 } // namespace hustle
