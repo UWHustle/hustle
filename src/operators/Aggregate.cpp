@@ -34,15 +34,13 @@ std::shared_ptr<Table> Aggregate::run_operator
     return out_table;
 }
 
-std::shared_ptr<Table> Aggregate::run_operator_with_group_by
-        (std::shared_ptr<Table> table) {
+std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
+        std::shared_ptr<Table> table) {
 
     arrow::Status status;
-    auto group_map = get_groups(table);
 
     std::shared_ptr<arrow::Schema> out_schema;
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder;
-    arrow::StringBuilder group_by_builder;
 
     // Create output schema
     switch (aggregate_kernel_) {
@@ -69,16 +67,18 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by
     auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                              BLOCK_SIZE);
 
-    for (auto &key_value_pair : group_map) {
+    auto unique_values = get_unique_values(table);
+    auto unique_values_casted = std::static_pointer_cast<arrow::StringArray>
+            (unique_values);
 
-        status = group_by_builder.Append(key_value_pair.first);
-        evaluate_status(status, __FUNCTION__, __LINE__);
+    for (int i=0; i<unique_values->length(); i++) {
 
-        auto aggregate_col = table->get_column_by_name(
-                aggregate_column_name_);
-        auto group_indices = key_value_pair.second;
-
-        auto aggregate = compute_aggregate(aggregate_col, group_indices);
+        arrow::compute::Datum value(
+                std::make_shared<arrow::StringScalar>(
+                unique_values_casted->GetString(i)));
+        auto filter = get_filter(table, value);
+        auto aggregate_col = table->get_column_by_name(aggregate_column_name_);
+        auto aggregate = compute_aggregate(aggregate_col, filter);
 
         // Append each group aggregate to aggregate_builder.
         // TODO(nicholas): Can you condense this?
@@ -114,7 +114,6 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by
                 break;
             }
         }
-
     }
 
     std::shared_ptr<arrow::Array> out_aggregate_array;
@@ -122,11 +121,9 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by
 
     status = aggregate_builder->Finish(&out_aggregate_array);
     evaluate_status(status, __FUNCTION__, __LINE__);
-    status = group_by_builder.Finish(&out_group_by_array);
-    evaluate_status(status, __FUNCTION__, __LINE__);
 
     out_table->insert_records(
-            {out_group_by_array->data(), out_aggregate_array->data()});
+            {unique_values->data(), out_aggregate_array->data()});
     return out_table;
 
 }
@@ -138,6 +135,8 @@ std::shared_ptr<Table> Aggregate::run_operator_no_group_by
 
     std::shared_ptr<arrow::Schema> out_schema;
 
+    // TODO(nicholas): output schema construction would be much simpler if we
+    //  passed in fields instead of column names into the Aggregate constructor
     switch (aggregate_kernel_) {
         // Returns a Datum of the same type INT64
         case SUM: {
@@ -176,67 +175,72 @@ std::shared_ptr<Table> Aggregate::run_operator_no_group_by
     return out_table;
 }
 
-std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>>
-Aggregate::get_groups(std::shared_ptr<Table> table) {
-
-    arrow::Status status;
-    std::unordered_map<std::string, std::shared_ptr<arrow::Int64Builder>> hash;
-
-    // TODO(nicholas): For now, we assume the GROUP BY column is string type.
-    auto group_by_col = table->get_column_by_name(group_by_column_name_);
-
-    for (auto &chunk :  group_by_col->chunks()) {
-        auto group_by_chunk =
-                std::static_pointer_cast<arrow::StringArray>(chunk);
-
-        for (int row = 0; row < group_by_chunk->length(); row++) {
-            if (hash[group_by_chunk->GetString(row)] == nullptr) {
-                auto new_builder = std::make_shared<arrow::Int64Builder>();
-                hash[group_by_chunk->GetString(row)] = new_builder;
-            }
-            status = hash[group_by_chunk->GetString(row)]->Append(row);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-    }
-
-    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>>
-            out_map;
-
-    for (auto &key_value_pair : hash) {
-
-        std::shared_ptr<arrow::Array> out_array;
-        status = hash[key_value_pair.first]->Finish(&out_array);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-
-        // The indices must be in a ChunkedArray to execute Take
-        auto out_chunked_array = std::make_shared<arrow::ChunkedArray>
-                (out_array);
-        out_map[key_value_pair.first] = out_chunked_array;
-    }
-
-    return out_map;
-}
-
-
-arrow::compute::Datum Aggregate::compute_aggregate(
-        std::shared_ptr<arrow::ChunkedArray> aggregate_col,
-        std::shared_ptr<arrow::ChunkedArray> group_indices) {
+std::shared_ptr<arrow::Array> Aggregate::get_unique_values
+    (std::shared_ptr<Table> table) {
 
     arrow::Status status;
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
+    std::shared_ptr<arrow::Array> unique_values;
+
+    auto group_by_col = table->get_column_by_name(group_by_column_name_);
+
+    status = arrow::compute::Unique(&function_context, group_by_col,
+                                    &unique_values);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    return unique_values;
+}
+
+std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
+(std::shared_ptr<Table> table, arrow::compute::Datum value) {
+
+    arrow::Status status;
+
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    arrow::compute::CompareOptions compare_options(
+            arrow::compute::CompareOperator::EQUAL);
+    arrow::compute::Datum filter;
+    arrow::ArrayVector filter_vector;
+
+    for (int block_id=0; block_id<table->get_num_blocks(); block_id++) {
+        auto block_col = table->get_block(block_id)->get_column_by_name
+                (group_by_column_name_);
+
+        // Note that Compare does not operate on ChunkedArrays, so we must
+        // compute the filter block by block and combine them into a
+        // ChunkedArray.
+        status = arrow::compute::Compare(&function_context, block_col, value,
+                compare_options, &filter);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+
+        filter_vector.push_back(filter.make_array());
+    }
+
+    return std::make_shared<arrow::ChunkedArray>(filter_vector);
+}
+
+
+arrow::compute::Datum Aggregate::compute_aggregate(
+        std::shared_ptr<arrow::ChunkedArray> aggregate_col,
+        std::shared_ptr<arrow::ChunkedArray> group_filter) {
+
+    arrow::Status status;
+
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
     std::shared_ptr<arrow::ChunkedArray> aggregate_group_col;
 
-    if (group_indices == nullptr) {
+    if (group_filter == nullptr) {
         aggregate_group_col = aggregate_col;
     } else {
-        status = arrow::compute::Take(
+        status = arrow::compute::Filter(
                 &function_context,
                 *aggregate_col,
-                *group_indices,
-                take_options,
+                *group_filter,
                 &aggregate_group_col);
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
