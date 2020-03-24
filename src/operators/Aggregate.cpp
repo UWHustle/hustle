@@ -12,11 +12,11 @@ namespace hustle {
 namespace operators {
 
 Aggregate::Aggregate(AggregateKernels aggregate_kernel,
-                     std::string aggregate_column_name,
-                     std::string group_by_column_name) {
+                     std::vector<std::shared_ptr<arrow::Field>> aggregate_fields,
+                     std::vector<std::shared_ptr<arrow::Field>> group_by_fields) {
     aggregate_kernel_ = aggregate_kernel;
-    aggregate_column_name_ = std::move(aggregate_column_name);
-    group_by_column_name_ = std::move(group_by_column_name);
+    aggregate_fields_ = aggregate_fields;
+    group_by_fields_ = group_by_fields;
 }
 
 std::shared_ptr<Table> Aggregate::run_operator
@@ -25,7 +25,7 @@ std::shared_ptr<Table> Aggregate::run_operator
     auto table = tables[0];
     std::shared_ptr<Table> out_table;
 
-    if (group_by_column_name_.empty()) {
+    if (group_by_fields_.empty()) {
         out_table = run_operator_no_group_by(table);
     } else {
         out_table = run_operator_with_group_by(table);
@@ -47,14 +47,14 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
         // Returns a Datum of the same type INT64
         case SUM: {
             out_schema = arrow::schema(
-                    {arrow::field(group_by_column_name_, arrow::utf8()),
+                    {group_by_fields_[0],
                      arrow::field("aggregate", arrow::int64())});
             aggregate_builder = std::make_shared<arrow::Int64Builder>();
             break;
         }
         case MEAN: {
             out_schema = arrow::schema(
-                    {arrow::field(group_by_column_name_, arrow::utf8()),
+                    {group_by_fields_[0],
                      arrow::field("aggregate", arrow::float64())});
             aggregate_builder = std::make_shared<arrow::DoubleBuilder>();
             break;
@@ -79,7 +79,7 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
                 std::make_shared<arrow::StringScalar>(
                 unique_values_casted->GetString(i)));
         auto filter = get_filter(table, value);
-        auto aggregate_col = table->get_column_by_name(aggregate_column_name_);
+        auto aggregate_col = table->get_column_by_name(aggregate_fields_[0]->name());
         auto aggregate = compute_aggregate(aggregate_col, filter);
 
         // Append each group aggregate to aggregate_builder.
@@ -157,7 +157,7 @@ std::shared_ptr<Table> Aggregate::run_operator_no_group_by
         }
     }
 
-    auto aggregate_col = table->get_column_by_name(aggregate_column_name_);
+    auto aggregate_col = table->get_column_by_name(aggregate_fields_[0]->name());
     auto aggregate = compute_aggregate(aggregate_col, nullptr);
 
 
@@ -187,13 +187,13 @@ std::shared_ptr<arrow::StructArray> Aggregate::get_unique_values
     arrow::compute::TakeOptions take_options;
     std::shared_ptr<arrow::Array> unique_values;
 
-    auto group_by_col = table->get_column_by_name(group_by_column_name_);
+    auto group_by_col = table->get_column_by_name(group_by_fields_[0]->name());
 
     status = arrow::compute::Unique(&function_context, group_by_col,
                                     &unique_values);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    auto result = arrow::StructArray::Make({unique_values},{group_by_column_name_});
+    auto result = arrow::StructArray::Make({unique_values},{group_by_fields_[0]->name()});
     evaluate_status(result.status(), __FUNCTION__, __LINE__);
 
     return result.ValueOrDie();
@@ -213,7 +213,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 
     for (int block_id=0; block_id<table->get_num_blocks(); block_id++) {
         auto block_col = table->get_block(block_id)->get_column_by_name
-                (group_by_column_name_);
+                (group_by_fields_[0]->name());
 
         // Note that Compare does not operate on ChunkedArrays, so we must
         // compute the filter block by block and combine them into a
@@ -229,74 +229,6 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 }
 
 
-arrow::compute::Datum Aggregate::compute_aggregate(
-        std::shared_ptr<arrow::ChunkedArray> aggregate_col,
-        std::shared_ptr<arrow::ChunkedArray> group_filter) {
-
-    arrow::Status status;
-
-    arrow::compute::FunctionContext function_context(
-            arrow::default_memory_pool());
-    std::shared_ptr<arrow::ChunkedArray> aggregate_group_col;
-
-    if (group_filter == nullptr) {
-        aggregate_group_col = aggregate_col;
-    } else {
-        status = arrow::compute::Filter(
-                &function_context,
-                *aggregate_col,
-                *group_filter,
-                &aggregate_group_col);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-    }
-
-    arrow::compute::Datum out_aggregate;
-
-    switch (aggregate_kernel_) {
-        // Returns a Datum of the same type INT64
-        case SUM: {
-            status = arrow::compute::Sum(
-                    &function_context,
-                    aggregate_group_col,
-                    &out_aggregate
-            );
-            break;
-        }
-            // Returns a Datum of the same type as the column
-        case COUNT: {
-            // TODO(martin): count options
-            // TODO(nicholas): Currently, Count cannot accept
-            //  ChunkedArray Datums. Support for ChunkedArray Datums
-            //  was recently added (late January) for Sum and Mean,
-            //  and it seems reasonable to assume that it will be
-            //  implemented for Count soon too. Once support is
-            //  added, we can remove the line below.
-            throw std::runtime_error("Count aggregate not supported.");
-            auto count_options = arrow::compute::CountOptions(
-                    arrow::compute::CountOptions::COUNT_ALL);
-            status = arrow::compute::Count(
-                    &function_context,
-                    count_options,
-                    aggregate_group_col,
-                    &out_aggregate
-            );
-            evaluate_status(status, __FUNCTION__, __LINE__);
-            break;
-        }
-            // NOTE: Mean outputs a DOUBLE
-        case MEAN: {
-            status = arrow::compute::Mean(
-                    &function_context,
-                    aggregate_group_col,
-                    &out_aggregate
-            );
-            break;
-        }
-    }
-    evaluate_status(status, __FUNCTION__, __LINE__);
-    return out_aggregate;
-}
-
 AggregateComposite::AggregateComposite(
             std::shared_ptr<AggregateOperator> left_child,
             std::shared_ptr<AggregateOperator> right_child) {
@@ -304,6 +236,14 @@ AggregateComposite::AggregateComposite(
     left_child_ = left_child;
     right_child_ = right_child;
 }
+
+//std::shared_ptr<Table> AggregateComposite::run_operator(
+//        std::vector<std::shared_ptr<Table>> tables) {
+//
+//    auto table = tables[0];
+//
+//
+//}
 
 //    for (int i=0; i<left_unique_values->length(); i++) {
 //    for (int j=0; j<right_unique_values->length(); j++) {
