@@ -335,16 +335,35 @@ std::shared_ptr<arrow::ChunkedArray> AggregateComposite::get_filter(
 
     arrow::Status status;
 
-    auto unique_values = get_unique_values(table);
+    auto value_struct_scalar = std::make_shared<arrow::StructScalar>(
+            value.value);
+    auto value_scalars = value_struct_scalar->value;
+    arrow::compute::Datum left_value(value_scalars[0]);
+    arrow::compute::Datum right_value(value_scalars[1]);
+    
+    auto left_filter = left_child_->get_filter(table, left_value);
+    auto right_filter = right_child_->get_filter(table, right_value);
 
-    auto left_unique_values = unique_values->field(0);
-    auto right_unique_values = unique_values->field(1);
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    arrow::compute::CompareOptions compare_options(
+            arrow::compute::CompareOperator::EQUAL);
+    arrow::compute::Datum filter;
 
+    arrow::ArrayVector filter_vector;
 
-//
-//    auto left_filter = left_child_->get_filter(table, left_value);
-//    auto right_right = right_child_->get_filter(table, right_value);
+    // Note: left_filter and right_filter have equal number of chunks
+    for (int i=0; i<left_filter->num_chunks(); i++) {
+        status = arrow::compute::And(
+                &function_context,
+                left_filter->chunk(i),
+                right_filter->chunk(i),
+                &filter);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        filter_vector.push_back(filter.make_array());
+    };
 
+    return std::make_shared<arrow::ChunkedArray>(filter_vector);
 }
 
 } // namespace operators
