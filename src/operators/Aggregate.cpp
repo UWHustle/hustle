@@ -311,6 +311,11 @@ AggregateComposite::AggregateComposite(
 //
 //}
 //}
+//    auto unique_values = get_unique_values(table);
+//    auto left_unique_values = unique_values->field(0);
+//    auto right_unique_values = unique_values->field(1);
+//    auto value_scalar = std::static_pointer_cast<arrow::StructScalar>(value);
+//
 
 std::shared_ptr<arrow::StructArray> AggregateComposite::get_unique_values(
         std::shared_ptr<Table> table) {
@@ -335,12 +340,13 @@ std::shared_ptr<arrow::ChunkedArray> AggregateComposite::get_filter(
 
     arrow::Status status;
 
-    auto value_struct_scalar = std::make_shared<arrow::StructScalar>(
-            value.value);
+    auto value_struct_scalar =
+            std::static_pointer_cast<arrow::StructScalar>(
+                    value.scalar());
     auto value_scalars = value_struct_scalar->value;
     arrow::compute::Datum left_value(value_scalars[0]);
     arrow::compute::Datum right_value(value_scalars[1]);
-    
+
     auto left_filter = left_child_->get_filter(table, left_value);
     auto right_filter = right_child_->get_filter(table, right_value);
 
@@ -365,6 +371,76 @@ std::shared_ptr<arrow::ChunkedArray> AggregateComposite::get_filter(
 
     return std::make_shared<arrow::ChunkedArray>(filter_vector);
 }
+
+
+arrow::compute::Datum AggregateOperator::compute_aggregate(
+        std::shared_ptr<arrow::ChunkedArray> aggregate_col,
+        std::shared_ptr<arrow::ChunkedArray> group_filter) {
+
+    arrow::Status status;
+
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    std::shared_ptr<arrow::ChunkedArray> aggregate_group_col;
+
+    if (group_filter == nullptr) {
+        aggregate_group_col = aggregate_col;
+    } else {
+        status = arrow::compute::Filter(
+                &function_context,
+                *aggregate_col,
+                *group_filter,
+                &aggregate_group_col);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+    }
+
+    arrow::compute::Datum out_aggregate;
+
+    switch (aggregate_kernel_) {
+        // Returns a Datum of the same type INT64
+        case SUM: {
+            status = arrow::compute::Sum(
+                    &function_context,
+                    aggregate_group_col,
+                    &out_aggregate
+            );
+            break;
+        }
+            // Returns a Datum of the same type as the column
+        case COUNT: {
+            // TODO(martin): count options
+            // TODO(nicholas): Currently, Count cannot accept
+            //  ChunkedArray Datums. Support for ChunkedArray Datums
+            //  was recently added (late January) for Sum and Mean,
+            //  and it seems reasonable to assume that it will be
+            //  implemented for Count soon too. Once support is
+            //  added, we can remove the line below.
+            throw std::runtime_error("Count aggregate not supported.");
+            auto count_options = arrow::compute::CountOptions(
+                    arrow::compute::CountOptions::COUNT_ALL);
+            status = arrow::compute::Count(
+                    &function_context,
+                    count_options,
+                    aggregate_group_col,
+                    &out_aggregate
+            );
+            evaluate_status(status, __FUNCTION__, __LINE__);
+            break;
+        }
+            // NOTE: Mean outputs a DOUBLE
+        case MEAN: {
+            status = arrow::compute::Mean(
+                    &function_context,
+                    aggregate_group_col,
+                    &out_aggregate
+            );
+            break;
+        }
+    }
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    return out_aggregate;
+}
+
 
 } // namespace operators
 } // namespace hustle

@@ -17,6 +17,7 @@ enum AggregateKernels {
   MEAN
 };
 
+// TODO(nicholas): Add support for multiple aggregates
 class AggregateOperator : public Operator{
 public:
     virtual std::shared_ptr<arrow::StructArray> get_unique_values
@@ -24,6 +25,10 @@ public:
                                                     table) = 0;
     virtual std::shared_ptr<arrow::ChunkedArray> get_filter
             (std::shared_ptr<Table> table, arrow::compute::Datum value) = 0;
+
+    arrow::compute::Datum compute_aggregate(
+            std::shared_ptr<arrow::ChunkedArray> aggregate_col,
+            std::shared_ptr<arrow::ChunkedArray> group_filter);
 
 protected:
     AggregateKernels aggregate_kernel_;
@@ -42,6 +47,8 @@ public:
                                                     table) override;
     std::shared_ptr<arrow::ChunkedArray> get_filter
             (std::shared_ptr<Table> table, arrow::compute::Datum value) override;
+
+
 private:
     std::shared_ptr<AggregateOperator> left_child_;
     std::shared_ptr<AggregateOperator> right_child_;
