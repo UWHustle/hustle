@@ -15,6 +15,8 @@ enum FilterOperator {
 };
 
 // TODO(nicholas): should operators return empty table or nullptr?
+// TODO(nicholas): Operators should accept a Field rather than a column name,
+//  since a Field would contain the column name as well as the column type.
 class Operator {
 public:
 
