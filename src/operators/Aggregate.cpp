@@ -15,8 +15,8 @@ Aggregate::Aggregate(AggregateKernels aggregate_kernel,
                      std::vector<std::shared_ptr<arrow::Field>> aggregate_fields,
                      std::vector<std::shared_ptr<arrow::Field>> group_by_fields) {
     aggregate_kernel_ = aggregate_kernel;
-    aggregate_fields_ = aggregate_fields;
-    group_by_fields_ = group_by_fields;
+    aggregate_fields_ = std::move(aggregate_fields);
+    group_by_fields_ = std::move(group_by_fields);
 }
 
 std::shared_ptr<Table> Aggregate::run_operator
@@ -34,29 +34,20 @@ std::shared_ptr<Table> Aggregate::run_operator
     return out_table;
 }
 
-std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
-        std::shared_ptr<Table> table) {
+std::shared_ptr<arrow::ArrayBuilder> AggregateOperator::get_aggregate_builder
+() {
 
     arrow::Status status;
+    std::shared_ptr<arrow::ArrayBuilder> aggreagte_builder;
 
-    std::shared_ptr<arrow::Schema> out_schema;
-    std::shared_ptr<arrow::ArrayBuilder> aggregate_builder;
-
-    // Create output schema
     switch (aggregate_kernel_) {
         // Returns a Datum of the same type INT64
         case SUM: {
-            out_schema = arrow::schema(
-                    {group_by_fields_[0],
-                     arrow::field("aggregate", arrow::int64())});
-            aggregate_builder = std::make_shared<arrow::Int64Builder>();
+            aggreagte_builder = std::make_shared<arrow::Int64Builder>();
             break;
         }
         case MEAN: {
-            out_schema = arrow::schema(
-                    {group_by_fields_[0],
-                     arrow::field("aggregate", arrow::float64())});
-            aggregate_builder = std::make_shared<arrow::DoubleBuilder>();
+            aggreagte_builder = std::make_shared<arrow::DoubleBuilder>();
             break;
         }
         case COUNT: {
@@ -64,66 +55,116 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
         }
     }
 
-    auto out_table = std::make_shared<Table>("aggregate", out_schema,
-                                             BLOCK_SIZE);
+    return aggreagte_builder;
+}
 
-    // Leaf Aggregate operator will only have one field in its GROUP BY column
-    auto unique_values = get_unique_values(table)->field(0);
+    std::shared_ptr<arrow::Schema> AggregateOperator::get_output_schema() {
 
-    auto unique_values_casted = std::static_pointer_cast<arrow::StringArray>
-            (unique_values);
+        arrow::Status status;
 
-    for (int i=0; i<unique_values->length(); i++) {
+        arrow::SchemaBuilder schema_builder;
 
-        arrow::compute::Datum value(
-                std::make_shared<arrow::StringScalar>(
-                unique_values_casted->GetString(i)));
-        auto filter = get_filter(table, value);
-        auto aggregate_col = table->get_column_by_name(aggregate_fields_[0]->name());
-        auto aggregate = compute_aggregate(aggregate_col, filter);
+        status = schema_builder.AddFields(group_by_fields_);
+        evaluate_status(status, __FUNCTION__, __LINE__);
 
-        // Append each group aggregate to aggregate_builder.
-        // TODO(nicholas): Can you condense this?
         switch (aggregate_kernel_) {
-            // Returns a Datum of type INT64
+            // Returns a Datum of the same type INT64
             case SUM: {
-                auto aggregate_builder_casted =
-                        std::static_pointer_cast<arrow::Int64Builder>
-                                (aggregate_builder);
-                auto aggregate_casted =
-                        std::static_pointer_cast<arrow::Int64Scalar>
-                                (aggregate.scalar());
-                status = aggregate_builder_casted->Append(
-                        aggregate_casted->value);
+                status = schema_builder.AddField(
+                        arrow::field("aggregate", arrow::int64()));
+                evaluate_status(status, __FUNCTION__, __LINE__);
+                break;
+            }
+            case MEAN: {
+                status = schema_builder.AddField(
+                        arrow::field("aggregate", arrow::float64()));
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 break;
             }
             case COUNT: {
                 throw std::runtime_error("Count aggregate not supported.");
-                break;
-            }
-                // NOTE: Mean outputs a DOUBLE
-            case MEAN: {
-                auto aggregate_builder_casted =
-                        std::static_pointer_cast<arrow::DoubleBuilder>
-                                (aggregate_builder);
-                auto aggregate_casted =
-                        std::static_pointer_cast<arrow::DoubleScalar>
-                                (aggregate.scalar());
-                status = aggregate_builder_casted->Append(
-                        aggregate_casted->value);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-                break;
             }
         }
+
+        auto result = schema_builder.Finish();
+        evaluate_status(result.status(), __FUNCTION__, __LINE__);
+
+        return result.ValueOrDie();
     }
 
-    std::shared_ptr<arrow::Array> out_aggregate_array;
-    std::shared_ptr<arrow::Array> out_group_by_array;
+std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
+        const std::shared_ptr<Table>& table) {
 
-    status = aggregate_builder->Finish(&out_aggregate_array);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    arrow::Status status;
 
+    auto out_schema = get_output_schema();
+    auto out_table = std::make_shared<Table>("aggregate", out_schema,
+                                             BLOCK_SIZE);
+
+    std::vector<std::shared_ptr<arrow::Array>> out_data;
+    auto aggregate_builder = get_aggregate_builder();
+
+
+//    for (int field_i=0; field_i<aggregate_fields_.size(); field_i++) {
+
+        auto unique_values = get_unique_values(table,
+                group_by_fields_[0]->name());
+        auto unique_values_casted = std::static_pointer_cast<arrow::StringArray>
+                (unique_values);
+
+        for (int i = 0; i < unique_values->length(); i++) {
+
+            arrow::compute::Datum value(
+                    std::make_shared<arrow::StringScalar>(
+                            unique_values_casted->GetString(i)));
+            auto filter = get_filter(table, value);
+            auto aggregate_col = table->get_column_by_name(
+                    aggregate_fields_[0]->name());
+            auto aggregate = compute_aggregate(aggregate_col, filter);
+
+            // Append each group aggregate to aggregate_builder.
+            // TODO(nicholas): Can you condense this?
+            switch (aggregate_kernel_) {
+                // Returns a Datum of type INT64
+                case SUM: {
+                    auto aggregate_builder_casted =
+                            std::static_pointer_cast<arrow::Int64Builder>
+                                    (aggregate_builder);
+                    auto aggregate_casted =
+                            std::static_pointer_cast<arrow::Int64Scalar>
+                                    (aggregate.scalar());
+                    status = aggregate_builder_casted->Append(
+                            aggregate_casted->value);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                    break;
+                }
+                case COUNT: {
+                    throw std::runtime_error("Count aggregate not supported.");
+                    break;
+                }
+                    // NOTE: Mean outputs a DOUBLE
+                case MEAN: {
+                    auto aggregate_builder_casted =
+                            std::static_pointer_cast<arrow::DoubleBuilder>
+                                    (aggregate_builder);
+                    auto aggregate_casted =
+                            std::static_pointer_cast<arrow::DoubleScalar>
+                                    (aggregate.scalar());
+                    status = aggregate_builder_casted->Append(
+                            aggregate_casted->value);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                    break;
+                }
+            }
+        }
+
+        std::shared_ptr<arrow::Array> out_aggregate_array;
+        std::shared_ptr<arrow::Array> out_group_by_array;
+
+        status = aggregate_builder->Finish(&out_aggregate_array);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+//        out_aggregate_cols.push_back(out_aggregate_array);
+//    }
     out_table->insert_records(
             {unique_values->data(), out_aggregate_array->data()});
     return out_table;
@@ -131,7 +172,7 @@ std::shared_ptr<Table> Aggregate::run_operator_with_group_by(
 }
 
 std::shared_ptr<Table> Aggregate::run_operator_no_group_by
-(std::shared_ptr<Table> table) {
+(const std::shared_ptr<Table>& table) {
 
     arrow::Status status;
 
@@ -177,8 +218,9 @@ std::shared_ptr<Table> Aggregate::run_operator_no_group_by
     return out_table;
 }
 
-std::shared_ptr<arrow::StructArray> Aggregate::get_unique_values
-    (std::shared_ptr<Table> table) {
+std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
+        const std::shared_ptr<Table>& table,
+        std::string group_by_field_name) {
 
     arrow::Status status;
 
@@ -187,16 +229,13 @@ std::shared_ptr<arrow::StructArray> Aggregate::get_unique_values
     arrow::compute::TakeOptions take_options;
     std::shared_ptr<arrow::Array> unique_values;
 
-    auto group_by_col = table->get_column_by_name(group_by_fields_[0]->name());
+    auto group_by_col = table->get_column_by_name(group_by_field_name);
 
     status = arrow::compute::Unique(&function_context, group_by_col,
                                     &unique_values);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    auto result = arrow::StructArray::Make({unique_values},{group_by_fields_[0]->name()});
-    evaluate_status(result.status(), __FUNCTION__, __LINE__);
-
-    return result.ValueOrDie();
+    return unique_values;
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
@@ -224,90 +263,6 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 
         filter_vector.push_back(filter.make_array());
     }
-
-    return std::make_shared<arrow::ChunkedArray>(filter_vector);
-}
-
-
-AggregateComposite::AggregateComposite(
-            std::shared_ptr<AggregateOperator> left_child,
-            std::shared_ptr<AggregateOperator> right_child) {
-
-    left_child_ = left_child;
-    right_child_ = right_child;
-}
-
-//std::shared_ptr<Table> AggregateComposite::run_operator(
-//        std::vector<std::shared_ptr<Table>> tables) {
-//
-//    auto table = tables[0];
-//
-//
-//}
-
-//    for (int i=0; i<left_unique_values->length(); i++) {
-//    for (int j=0; j<right_unique_values->length(); j++) {
-//
-//
-//}
-//}
-//    auto unique_values = get_unique_values(table);
-//    auto left_unique_values = unique_values->field(0);
-//    auto right_unique_values = unique_values->field(1);
-//    auto value_scalar = std::static_pointer_cast<arrow::StructScalar>(value);
-//
-
-std::shared_ptr<arrow::StructArray> AggregateComposite::get_unique_values(
-        std::shared_ptr<Table> table) {
-
-    arrow::Status status;
-    auto left_unique_values = left_child_->get_unique_values(table);
-    auto right_unique_values = right_child_->get_unique_values(table);
-
-    auto result = arrow::StructArray::Make({left_unique_values,
-                                        right_unique_values},
-            {arrow::field("left",arrow::utf8()),
-             arrow::field("right",arrow::utf8())});
-
-    status = result.status();
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-    return result.ValueOrDie();
-}
-
-std::shared_ptr<arrow::ChunkedArray> AggregateComposite::get_filter(
-        std::shared_ptr<Table> table, arrow::compute::Datum value) {
-
-    arrow::Status status;
-
-    auto value_struct_scalar =
-            std::static_pointer_cast<arrow::StructScalar>(
-                    value.scalar());
-    auto value_scalars = value_struct_scalar->value;
-    arrow::compute::Datum left_value(value_scalars[0]);
-    arrow::compute::Datum right_value(value_scalars[1]);
-
-    auto left_filter = left_child_->get_filter(table, left_value);
-    auto right_filter = right_child_->get_filter(table, right_value);
-
-    arrow::compute::FunctionContext function_context(
-            arrow::default_memory_pool());
-    arrow::compute::CompareOptions compare_options(
-            arrow::compute::CompareOperator::EQUAL);
-    arrow::compute::Datum filter;
-
-    arrow::ArrayVector filter_vector;
-
-    // Note: left_filter and right_filter have equal number of chunks
-    for (int i=0; i<left_filter->num_chunks(); i++) {
-        status = arrow::compute::And(
-                &function_context,
-                left_filter->chunk(i),
-                right_filter->chunk(i),
-                &filter);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        filter_vector.push_back(filter.make_array());
-    };
 
     return std::make_shared<arrow::ChunkedArray>(filter_vector);
 }
