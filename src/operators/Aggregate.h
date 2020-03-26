@@ -23,8 +23,8 @@ public:
 //    virtual std::shared_ptr<arrow::StructArray> get_unique_values
 //    (std::shared_ptr<Table>
 //                                                    table) = 0;
-    virtual std::shared_ptr<arrow::ChunkedArray> get_filter
-            (std::shared_ptr<Table> table, arrow::compute::Datum value) = 0;
+//    virtual std::shared_ptr<arrow::ChunkedArray> get_filter
+//            (std::shared_ptr<Table> table, arrow::compute::Datum value) = 0;
 
     arrow::compute::Datum compute_aggregate(
             std::shared_ptr<arrow::ChunkedArray> aggregate_col,
@@ -32,11 +32,17 @@ public:
 
     std::shared_ptr<arrow::Schema> get_output_schema();
     std::shared_ptr<arrow::ArrayBuilder> get_aggregate_builder();
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>
+    get_group_builders();
 
 protected:
     AggregateKernels aggregate_kernel_;
     std::vector<std::shared_ptr<arrow::Field>> aggregate_fields_;
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields_;
+    std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
+    std::shared_ptr<arrow::DataType> group_type;
+    std::shared_ptr<arrow::StructBuilder> group_builder;
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_by_builders_;
 };
 
 
@@ -47,6 +53,8 @@ public:
             std::vector<std::shared_ptr<arrow::Field>> aggregate_fields,
               std::vector<std::shared_ptr<arrow::Field>> group_by_fields);
 
+    void insert_group(
+            std::vector<std::shared_ptr<arrow::Array>> unique_values, int *its);
 //    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>>
 //    get_groups(std::shared_ptr<Table> table);
     // Operator.h
@@ -55,14 +63,22 @@ public:
 
     std::shared_ptr<Table> run_operator_no_group_by
             (const std::shared_ptr<Table>& table);
-    std::shared_ptr<Table> run_operator_with_group_by
+    std::shared_ptr<arrow::ChunkedArray> get_group_filter(
+            const std::shared_ptr<Table>& table,
+            std::vector<std::shared_ptr<arrow::Array>> unique_values,
+            int* its);
+    std::shared_ptr<Table> iterate_over_groups
             (const std::shared_ptr<Table>& table);
+    std::shared_ptr<Table> run_operator_with_group_by
+            (const std::shared_ptr<Table>& table, int* its);
+    void insert_group_aggregate(arrow::compute::Datum aggregate);
 
     std::shared_ptr<arrow::Array> get_unique_values(const std::shared_ptr<Table>&
                                                     table, std::string);
     std::shared_ptr<arrow::ChunkedArray> get_filter
-            (std::shared_ptr<Table> table, arrow::compute::Datum value)
-            override;
+            (std::shared_ptr<Table> table,
+             std::shared_ptr<arrow::Field> field, arrow::compute::Datum value);
+
 };
 
 } // namespace operators

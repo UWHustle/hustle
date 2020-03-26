@@ -971,6 +971,35 @@ TEST_F(SSBTestFixture, GroupByTest) {
 
 }
 
+TEST_F(SSBTestFixture, GroupByTest2) {
+
+//    date = read_from_csv_file
+//            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
+//
+//    write_to_file("/Users/corrado/hustle/src/table/tests/date.hsl",
+//                  *date);
+
+    date = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/date.hsl");
+
+    std::vector<std::shared_ptr<arrow::Field>> agg_fields =
+            {arrow::field("date key", arrow::int64())};
+    std::vector<std::shared_ptr<arrow::Field>> group_fields =
+            {arrow::field("selling season", arrow::utf8()),
+             arrow::field("day of week", arrow::utf8())};
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            hustle::operators::AggregateKernels::SUM,
+            agg_fields,
+            group_fields);
+
+    // Perform aggregate
+    auto aggregate = aggregate_op->run_operator({date});
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
+
+}
+
 
 TEST_F(SSBTestFixture, SSBQ1_1) {
 
