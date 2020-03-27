@@ -14,10 +14,6 @@ namespace operators {
 Aggregate::Aggregate(AggregateKernels aggregate_kernel,
                      std::vector<std::shared_ptr<arrow::Field>> aggregate_fields,
                      std::vector<std::shared_ptr<arrow::Field>> group_by_fields) {
-    if(group_by_fields.size() > 2) {
-        std::runtime_error("Aggregates with > 2 group by fields not supported");
-    }
-
     aggregate_kernel_ = aggregate_kernel;
     aggregate_fields_ = std::move(aggregate_fields);
     group_by_fields_ = std::move(group_by_fields);
@@ -32,20 +28,11 @@ std::shared_ptr<Table> Aggregate::run_operator
         (std::vector<std::shared_ptr<Table>> tables) {
 
     auto table = tables[0];
-    std::shared_ptr<Table> out_table;
-
-    if (group_by_fields_.empty()) {
-        out_table = run_operator_no_group_by(table);
-    } else {
-//        out_table = run_operator_with_group_by(table);
-        out_table =iterate_over_groups(table);
-    }
-
-    return out_table;
+    return iterate_over_groups(table);
 }
 
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
-        AggregateOperator::get_group_builders() {
+        Aggregate::get_group_builders() {
 
     arrow::Status status;
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
@@ -69,7 +56,7 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>>
     return group_builders;
 }
 
-std::shared_ptr<arrow::ArrayBuilder> AggregateOperator::get_aggregate_builder
+std::shared_ptr<arrow::ArrayBuilder> Aggregate::get_aggregate_builder
 () {
 
     arrow::Status status;
@@ -93,7 +80,7 @@ std::shared_ptr<arrow::ArrayBuilder> AggregateOperator::get_aggregate_builder
     return aggreagte_builder;
 }
 
-std::shared_ptr<arrow::Schema> AggregateOperator::get_output_schema() {
+std::shared_ptr<arrow::Schema> Aggregate::get_output_schema() {
 
     arrow::Status status;
     arrow::SchemaBuilder schema_builder;
@@ -157,9 +144,9 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups(
     while (!exit){
 
         // DoSomething() loop
-        auto group_filter = get_group_filter(table, unique_values, its);
         auto aggregate_col = table->get_column_by_name(
                 aggregate_fields_[0]->name());
+        auto group_filter = get_group_filter(table, unique_values, its);
         auto aggregate = compute_aggregate(aggregate_col, group_filter);
         insert_group_aggregate(aggregate);
         insert_group(unique_values, its);
@@ -167,7 +154,9 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups(
         // Increment nested loop
         its[0]++;
         while (its[index] == maxes[index]){
-            if (index ==  n - 1) {
+            // if n == 0, we have no Group By clause and should exit after one
+            // iteration.
+            if (index ==  n - 1 || n == 0) {
                 exit = true;
                 break;
             }
@@ -199,6 +188,11 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
     arrow::Status status;
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
+
+    // No Group By clause
+    if (group_by_fields_.empty()) {
+        return nullptr;
+    }
 
     // Fetch the first Group By filter
     auto one_unique_values =
@@ -308,31 +302,6 @@ void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
     }
 }
 
-std::shared_ptr<Table> Aggregate::run_operator_no_group_by
-(const std::shared_ptr<Table>& table) {
-
-    arrow::Status status;
-
-    auto out_schema = get_output_schema();
-
-    auto aggregate_col = table->get_column_by_name(aggregate_fields_[0]->name());
-    auto aggregate = compute_aggregate(aggregate_col, nullptr);
-
-    std::shared_ptr<arrow::Array> out_array;
-    std::shared_ptr<arrow::ArrayData> out_data;
-    status = arrow::MakeArrayFromScalar(
-            arrow::default_memory_pool(),
-            *aggregate.scalar(),
-            1,
-            &out_array);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-    auto out_table = std::make_shared<Table>("aggregate", out_schema,
-            BLOCK_SIZE);
-    out_table->insert_records({out_array->data()});
-
-    return out_table;
-}
 
 std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
         const std::shared_ptr<Table>& table,
@@ -385,7 +354,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 }
 
 
-arrow::compute::Datum AggregateOperator::compute_aggregate(
+arrow::compute::Datum Aggregate::compute_aggregate(
         std::shared_ptr<arrow::ChunkedArray> aggregate_col,
         std::shared_ptr<arrow::ChunkedArray> group_filter) {
 
