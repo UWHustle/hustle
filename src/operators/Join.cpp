@@ -51,15 +51,34 @@ std::shared_ptr<Table> Join::hash_join(
     // If a selection was previously performed on the right table, apply
     // it to the join column.
     if (right_selection.is_arraylike()) {
-        if(right_selection.type()->id() == arrow::Type::BOOL) {
-            arrow::compute::FunctionContext function_context(
-                    arrow::default_memory_pool());
-            arrow::compute::TakeOptions take_options;
-            std::shared_ptr<arrow::ChunkedArray> out;
+        arrow::compute::FunctionContext function_context(
+                arrow::default_memory_pool());
+        std::shared_ptr<arrow::ChunkedArray> out;
 
-            status = arrow::compute::Filter(&function_context, *right_join_col,
-                    *right_selection.chunked_array(), &right_join_col);
-            evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
+        switch(right_selection.type()->id()) {
+            // right_selection is a bit filter, i.e. a selection was
+            // performed before executing this join
+            case arrow::Type::BOOL: {
+                status = arrow::compute::Filter(&function_context,
+                                                *right_join_col,
+                                                *right_selection.chunked_array(),
+                                                &right_join_col);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                break;
+            }
+            // right_selection is an array of indices, i.e. a join was
+            // performed before executing this join.
+            case arrow::Type::INT64: {
+                arrow::compute::TakeOptions take_options;
+
+                status = arrow::compute::Take(&function_context,
+                                                *right_join_col,
+                                                *right_selection.chunked_array(),
+                                                take_options,
+                                                &right_join_col);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                break;
+            }
         }
     }
 
@@ -92,18 +111,30 @@ std::shared_ptr<Table> Join::hash_join(
     // If a selection was previously performed on the left table,
     // apply it to the join column.
     if (left_selection.is_arraylike()) {
-        if(left_selection.type()->id() == arrow::Type::BOOL) {
-            arrow::compute::FunctionContext function_context(
-                    arrow::default_memory_pool());
-            arrow::compute::TakeOptions take_options;
+        arrow::compute::FunctionContext function_context(
+                arrow::default_memory_pool());
+        std::shared_ptr<arrow::ChunkedArray> out;
 
-            status = arrow::compute::Filter(
-                    &function_context,
-                    *left_join_col,
-                    *left_selection.chunked_array(),
-                    &left_join_col);
+        switch(left_selection.type()->id()) {
+            case arrow::Type::BOOL: {
+                status = arrow::compute::Filter(&function_context,
+                                                *left_join_col,
+                                                *left_selection.chunked_array(),
+                                                &left_join_col);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                break;
+            }
+            case arrow::Type::INT64: {
+                arrow::compute::TakeOptions take_options;
 
-            evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
+                status = arrow::compute::Take(&function_context,
+                                              *left_join_col,
+                                              *left_selection.chunked_array(),
+                                              take_options,
+                                              &left_join_col);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                break;
+            }
         }
     }
 
