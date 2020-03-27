@@ -140,6 +140,9 @@ std::shared_ptr<Table> Join::hash_join(
     status = right_indices_builder.Finish(&right_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
+    left_indices_ = left_indices;
+    right_indices_ = right_indices;
+
     // If no tuples will be outputted, do not create a new block.
     if (left_indices->length() > 0) {
         arrow::compute::FunctionContext function_context(
@@ -190,6 +193,14 @@ std::shared_ptr<Table> Join::hash_join(
     std::shared_ptr<Table> Join::run_operator(
             std::vector<std::shared_ptr<Table>> tables) {
         return nullptr;
+    }
+
+    std::shared_ptr<arrow::Array> Join::get_left_indices() {
+        return left_indices_;
+    }
+
+    std::shared_ptr<arrow::Array> Join::get_right_indices() {
+        return right_indices_;
     }
 
 } // namespace operators

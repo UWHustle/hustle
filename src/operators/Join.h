@@ -44,9 +44,15 @@ public:
             std::shared_ptr<Table> right_table,
             arrow::compute::Datum right_selection);
 
+    std::shared_ptr<arrow::Array> get_left_indices();
+    std::shared_ptr<arrow::Array> get_right_indices();
+
 private:
     std::string left_join_column_name_;
     std::string right_join_column_name_;
+
+    std::shared_ptr<arrow::Array> left_indices_;
+    std::shared_ptr<arrow::Array> right_indices_;
 
 };
 
