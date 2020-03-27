@@ -22,7 +22,8 @@ public:
 
     Aggregate(AggregateKernels aggregate_kernel,
               std::vector<std::shared_ptr<arrow::Field>> aggregate_fields,
-              std::vector<std::shared_ptr<arrow::Field>> group_by_fields);
+              std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
+              std::vector<std::shared_ptr<arrow::Field>> order_by_fields);
 
     std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
                                         tables) override;
@@ -58,6 +59,7 @@ protected:
     AggregateKernels aggregate_kernel_;
     std::vector<std::shared_ptr<arrow::Field>> aggregate_fields_;
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields_;
+    std::vector<std::shared_ptr<arrow::Field>> order_by_fields_;
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
     std::shared_ptr<arrow::DataType> group_type;
     std::shared_ptr<arrow::StructBuilder> group_builder;

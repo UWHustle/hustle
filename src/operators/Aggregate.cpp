@@ -13,15 +13,24 @@ namespace operators {
 
 Aggregate::Aggregate(AggregateKernels aggregate_kernel,
                      std::vector<std::shared_ptr<arrow::Field>> aggregate_fields,
-                     std::vector<std::shared_ptr<arrow::Field>> group_by_fields) {
+                     std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
+                     std::vector<std::shared_ptr<arrow::Field>> order_by_fields) {
+
     aggregate_kernel_ = aggregate_kernel;
+
     aggregate_fields_ = std::move(aggregate_fields);
     group_by_fields_ = std::move(group_by_fields);
+    order_by_fields_ = std::move(order_by_fields);
+    std::reverse(group_by_fields_.begin(),group_by_fields_.end());
+
     aggregate_builder_ = get_aggregate_builder();
 
     group_type = arrow::struct_(group_by_fields_);
     group_builder = std::make_shared<arrow::StructBuilder>(
             group_type, arrow::default_memory_pool(), get_group_builders());
+
+
+
 }
 
 std::shared_ptr<Table> Aggregate::run_operator
@@ -319,6 +328,21 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     status = arrow::compute::Unique(&function_context, group_by_col,
                                     &unique_values);
     evaluate_status(status, __FUNCTION__, __LINE__);
+
+    // If this field is in the Order By clause, sort it now.
+    for (auto & order_by_field : order_by_fields_) {
+        if (order_by_field->name() == group_by_field_name) {
+
+            std::shared_ptr<arrow::Array> sorted_indices;
+
+            status = arrow::compute::SortToIndices(&function_context,
+                    *unique_values, &sorted_indices);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+
+            status = arrow::compute::Take(&function_context, *unique_values,
+                    *sorted_indices, take_options, &unique_values);
+        }
+    }
 
     return unique_values;
 }
