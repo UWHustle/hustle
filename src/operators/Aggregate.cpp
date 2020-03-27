@@ -21,7 +21,7 @@ Aggregate::Aggregate(AggregateKernels aggregate_kernel,
     aggregate_fields_ = std::move(aggregate_fields);
     group_by_fields_ = std::move(group_by_fields);
     order_by_fields_ = std::move(order_by_fields);
-    std::reverse(group_by_fields_.begin(),group_by_fields_.end());
+//    std::reverse(group_by_fields_.begin(),group_by_fields_.end());
 
     aggregate_builder_ = get_aggregate_builder();
 
@@ -148,7 +148,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups(
         maxes[i] = unique_values[i]->length();
     }
 
-    int index = 0;
+    int index = n - 1;
     bool exit = false;
     while (!exit){
 
@@ -160,19 +160,21 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups(
         insert_group_aggregate(aggregate);
         insert_group(unique_values, its);
 
+        if (n == 0) break;
+
         // Increment nested loop
-        its[0]++;
+        its[n-1]++;
         while (its[index] == maxes[index]){
             // if n == 0, we have no Group By clause and should exit after one
             // iteration.
-            if (index ==  n - 1 || n == 0) {
+            if (index ==  0) {
                 exit = true;
                 break;
             }
-            its[index++] = 0;
+            its[index--] = 0;
             its[index]++;
         }
-        index = 0;
+        index = n-1;
     }
 
     std::shared_ptr<arrow::StructArray> groups;
