@@ -112,7 +112,7 @@ TEST_F(OperatorsTestFixture, AggregateSumTest) {
     auto *aggregate_op = new Aggregate(
       hustle::operators::AggregateKernels::SUM,
       {arrow::field("int_val",arrow::int64())},
-      {});
+      {}, {});
     std::string col_name = "int_val";
     int col_val = 235;
 
@@ -150,7 +150,7 @@ TEST_F(OperatorsTestFixture, AggregateSumTestTwoBlocks) {
     auto *aggregate_op = new Aggregate(
             hustle::operators::AggregateKernels::SUM,
             {arrow::field("int_val",arrow::int64())},
-            {}
+            {}, {}
     );
     std::string col_name = "int_val";
     int col_val = 235*2;
@@ -236,7 +236,7 @@ TEST_F(OperatorsTestFixture, AggregateMeanTest) {
   auto *aggregate_op = new Aggregate(
       hustle::operators::AggregateKernels::MEAN,
       {arrow::field("int_val",arrow::int64())},
-      {}
+      {}, {}
   );
   std::string col_name = "int_val";
   int64_t col_val = 47; // 235 / 5
@@ -268,7 +268,7 @@ TEST_F(OperatorsTestFixture, AggregateMeanTwoBlocks) {
     auto *aggregate_op = new Aggregate(
             hustle::operators::AggregateKernels::MEAN,
             {arrow::field("int_val",arrow::int64())},
-            {}
+            {}, {}
     );
     std::string col_name = "int_val";
     int64_t col_val = 47; // 235 / 5
@@ -958,10 +958,13 @@ TEST_F(SSBTestFixture, GroupByTest) {
             {arrow::field("date key", arrow::int64())};
     std::vector<std::shared_ptr<arrow::Field>> group_fields =
             {arrow::field("selling season", arrow::utf8())};
+    std::vector<std::shared_ptr<arrow::Field>> order_fields =
+            {arrow::field("selling season", arrow::utf8())};
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             hustle::operators::AggregateKernels::SUM,
             agg_fields,
-            group_fields);
+            group_fields,
+            order_fields);
 
     // Perform aggregate
     auto aggregate = aggregate_op->run_operator({date});
@@ -987,10 +990,14 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     std::vector<std::shared_ptr<arrow::Field>> group_fields =
             {arrow::field("selling season", arrow::utf8()),
              arrow::field("day of week", arrow::utf8())};
+    std::vector<std::shared_ptr<arrow::Field>> order_fields =
+            {arrow::field("selling season", arrow::utf8()),
+             arrow::field("day of week", arrow::utf8())};
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             hustle::operators::AggregateKernels::SUM,
             agg_fields,
-            group_fields);
+            group_fields,
+            order_fields);
 
     // Perform aggregate
     auto aggregate = aggregate_op->run_operator({date});
@@ -1093,10 +1100,12 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     std::vector<std::shared_ptr<arrow::Field>> agg_fields =
             {arrow::field("revenue", arrow::utf8())};
     std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
+    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             hustle::operators::AggregateKernels::SUM,
             agg_fields,
-            group_fields);
+            group_fields,
+            order_fields);
 
     // Perform aggregate over resulting join table
     auto aggregate = aggregate_op->run_operator({join_table});
@@ -1216,10 +1225,12 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
     std::vector<std::shared_ptr<arrow::Field>> agg_fields =
             {arrow::field("revenue", arrow::utf8())};
     std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
+    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             hustle::operators::AggregateKernels::SUM,
             agg_fields,
-            group_fields);
+            group_fields,
+            order_fields);
 
     // Perform aggregate over resulting join table
     auto aggregate = aggregate_op->run_operator({join_table});
