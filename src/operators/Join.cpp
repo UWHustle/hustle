@@ -226,12 +226,14 @@ std::shared_ptr<Table> Join::hash_join(
         return nullptr;
     }
 
-    std::shared_ptr<arrow::Array> Join::get_left_indices() {
-        return left_indices_;
+    arrow::compute::Datum Join::get_left_indices() {
+        arrow::compute::Datum out(left_indices_);
+        return out;
     }
 
-    std::shared_ptr<arrow::Array> Join::get_right_indices() {
-        return right_indices_;
+    arrow::compute::Datum Join::get_right_indices() {
+        arrow::compute::Datum out(right_indices_);
+        return out;
     }
 
 } // namespace operators
