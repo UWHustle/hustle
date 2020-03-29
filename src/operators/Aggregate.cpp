@@ -12,32 +12,31 @@ namespace hustle {
 namespace operators {
 
 Aggregate::Aggregate(AggregateKernels aggregate_kernel,
-                     std::vector<std::shared_ptr<arrow::Field>> aggregate_fields,
+                     std::vector<ProjectionUnit> projection_units,
                      std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
                      std::vector<std::shared_ptr<arrow::Field>> order_by_fields) {
 
     aggregate_kernel_ = aggregate_kernel;
 
-    aggregate_fields_ = std::move(aggregate_fields);
+    aggregate_kernel_ = aggregate_kernel;
+    projection_units_ = projection_units;
+
     group_by_fields_ = std::move(group_by_fields);
     order_by_fields_ = std::move(order_by_fields);
-//    std::reverse(group_by_fields_.begin(),group_by_fields_.end());
 
     aggregate_builder_ = get_aggregate_builder();
 
     group_type = arrow::struct_(group_by_fields_);
     group_builder = std::make_shared<arrow::StructBuilder>(
             group_type, arrow::default_memory_pool(), get_group_builders());
-
-
-
+    
 }
 
 std::shared_ptr<Table> Aggregate::run_operator
         (std::vector<std::shared_ptr<Table>> tables) {
 
-    auto table = tables[0];
-    return iterate_over_groups(table);
+//    auto table = tables[0];
+    return iterate_over_groups();
 }
 
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
@@ -123,14 +122,18 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema() {
 }
 
 
-std::shared_ptr<Table> Aggregate::iterate_over_groups(
-        const std::shared_ptr<Table> &table) {
+std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
     arrow::Status status;
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    arrow::compute::TakeOptions take_options;
+
     auto out_schema = get_output_schema();
     auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                              BLOCK_SIZE);
 
+    auto table = projection_units_[0].table; //TODO(nicholas)
     std::vector<std::shared_ptr<arrow::Array>> unique_values;
     // Fetch unique values for all Group By columns
     for (int i=0; i< group_by_fields_.size(); i++) {
@@ -154,7 +157,28 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups(
 
         // DoSomething() loop
         auto aggregate_col = table->get_column_by_name(
-                aggregate_fields_[0]->name());
+                projection_units_[0].fields[0]->name());
+
+        //////////
+        std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
+        // TODO(nicholas): for now, assume that the selections are always arrays
+        //  of indices, not filters.
+
+        auto table = projection_units_[0].table;
+        auto selection = projection_units_[0].selection;
+        auto field = projection_units_[0].fields[0];
+
+        auto col = table->get_column_by_name(field->name());
+
+        status = arrow::compute::Take(&function_context,
+                                      *col,
+                                      *selection.make_array(),
+                                      take_options,
+                                      &aggregate_col);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        //////////
+
+
         auto group_filter = get_group_filter(table, unique_values, its);
         auto aggregate = compute_aggregate(aggregate_col, group_filter);
         insert_group_aggregate(aggregate);
