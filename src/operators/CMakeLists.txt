@@ -24,4 +24,14 @@ target_link_libraries(hustle_operator_test
         )
 add_test(HustleOperator_test hustle_operator_test)
 
+add_executable(hustle_projection_test "tests/ProjectionTest.cpp")
+target_link_libraries(hustle_projection_test
+        gtest
+        gtest_main
+        gmock
+        table
+        operators
+        )
+add_test(HustleProjection_test hustle_projection_test)
+
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
