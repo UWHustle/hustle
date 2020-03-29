@@ -11,11 +11,6 @@
 namespace hustle {
 namespace operators {
 
-struct record_id {
-    int block_id;
-    int row_index;
-};
-
 class JoinOperator : public Operator {
 
     virtual arrow::compute::Datum get_indices() = 0;
@@ -41,7 +36,7 @@ public:
     * @param right_table The table for which a hash table is built
     * @return A new table containing the results of the join
     */
-    std::shared_ptr<Table> hash_join(
+    void hash_join(
             const std::shared_ptr<Table>& left_table,
             const arrow::compute::Datum& left_selection,
             const std::shared_ptr<Table>& right_table,

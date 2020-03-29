@@ -15,7 +15,7 @@ Join::Join(std::string left_column_name, std::string right_column_name) {
     right_join_column_name_ = std::move(right_column_name);
 }
 
-std::shared_ptr<Table> Join::hash_join(
+void Join::hash_join(
         const std::shared_ptr<Table>& left_table,
         const arrow::compute::Datum& left_selection,
         const std::shared_ptr<Table>& right_table,
@@ -96,14 +96,12 @@ std::shared_ptr<Table> Join::hash_join(
 
         for (int row=0; row<right_join_chunk->length(); row++) {
             hash[right_join_chunk->Value(row)] = block_offset + row;
-            block_offset += right_join_chunk->length();
         }
+        block_offset += right_join_chunk->length();
     }
 
     arrow::Int64Builder left_indices_builder;
     arrow::Int64Builder right_indices_builder;
-    // TODO(nicholas): left_indicies can be a ChunkedArray. It is not
-    //  necessary to force its values to be contiguous
     std::shared_ptr<arrow::Int64Array> left_indices;
     std::shared_ptr<arrow::Int64Array> right_indices;
 
@@ -158,10 +156,7 @@ std::shared_ptr<Table> Join::hash_join(
             if (hash.count(key)) {
                 int64_t right_row_index = hash[key];
 
-                // BUG: If we apply a selection beforehand, there are fewer
-                // records in the left table. So, the block row offset is
-                // incorrect! i.e. left_join_col has fewer rows than
-                // left_join_table
+
                 int left_row_index = left_block_offset + row;
                 status = left_indices_builder.Append(left_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -169,9 +164,8 @@ std::shared_ptr<Table> Join::hash_join(
                 status = right_indices_builder.Append(right_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
-
-            left_block_offset += left_join_chunk->length();
         }
+        left_block_offset += left_join_chunk->length();
     }
 
     // Note that ArrayBuilders are automatically reset by default after
@@ -183,51 +177,6 @@ std::shared_ptr<Table> Join::hash_join(
 
     left_indices_ = left_indices;
     right_indices_ = right_indices;
-
-    // If no tuples will be outputted, do not create a new block.
-//    if (left_indices->length() > 0) {
-//        arrow::compute::FunctionContext function_context(
-//                arrow::default_memory_pool());
-//        arrow::compute::TakeOptions take_options;
-//        std::shared_ptr<arrow::ChunkedArray> left_out_col;
-//
-//        for (int k = 0; k < left_table->get_num_cols(); k++) {
-//            status = arrow::compute::Take(&function_context,
-//                                          *left_table->get_column(k),
-//                                          *left_indices, take_options,
-//                                          &left_out_col);
-//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//            out_table_data.push_back(left_out_col);
-//        }
-//
-//        std::shared_ptr<arrow::ChunkedArray> right_out_col;
-//
-//        for (int k = 0; k < right_table->get_block(0)->get_num_cols(); k++) {
-//            // Do not duplicate the join column (natural join)
-//            if (right_table->get_block(0)->get_schema()->field(k)->name() !=
-//                right_join_column_name_) {
-//                status = arrow::compute::Take(&function_context,
-//                                              *right_table->get_column(k),
-//                                              *right_indices, take_options,
-//                                              &right_out_col);
-//                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//                out_table_data.push_back(right_out_col);
-//            }
-//        }
-//
-//        std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
-//
-//        for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
-//             chunk_i++) {
-//            for (auto &col : out_table_data) {
-//                out_block_data.push_back(col->chunk(chunk_i)->data());
-//            }
-//            out_table->insert_records(out_block_data);
-//            out_block_data.clear();
-//        }
-//    }
-
-    return out_table;
 }
 
 
@@ -315,7 +264,7 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
             for (int row=0; row<right_join_chunk->length(); row++) {
                 // TODO(nicholas): Should I store block_row_offset + row instead?
                 // index i corresponds to the block id.
-                record_id rid = {i, row};
+//                record_id rid = {i, row};
 //                hash[right_join_chunk->Value(row)] = rid;
                 // We only need this info if no selection was done beforehand.
             }
