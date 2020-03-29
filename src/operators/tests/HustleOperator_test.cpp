@@ -529,7 +529,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               date,
                               indices,
-                              date->get_schema()->field(0)};
+                              "date key"};
 
     std::vector<AggregateUnit> units = {agg_unit};
 
@@ -616,7 +616,7 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_op->get_left_indices(),
-                              lineorder->get_schema()->field(12)};
+                              "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
     std::vector<std::shared_ptr<arrow::Field>> group_fields = {};

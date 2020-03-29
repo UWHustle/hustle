@@ -155,7 +155,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
         // DoSomething() loop
         auto aggregate_col = table->get_column_by_name(
-                aggregate_units_[0].field->name());
+                aggregate_units_[0].col_name);
 
         //////////
         std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
@@ -164,9 +164,9 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
         auto table = aggregate_units_[0].table;
         auto selection = aggregate_units_[0].selection;
-        auto field = aggregate_units_[0].field;
+        auto name = aggregate_units_[0].col_name;
 
-        auto col = table->get_column_by_name(field->name());
+        auto col = table->get_column_by_name(name);
 
         status = arrow::compute::Take(&function_context,
                                       *col,
