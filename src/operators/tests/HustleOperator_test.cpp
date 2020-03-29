@@ -840,6 +840,8 @@ protected:
 
     std::shared_ptr<arrow::Schema> lineorder_schema;
     std::shared_ptr<arrow::Schema> date_schema;
+    std::shared_ptr<arrow::Schema> part_schema;
+    std::shared_ptr<arrow::Schema> supp_schema;
 
     std::shared_ptr<arrow::BooleanArray> valid;
     std::shared_ptr<arrow::Int64Array> column1;
@@ -849,6 +851,9 @@ protected:
 
     std::shared_ptr<Table> lineorder;
     std::shared_ptr<Table> date;
+    std::shared_ptr<Table> part;
+    std::shared_ptr<Table> supp;
+
 
     void SetUp() override {
 
@@ -940,8 +945,69 @@ protected:
                                  d_field6,  d_field7,  d_field8,  d_field9,  d_field10,
                                  d_field11,  d_field12,  d_field13,  d_field14,  d_field15,
                                  d_field16,  d_field17});
+
+
+
+
+        std::shared_ptr<arrow::Field> p_field1 = arrow::field("part key",
+                                                              arrow::int64());
+        std::shared_ptr<arrow::Field> p_field2 = arrow::field("name",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> p_field3 = arrow::field("mfgr",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> p_field4 = arrow::field("category",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> p_field5 = arrow::field("brand1",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> p_field6 = arrow::field("color",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> p_field7 = arrow::field("type",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> p_field8 = arrow::field("size",
+                                                              arrow::int64());
+        std::shared_ptr<arrow::Field> p_field9 = arrow::field("container",
+                                                              arrow::utf8());
+
+        part_schema = arrow::schema({ p_field1,  p_field2,  p_field3,  p_field4,
+                                   p_field5,
+                                      p_field6,  p_field7,  p_field8,
+                                      p_field9});
+
+
+        std::shared_ptr<arrow::Field> s_field1 = arrow::field("supp key",
+                                                              arrow::int64());
+        std::shared_ptr<arrow::Field> s_field2 = arrow::field("name",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> s_field3 = arrow::field("address",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> s_field4 = arrow::field("city",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> s_field5 = arrow::field("nation",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> s_field6 = arrow::field("region",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> s_field7 = arrow::field("phone",
+                                                              arrow::utf8());
+
+        supp_schema = arrow::schema({ s_field1,  s_field2,  s_field3,  s_field4,
+                                      s_field5,
+                                      s_field6,  s_field7});
     }
 };
+
+TEST_F(SSBTestFixture, CSVtoHSL) {
+
+
+    supp = read_from_csv_file
+            ("/Users/corrado/hustle/src/table/tests/supplier.tbl", supp_schema,
+                    BLOCK_SIZE);
+
+    write_to_file("/Users/corrado/hustle/src/table/tests/supplier.hsl",
+                  *supp);
+
+    supp = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/supplier.hsl");
+}
 
 TEST_F(SSBTestFixture, GroupByTest) {
 
@@ -1044,12 +1110,16 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
             arrow::compute::Datum((int64_t) 1993)
     );
 
+//    date_select_op->run_operator({date})->print();
+
     // Create select operator for Lineorder.discount >= 1
     auto lineorder_select_op_1 = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::GREATER_EQUAL,
             "discount",
             arrow::compute::Datum((int64_t) 1)
     );
+
+//    lineorder_select_op_1->run_operator({lineorder})->print();
 
     // Create select operator for Lineorder.discount <= 3
     auto lineorder_select_op_2 = std::make_shared<hustle::operators::Select>(
@@ -1088,36 +1158,38 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
             lineorder_select_op_composite_2->get_filter(lineorder);
     arrow::compute::Datum right_selection =
             date_select_op->get_filter(date);
-
-    auto join_table = join_op->hash_join(
-            lineorder, left_selection,
-            date, right_selection);
-
-    std::cout << "NUM ROWS JOINED = "
-              << join_table->get_num_rows() << std::endl;
-
-    // Create aggregate operator
-    std::vector<std::shared_ptr<arrow::Field>> agg_fields =
-            {arrow::field("revenue", arrow::utf8())};
-    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
-    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
-    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-            hustle::operators::AggregateKernels::SUM,
-            agg_fields,
-            group_fields,
-            order_fields);
-
-    // Perform aggregate over resulting join table
-    auto aggregate = aggregate_op->run_operator({join_table});
-
-    // Print the result. The valid bit will be printed as the first column.
-    if (aggregate != nullptr) aggregate->print();
-
-    auto t2 = std::chrono::high_resolution_clock::now();
-
-    std::cout << "QUERY EXECUTION TIME = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2-t1).count() << std::endl;
+//
+//    auto join_table = join_op->hash_join(
+//            lineorder, left_selection,
+//            date, right_selection);
+//
+//    std::cout << "NUM ROWS JOINED = "
+//              << join_op->get_left_indices().length() << std::endl;
+//
+//    // Create aggregate operator
+//    std::vector<std::shared_ptr<arrow::Field>> agg_fields =
+//            {arrow::field("revenue", arrow::utf8())};
+//    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
+//    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
+//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+//            hustle::operators::AggregateKernels::SUM,
+//            agg_fields,
+//            group_fields,
+//            order_fields);
+//
+//    // Perform aggregate over resulting join table
+////    auto aggregate = aggregate_op->run_operator({join_table});
+//
+//    // Print the result. The valid bit will be printed as the first column.
+////    if (aggregate != nullptr) aggregate->print();
+//
+//    auto t2 = std::chrono::high_resolution_clock::now();
+//
+//    std::cout << "QUERY EXECUTION TIME = " <<
+//              std::chrono::duration_cast<std::chrono::milliseconds>
+//                      (t2-t1).count() << std::endl;
+//
+////    join_table->print();
 }
 
 
@@ -1180,7 +1252,7 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
 
     // Create select operator for Lineorder.quantity <= 35
     auto lineorder_select_op_4 = std::make_shared<hustle::operators::Select>(
-            arrow::compute::CompareOperator::GREATER_EQUAL,
+            arrow::compute::CompareOperator::LESS_EQUAL,
             "quantity",
             arrow::compute::Datum((int64_t) 35)
     );
@@ -1216,7 +1288,7 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
     arrow::compute::Datum right_selection =
             date_select_op->get_filter(date);
 
-    auto join_table = join_op->hash_join(
+    join_op->hash_join(
             lineorder, left_selection,
             date, right_selection);
 
@@ -1224,23 +1296,129 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
 
     std::vector<std::shared_ptr<arrow::Field>> agg_fields =
             {arrow::field("revenue", arrow::utf8())};
-    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
-    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
-    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-            hustle::operators::AggregateKernels::SUM,
-            agg_fields,
-            group_fields,
-            order_fields);
+//    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
+//    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
+//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+//            hustle::operators::AggregateKernels::SUM,
+//            agg_fields,
+//            group_fields,
+//            order_fields);
+//
+//    // Perform aggregate over resulting join table
+//    auto aggregate = aggregate_op->run_operator({join_table});
+//
+//    // Print the result. The valid bit will be printed as the first column.
+//    if (aggregate != nullptr) aggregate->print();
+//
+//    auto t2 = std::chrono::high_resolution_clock::now();
+//
+//    std::cout << "QUERY EXECUTION TIME = " <<
+//              std::chrono::duration_cast<std::chrono::milliseconds>
+//                      (t2-t1).count() << std::endl;
+//
+////    join_table->print();
+}
 
-    // Perform aggregate over resulting join table
-    auto aggregate = aggregate_op->run_operator({join_table});
+TEST_F(SSBTestFixture, SSBQ2_1) {
 
-    // Print the result. The valid bit will be printed as the first column.
-    if (aggregate != nullptr) aggregate->print();
 
-    auto t2 = std::chrono::high_resolution_clock::now();
+    lineorder = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
 
-    std::cout << "QUERY EXECUTION TIME = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2-t1).count() << std::endl;
+    date = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/date.hsl");
+
+    part = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/part.hsl");
+
+    supp = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/supplier.hsl");
+
+    // IMPORTANT: There is no Datum constructor that accepts a string as a
+    // parameter. You must first create a StringScalar and then pass that in.
+    // If you pass in a string to the Datum constructor, it will interpet it
+    // as boolean.
+    auto part_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "category",
+            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("MFGR#12"))
+    );
+
+    auto supp_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "region",
+            arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                    ("AMERICA"))
+    );
+
+    auto join_op_1 = std::make_shared<hustle::operators::Join>("order date",
+                                                             "date key");
+    auto join_op_2 = std::make_shared<hustle::operators::Join>("part key",
+                                                               "part key");
+    auto join_op_3 = std::make_shared<hustle::operators::Join>("supp key",
+                                                               "supp key");
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+
+    arrow::compute::Datum left_selection_1;
+    arrow::compute::Datum left_selection_2;
+    arrow::compute::Datum left_selection_3;
+
+    arrow::compute::Datum right_selection_1;
+    arrow::compute::Datum right_selection_2 =
+            part_select_op->get_filter(part);
+    arrow::compute::Datum right_selection_3 =
+            supp_select_op->get_filter(supp);
+
+//
+//    auto join_table_1 = join_op_1->hash_join(
+//            lineorder, left_selection_1,
+//            date, right_selection_1);
+//
+//    std::cout << "NUM ROWS = " << join_table_1->get_num_rows() << std::endl;
+//
+//    auto left_indices_1 = join_op_1->get_left_indices();
+//    auto right_indices_1 = join_op_1->get_right_indices();
+//
+//    auto join_table_2 = join_op_2->hash_join2(
+//            lineorder, left_indices_1,
+//            part, right_selection_2);
+//
+////    auto join_table_3 = join_op_3->hash_join2(
+////            lineorder, left_indices_1,
+////            date, right_selection_2);
+//
+//    join_table_2->print();
+//
+////    std::cout << left_indices.make_array()->ToString() << std::endl;
+////    std::cout << right_indices.make_array()->ToString() << std::endl;
+//
+////    auto join_table_2 = join_op->hash_join2(
+////            lineorder, left_indices,
+////            date, right_indices);
+//
+//    // Create aggregate operator
+//
+//    std::vector<std::shared_ptr<arrow::Field>> agg_fields =
+//            {arrow::field("revenue", arrow::utf8())};
+//    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
+//    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
+//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+//            hustle::operators::AggregateKernels::SUM,
+//            agg_fields,
+//            group_fields,
+//            order_fields);
+//
+//    // Perform aggregate over resulting join table
+////    auto aggregate = aggregate_op->run_operator({join_table_2});
+//
+//    // Print the result. The valid bit will be printed as the first column.
+////    if (aggregate != nullptr) aggregate->print();
+//
+//    auto t2 = std::chrono::high_resolution_clock::now();
+//
+//    std::cout << "QUERY EXECUTION TIME = " <<
+//              std::chrono::duration_cast<std::chrono::milliseconds>
+//                      (t2-t1).count() << std::endl;
 }
