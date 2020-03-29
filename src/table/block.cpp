@@ -393,14 +393,14 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                     // input array, we copy only n offsets
                 else {
                     std::memcpy(&offsets_data[num_rows+1],
-                                &in_offsets_data[offset],
+                                &in_offsets_data[offset+1],
                                 sizeof(int32_t) * n);
                     // Correct new offsets
                     for (int k = 1; k <= n; k++) {
                         // BUG: This assumes the input data was not a slice, i.e.
                         // its offsets started at 0
                         offsets_data[num_rows + k] += current_offset -
-                                                      in_offsets_data[offset-1];
+                                                      in_offsets_data[offset];
                     }
                 }
 
