@@ -16,10 +16,13 @@ Join::Join(std::string left_column_name, std::string right_column_name) {
 }
 
 std::shared_ptr<Table> Join::hash_join(
-        std::shared_ptr<Table> left_table,
-        arrow::compute::Datum left_selection,
-        std::shared_ptr<Table> right_table,
-        arrow::compute::Datum right_selection) {
+        const std::shared_ptr<Table>& left_table,
+        const arrow::compute::Datum& left_selection,
+        const std::shared_ptr<Table>& right_table,
+        const arrow::compute::Datum& right_selection) {
+
+    left_table_ = left_table;
+    right_table_ = right_table;
 
     arrow::Status status;
 
@@ -59,6 +62,7 @@ std::shared_ptr<Table> Join::hash_join(
             // right_selection is a bit filter, i.e. a selection was
             // performed before executing this join
             case arrow::Type::BOOL: {
+                // Note: filters will be passed as ChunkedArray Datums
                 status = arrow::compute::Filter(&function_context,
                                                 *right_join_col,
                                                 *right_selection.chunked_array(),
@@ -71,9 +75,10 @@ std::shared_ptr<Table> Join::hash_join(
             case arrow::Type::INT64: {
                 arrow::compute::TakeOptions take_options;
 
+                // Note: indices will be passed as Array Datums
                 status = arrow::compute::Take(&function_context,
                                                 *right_join_col,
-                                                *right_selection.chunked_array(),
+                                                *right_selection.make_array(),
                                                 take_options,
                                                 &right_join_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -129,7 +134,7 @@ std::shared_ptr<Table> Join::hash_join(
 
                 status = arrow::compute::Take(&function_context,
                                               *left_join_col,
-                                              *left_selection.chunked_array(),
+                                              *left_selection.make_array(),
                                               take_options,
                                               &left_join_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -195,7 +200,7 @@ std::shared_ptr<Table> Join::hash_join(
         for (int k = 0; k < right_table->get_block(0)->get_num_cols(); k++) {
             // Do not duplicate the join column (natural join)
             if (right_table->get_block(0)->get_schema()->field(k)->name() !=
-            right_join_column_name_) {
+                right_join_column_name_) {
 
                 status = arrow::compute::Take(&function_context,
                                               *right_table->get_column(k),
@@ -209,7 +214,7 @@ std::shared_ptr<Table> Join::hash_join(
         std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
 
         for (int chunk_i=0; chunk_i<out_table_data[0]->num_chunks();
-        chunk_i++) {
+             chunk_i++) {
             for (auto &col : out_table_data) {
                 out_block_data.push_back(col->chunk(chunk_i)->data());
             }
@@ -224,6 +229,16 @@ std::shared_ptr<Table> Join::hash_join(
     std::shared_ptr<Table> Join::run_operator(
             std::vector<std::shared_ptr<Table>> tables) {
         return nullptr;
+    }
+
+    arrow::compute::Datum Join::get_indices_for_table(std::shared_ptr<Table>
+            other) {
+        if (other == left_table_) {
+            return get_left_indices();
+        }
+        else {
+            return get_right_indices();
+        }
     }
 
     arrow::compute::Datum Join::get_left_indices() {

@@ -39,15 +39,19 @@ public:
     * @return A new table containing the results of the join
     */
     std::shared_ptr<Table> hash_join(
-            std::shared_ptr<Table> left_table,
-            arrow::compute::Datum left_selection,
-            std::shared_ptr<Table> right_table,
-            arrow::compute::Datum right_selection);
+            const std::shared_ptr<Table>& left_table,
+            const arrow::compute::Datum& left_selection,
+            const std::shared_ptr<Table>& right_table,
+            const arrow::compute::Datum& right_selection);
 
     arrow::compute::Datum get_left_indices();
     arrow::compute::Datum get_right_indices();
+    arrow::compute::Datum get_indices_for_table(std::shared_ptr<Table> other);
 
 private:
+    std::shared_ptr<Table> left_table_;
+    std::shared_ptr<Table> right_table_;
+
     std::string left_join_column_name_;
     std::string right_join_column_name_;
 
