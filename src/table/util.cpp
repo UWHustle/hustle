@@ -10,6 +10,7 @@
 
 #include "table.h"
 #include "block.h"
+#include "util.h"
 
 void evaluate_status(const arrow::Status &status, const char *function_name,
                      int line_no) {
@@ -303,24 +304,36 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
     record_batches.push_back(record_batch);
 
     fclose(file);
-//    file.close();
 
     return std::make_shared<Table>("table", record_batches, block_size);
-
-//    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
-//
-//    for (int i = 0; i<schema->num_fields(); i++) {
-//        std::shared_ptr<arrow::ArrayData> out;
-//        record_batch_builder->GetField(i)->FinishInternal(&out);
-//        columns.push_back(out);
-//    }
-
 }
 
-int64_t convert_slice(const char *s, size_t a, size_t b) {
-    int64_t val = 0;
-    while (a < b) {
-        val = val * 10 + s[a++] - '0';
+std::shared_ptr<arrow::Schema> make_schema(
+        hustle::catalog::TableSchema catalog_schema) {
+
+    arrow::Status status;
+    arrow::SchemaBuilder schema_builder;
+
+    for (auto &col : catalog_schema.getColumns()) {
+        switch(col.getHustleType()) {
+
+            case hustle::catalog::INTEGER: {
+                auto field = arrow::field(col.getName(), arrow::int64());
+                status = schema_builder.AddField(field);
+                break;
+            }
+            case hustle::catalog::CHAR: {
+                auto field = arrow::field(col.getName(), arrow::utf8());
+                status = schema_builder.AddField(field);
+                break;
+            }
+        }
+        evaluate_status(status, __FUNCTION__, __LINE__);
     }
-    return val;
+
+    auto result = schema_builder.Finish();
+    evaluate_status(result.status(), __FUNCTION__, __LINE__);
+
+    return result.ValueOrDie();
+
 }
