@@ -551,29 +551,8 @@ TEST_F(SSBTestFixture, GroupByTest2) {
 
 TEST_F(SSBTestFixture, SSBQ1_1) {
 
-//    lineorder = read_from_csv_file
-//            ("/Users/corrado/hustle/src/table/tests/lineorder.tbl",
-//                    lineorder_schema, BLOCK_SIZE);
-//
-//    write_to_file("/Users/corrado/hustle/src/table/tests/lineorder.hsl",
-//            *lineorder);
-
-    auto t11 = std::chrono::high_resolution_clock::now();
     lineorder = read_from_file
             ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
-
-    auto t22 = std::chrono::high_resolution_clock::now();
-    std::cout << "READ FROM HUSTLE FILE TIME = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t22-t11).count
-                      () <<
-              std::endl;
-
-//    date = read_from_csv_file
-//            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
-//
-//    write_to_file("/Users/corrado/hustle/src/table/tests/date.hsl",
-//                  *date);
 
     date = read_from_file
             ("/Users/corrado/hustle/src/table/tests/date.hsl");
@@ -585,16 +564,12 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
             arrow::compute::Datum((int64_t) 1993)
     );
 
-//    date_select_op->run_operator({date})->print();
-
     // Create select operator for Lineorder.discount >= 1
     auto lineorder_select_op_1 = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::GREATER_EQUAL,
             "discount",
             arrow::compute::Datum((int64_t) 1)
     );
-
-//    lineorder_select_op_1->run_operator({lineorder})->print();
 
     // Create select operator for Lineorder.discount <= 3
     auto lineorder_select_op_2 = std::make_shared<hustle::operators::Select>(
@@ -622,8 +597,6 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
 
 
     // Create natural join operator for left.order date == right.date key
-    // For this query, left corresponds to Lineorder, and right corresponds
-    // to Date.
     auto join_op = std::make_shared<hustle::operators::Join>("order date",
             "date key");
 
@@ -633,38 +606,33 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
             lineorder_select_op_composite_2->get_filter(lineorder);
     arrow::compute::Datum right_selection =
             date_select_op->get_filter(date);
-//
-//    auto join_table = join_op->hash_join(
-//            lineorder, left_selection,
-//            date, right_selection);
-//
-//    std::cout << "NUM ROWS JOINED = "
-//              << join_op->get_left_indices().length() << std::endl;
-//
-//    // Create aggregate operator
-//    std::vector<std::shared_ptr<arrow::Field>> agg_fields =
-//            {arrow::field("revenue", arrow::utf8())};
-//    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
-//    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
-//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-//            hustle::operators::AggregateKernels::SUM,
-//            agg_fields,
-//            group_fields,
-//            order_fields);
-//
-//    // Perform aggregate over resulting join table
-////    auto aggregate = aggregate_op->run_operator({join_table});
-//
-//    // Print the result. The valid bit will be printed as the first column.
-////    if (aggregate != nullptr) aggregate->print();
-//
-//    auto t2 = std::chrono::high_resolution_clock::now();
-//
-//    std::cout << "QUERY EXECUTION TIME = " <<
-//              std::chrono::duration_cast<std::chrono::milliseconds>
-//                      (t2-t1).count() << std::endl;
-//
-////    join_table->print();
+
+    join_op->hash_join(
+            lineorder, left_selection,
+            date, right_selection);
+
+    std::cout << "NUM ROWS JOINED = "
+              << join_op->get_left_indices().length() << std::endl;
+
+    AggregateUnit agg_unit = {AggregateKernels::SUM,
+                              lineorder,
+                              join_op->get_left_indices(),
+                              lineorder->get_schema()->field(12)};
+
+    std::vector<AggregateUnit> units = {agg_unit};
+    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
+    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
+
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            units,
+            group_fields,
+            order_fields);
+
+    // Perform aggregate over resulting join table
+    auto aggregate = aggregate_op->run_operator({});
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
 }
 
 
