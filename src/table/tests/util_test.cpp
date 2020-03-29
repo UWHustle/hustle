@@ -33,5 +33,9 @@ TEST_F(HustleUtilTest, CatalogToArrowSchema) {
 
     auto schema = make_schema(catalog_schema);
 
-    std::cout << schema->ToString() << std::endl;
+    auto test_schema = arrow::schema(
+            {arrow::field("int col", arrow::int64()),
+             arrow::field("str col", arrow::utf8())});
+
+    EXPECT_TRUE(schema->Equals(test_schema));
 }

@@ -314,20 +314,22 @@ std::shared_ptr<arrow::Schema> make_schema(
     arrow::Status status;
     arrow::SchemaBuilder schema_builder;
 
+    std::shared_ptr<arrow::Field> field;
+    
     for (auto &col : catalog_schema.getColumns()) {
         switch(col.getHustleType()) {
 
+            // TODO(nicholas): distinguish between different integer types
             case hustle::catalog::INTEGER: {
-                auto field = arrow::field(col.getName(), arrow::int64());
-                status = schema_builder.AddField(field);
+                field = arrow::field(col.getName(), arrow::int64());
                 break;
             }
             case hustle::catalog::CHAR: {
-                auto field = arrow::field(col.getName(), arrow::utf8());
-                status = schema_builder.AddField(field);
+                field = arrow::field(col.getName(), arrow::utf8());
                 break;
             }
         }
+        status = schema_builder.AddField(field);
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
 
