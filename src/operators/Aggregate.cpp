@@ -11,20 +11,17 @@
 namespace hustle {
 namespace operators {
 
-Aggregate::Aggregate(AggregateKernels aggregate_kernel,
-                     std::vector<ProjectionUnit> projection_units,
+Aggregate::Aggregate(
+                     std::vector<AggregateUnit> aggregate_units,
                      std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
                      std::vector<std::shared_ptr<arrow::Field>> order_by_fields) {
 
-    aggregate_kernel_ = aggregate_kernel;
-
-    aggregate_kernel_ = aggregate_kernel;
-    projection_units_ = projection_units;
+    aggregate_units_ = aggregate_units;
 
     group_by_fields_ = std::move(group_by_fields);
     order_by_fields_ = std::move(order_by_fields);
 
-    aggregate_builder_ = get_aggregate_builder();
+    aggregate_builder_ = get_aggregate_builder(aggregate_units_[0].kernel);
 
     group_type = arrow::struct_(group_by_fields_);
     group_builder = std::make_shared<arrow::StructBuilder>(
@@ -65,12 +62,12 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 }
 
 std::shared_ptr<arrow::ArrayBuilder> Aggregate::get_aggregate_builder
-() {
+(AggregateKernels kernel) {
 
     arrow::Status status;
     std::shared_ptr<arrow::ArrayBuilder> aggreagte_builder;
 
-    switch (aggregate_kernel_) {
+    switch (kernel) {
         // Returns a Datum of the same type INT64
         case SUM: {
             aggreagte_builder = std::make_shared<arrow::Int64Builder>();
@@ -88,7 +85,8 @@ std::shared_ptr<arrow::ArrayBuilder> Aggregate::get_aggregate_builder
     return aggreagte_builder;
 }
 
-std::shared_ptr<arrow::Schema> Aggregate::get_output_schema() {
+std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(AggregateKernels
+kernel) {
 
     arrow::Status status;
     arrow::SchemaBuilder schema_builder;
@@ -96,7 +94,7 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema() {
     status = schema_builder.AddFields(group_by_fields_);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    switch (aggregate_kernel_) {
+    switch (kernel) {
         // Returns a Datum of the same type INT64
         case SUM: {
             status = schema_builder.AddField(
@@ -129,11 +127,11 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
             arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
 
-    auto out_schema = get_output_schema();
+    auto out_schema = get_output_schema(aggregate_units_[0].kernel);
     auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                              BLOCK_SIZE);
 
-    auto table = projection_units_[0].table; //TODO(nicholas)
+    auto table = aggregate_units_[0].table; //TODO(nicholas)
     std::vector<std::shared_ptr<arrow::Array>> unique_values;
     // Fetch unique values for all Group By columns
     for (int i=0; i< group_by_fields_.size(); i++) {
@@ -157,16 +155,16 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
         // DoSomething() loop
         auto aggregate_col = table->get_column_by_name(
-                projection_units_[0].fields[0]->name());
+                aggregate_units_[0].field->name());
 
         //////////
         std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
         // TODO(nicholas): for now, assume that the selections are always arrays
         //  of indices, not filters.
 
-        auto table = projection_units_[0].table;
-        auto selection = projection_units_[0].selection;
-        auto field = projection_units_[0].fields[0];
+        auto table = aggregate_units_[0].table;
+        auto selection = aggregate_units_[0].selection;
+        auto field = aggregate_units_[0].field;
 
         auto col = table->get_column_by_name(field->name());
 
@@ -180,7 +178,8 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
 
         auto group_filter = get_group_filter(table, unique_values, its);
-        auto aggregate = compute_aggregate(aggregate_col, group_filter);
+        auto aggregate = compute_aggregate(aggregate_units_[0].kernel, 
+                aggregate_col, group_filter);
         insert_group_aggregate(aggregate);
         insert_group(unique_values, its);
 
@@ -297,11 +296,10 @@ void Aggregate::insert_group(
 void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
 
     arrow::Status status;
-
     // Append each group aggregate to aggregate_builder.
-    switch (aggregate_kernel_) {
+    switch (aggregate.type()->id()) {
         // Returns a Datum of type INT64
-        case SUM: {
+        case arrow::Type::INT64: {
             auto aggregate_builder_casted =
                     std::static_pointer_cast<arrow::Int64Builder>
                             (aggregate_builder_);
@@ -317,12 +315,7 @@ void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
-        case COUNT: {
-            throw std::runtime_error("Count aggregate not supported.");
-            break;
-        }
-            // NOTE: Mean outputs a DOUBLE
-        case MEAN: {
+        case arrow::Type::DOUBLE: {
             auto aggregate_builder_casted =
                     std::static_pointer_cast<arrow::DoubleBuilder>
                             (aggregate_builder_);
@@ -405,6 +398,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 
 
 arrow::compute::Datum Aggregate::compute_aggregate(
+        AggregateKernels kernel,
         std::shared_ptr<arrow::ChunkedArray> aggregate_col,
         std::shared_ptr<arrow::ChunkedArray> group_filter) {
 
@@ -427,7 +421,7 @@ arrow::compute::Datum Aggregate::compute_aggregate(
 
     arrow::compute::Datum out_aggregate;
 
-    switch (aggregate_kernel_) {
+    switch (kernel) {
         // Returns a Datum of the same type INT64
         case SUM: {
             status = arrow::compute::Sum(
