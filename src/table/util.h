@@ -43,7 +43,7 @@ void write_to_file(const char *path, Table &table);
  *
  * TODO: Assuming all blocks are written to separate files, read in one block.
  */
-std::shared_ptr<Table>  read_from_file(const char *path, bool read_only);
+std::shared_ptr<Table>  read_from_file(const char *path, bool read_only=true);
 
 /**
  * Return the columns of a RecordBatch as a vector of Arrays. This is a special

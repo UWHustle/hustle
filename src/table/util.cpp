@@ -89,7 +89,7 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
-std::shared_ptr<Table> read_from_file(const char *path, bool read_only=true) {
+std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
 
     arrow::Status status;
 
