@@ -515,9 +515,8 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     std::vector<std::shared_ptr<arrow::Field>> group_fields =
             {arrow::field("selling season", arrow::utf8()),
              arrow::field("day of week", arrow::utf8())};
-    std::vector<std::shared_ptr<arrow::Field>> order_fields =
-            {arrow::field("selling season", arrow::utf8()),
-             arrow::field("day of week", arrow::utf8())};
+    std::vector<std::string> order_fields =
+            {"selling season", "day of week"};
 
     arrow::Int64Builder indices_builder;
     std::shared_ptr<arrow::Int64Array> indices;
@@ -621,7 +620,7 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
 
     std::vector<AggregateUnit> units = {agg_unit};
     std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
-    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
+    std::vector<std::string> order_fields = {};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             units,

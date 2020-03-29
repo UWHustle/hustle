@@ -31,8 +31,7 @@ public:
     Aggregate(
                          std::vector<AggregateUnit> Aggregate_units,
                          std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
-                         std::vector<std::shared_ptr<arrow::Field>>
-                         order_by_fields);
+                         std::vector<std::string> order_by_fields);
 
     std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
                                         tables) override;
@@ -60,7 +59,7 @@ public:
 
 protected:
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields_;
-    std::vector<std::shared_ptr<arrow::Field>> order_by_fields_;
+    std::vector<std::string> order_by_fields_;
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
     std::shared_ptr<arrow::DataType> group_type;
     std::shared_ptr<arrow::StructBuilder> group_builder;

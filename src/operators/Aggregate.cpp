@@ -14,7 +14,7 @@ namespace operators {
 Aggregate::Aggregate(
                      std::vector<AggregateUnit> aggregate_units,
                      std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
-                     std::vector<std::shared_ptr<arrow::Field>> order_by_fields) {
+                     std::vector<std::string> order_by_fields) {
 
     aggregate_units_ = aggregate_units;
 
@@ -349,8 +349,8 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     // If this field is in the Order By clause, sort it now.
-    for (auto & order_by_field : order_by_fields_) {
-        if (order_by_field->name() == group_by_field_name) {
+    for (auto & name : order_by_fields_) {
+        if (name == group_by_field_name) {
 
             std::shared_ptr<arrow::Array> sorted_indices;
 
