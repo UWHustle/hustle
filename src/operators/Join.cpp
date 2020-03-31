@@ -123,58 +123,58 @@ void Join::hash_join(
 
 
 std::unordered_map<int64_t, int64_t> Join::build_hash_table
-(std::shared_ptr<Table> right_table, arrow::compute::Datum right_selection) {
+(std::shared_ptr<Table> table, arrow::compute::Datum selection) {
 
     arrow::Status status;
     // TODO(nicholas): size of hash table is too large if selection is not null
-    std::unordered_map<int64_t, int64_t> hash(right_table->get_num_rows());
+    std::unordered_map<int64_t, int64_t> hash(table->get_num_rows());
 
-    auto right_join_col = right_table->get_column_by_name
+    auto join_col = table->get_column_by_name
             (right_join_column_name_);
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
 
-    if (right_selection.is_arraylike()) {
-        switch (right_selection.type()->id()) {
-            // right_selection is a bit filter, i.e. a selection was
+    if (selection.is_arraylike()) {
+        switch (selection.type()->id()) {
+            // selection is a bit filter, i.e. a selection was
             // performed before executing this join
             case arrow::Type::BOOL: {
                 // Note: filters will be passed as ChunkedArray Datums
                 status = arrow::compute::Filter(&function_context,
-                                                *right_join_col,
-                                                *right_selection.chunked_array(),
-                                                &right_join_col);
+                                                *join_col,
+                                                *selection.chunked_array(),
+                                                &join_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
                 break;
             }
-                // right_selection is an array of indices, i.e. a join was
+                // selection is an array of indices, i.e. a join was
                 // performed before executing this join.
             case arrow::Type::INT64: {
                 arrow::compute::TakeOptions take_options;
 
                 // Note: indices will be passed as Array Datums
                 status = arrow::compute::Take(&function_context,
-                                              *right_join_col,
-                                              *right_selection.make_array(),
+                                              *join_col,
+                                              *selection.make_array(),
                                               take_options,
-                                              &right_join_col);
+                                              &join_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
     }
     int row_offset = 0;
-    // Build phase if there is no right_selection
-    for (int i=0; i<right_join_col->num_chunks(); i++) {
+    // Build phase if there is no selection
+    for (int i=0; i<join_col->num_chunks(); i++) {
         // TODO(nicholas): for now, we assume the join column is INT64 type.
-        auto right_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                right_join_col->chunk(i));
+        auto join_chunk = std::static_pointer_cast<arrow::Int64Array>(
+                join_col->chunk(i));
 
-        for (int row=0; row<right_join_chunk->length(); row++) {
-            hash[right_join_chunk->Value(row)] = row_offset + row;
+        for (int row=0; row<join_chunk->length(); row++) {
+            hash[join_chunk->Value(row)] = row_offset + row;
             // We only need this info if no selection was done beforehand.
         }
-        row_offset += right_join_chunk->length();
+        row_offset += join_chunk->length();
     }
 
     return hash;
