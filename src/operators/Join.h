@@ -24,9 +24,6 @@ public:
     std::shared_ptr<Table> run_operator
     (std::vector<std::shared_ptr<Table>> table) override;
 
-    std::unordered_map<int64_t, int64_t> build_hash_table(
-            std::shared_ptr<Table> table,
-            arrow::compute::Datum selection);
     /**
     * Perform a natural join on two tables using hash join. Projections are not
     * yet supported; all columns from both tables will be returned in the
@@ -36,6 +33,9 @@ public:
     * @param right_table The table for which a hash table is built
     * @return A new table containing the results of the join
     */
+
+//    Interface Joinable;
+
     std::vector<SelectionReference> hash_join(
             const std::shared_ptr<Table>& left_table,
             const arrow::compute::Datum& left_selection,
@@ -56,6 +56,16 @@ private:
 
     std::shared_ptr<arrow::Array> left_indices_;
     std::shared_ptr<arrow::Array> right_indices_;
+
+    std::unordered_map<int64_t, int64_t> hash_table_;
+
+    std::vector<SelectionReference> probe_hash_table
+            (std::shared_ptr<arrow::ChunkedArray> probe_col);
+    std::unordered_map<int64_t, int64_t> build_hash_table
+            (std::shared_ptr<arrow::ChunkedArray> col);
+    std::shared_ptr<arrow::ChunkedArray> apply_selection
+            (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum
+            selection);
 
 
 

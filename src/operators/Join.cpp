@@ -24,66 +24,80 @@ std::vector<SelectionReference> Join::hash_join(
         const std::shared_ptr<Table>& right_table,
         const arrow::compute::Datum& right_selection) {
 
+    arrow::Status status;
+
     left_table_ = left_table;
     right_table_ = right_table;
 
-    arrow::Status status;
+    auto right_join_col = apply_selection(
+            right_table->get_column_by_name(right_join_column_name_),
+            right_selection);
 
-    auto hash = build_hash_table(right_table, right_selection);
+    hash_table_ = build_hash_table(right_join_col);
+//    probe_hash_table(left_table, left_selection);
+
+    auto left_join_col = apply_selection(
+            left_table->get_column_by_name(left_join_column_name_),
+            left_selection);
+
+    auto out = probe_hash_table(left_join_col);
+
+    return out;
+
+}
+
+
+std::unordered_map<int64_t, int64_t> Join::build_hash_table
+(std::shared_ptr<arrow::ChunkedArray> col) {
+
+    arrow::Status status;
+    // TODO(nicholas): size of hash table is too large if selection is not null
+    std::unordered_map<int64_t, int64_t> hash(col->length());
+
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+
+    int row_offset = 0;
+    // Build phase if there is no selection
+    for (int i=0; i<col->num_chunks(); i++) {
+        // TODO(nicholas): for now, we assume the join column is INT64 type.
+        auto chunk = std::static_pointer_cast<arrow::Int64Array>(
+                col->chunk(i));
+
+        for (int row=0; row<chunk->length(); row++) {
+            hash[chunk->Value(row)] = row_offset + row;
+            // We only need this info if no selection was done beforehand.
+        }
+        row_offset += chunk->length();
+    }
+
+    return hash;
+}
+
+std::vector<SelectionReference> Join::probe_hash_table
+(std::shared_ptr<arrow::ChunkedArray> probe_col) {
+
+    arrow::Status status;
 
     arrow::Int64Builder left_indices_builder;
     arrow::Int64Builder right_indices_builder;
     std::shared_ptr<arrow::Int64Array> left_indices;
     std::shared_ptr<arrow::Int64Array> right_indices;
 
-    auto left_join_col = left_table->get_column_by_name
-            (left_join_column_name_);
-
-    // If a selection was previously performed on the left table,
-    // apply it to the join column.
-    if (left_selection.is_arraylike()) {
-        arrow::compute::FunctionContext function_context(
-                arrow::default_memory_pool());
-        std::shared_ptr<arrow::ChunkedArray> out;
-
-        switch(left_selection.type()->id()) {
-            case arrow::Type::BOOL: {
-                status = arrow::compute::Filter(&function_context,
-                                                *left_join_col,
-                                                *left_selection.chunked_array(),
-                                                &left_join_col);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                break;
-            }
-            case arrow::Type::INT64: {
-                arrow::compute::TakeOptions take_options;
-
-                status = arrow::compute::Take(&function_context,
-                                              *left_join_col,
-                                              *left_selection.make_array(),
-                                              take_options,
-                                              &left_join_col);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                break;
-            }
-        }
-    }
-
-
     int left_block_offset = 0;
     // Probe phase
-    for (int i = 0; i < left_join_col->num_chunks(); i++) {
+    for (int i = 0; i < probe_col->num_chunks(); i++) {
 
         // TODO(nicholas): for now, we assume the join column is INT64 type.
         auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                left_join_col->chunk(i));
+                probe_col->chunk(i));
 
 
         for (int row = 0; row < left_join_chunk->length(); row++) {
             auto key = left_join_chunk->Value(row);
 
-            if (hash.count(key)) {
-                int64_t right_row_index = hash[key];
+            if (hash_table_.count(key)) {
+                int64_t right_row_index = hash_table_[key];
 
                 int left_row_index = left_block_offset + row;
                 status = left_indices_builder.Append(left_row_index);
@@ -107,71 +121,49 @@ std::vector<SelectionReference> Join::hash_join(
     right_indices_ = right_indices;
 
     std::vector<SelectionReference> out;
-    out.push_back({left_table, get_left_indices()});
-    out.push_back({right_table, get_right_indices()});
+    out.push_back({left_table_, get_left_indices()});
+    out.push_back({right_table_, get_right_indices()});
 
     return out;
 }
 
-
-std::unordered_map<int64_t, int64_t> Join::build_hash_table
-(std::shared_ptr<Table> table, arrow::compute::Datum selection) {
+std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
+(std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum selection) {
 
     arrow::Status status;
-    // TODO(nicholas): size of hash table is too large if selection is not null
-    std::unordered_map<int64_t, int64_t> hash(table->get_num_rows());
-
-    auto join_col = table->get_column_by_name
-            (right_join_column_name_);
-
-    arrow::compute::FunctionContext function_context(
-            arrow::default_memory_pool());
-
+    std::shared_ptr<arrow::ChunkedArray> out_col;
+    // If a selection was previously performed on the left table,
+    // apply it to the join column.
     if (selection.is_arraylike()) {
-        switch (selection.type()->id()) {
-            // selection is a bit filter, i.e. a selection was
-            // performed before executing this join
+        arrow::compute::FunctionContext function_context(
+                arrow::default_memory_pool());
+        std::shared_ptr<arrow::ChunkedArray> out;
+
+        switch(selection.type()->id()) {
             case arrow::Type::BOOL: {
-                // Note: filters will be passed as ChunkedArray Datums
                 status = arrow::compute::Filter(&function_context,
-                                                *join_col,
+                                                *col,
                                                 *selection.chunked_array(),
-                                                &join_col);
+                                                &out_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
                 break;
             }
-                // selection is an array of indices, i.e. a join was
-                // performed before executing this join.
             case arrow::Type::INT64: {
                 arrow::compute::TakeOptions take_options;
 
-                // Note: indices will be passed as Array Datums
                 status = arrow::compute::Take(&function_context,
-                                              *join_col,
+                                              *col,
                                               *selection.make_array(),
                                               take_options,
-                                              &join_col);
+                                              &out_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                break;
             }
         }
     }
-    int row_offset = 0;
-    // Build phase if there is no selection
-    for (int i=0; i<join_col->num_chunks(); i++) {
-        // TODO(nicholas): for now, we assume the join column is INT64 type.
-        auto join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                join_col->chunk(i));
 
-        for (int row=0; row<join_chunk->length(); row++) {
-            hash[join_chunk->Value(row)] = row_offset + row;
-            // We only need this info if no selection was done beforehand.
-        }
-        row_offset += join_chunk->length();
-    }
-
-    return hash;
+    return out_col;
 }
-
 
     std::shared_ptr<Table> Join::run_operator(
             std::vector<std::shared_ptr<Table>> tables) {
