@@ -147,22 +147,6 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
                                                 *right_selection.chunked_array(),
                                                 &right_join_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-                // Build phase after filter selection
-                // NOTE: index i corresponds to the row index AFTER filtering.
-                int row_offset = 0;
-
-                for (int i = 0; i < right_join_col->num_chunks(); i++) {
-                    // TODO(nicholas): for now, we assume the join column is INT64 type.
-                    auto right_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                            right_join_col->chunk(i));
-
-                    for (int row = 0; row < right_join_chunk->length(); row++) {
-                        hash[right_join_chunk->Value(row)] = row_offset + row;
-                        row_offset += right_join_chunk->length();
-                        // Hash table stores indices of the FILTERED join col.
-                    }
-                }
                 break;
             }
                 // right_selection is an array of indices, i.e. a join was
@@ -177,41 +161,21 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
                                               take_options,
                                               &right_join_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-                // Build phase after filter selection
-                // NOTE: index i corresponds to the row index AFTER "taking".
-                int row_offset = 0;
-
-                for (int i = 0; i < right_join_col->num_chunks(); i++) {
-                    // TODO(nicholas): for now, we assume the join column is INT64 type.
-                    auto right_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                            right_join_col->chunk(i));
-
-                    for (int row = 0; row < right_join_chunk->length(); row++) {
-                        hash[right_join_chunk->Value(row)] = row_offset + row;
-                        row_offset += right_join_chunk->length();
-                        // Hash table stores indices of the FILTERED join col.
-                    }
-                }
-                break;
             }
         }
     }
-    else {
-        // Build phase
-        for (int i=0; i<right_join_col->num_chunks(); i++) {
-            // TODO(nicholas): for now, we assume the join column is INT64 type.
-            auto right_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                    right_join_col->chunk(i));
+    int row_offset = 0;
+    // Build phase if there is no right_selection
+    for (int i=0; i<right_join_col->num_chunks(); i++) {
+        // TODO(nicholas): for now, we assume the join column is INT64 type.
+        auto right_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
+                right_join_col->chunk(i));
 
-            for (int row=0; row<right_join_chunk->length(); row++) {
-                // TODO(nicholas): Should I store block_row_offset + row instead?
-                // index i corresponds to the block id.
-//                record_id rid = {i, row};
-//                hash[right_join_chunk->Value(row)] = rid;
-                // We only need this info if no selection was done beforehand.
-            }
+        for (int row=0; row<right_join_chunk->length(); row++) {
+            hash[right_join_chunk->Value(row)] = row_offset + row;
+            // We only need this info if no selection was done beforehand.
         }
+        row_offset += right_join_chunk->length();
     }
 
     return hash;
