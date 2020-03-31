@@ -9,6 +9,7 @@
 #include "operators/Aggregate.h"
 #include "operators/Join.h"
 #include "operators/Select.h"
+#include "operators/Project.h"
 
 
 #include <arrow/compute/kernels/filter.h>
@@ -20,6 +21,10 @@ using hustle::operators::Join;
 using hustle::operators::Select;
 using hustle::operators::AggregateUnit;
 using hustle::operators::AggregateKernels ;
+using hustle::operators::Projection ;
+using hustle::operators::ProjectionUnit ;
+using hustle::operators::ColumnReference ;
+
 
 class OperatorsTestFixture2 : public testing::Test {
 protected:
@@ -480,6 +485,44 @@ TEST_F(SSBTestFixture, GroupByTest) {
 
     date = read_from_file
             ("/Users/corrado/hustle/src/table/tests/date.hsl");
+
+    std::shared_ptr<arrow::Int64Builder> value_builder;
+//    auto b = std::make_shared<arrow::FixedSizeListBuilder>
+//            (arrow::default_memory_pool(),
+//            &value_builder, 2);
+
+    std::shared_ptr<arrow::FixedSizeListBuilder> b;
+
+    std::unique_ptr<arrow::ArrayBuilder> c;
+    arrow::MakeBuilder(arrow::default_memory_pool(),
+            arrow::fixed_size_list(arrow::int64(),2), &c);
+
+    b.reset(arrow::internal::checked_cast<arrow::FixedSizeListBuilder*>(c
+    .release()));
+//    auto vals = std::static_pointer_cast<arrow::Int64Builder>
+//            (std::make_shared<arrow::Int64Builder>(b->value_builder()));
+
+    auto vals = (arrow::Int64Builder*)(b->value_builder
+            ());
+
+    vals->AppendValues({1,2,3,4});
+
+    b->Append();
+    b->Append();
+
+    std::shared_ptr<arrow::FixedSizeListArray> out;
+    b->Finish(&out);
+
+    std::cout << out->ToString() << std::endl;
+
+    // fetch array, downcast that, then
+
+//    arrow::StructBuilder x(ar)
+//    x.
+
+
+
+
 //
 //    std::vector<std::shared_ptr<arrow::Field>> agg_fields =
 //            {arrow::field("date key", arrow::int64())};
@@ -512,9 +555,10 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     date = read_from_file
             ("/Users/corrado/hustle/src/table/tests/date.hsl");
 
-    std::vector<std::shared_ptr<arrow::Field>> group_fields =
-            {arrow::field("selling season", arrow::utf8()),
-             arrow::field("day of week", arrow::utf8())};
+    std::vector<ColumnReference> col_refs;
+    col_refs.push_back({date, "selling season"});
+    col_refs.push_back({date, "day of week"});
+
     std::vector<std::string> order_fields =
             {"selling season", "day of week"};
 
@@ -533,10 +577,9 @@ TEST_F(SSBTestFixture, GroupByTest2) {
 
     std::vector<AggregateUnit> units = {agg_unit};
 
-
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             units,
-            group_fields,
+            col_refs,
             order_fields);
 
     // Perform aggregate
@@ -619,12 +662,12 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
-    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
+    std::vector<ColumnReference> col_refs = {};
     std::vector<std::string> order_fields = {};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             units,
-            group_fields,
+            col_refs,
             order_fields);
 
     // Perform aggregate over resulting join table
@@ -637,29 +680,9 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
 
 TEST_F(SSBTestFixture, SSBQ1_2) {
 
-//    lineorder = read_from_csv_file
-//            ("/Users/corrado/hustle/src/table/tests/lineorder.tbl",
-//                    lineorder_schema, BLOCK_SIZE);
-//
-//    write_to_file("/Users/corrado/hustle/src/table/tests/lineorder.hsl",
-//            *lineorder);
-
     auto t11 = std::chrono::high_resolution_clock::now();
     lineorder = read_from_file
             ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
-
-    auto t22 = std::chrono::high_resolution_clock::now();
-    std::cout << "READ FROM HUSTLE FILE TIME = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t22-t11).count
-                      () <<
-              std::endl;
-
-//    date = read_from_csv_file
-//            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
-//
-//    write_to_file("/Users/corrado/hustle/src/table/tests/date.hsl",
-//                  *date);
 
     date = read_from_file
             ("/Users/corrado/hustle/src/table/tests/date.hsl");
@@ -783,49 +806,73 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     auto part_select_op = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::EQUAL,
             "category",
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("MFGR#12"))
+            arrow::compute::Datum(
+                    std::make_shared<arrow::StringScalar>("MFGR#12"))
     );
 
     auto supp_select_op = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::EQUAL,
             "region",
             arrow::compute::Datum(std::make_shared<arrow::StringScalar>
-                    ("AMERICA"))
+                                          ("AMERICA"))
     );
 
-    auto join_op_1 = std::make_shared<hustle::operators::Join>("order date",
-                                                             "date key");
-    auto join_op_2 = std::make_shared<hustle::operators::Join>("part key",
+    auto join_op_3 = std::make_shared<hustle::operators::Join>("order date",
+                                                               "date key");
+    auto join_op_1 = std::make_shared<hustle::operators::Join>("part key",
                                                                "part key");
-    auto join_op_3 = std::make_shared<hustle::operators::Join>("supp key",
+    auto join_op_2 = std::make_shared<hustle::operators::Join>("supp key",
                                                                "supp key");
 
-    auto t1 = std::chrono::high_resolution_clock::now();
 
+    arrow::compute::Datum empty_selection;
 
-    arrow::compute::Datum left_selection_1;
-    arrow::compute::Datum left_selection_2;
-    arrow::compute::Datum left_selection_3;
-
-    arrow::compute::Datum right_selection_1;
-    arrow::compute::Datum right_selection_2 =
+    arrow::compute::Datum part_selection =
             part_select_op->get_filter(part);
-    arrow::compute::Datum right_selection_3 =
+    arrow::compute::Datum supp_selection =
             supp_select_op->get_filter(supp);
 
+    auto res1 = join_op_1->hash_join(
+            lineorder, empty_selection,
+            part, part_selection);
+
+    auto res2 = join_op_2->hash_join(
+            res1, supp, supp_selection);
+
+    auto res3 = join_op_3->hash_join(
+            res2, date, empty_selection);
+
+   std::cout << res3[0].selection.length() << std::endl;
+
+   AggregateUnit a1 = {
+           AggregateKernels::SUM,
+           lineorder,
+           res3[0].selection,
+           "revenue"
+   };
+
+//   Aggregate a({a1},{date->get_schema()->GetFieldByName("year"),
+//                     part->get_schema()->GetFieldByName("brand1")}, {"year",
+//                                                                     "brand1"});
 //
-//    auto join_table_1 = join_op_1->hash_join(
-//            lineorder, left_selection_1,
-//            date, right_selection_1);
+//   auto table = a.run_operator({});
+//   table->print();
+//    ProjectionUnit p1 = {
+//            res3[0].table,
+//            res3[0].selection,
 //
+//    };
+//    Projection p();
+
 //    std::cout << "NUM ROWS = " << join_table_1->get_num_rows() << std::endl;
+
 //
-//    auto left_indices_1 = join_op_1->get_left_indices();
-//    auto right_indices_1 = join_op_1->get_right_indices();
-//
-//    auto join_table_2 = join_op_2->hash_join2(
-//            lineorder, left_indices_1,
+
+
+//    auto res2 = join_op_2->hash_join(
+//            res1,
 //            part, right_selection_2);
+
 //
 ////    auto join_table_3 = join_op_3->hash_join2(
 ////            lineorder, left_indices_1,
