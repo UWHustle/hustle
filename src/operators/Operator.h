@@ -4,6 +4,7 @@
 #include <string>
 #include <table/block.h>
 #include <table/table.h>
+#include <arrow/compute/api.h>
 
 namespace hustle {
 namespace operators {
@@ -12,6 +13,11 @@ enum FilterOperator {
     AND,
     OR,
     NONE
+};
+
+struct SelectionReference {
+    std::shared_ptr<Table> table;
+    arrow::compute::Datum selection;
 };
 
 class Operator {
