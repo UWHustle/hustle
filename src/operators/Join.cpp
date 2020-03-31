@@ -43,69 +43,12 @@ void Join::hash_join(
 
     auto out_table = std::make_shared<Table>("out", out_schema, BLOCK_SIZE);
 
-    std::unordered_map<int64_t, int64_t> hash(right_table->get_num_rows());
-
-    std::vector<std::shared_ptr<Block>> out_blocks;
-
-
-    auto right_join_col = right_table->get_column_by_name
-                (right_join_column_name_);
-
-    // If a selection was previously performed on the right table, apply
-    // it to the join column.
-    if (right_selection.is_arraylike()) {
-        arrow::compute::FunctionContext function_context(
-                arrow::default_memory_pool());
-        std::shared_ptr<arrow::ChunkedArray> out;
-
-        switch(right_selection.type()->id()) {
-            // right_selection is a bit filter, i.e. a selection was
-            // performed before executing this join
-            case arrow::Type::BOOL: {
-                // Note: filters will be passed as ChunkedArray Datums
-                status = arrow::compute::Filter(&function_context,
-                                                *right_join_col,
-                                                *right_selection.chunked_array(),
-                                                &right_join_col);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                break;
-            }
-            // right_selection is an array of indices, i.e. a join was
-            // performed before executing this join.
-            case arrow::Type::INT64: {
-                arrow::compute::TakeOptions take_options;
-
-                // Note: indices will be passed as Array Datums
-                status = arrow::compute::Take(&function_context,
-                                                *right_join_col,
-                                                *right_selection.make_array(),
-                                                take_options,
-                                                &right_join_col);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                break;
-            }
-        }
-    }
-
-    int block_offset = 0;
-    // Build phase
-    for (int i=0; i<right_join_col->num_chunks(); i++) {
-        // TODO(nicholas): for now, we assume the join column is INT64 type.
-        auto right_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                right_join_col->chunk(i));
-
-        for (int row=0; row<right_join_chunk->length(); row++) {
-            hash[right_join_chunk->Value(row)] = block_offset + row;
-        }
-        block_offset += right_join_chunk->length();
-    }
+    auto hash = build_hash_table(right_table, right_selection);
 
     arrow::Int64Builder left_indices_builder;
     arrow::Int64Builder right_indices_builder;
     std::shared_ptr<arrow::Int64Array> left_indices;
     std::shared_ptr<arrow::Int64Array> right_indices;
-
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
 
     auto left_join_col = left_table->get_column_by_name
             (left_join_column_name_);
@@ -270,6 +213,8 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
             }
         }
     }
+
+    return hash;
 }
 
 
