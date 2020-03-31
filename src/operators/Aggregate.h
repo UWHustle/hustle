@@ -29,9 +29,9 @@ class Aggregate : public Operator{
 public:
 
     Aggregate(
-                         std::vector<AggregateUnit> Aggregate_units,
-                         std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
-                         std::vector<std::string> order_by_fields);
+             std::vector<AggregateUnit> Aggregate_units,
+             std::vector<ColumnReference> group_by_fields,
+             std::vector<std::string> order_by_fields);
 
     std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
                                         tables) override;
@@ -58,6 +58,7 @@ public:
     get_group_builders();
 
 protected:
+    std::vector<ColumnReference> group_bys_;
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields_;
     std::vector<std::string> order_by_fields_;
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;

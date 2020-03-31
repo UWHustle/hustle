@@ -3,6 +3,7 @@
 #include <utility>
 #include <arrow/compute/api.h>
 #include <arrow/compute/kernels/compare.h>
+#include <arrow/compute/kernels/match.h>
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
@@ -43,6 +44,84 @@ std::vector<SelectionReference> Join::hash_join(
     auto out = probe_hash_table(left_join_col);
 
     return out;
+
+}
+
+
+std::vector<SelectionReference> Join::hash_join(
+        const std::vector<SelectionReference>& left,
+        const std::shared_ptr<Table>& right_table,
+        const arrow::compute::Datum& right_selection) {
+
+    arrow::Status status;
+
+    right_table_ = right_table;
+
+    auto right_join_col = apply_selection(
+            right_table->get_column_by_name(right_join_column_name_),
+            right_selection);
+
+    hash_table_ = build_hash_table(right_join_col);
+
+    int selection_reference_index = -1;
+    int left_join_col_index = -1;
+
+    for (int i=0; i<left.size(); i++) {
+        int index = left[i].table->get_schema()->GetFieldIndex
+                (left_join_column_name_);
+        if (index >= 0) {
+            left_join_col_index = index;
+            selection_reference_index = i;
+            break;
+        }
+    }
+    left_table_ = left[selection_reference_index].table;
+    auto left_join_col = apply_selection(
+            left_table_->get_column(left_join_col_index),
+            left[selection_reference_index].selection
+    );
+
+    auto out = probe_hash_table(left_join_col);
+
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    arrow::compute::TakeOptions take_options;
+    arrow::compute::Datum out_indices;
+    std::shared_ptr<arrow::ChunkedArray> out_ref;
+
+    std::cout << "BEFORE = " << left[selection_reference_index].selection
+    .make_array()->ToString() << std::endl;
+    status = arrow::compute::Match(&function_context,
+
+            left[selection_reference_index].selection,
+                                   out[0].selection,
+            &out_indices);
+    std::cout << "AFTER = " << out_indices.make_array()->ToString() <<
+    std::endl;
+
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    arrow::compute::Datum res;
+
+    std::vector<SelectionReference> output;
+    output.push_back(out[0]);
+    output.push_back(out[1]);
+
+
+    for (int i=0; i<left.size(); i++) {
+        if (i != selection_reference_index) {
+            status = arrow::compute::Take(&function_context,
+                                          left[i].selection,
+                                          out_indices,
+                                          take_options,
+                                          &res);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+            output.push_back({left[i].table, res});
+        }
+    }
+
+
+    return output;
 
 }
 
@@ -131,7 +210,7 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum selection) {
 
     arrow::Status status;
-    std::shared_ptr<arrow::ChunkedArray> out_col;
+    auto out_col = col;
     // If a selection was previously performed on the left table,
     // apply it to the join column.
     if (selection.is_arraylike()) {

@@ -13,16 +13,21 @@ namespace operators {
 
 Aggregate::Aggregate(
                      std::vector<AggregateUnit> aggregate_units,
-                     std::vector<std::shared_ptr<arrow::Field>> group_by_fields,
+                     std::vector<ColumnReference> group_bys,
                      std::vector<std::string> order_by_fields) {
 
     aggregate_units_ = aggregate_units;
 
-    group_by_fields_ = std::move(group_by_fields);
+    group_bys_ = std::move(group_bys);
     order_by_fields_ = std::move(order_by_fields);
 
     aggregate_builder_ = get_aggregate_builder(aggregate_units_[0].kernel);
 
+    ;
+    for(auto &group_by : group_bys_) {
+        group_by_fields_.push_back(group_by.table->get_schema()->GetFieldByName
+        (group_by.col_name));
+    }
     group_type = arrow::struct_(group_by_fields_);
     group_builder = std::make_shared<arrow::StructBuilder>(
             group_type, arrow::default_memory_pool(), get_group_builders());
