@@ -25,24 +25,7 @@ void Join::hash_join(
     right_table_ = right_table;
 
     arrow::Status status;
-
-    arrow::SchemaBuilder schema_builder;
-    status = schema_builder.AddSchema(left_table->get_schema());
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-    for (auto &field : right_table->get_schema()->fields()) {
-        if (field->name() != right_join_column_name_) {
-            status = schema_builder.AddField(field);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        }
-    }
-
-    status = schema_builder.Finish().status();
-    evaluate_status(status,__PRETTY_FUNCTION__, __LINE__);
-    auto out_schema = schema_builder.Finish().ValueOrDie();
-
-    auto out_table = std::make_shared<Table>("out", out_schema, BLOCK_SIZE);
-
+    
     auto hash = build_hash_table(right_table, right_selection);
 
     arrow::Int64Builder left_indices_builder;
