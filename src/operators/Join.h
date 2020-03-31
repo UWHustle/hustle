@@ -36,7 +36,7 @@ public:
     * @param right_table The table for which a hash table is built
     * @return A new table containing the results of the join
     */
-    void hash_join(
+    std::vector<SelectionReference> hash_join(
             const std::shared_ptr<Table>& left_table,
             const arrow::compute::Datum& left_selection,
             const std::shared_ptr<Table>& right_table,

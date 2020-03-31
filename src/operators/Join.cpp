@@ -13,9 +13,12 @@ namespace operators {
 Join::Join(std::string left_column_name, std::string right_column_name) {
     left_join_column_name_ = std::move(left_column_name);
     right_join_column_name_ = std::move(right_column_name);
+
+    std::tuple<std::shared_ptr<Table>, std::shared_ptr<Table>> tables;
+
 }
 
-void Join::hash_join(
+std::vector<SelectionReference> Join::hash_join(
         const std::shared_ptr<Table>& left_table,
         const arrow::compute::Datum& left_selection,
         const std::shared_ptr<Table>& right_table,
@@ -25,7 +28,7 @@ void Join::hash_join(
     right_table_ = right_table;
 
     arrow::Status status;
-    
+
     auto hash = build_hash_table(right_table, right_selection);
 
     arrow::Int64Builder left_indices_builder;
@@ -102,6 +105,12 @@ void Join::hash_join(
 
     left_indices_ = left_indices;
     right_indices_ = right_indices;
+
+    std::vector<SelectionReference> out;
+    out.push_back({left_table, get_left_indices()});
+    out.push_back({right_table, get_right_indices()});
+
+    return out;
 }
 
 
