@@ -15,9 +15,15 @@ enum FilterOperator {
     NONE
 };
 
+//TODO(nicholas): Needs a more descriptive name
 struct SelectionReference {
     std::shared_ptr<Table> table;
     arrow::compute::Datum selection;
+};
+
+struct ColumnReference {
+    std::shared_ptr<Table> table;
+    std::string col_name;
 };
 
 class Operator {
