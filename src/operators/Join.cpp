@@ -65,6 +65,10 @@ std::vector<SelectionReference> Join::hash_join(
 
     right_table_ = right_table;
 
+    if (right_selection.is_arraylike()) {
+        right_filter_ = right_selection.chunked_array();
+    }
+
     auto right_join_col = apply_selection(
             right_table->get_column_by_name(right_join_column_name_),
             right_selection);
@@ -91,16 +95,7 @@ std::vector<SelectionReference> Join::hash_join(
             left[selection_reference_index].selection
     );
 
-    std::cout << "left_join_col = " << left_join_col->chunk(0)->ToString() <<
-              std::endl;
-
     auto out = probe_hash_table(left_join_col);
-
-    std::cout << "RESULT 1 = " << out[0].selection.make_array()->ToString() <<
-    std::endl;
-
-    std::cout << "RESULT 2 = " << out[1].selection.make_array()->ToString() <<
-              std::endl;
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
@@ -108,16 +103,11 @@ std::vector<SelectionReference> Join::hash_join(
     arrow::compute::Datum out_indices;
     std::shared_ptr<arrow::ChunkedArray> out_ref;
 
-//    std::cout << "BEFORE = " << left[selection_reference_index].selection
-//    .make_array()->ToString() << std::endl;
     status = arrow::compute::Match(&function_context,
                                    out[0].selection,
             left[selection_reference_index].selection,
 
             &out_indices);
-    std::cout << "AFTER = " << out_indices.make_array()->ToString() <<
-    std::endl;
-
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     arrow::compute::Datum res;
@@ -139,7 +129,7 @@ std::vector<SelectionReference> Join::hash_join(
                                           take_options,
                                           &res);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            output.push_back({left[i].table, left[i].filter, left[i].col, res});
+            output.push_back({left[i].table, left[i].col, left[i].filter, res});
         }
     }
 

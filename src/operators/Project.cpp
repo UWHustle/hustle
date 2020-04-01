@@ -39,6 +39,9 @@ std::shared_ptr<Table> hustle::operators::Projection::Project(
             auto col = table->get_column_by_name(field->name());
 
             if (filter != nullptr) {
+                std::cout << filter->length() << std::endl;
+                std::cout << col->length() << std::endl;
+
                 status = arrow::compute::Filter(&function_context,
                                                 *col,
                                                 *filter,
