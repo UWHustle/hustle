@@ -60,6 +60,9 @@ public:
             const std::shared_ptr<Table> &other);
 
 private:
+        std::shared_ptr<arrow::ChunkedArray> left_join_col_;
+    std::shared_ptr<arrow::ChunkedArray> right_join_col_;
+
     std::vector<SelectionReference> left_;
     std::shared_ptr<Table> left_table_;
     std::shared_ptr<Table> right_table_;

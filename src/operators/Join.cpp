@@ -34,14 +34,14 @@ std::vector<SelectionReference> Join::hash_join(
             right_table->get_column_by_name(right_join_column_name_),
             right_selection);
 
-
+    right_join_col_ = right_join_col;
     hash_table_ = build_hash_table(right_join_col);
 //    probe_hash_table(left_table, left_selection);
 
     auto left_join_col = apply_selection(
             left_table->get_column_by_name(left_join_column_name_),
             left_selection);
-
+    left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
     return out;
@@ -63,7 +63,7 @@ std::vector<SelectionReference> Join::hash_join(
             right_selection);
 
 
-
+    right_join_col_ = right_join_col;
     hash_table_ = build_hash_table(right_join_col);
 
     int selection_reference_index = -1;
@@ -132,7 +132,7 @@ std::vector<SelectionReference> Join::hash_join(
                                           take_options,
                                           &res);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            output.push_back({left[i].table, res});
+            output.push_back({left[i].table, left[i].col, res});
         }
     }
 
@@ -215,8 +215,8 @@ std::vector<SelectionReference> Join::probe_hash_table
     right_indices_ = right_indices;
 
     std::vector<SelectionReference> out;
-    out.push_back({left_table_, get_left_indices()});
-    out.push_back({right_table_, get_right_indices()});
+    out.push_back({left_table_, probe_col, get_left_indices()});
+    out.push_back({right_table_, right_join_col_, get_right_indices()});
 
     return out;
 }
