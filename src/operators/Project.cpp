@@ -28,6 +28,7 @@ std::shared_ptr<Table> hustle::operators::Projection::Project(
     for (auto &unit : projection_units) {
 
         auto table = unit.ref.table;
+        auto filter = unit.ref.filter;
         auto selection = unit.ref.selection;
         auto fields = unit.fields;
 
@@ -37,14 +38,23 @@ std::shared_ptr<Table> hustle::operators::Projection::Project(
         for (auto &field : fields) {
             auto col = table->get_column_by_name(field->name());
 
+            if (filter != nullptr) {
+                status = arrow::compute::Filter(&function_context,
+                                                *col,
+                                                *filter,
+                                                &col);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+            }
+
+
             status = arrow::compute::Take(&function_context,
                                           *col,
                                           *selection.make_array(),
                                           take_options,
-                                          &out_col);
+                                          &col);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-            out_table_data.push_back(out_col);
+            out_table_data.push_back(col);
         }
     }
 
