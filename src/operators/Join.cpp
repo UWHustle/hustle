@@ -34,6 +34,7 @@ std::vector<SelectionReference> Join::hash_join(
             right_table->get_column_by_name(right_join_column_name_),
             right_selection);
 
+
     hash_table_ = build_hash_table(right_join_col);
 //    probe_hash_table(left_table, left_selection);
 
@@ -61,6 +62,8 @@ std::vector<SelectionReference> Join::hash_join(
             right_table->get_column_by_name(right_join_column_name_),
             right_selection);
 
+
+
     hash_table_ = build_hash_table(right_join_col);
 
     int selection_reference_index = -1;
@@ -80,6 +83,9 @@ std::vector<SelectionReference> Join::hash_join(
             left_table_->get_column(left_join_col_index),
             left[selection_reference_index].selection
     );
+
+    std::cout << "left_join_col = " << left_join_col->chunk(0)->ToString() <<
+              std::endl;
 
     auto out = probe_hash_table(left_join_col);
 
@@ -112,8 +118,14 @@ std::vector<SelectionReference> Join::hash_join(
     std::vector<SelectionReference> output;
     output.push_back(out[0]);
 
+
     for (int i=0; i<left.size(); i++) {
         if (i != selection_reference_index) {
+
+            std::cout << left[i].selection.make_array()->length() <<
+                      std::endl;
+            std::cout << out_indices.make_array()->length() <<
+                      std::endl;
             status = arrow::compute::Take(&function_context,
                                           left[i].selection,
                                           out_indices,
@@ -131,17 +143,16 @@ std::vector<SelectionReference> Join::hash_join(
 }
 
 
-std::unordered_map<int64_t, int64_t> Join::build_hash_table
+std::unordered_map<int64_t, record_id> Join::build_hash_table
 (std::shared_ptr<arrow::ChunkedArray> col) {
 
     arrow::Status status;
     // TODO(nicholas): size of hash table is too large if selection is not null
-    std::unordered_map<int64_t, int64_t> hash(col->length());
+    std::unordered_map<int64_t, record_id> hash(col->length());
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
 
-    int row_offset = 0;
     // Build phase if there is no selection
     for (int i=0; i<col->num_chunks(); i++) {
         // TODO(nicholas): for now, we assume the join column is INT64 type.
@@ -149,10 +160,9 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
                 col->chunk(i));
 
         for (int row=0; row<chunk->length(); row++) {
-            hash[chunk->Value(row)] = row_offset + row;
-            // We only need this info if no selection was done beforehand.
+            record_id rid = {i, row};
+            hash[chunk->Value(row)] = rid;
         }
-        row_offset += chunk->length();
     }
 
     return hash;
@@ -168,7 +178,6 @@ std::vector<SelectionReference> Join::probe_hash_table
     std::shared_ptr<arrow::Int64Array> left_indices;
     std::shared_ptr<arrow::Int64Array> right_indices;
 
-    int left_block_offset = 0;
     // Probe phase
     for (int i = 0; i < probe_col->num_chunks(); i++) {
 
@@ -181,17 +190,18 @@ std::vector<SelectionReference> Join::probe_hash_table
             auto key = left_join_chunk->Value(row);
 
             if (hash_table_.count(key)) {
-                int64_t right_row_index = hash_table_[key];
+                record_id rid = hash_table_[key];
 
-                int left_row_index = left_block_offset + row;
+                int left_row_index = left_table_->get_block_row_offset(i) + row;
                 status = left_indices_builder.Append(left_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
+                int right_row_index = right_table_->get_block_row_offset(
+                        rid.offset) + rid.row_index;
                 status = right_indices_builder.Append(right_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
-        left_block_offset += left_join_chunk->length();
     }
 
     // Note that ArrayBuilders are automatically reset by default after

@@ -16,6 +16,13 @@ class JoinOperator : public Operator {
     virtual arrow::compute::Datum get_indices() = 0;
 };
 
+struct record_id {
+    // For Tables, offset = block_row_offset.
+    // For ChunkedArrays (i.e. arrays of indices), offset = chunk number
+    int offset;
+    int row_index;
+};
+
 class Join : public Operator{
 public:
     Join(std::string left_column_name, std::string right_column_name);
@@ -63,14 +70,14 @@ private:
     std::shared_ptr<arrow::Array> left_indices_;
     std::shared_ptr<arrow::Array> right_indices_;
 
-    std::unordered_map<int64_t, int64_t> hash_table_;
+    std::unordered_map<int64_t, record_id> hash_table_;
 
     std::vector<SelectionReference> probe_hash_table
             (std::shared_ptr<arrow::ChunkedArray> probe_col);
         std::vector<SelectionReference> probe_hash_table
                 (std::shared_ptr<arrow::ChunkedArray> probe_col, int
                 probe_col_index);
-    std::unordered_map<int64_t, int64_t> build_hash_table
+    std::unordered_map<int64_t, record_id> build_hash_table
             (std::shared_ptr<arrow::ChunkedArray> col);
     std::shared_ptr<arrow::ChunkedArray> apply_selection
             (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum
