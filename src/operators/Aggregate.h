@@ -48,8 +48,8 @@ public:
     std::shared_ptr<Table> iterate_over_groups
             ();
 
-    std::shared_ptr<arrow::Array> get_unique_values(const std::shared_ptr<Table>&
-    table, std::string);
+    std::shared_ptr<arrow::Array> get_unique_values(
+            ColumnReference group_ref);
     std::shared_ptr<arrow::ChunkedArray> get_filter
             (std::shared_ptr<Table> table,
              std::shared_ptr<arrow::Field> field, arrow::compute::Datum value);
@@ -58,6 +58,7 @@ public:
     get_group_builders();
 
 protected:
+    arrow::compute::Datum selection_;
     std::vector<ColumnReference> group_bys_;
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields_;
     std::vector<std::string> order_by_fields_;

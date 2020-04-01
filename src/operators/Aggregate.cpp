@@ -141,7 +141,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     // Fetch unique values for all Group By columns
     for (int i=0; i< group_by_fields_.size(); i++) {
         unique_values.push_back(
-                get_unique_values(table, group_by_fields_[i]->name()));
+                get_unique_values(group_bys_[i]));
     }
 
     // Initialize the slots to hold the current iteration value for each depth
@@ -235,7 +235,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
 
     // Fetch the first Group By filter
     auto one_unique_values =
-            get_unique_values(table, group_by_fields_[0]->name());
+            get_unique_values(group_bys_[0]);
     auto one_unique_values_casted =
             std::static_pointer_cast<arrow::StringArray>(unique_values[0]);
     arrow::compute::Datum value(
@@ -337,8 +337,7 @@ void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
 
 
 std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
-        const std::shared_ptr<Table>& table,
-        std::string group_by_field_name) {
+        ColumnReference group_ref) {
 
     arrow::Status status;
 
@@ -347,7 +346,15 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     arrow::compute::TakeOptions take_options;
     std::shared_ptr<arrow::Array> unique_values;
 
-    auto group_by_col = table->get_column_by_name(group_by_field_name);
+    auto group_by_col = group_ref.table->get_column_by_name(group_ref.col_name);
+
+    status = arrow::compute::Take(
+            &function_context,
+            *group_by_col,
+            *aggregate_units_[0].selection.make_array(),
+            take_options,
+            &group_by_col);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
     status = arrow::compute::Unique(&function_context, group_by_col,
                                     &unique_values);
@@ -355,7 +362,7 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 
     // If this field is in the Order By clause, sort it now.
     for (auto & name : order_by_fields_) {
-        if (name == group_by_field_name) {
+        if (name == group_ref.col_name) {
 
             std::shared_ptr<arrow::Array> sorted_indices;
 
