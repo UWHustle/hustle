@@ -83,18 +83,24 @@ std::vector<SelectionReference> Join::hash_join(
 
     auto out = probe_hash_table(left_join_col);
 
+    std::cout << "RESULT 1 = " << out[0].selection.make_array()->ToString() <<
+    std::endl;
+
+    std::cout << "RESULT 2 = " << out[1].selection.make_array()->ToString() <<
+              std::endl;
+
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
     arrow::compute::Datum out_indices;
     std::shared_ptr<arrow::ChunkedArray> out_ref;
 
-    std::cout << "BEFORE = " << left[selection_reference_index].selection
-    .make_array()->ToString() << std::endl;
+//    std::cout << "BEFORE = " << left[selection_reference_index].selection
+//    .make_array()->ToString() << std::endl;
     status = arrow::compute::Match(&function_context,
-
-            left[selection_reference_index].selection,
                                    out[0].selection,
+            left[selection_reference_index].selection,
+
             &out_indices);
     std::cout << "AFTER = " << out_indices.make_array()->ToString() <<
     std::endl;
@@ -105,8 +111,6 @@ std::vector<SelectionReference> Join::hash_join(
 
     std::vector<SelectionReference> output;
     output.push_back(out[0]);
-    output.push_back(out[1]);
-
 
     for (int i=0; i<left.size(); i++) {
         if (i != selection_reference_index) {
@@ -120,6 +124,7 @@ std::vector<SelectionReference> Join::hash_join(
         }
     }
 
+    output.push_back(out[1]);
 
     return output;
 
