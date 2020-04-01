@@ -559,6 +559,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     std::vector<ColumnReference> col_refs;
     col_refs.push_back({date, "selling season"});
     col_refs.push_back({date, "day of week"});
+//    col_refs.push_back({date, "weekday fl"});
 
     std::vector<std::string> order_fields =
             {"selling season", "day of week"};
