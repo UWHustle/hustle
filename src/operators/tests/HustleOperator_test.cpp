@@ -659,6 +659,9 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
             lineorder, left_selection,
             date, right_selection);
 
+    std::cout << res[0].selection.make_array()->ToString() << std::endl;
+    std::cout << res[1].selection.make_array()->ToString() << std::endl;
+
 //    std::cout << "NUM ROWS JOINED = "
 //              << join_op->get_left_indices().length() << std::endl;
 
@@ -668,7 +671,8 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
-    std::vector<ColumnReference> col_refs = {{date, "selling season"}};
+//    std::vector<ColumnReference> col_refs = {{date, "selling season"}};
+    std::vector<ColumnReference> col_refs = {};
     std::vector<std::string> order_fields = {};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(

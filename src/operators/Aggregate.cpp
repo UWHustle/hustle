@@ -242,7 +242,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
     arrow::compute::Datum value(
             std::make_shared<arrow::StringScalar>(
                     one_unique_values_casted->GetString(its[0])));
-    auto filter = get_filter(group_bys_[0].table, group_by_fields_[0], value);
+    auto filter = get_filter(group_bys_[0], group_by_fields_[0], value);
 
     // Fetch the next Group By filter and AND it with our current filter
     for (int field_i=1; field_i<group_by_fields_.size(); field_i++) {
@@ -253,7 +253,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
         arrow::compute::Datum value(
                 std::make_shared<arrow::StringScalar>(
                         unique_values_casted->GetString(its[field_i])));
-        auto next_filter = get_filter(group_bys_[field_i].table,
+        auto next_filter = get_filter(group_bys_[field_i],
                 group_by_fields_[field_i],
                 value);
 
@@ -351,10 +351,19 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 
     auto group_by_col = group_ref.table->get_column_by_name(group_ref.col_name);
 
+    arrow::compute::Datum selection;
+    for (int i=0; i<join_result_.size(); i++) {
+        if (join_result_[i].table == group_ref.table) {
+            selection = join_result_[i].selection;
+        }
+    }
+
+    std::cout << join_result_[0].selection.make_array()->ToString() <<
+    std::endl;
     status = arrow::compute::Take(
             &function_context,
             *group_by_col,
-            *aggregate_units_[0].selection.make_array(),
+            *selection.make_array(),
             take_options,
             &group_by_col);
     evaluate_status(status, __FUNCTION__, __LINE__);
@@ -382,7 +391,7 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
-(std::shared_ptr<Table> table,
+(ColumnReference group_ref,
         std::shared_ptr<arrow::Field> field, arrow::compute::Datum value) {
 
     arrow::Status status;
@@ -391,12 +400,30 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
             arrow::default_memory_pool());
     arrow::compute::CompareOptions compare_options(
             arrow::compute::CompareOperator::EQUAL);
+    arrow::compute::TakeOptions take_options;
     arrow::compute::Datum filter;
     arrow::ArrayVector filter_vector;
 
-    for (int block_id=0; block_id<table->get_num_blocks(); block_id++) {
-        auto block_col = table->get_block(block_id)->get_column_by_name
-                (field->name());
+    arrow::compute::Datum selection;
+    for (int i=0; i<join_result_.size(); i++) {
+        if (join_result_[i].table == group_ref.table) {
+            selection = join_result_[i].selection;
+        }
+    }
+
+    std::shared_ptr<arrow::ChunkedArray> group_by_col;
+    status = arrow::compute::Take(
+            &function_context,
+            *group_ref.table->get_column_by_name(group_ref.col_name),
+            *selection.make_array(),
+            take_options,
+            &group_by_col);
+
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    for (int block_id=0; block_id<group_ref.table->get_num_blocks();
+    block_id++) {
+        auto block_col = group_by_col->chunk(block_id);
 
         // Note that Compare does not operate on ChunkedArrays, so we must
         // compute the filter block by block and combine them into a
@@ -426,6 +453,9 @@ arrow::compute::Datum Aggregate::compute_aggregate(
     if (group_filter == nullptr) {
         aggregate_group_col = aggregate_col;
     } else {
+        std::cout << aggregate_col->length() << std::endl;
+        std::cout << group_filter->length() << std::endl;
+
         status = arrow::compute::Filter(
                 &function_context,
                 *aggregate_col,

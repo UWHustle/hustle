@@ -51,7 +51,7 @@ public:
     std::shared_ptr<arrow::Array> get_unique_values(
             ColumnReference group_ref);
     std::shared_ptr<arrow::ChunkedArray> get_filter
-            (std::shared_ptr<Table> table,
+            (ColumnReference col_ref,
              std::shared_ptr<arrow::Field> field, arrow::compute::Datum value);
 
     std::vector<std::shared_ptr<arrow::ArrayBuilder>>
