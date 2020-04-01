@@ -41,7 +41,6 @@ public:
     void insert_group_aggregate(arrow::compute::Datum aggregate);
 
     std::shared_ptr<arrow::ChunkedArray> get_group_filter(
-            const std::shared_ptr<Table>& table,
             std::vector<std::shared_ptr<arrow::Array>> unique_values,
             int* its);
 

@@ -182,7 +182,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
         //////////
 
 
-        auto group_filter = get_group_filter(table, unique_values, its);
+        auto group_filter = get_group_filter(unique_values, its);
         auto aggregate = compute_aggregate(aggregate_units_[0].kernel, 
                 aggregate_col, group_filter);
         insert_group_aggregate(aggregate);
@@ -220,7 +220,6 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
-        const std::shared_ptr<Table>& table,
         std::vector<std::shared_ptr<arrow::Array>> unique_values,
         int* its) {
 
@@ -241,7 +240,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
     arrow::compute::Datum value(
             std::make_shared<arrow::StringScalar>(
                     one_unique_values_casted->GetString(its[0])));
-    auto filter = get_filter(table, group_by_fields_[0], value);
+    auto filter = get_filter(group_bys_[0].table, group_by_fields_[0], value);
 
     // Fetch the next Group By filter and AND it with our current filter
     for (int field_i=1; field_i<group_by_fields_.size(); field_i++) {
@@ -252,12 +251,14 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
         arrow::compute::Datum value(
                 std::make_shared<arrow::StringScalar>(
                         unique_values_casted->GetString(its[field_i])));
-        auto next_filter = get_filter(table, group_by_fields_[field_i], value);
+        auto next_filter = get_filter(group_bys_[field_i].table,
+                group_by_fields_[field_i],
+                value);
 
         arrow::compute::Datum temp_filter;
         arrow::ArrayVector filter_vector;
 
-        for (int j = 0; j < table->get_num_blocks(); j++) {
+        for (int j = 0; j < filter->num_chunks(); j++) {
 
             // Note that Compare does not operate on ChunkedArrays, so we must
             // compute the filter block by block and combine them into a
