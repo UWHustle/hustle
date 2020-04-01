@@ -94,7 +94,7 @@ protected:
 
         std::ofstream right_table_csv_2;
         right_table_csv_2.open("right_table_2.csv");
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i <= 50; i++) {
             right_table_csv_2 << std::to_string(i) + "|And my key is also " +
             std::to_string(i)+ "\n";
         }
@@ -242,18 +242,64 @@ TEST_F(OperatorsTestFixture2, SelectFromCSVTwoConditionsDifferent) {
 }
 
 
-//TEST_F(OperatorsTestFixture2, HashJoin) {
+TEST_F(OperatorsTestFixture2, HashJoin) {
+
+    auto left_table = read_from_csv_file
+            ("left_table_2.csv", schema_2, BLOCK_SIZE);
+
+    auto right_table = read_from_csv_file
+            ("right_table_2.csv", schema_2, BLOCK_SIZE);
+
+    auto third_table = read_from_csv_file
+            ("third_table.csv", schema_2, BLOCK_SIZE);
+
+    auto join_op = hustle::operators::Join("id","id");
+
+    arrow::compute::Datum left_selection;
+    arrow::compute::Datum right_selection;
+
+    auto result = join_op.hash_join(left_table, left_selection,
+            right_table, right_selection);
+
+//    ProjectionUnit p1 = {
+//            left_table, result[0].selection,
+//            {left_table->get_schema()->GetFieldByName("id"),
+//             left_table->get_schema()->GetFieldByName("B")}
+//    };
+//    ProjectionUnit p2 = {
+//            right_table, result[1].selection,
+//            {right_table->get_schema()->GetFieldByName("B")}
+//    };
 //
-//    auto left_table = read_from_csv_file
-//            ("left_table_2.csv", schema_2, BLOCK_SIZE);
+//    Projection p({});
+//    auto out_table = p.Project({p1,p2});
 //
-//    auto right_table = read_from_csv_file
-//            ("right_table_2.csv", schema_2, BLOCK_SIZE);
+//    out_table->print();
 //
-//    auto join_op = hustle::operators::Join("id","id");
+//    std::cout << result[0].selection.make_array()->ToString() << std::endl;
+//    std::cout << result[1].selection.make_array()->ToString() << std::endl;
 //
-//    auto out_table = join_op.hash_join(left_table, right_table);
 //
+//
+//    result = join_op.hash_join(result, third_table, right_selection);
+//    ProjectionUnit p11 = {
+//            left_table, result[0].selection,
+//            {left_table->get_schema()->GetFieldByName("id"),
+//             left_table->get_schema()->GetFieldByName("B")}
+//    };
+//    ProjectionUnit p22 = {
+//            right_table, result[1].selection,
+//            {right_table->get_schema()->GetFieldByName("B")}
+//    };
+//    ProjectionUnit p33 = {
+//            third_table, result[2].selection,
+//            {third_table->get_schema()->GetFieldByName("B")}
+//    };
+//
+//    auto out_table2 = p.Project({p11,p22,p33});
+//
+//    out_table2->print();
+
 //    for (int i=0; i<out_table->get_num_blocks(); i++) {
 //
 //        auto block = out_table->get_block(i);
@@ -281,7 +327,7 @@ TEST_F(OperatorsTestFixture2, SelectFromCSVTwoConditionsDifferent) {
 //                      "And my key is also " + std::to_string(table_row));
 //        }
 //    }
-//}
+}
 
 //TEST_F(OperatorsTestFixture2, HashJoinEmptyResult) {
 //
@@ -571,29 +617,29 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     }
     indices_builder.Finish(&indices);
 
-    std::vector<SelectionReference> join_result = {
-            {date, indices}
-    };
-
-
-    AggregateUnit agg_unit = {AggregateKernels::SUM,
-                              date,
-                              indices,
-                              "date key"};
-
-    std::vector<AggregateUnit> units = {agg_unit};
-
-    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-            join_result,
-            units,
-            col_refs,
-            order_fields);
-
-    // Perform aggregate
-    auto aggregate = aggregate_op->run_operator({date});
-
-    // Print the result. The valid bit will be printed as the first column.
-    if (aggregate != nullptr) aggregate->print();
+//    std::vector<SelectionReference> join_result = {
+//            {date, date->get_column_by_name("date key"), indices}
+//    };
+//
+//
+//    AggregateUnit agg_unit = {AggregateKernels::SUM,
+//                              date,
+//                              indices,
+//                              "date key"};
+//
+//    std::vector<AggregateUnit> units = {agg_unit};
+//
+//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+//            join_result,
+//            units,
+//            col_refs,
+//            order_fields);
+//
+//    // Perform aggregate
+//    auto aggregate = aggregate_op->run_operator({date});
+//
+//    // Print the result. The valid bit will be printed as the first column.
+//    if (aggregate != nullptr) aggregate->print();
 
 }
 
@@ -844,28 +890,93 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     arrow::compute::Datum supp_selection =
             supp_select_op->get_filter(supp);
 
+    auto col1 = supp->get_column_by_name("region");
+//    auto col2 = supp->get_column_by_name("brand1");
+    std::shared_ptr<arrow::ChunkedArray> out_col1;
+    std::shared_ptr<arrow::ChunkedArray> out_col2;
+
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    std::shared_ptr<arrow::ChunkedArray> out;
+
+    arrow::compute::Filter(&function_context,
+                                    *col1,
+                                    *supp_selection.chunked_array(),
+                                    &out_col1);
+
+    std::cout << out_col1->chunk(0)->ToString() << std::endl;
+//
+//    arrow::compute::Filter(&function_context,
+//                           *col2,
+//                           *supp_selection.chunked_array(),
+//                           &out_col2);
+//
+//    std::cout << out_col2->chunk(0)->ToString() << std::endl;
+
     auto res1 = join_op_1->hash_join(
             lineorder, empty_selection,
             part, part_selection);
 
-    auto res2 = join_op_2->hash_join(
-            res1, supp, supp_selection);
+    std::cout << res1[0].selection.make_array()->ToString() << std::endl;
+    std::cout << res1[1].selection.make_array()->ToString() << std::endl;
 
-    auto res3 = join_op_3->hash_join(
-            res2, date, empty_selection);
+//    auto res2 = join_op_2->hash_join(
+//            res1, supp, empty_selection);
 
-   std::cout << res3[0].selection.length() << std::endl;
+    ProjectionUnit p1 = {
+            res1[1],
+            {part->get_schema()->GetFieldByName("brand1")}
+    };
 
-   AggregateUnit a1 = {
-           AggregateKernels::SUM,
-           lineorder,
-           res3[0].selection,
-           "revenue"
-   };
+    ProjectionUnit p2 = {
+            res1[0],
+            {lineorder->get_schema()->GetFieldByName("part key")}
+    };
 
-//   Aggregate a({a1},{date->get_schema()->GetFieldByName("year"),
-//                     part->get_schema()->GetFieldByName("brand1")}, {"year",
-//                                                                     "brand1"});
+    Projection p({});
+    auto out_table = p.Project({p1});
+    out_table->print();
+
+//    ProjectionUnit p2 = {
+//            supp, res2[2].selection,
+//            {supp->get_schema()->GetFieldByName("region"),
+//             supp->get_schema()->GetFieldByName("supp key")}
+//    };
+
+
+
+//
+//    auto res3 = join_op_3->hash_join(
+//            res2, date, empty_selection);
+//
+//    for (auto &ref : res3) {
+//        std::cout << ref.table->get_num_rows() << std::endl;
+//    }
+
+
+//    ProjectionUnit p1 =
+//            {res3[3].table, res3[3].selection,
+//             {res3[3].table->get_schema()->GetFieldByName("brand1")}};
+//
+//    Projection p({p1});
+//    auto t = p.Project({p1});
+//    auto x = t->get_num_rows();
+//    t->print();
+//
+//   std::cout << res3[0].selection.length() << std::endl;
+//
+//   AggregateUnit a1 = {
+//           AggregateKernels::SUM,
+//           lineorder,
+//           res3[0].selection,
+//           "revenue"
+//   };
+//
+//    std::vector<ColumnReference> group_refs;
+//    group_refs.push_back({date, "year"});
+//    group_refs.push_back({part, "brand1"});
+//
+//   Aggregate a(res3,{a1},group_refs, {"year","brand1"});
 //
 //   auto table = a.run_operator({});
 //   table->print();

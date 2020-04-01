@@ -59,7 +59,7 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>>
             }
             case arrow::Type::INT64: {
                 group_builders.push_back(
-                        std::make_shared<arrow::StringBuilder>());
+                        std::make_shared<arrow::Int64Builder>());
                 break;
             }
         }
@@ -144,6 +144,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     for (int i=0; i< group_by_fields_.size(); i++) {
         unique_values.push_back(
                 get_unique_values(group_bys_[i]));
+        std::cout << unique_values[i]->ToString() << std::endl;
     }
 
     // Initialize the slots to hold the current iteration value for each depth
@@ -159,7 +160,10 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     int index = n - 1;
     bool exit = false;
     while (!exit){
-
+        for (int k=0; k<n; k++) {
+            std::cout << its[k] << " ";
+        }
+        std::cout << std::endl;
         // DoSomething() loop
         auto aggregate_col = table->get_column_by_name(
                 aggregate_units_[0].col_name);
@@ -237,25 +241,67 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
     // Fetch the first Group By filter
     auto one_unique_values =
             get_unique_values(group_bys_[0]);
-    auto one_unique_values_casted =
-            std::static_pointer_cast<arrow::StringArray>(unique_values[0]);
-    arrow::compute::Datum value(
-            std::make_shared<arrow::StringScalar>(
-                    one_unique_values_casted->GetString(its[0])));
-    auto filter = get_filter(group_bys_[0], group_by_fields_[0], value);
+
+    arrow::compute::Datum value;
+    std::shared_ptr<arrow::ChunkedArray> filter;
+
+    switch(group_by_fields_[0]->type()->id()) {
+        case arrow::Type::STRING: {
+            auto one_unique_values_casted =
+                    std::static_pointer_cast<arrow::StringArray>(unique_values[0]);
+            value = arrow::compute::Datum(
+                    std::make_shared<arrow::StringScalar>(
+                            one_unique_values_casted->GetString(its[0])));
+            filter = get_filter(group_bys_[0], group_by_fields_[0], value);
+            break;
+        }
+        case arrow::Type::INT64: {
+            auto one_unique_values_casted =
+                    std::static_pointer_cast<arrow::Int64Array>
+                            (unique_values[0]);
+            value = arrow::compute::Datum(
+                    std::make_shared<arrow::Int64Scalar>(
+                            one_unique_values_casted->Value(its[0])));
+            filter = get_filter(group_bys_[0], group_by_fields_[0], value);
+            break;
+        }
+        default: {
+            std::cerr << "invalid type" << std::endl;
+        }
+    }
+
 
     // Fetch the next Group By filter and AND it with our current filter
     for (int field_i=1; field_i<group_by_fields_.size(); field_i++) {
 
-        auto unique_values_casted =
-                std::static_pointer_cast<arrow::StringArray>
-                        (unique_values[field_i]);
-        arrow::compute::Datum value(
-                std::make_shared<arrow::StringScalar>(
-                        unique_values_casted->GetString(its[field_i])));
-        auto next_filter = get_filter(group_bys_[field_i],
-                group_by_fields_[field_i],
-                value);
+        std::shared_ptr<arrow::ChunkedArray> next_filter;
+
+        switch(group_by_fields_[field_i]->type()->id()) {
+            case arrow::Type::STRING: {
+                auto one_unique_values_casted =
+                        std::static_pointer_cast<arrow::StringArray>(unique_values[field_i]);
+                value = arrow::compute::Datum(
+                        std::make_shared<arrow::StringScalar>(
+                                one_unique_values_casted->GetString(its[field_i])));
+                next_filter = get_filter(group_bys_[field_i], group_by_fields_[field_i],
+                        value);
+                break;
+            }
+            case arrow::Type::INT64: {
+                auto one_unique_values_casted =
+                        std::static_pointer_cast<arrow::Int64Array>
+                                (unique_values[field_i]);
+                value = arrow::compute::Datum(
+                        std::make_shared<arrow::Int64Scalar>(
+                                one_unique_values_casted->Value(its[field_i])));
+                next_filter = get_filter(group_bys_[field_i], group_by_fields_[field_i],
+                        value);
+                break;
+            }
+            default: {
+                std::cerr << "invalid type" << std::endl;
+            }
+        }
 
         arrow::compute::Datum temp_filter;
         arrow::ArrayVector filter_vector;
@@ -294,6 +340,19 @@ void Aggregate::insert_group(
                 status = one_group_builder->Append(one_unique_values->GetString
                 (its[i]));
                 evaluate_status(status, __FUNCTION__, __LINE__);
+                break;
+            }
+            case arrow::Type::INT64: {
+                auto one_group_builder = (arrow::Int64Builder *)
+                        (group_builder->child(i));
+//                one_group_builder->Append()
+                auto one_unique_values =
+                        std::static_pointer_cast<arrow::Int64Array>
+                                (unique_values[i]);
+                status = one_group_builder->Append
+                        (one_unique_values->Value(its[i]));
+                evaluate_status(status, __FUNCTION__, __LINE__);
+                break;
             }
         }
     }
@@ -358,8 +417,8 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
         }
     }
 
-    std::cout << join_result_[0].selection.make_array()->ToString() <<
-    std::endl;
+//    std::cout << join_result_[0].selection.make_array()->ToString() <<
+//    std::endl;
     status = arrow::compute::Take(
             &function_context,
             *group_by_col,
@@ -421,9 +480,8 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    for (int block_id=0; block_id<group_ref.table->get_num_blocks();
-    block_id++) {
-        auto block_col = group_by_col->chunk(block_id);
+    for (int i=0; i<group_by_col->num_chunks(); i++) {
+        auto block_col = group_by_col->chunk(i);
 
         // Note that Compare does not operate on ChunkedArrays, so we must
         // compute the filter block by block and combine them into a
@@ -453,8 +511,8 @@ arrow::compute::Datum Aggregate::compute_aggregate(
     if (group_filter == nullptr) {
         aggregate_group_col = aggregate_col;
     } else {
-        std::cout << aggregate_col->length() << std::endl;
-        std::cout << group_filter->length() << std::endl;
+//        std::cout << aggregate_col->length() << std::endl;
+//        std::cout << group_filter->length() << std::endl;
 
         status = arrow::compute::Filter(
                 &function_context,

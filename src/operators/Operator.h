@@ -18,6 +18,9 @@ enum FilterOperator {
 //TODO(nicholas): Needs a more descriptive name
 struct SelectionReference {
     std::shared_ptr<Table> table;
+    // column AFTER a filter from a select predicate was applied.
+    std::shared_ptr<arrow::ChunkedArray> col;
+    std::shared_ptr<arrow::ChunkedArray> filter;
     arrow::compute::Datum selection;
 };
 
