@@ -29,6 +29,7 @@ struct ColumnReference {
 struct GroupReference {
     std::shared_ptr<Table> table;
     std::vector<std::string> col_names;
+    std::vector<int> col_indices;
 };
 
 class Operator {

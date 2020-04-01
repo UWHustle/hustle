@@ -13,25 +13,38 @@ namespace operators {
 
 Aggregate::Aggregate(
                      std::vector<AggregateUnit> aggregate_units,
-                     std::vector<ColumnReference> group_bys,
+                     std::vector<ColumnReference> group_refs,
                      std::vector<std::string> order_by_fields) {
 
     aggregate_units_ = aggregate_units;
 
-    group_bys_ = std::move(group_bys);
+    group_refs_ = std::move(group_refs);
     order_by_fields_ = std::move(order_by_fields);
 
     aggregate_builder_ = get_aggregate_builder(aggregate_units_[0].kernel);
 
-    ;
-    for(auto &group_by : group_bys_) {
+    for(auto &group_by : group_refs_) {
         group_by_fields_.push_back(group_by.table->get_schema()->GetFieldByName
         (group_by.col_name));
     }
     group_type = arrow::struct_(group_by_fields_);
     group_builder = std::make_shared<arrow::StructBuilder>(
             group_type, arrow::default_memory_pool(), get_group_builders());
-    
+
+    // Construct GroupReferences. If some group cols come from the same
+    // table, combine them into one GroupReference.
+    for(int i=0; i<group_refs_.size(); i++) {
+        std::vector<std::string> col_names;
+        std::vector<int> col_indices;
+        for(int j=0; j<group_refs_.size(); j++) {
+            if (group_refs_[i].table == group_refs_[j].table) {
+                col_names.push_back(group_refs_[j].col_name);
+                col_indices.push_back(j);
+            }
+        }
+        real_group_refs_.push_back({group_refs_[i].table, col_names,
+                                   col_indices});
+    }
 }
 
 std::shared_ptr<Table> Aggregate::run_operator
@@ -136,12 +149,14 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                              BLOCK_SIZE);
 
-    auto table = aggregate_units_[0].table; //TODO(nicholas)
+    //TODO(nicholas): SSB only needs one aggregate unit, but more general
+    // query might have more
+    auto table = aggregate_units_[0].table;
     std::vector<std::shared_ptr<arrow::Array>> unique_values;
     // Fetch unique values for all Group By columns
-    for (int i=0; i< group_by_fields_.size(); i++) {
+    for (auto &group_by : group_refs_) {
         unique_values.push_back(
-                get_unique_values(table, group_by_fields_[i]->name()));
+                get_unique_values(group_by.table, group_by.col_name));
     }
 
     // Initialize the slots to hold the current iteration value for each depth
@@ -181,8 +196,11 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
         //////////
 
-
-        auto group_filter = get_group_filter(table, unique_values, its);
+        std::vector<std::shared_ptr<arrow::ChunkedArray>> group_filters;
+        auto group_filter = get_group_filter(real_group_refs_[0],
+                unique_values, its);
+        group_filters.push_back(group_filter);
+        
         auto aggregate = compute_aggregate(aggregate_units_[0].kernel, 
                 aggregate_col, group_filter);
         insert_group_aggregate(aggregate);
@@ -220,7 +238,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
-        const std::shared_ptr<Table>& table,
+        GroupReference group_by,
         std::vector<std::shared_ptr<arrow::Array>> unique_values,
         int* its) {
 
@@ -233,37 +251,43 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
         return nullptr;
     }
 
+    auto table = group_by.table;
+    int i = group_by.col_indices[0];
     // Fetch the first Group By filter
     auto one_unique_values =
-            get_unique_values(table, group_by_fields_[0]->name());
+            get_unique_values(table, group_by_fields_[i]->name());
     auto one_unique_values_casted =
-            std::static_pointer_cast<arrow::StringArray>(unique_values[0]);
+            std::static_pointer_cast<arrow::StringArray>(unique_values[i]);
     arrow::compute::Datum value(
             std::make_shared<arrow::StringScalar>(
-                    one_unique_values_casted->GetString(its[0])));
-    auto filter = get_filter(table, group_by_fields_[0], value);
+                    one_unique_values_casted->GetString(its[i])));
+    auto filter = get_filter(table, group_by_fields_[i], value);
 
     // Fetch the next Group By filter and AND it with our current filter
-    for (int field_i=1; field_i<group_by_fields_.size(); field_i++) {
+    for (int j=1 ; j<group_by.col_names.size(); j++) {
+        i = group_by.col_indices[j];
 
         auto unique_values_casted =
                 std::static_pointer_cast<arrow::StringArray>
-                        (unique_values[field_i]);
+                        (unique_values[i]);
         arrow::compute::Datum value(
                 std::make_shared<arrow::StringScalar>(
-                        unique_values_casted->GetString(its[field_i])));
-        auto next_filter = get_filter(table, group_by_fields_[field_i], value);
+                        unique_values_casted->GetString(its[i])));
+        auto next_filter = get_filter(table, group_by_fields_[i], value);
 
         arrow::compute::Datum temp_filter;
         arrow::ArrayVector filter_vector;
 
-        for (int j = 0; j < table->get_num_blocks(); j++) {
+        for (int k = 0; k < table->get_num_blocks(); k++) {
 
             // Note that Compare does not operate on ChunkedArrays, so we must
             // compute the filter block by block and combine them into a
             // ChunkedArray.
-            status = arrow::compute::And(&function_context, filter->chunk(j),
-                                         next_filter->chunk(j), &temp_filter);
+            std::cout << "filter = " << filter->length() << std::endl;
+            std::cout << "next   = " << next_filter->length() << std::endl;
+
+            status = arrow::compute::And(&function_context, filter->chunk(k),
+                                         next_filter->chunk(k), &temp_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
 
             filter_vector.push_back(temp_filter.make_array());
