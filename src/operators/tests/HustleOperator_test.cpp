@@ -24,6 +24,7 @@ using hustle::operators::AggregateKernels ;
 using hustle::operators::Projection ;
 using hustle::operators::ProjectionUnit ;
 using hustle::operators::ColumnReference ;
+using hustle::operators::SelectionReference ;
 
 
 class OperatorsTestFixture2 : public testing::Test {
@@ -569,6 +570,10 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     }
     indices_builder.Finish(&indices);
 
+    std::vector<SelectionReference> join_result = {
+            {date, indices}
+    };
+
 
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               date,
@@ -578,6 +583,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     std::vector<AggregateUnit> units = {agg_unit};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            join_result,
             units,
             col_refs,
             order_fields);
@@ -649,12 +655,12 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     arrow::compute::Datum right_selection =
             date_select_op->get_filter(date);
 
-    join_op->hash_join(
+    auto res = join_op->hash_join(
             lineorder, left_selection,
             date, right_selection);
 
-    std::cout << "NUM ROWS JOINED = "
-              << join_op->get_left_indices().length() << std::endl;
+//    std::cout << "NUM ROWS JOINED = "
+//              << join_op->get_left_indices().length() << std::endl;
 
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
@@ -662,10 +668,11 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
-    std::vector<ColumnReference> col_refs = {};
+    std::vector<ColumnReference> col_refs = {{date, "selling season"}};
     std::vector<std::string> order_fields = {};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            res,
             units,
             col_refs,
             order_fields);
