@@ -14,6 +14,8 @@
 namespace hustle {
 namespace operators {
 
+    //TODO(nicholas): Make ProjectionUnit a SelectionReference containing a
+    // ColumnReference?
 struct ProjectionUnit {
     std::shared_ptr<Table> table;
     arrow::compute::Datum selection;

@@ -91,11 +91,14 @@ std::vector<SelectionReference> Join::hash_join(
 
     std::cout << "BEFORE = " << left[selection_reference_index].selection
     .make_array()->ToString() << std::endl;
+//    status = arrow::compute::Match(&function_context,
+//                                   out[0].selection,
+//            left[selection_reference_index].selection,
+//            &out_indices);
     status = arrow::compute::Match(&function_context,
-
-            left[selection_reference_index].selection,
+                                   left[selection_reference_index].selection,
                                    out[0].selection,
-            &out_indices);
+                                   &out_indices);
     std::cout << "AFTER = " << out_indices.make_array()->ToString() <<
     std::endl;
 

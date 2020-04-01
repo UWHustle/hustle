@@ -558,6 +558,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     std::vector<ColumnReference> col_refs;
     col_refs.push_back({date, "selling season"});
     col_refs.push_back({date, "day of week"});
+//    col_refs.push_back({date, "weekday fl"});
 
     std::vector<std::string> order_fields =
             {"selling season", "day of week"};
@@ -817,13 +818,13 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
                                           ("AMERICA"))
     );
 
-    auto join_op_3 = std::make_shared<hustle::operators::Join>("order date",
-                                                               "date key");
+
     auto join_op_1 = std::make_shared<hustle::operators::Join>("part key",
                                                                "part key");
     auto join_op_2 = std::make_shared<hustle::operators::Join>("supp key",
                                                                "supp key");
-
+    auto join_op_3 = std::make_shared<hustle::operators::Join>("order date",
+                                                               "date key");
 
     arrow::compute::Datum empty_selection;
 
@@ -842,7 +843,9 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     auto res3 = join_op_3->hash_join(
             res2, date, empty_selection);
 
-   std::cout << res3[0].selection.length() << std::endl;
+   std::cout << res1[0].selection.length() << std::endl;
+    std::cout << res2[0].selection.length() << std::endl;
+    std::cout << res3[0].selection.length() << std::endl;
 
    AggregateUnit a1 = {
            AggregateKernels::SUM,
@@ -851,12 +854,13 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
            "revenue"
    };
 
-//   Aggregate a({a1},{date->get_schema()->GetFieldByName("year"),
-//                     part->get_schema()->GetFieldByName("brand1")}, {"year",
-//                                                                     "brand1"});
-//
-//   auto table = a.run_operator({});
-//   table->print();
+    std::vector<ColumnReference> col_refs;
+    col_refs.push_back({date, "selling season"});
+    col_refs.push_back({part, "brand1"});
+   Aggregate a({a1},col_refs, {"brand1"});
+
+   auto table = a.run_operator({});
+   table->print();
 //    ProjectionUnit p1 = {
 //            res3[0].table,
 //            res3[0].selection,

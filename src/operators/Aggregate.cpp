@@ -197,12 +197,14 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
         //////////
 
         std::vector<std::shared_ptr<arrow::ChunkedArray>> group_filters;
-        auto group_filter = get_group_filter(real_group_refs_[0],
-                unique_values, its);
-        group_filters.push_back(group_filter);
+        for (int i=0; i<real_group_refs_.size(); i++) {
+            auto group_filter = get_group_filter(real_group_refs_[i],
+                                                 unique_values, its);
+            group_filters.push_back(group_filter);
+        }
         
         auto aggregate = compute_aggregate(aggregate_units_[0].kernel, 
-                aggregate_col, group_filter);
+                aggregate_col, group_filters[0]);
         insert_group_aggregate(aggregate);
         insert_group(unique_values, its);
 
