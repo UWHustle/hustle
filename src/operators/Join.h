@@ -60,7 +60,9 @@ public:
             const std::shared_ptr<Table> &other);
 
 private:
-        std::shared_ptr<arrow::ChunkedArray> left_join_col_;
+    std::shared_ptr<arrow::ChunkedArray> left_filter_;
+    std::shared_ptr<arrow::ChunkedArray> right_filter_;
+    std::shared_ptr<arrow::ChunkedArray> left_join_col_;
     std::shared_ptr<arrow::ChunkedArray> right_join_col_;
 
     std::vector<SelectionReference> left_;
@@ -73,14 +75,14 @@ private:
     std::shared_ptr<arrow::Array> left_indices_;
     std::shared_ptr<arrow::Array> right_indices_;
 
-    std::unordered_map<int64_t, record_id> hash_table_;
+    std::unordered_map<int64_t, int64_t> hash_table_;
 
     std::vector<SelectionReference> probe_hash_table
             (std::shared_ptr<arrow::ChunkedArray> probe_col);
         std::vector<SelectionReference> probe_hash_table
                 (std::shared_ptr<arrow::ChunkedArray> probe_col, int
                 probe_col_index);
-    std::unordered_map<int64_t, record_id> build_hash_table
+    std::unordered_map<int64_t, int64_t> build_hash_table
             (std::shared_ptr<arrow::ChunkedArray> col);
     std::shared_ptr<arrow::ChunkedArray> apply_selection
             (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum
