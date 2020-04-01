@@ -27,8 +27,8 @@ std::shared_ptr<Table> hustle::operators::Projection::Project(
     //  of indices, not filters.
     for (auto &unit : projection_units) {
 
-        auto table = unit.table;
-        auto selection = unit.selection;
+        auto table = unit.ref.table;
+        auto selection = unit.ref.selection;
         auto fields = unit.fields;
 
         status = schema_builder.AddFields(fields);
