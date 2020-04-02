@@ -239,6 +239,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
     }
 
     // Fetch the first Group By filter
+    //TODO(nicholas): remove redundant call to get_unique_values()
     auto one_unique_values =
             get_unique_values(group_bys_[0]);
 
@@ -471,20 +472,31 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
     arrow::compute::CompareOptions compare_options(
             arrow::compute::CompareOperator::EQUAL);
     arrow::compute::TakeOptions take_options;
-    arrow::compute::Datum filter;
+    arrow::compute::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
+    std::shared_ptr<arrow::ChunkedArray> filter;
     arrow::compute::Datum selection;
     for (int i=0; i<join_result_.size(); i++) {
         if (join_result_[i].table == group_ref.table) {
+            filter = join_result_[i].filter;
             selection = join_result_[i].selection;
         }
     }
 
-    std::shared_ptr<arrow::ChunkedArray> group_by_col;
+    std::shared_ptr<arrow::ChunkedArray> group_by_col = group_ref
+            .table->get_column_by_name(group_ref.col_name);
+    if( filter != nullptr) {
+        status = arrow::compute::Filter(&function_context,
+                                        *group_by_col,
+                                        *filter,
+                                        &group_by_col);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    }
+
     status = arrow::compute::Take(
             &function_context,
-            *group_ref.table->get_column_by_name(group_ref.col_name),
+            *group_by_col,
             *selection.make_array(),
             take_options,
             &group_by_col);
@@ -498,10 +510,10 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
         // compute the filter block by block and combine them into a
         // ChunkedArray.
         status = arrow::compute::Compare(&function_context, block_col, value,
-                compare_options, &filter);
+                compare_options, &out_filter);
         evaluate_status(status, __FUNCTION__, __LINE__);
 
-        filter_vector.push_back(filter.make_array());
+        filter_vector.push_back(out_filter.make_array());
     }
 
     return std::make_shared<arrow::ChunkedArray>(filter_vector);
