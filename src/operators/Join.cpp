@@ -91,14 +91,16 @@ std::vector<SelectionReference> Join::hash_join(
             break;
         }
     }
-    //TODO(nicholas): left_table_ must also be filtered!
+    //TODO(nicholas): left_table_ must also be filtered! None of the SSB
+    // queries with multiple joins select on Lineorder, so this part is not
+    // yet verified!
     left_table_ = left[selection_reference_index].table;
-//    auto left_join_col = apply_selection(
-//            left_table_->get_column(left_join_col_index),
-//            arrow::compute::Datum(left[selection_reference_index].filter)
-//    );
-
     auto left_join_col = apply_selection(
+            left_table_->get_column(left_join_col_index),
+            arrow::compute::Datum(left[selection_reference_index].filter)
+    );
+
+    left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
             left[selection_reference_index].selection
     );
@@ -107,7 +109,6 @@ std::vector<SelectionReference> Join::hash_join(
 //    left_join_col_ = left_table_->get_column(left_join_col_index);
 
     auto out = probe_hash_table(left_join_col);
-
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
