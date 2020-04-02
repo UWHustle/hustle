@@ -76,10 +76,6 @@ public:
 //         const arrow::compute::Datum& right_selection);
 
     std::vector<SelectionReference> hash_join();
-    arrow::compute::Datum get_left_indices();
-    arrow::compute::Datum get_right_indices();
-    arrow::compute::Datum get_indices_for_table(
-            const std::shared_ptr<Table> &other);
 
 private:
     arrow::compute::Datum left_filter_;
@@ -106,25 +102,26 @@ private:
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-        std::vector<SelectionReference> hash_join(
-                std::vector<SelectionReference>&,
-                const std::shared_ptr<Table>& right_table);
-        std::vector<SelectionReference> hash_join(
-                const std::shared_ptr<Table>& left_table,
-                const std::shared_ptr<Table>& right_table);
+    std::vector<SelectionReference> hash_join(
+            std::vector<SelectionReference>&,
+            const std::shared_ptr<Table>& right_table);
+    std::vector<SelectionReference> hash_join(
+            const std::shared_ptr<Table>& left_table,
+            const std::shared_ptr<Table>& right_table);
 
-        std::vector<SelectionReference> probe_hash_table
-            (std::shared_ptr<arrow::ChunkedArray> probe_col);
-        std::vector<SelectionReference> probe_hash_table
-                (std::shared_ptr<arrow::ChunkedArray> probe_col, int
-                probe_col_index);
+    std::vector<SelectionReference> probe_hash_table
+        (std::shared_ptr<arrow::ChunkedArray> probe_col);
+
+    arrow::compute::Datum get_left_indices();
+    arrow::compute::Datum get_right_indices();
+    arrow::compute::Datum get_indices_for_table(
+            const std::shared_ptr<Table> &other);
+
     std::unordered_map<int64_t, int64_t> build_hash_table
             (std::shared_ptr<arrow::ChunkedArray> col);
     std::shared_ptr<arrow::ChunkedArray> apply_selection
             (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum
             selection);
-
-
 
 };
 
