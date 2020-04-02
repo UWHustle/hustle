@@ -144,7 +144,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     for (int i=0; i< group_by_fields_.size(); i++) {
         unique_values.push_back(
                 get_unique_values(group_bys_[i]));
-        std::cout << unique_values[i]->ToString() << std::endl;
+//        std::cout << unique_values[i]->ToString() << std::endl;
     }
 
     // Initialize the slots to hold the current iteration value for each depth
@@ -160,10 +160,10 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     int index = n - 1;
     bool exit = false;
     while (!exit){
-        for (int k=0; k<n; k++) {
-            std::cout << its[k] << " ";
-        }
-        std::cout << std::endl;
+//        for (int k=0; k<n; k++) {
+//            std::cout << its[k] << " ";
+//        }
+//        std::cout << std::endl;
         // DoSomething() loop
         auto aggregate_col = table->get_column_by_name(
                 aggregate_units_[0].col_name);
@@ -411,7 +411,7 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 
     auto group_by_col = group_ref.table->get_column_by_name(group_ref.col_name);
 
-    std::shared_ptr<arrow::ChunkedArray> filter;
+    arrow::compute::Datum filter;
     arrow::compute::Datum selection;
     for (int i=0; i<join_result_.size(); i++) {
         if (join_result_[i].table == group_ref.table) {
@@ -423,10 +423,10 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 //    std::cout << join_result_[0].selection.make_array()->ToString() <<
 //    std::endl;
 
-    if( filter != nullptr) {
+    if( filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
         status = arrow::compute::Filter(&function_context,
                                         *group_by_col,
-                                        *filter,
+                                        *filter.chunked_array(),
                                         &group_by_col);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     }
@@ -475,7 +475,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
     arrow::compute::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
-    std::shared_ptr<arrow::ChunkedArray> filter;
+    arrow::compute::Datum filter;
     arrow::compute::Datum selection;
     for (int i=0; i<join_result_.size(); i++) {
         if (join_result_[i].table == group_ref.table) {
@@ -486,10 +486,10 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 
     std::shared_ptr<arrow::ChunkedArray> group_by_col = group_ref
             .table->get_column_by_name(group_ref.col_name);
-    if( filter != nullptr) {
+    if( filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
         status = arrow::compute::Filter(&function_context,
                                         *group_by_col,
-                                        *filter,
+                                        *filter.chunked_array(),
                                         &group_by_col);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     }

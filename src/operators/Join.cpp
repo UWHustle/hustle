@@ -93,6 +93,11 @@ std::vector<SelectionReference> Join::hash_join(
     }
     //TODO(nicholas): left_table_ must also be filtered!
     left_table_ = left[selection_reference_index].table;
+//    auto left_join_col = apply_selection(
+//            left_table_->get_column(left_join_col_index),
+//            arrow::compute::Datum(left[selection_reference_index].filter)
+//    );
+
     auto left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
             left[selection_reference_index].selection
@@ -220,9 +225,10 @@ std::vector<SelectionReference> Join::probe_hash_table
     right_indices_ = right_indices;
 
     std::vector<SelectionReference> out;
-    out.push_back({left_table_, probe_col, left_filter_,
+    out.push_back({left_table_, probe_col, arrow::compute::Datum(left_filter_),
                    get_left_indices()});
-    out.push_back({right_table_, right_join_col_, right_filter_,
+    out.push_back({right_table_, right_join_col_,
+                   arrow::compute::Datum(right_filter_),
                    get_right_indices()});
 
     return out;

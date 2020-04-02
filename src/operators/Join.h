@@ -60,8 +60,8 @@ public:
             const std::shared_ptr<Table> &other);
 
 private:
-    std::shared_ptr<arrow::ChunkedArray> left_filter_;
-    std::shared_ptr<arrow::ChunkedArray> right_filter_;
+    arrow::compute::Datum left_filter_;
+    arrow::compute::Datum right_filter_;
     std::shared_ptr<arrow::ChunkedArray> left_join_col_;
     std::shared_ptr<arrow::ChunkedArray> right_join_col_;
 

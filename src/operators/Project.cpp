@@ -38,13 +38,11 @@ std::shared_ptr<Table> hustle::operators::Projection::Project(
         for (auto &field : fields) {
             auto col = table->get_column_by_name(field->name());
 
-            if (filter != nullptr) {
-                std::cout << filter->length() << std::endl;
-                std::cout << col->length() << std::endl;
+            if (filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
 
                 status = arrow::compute::Filter(&function_context,
                                                 *col,
-                                                *filter,
+                                                *filter.chunked_array(),
                                                 &col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
