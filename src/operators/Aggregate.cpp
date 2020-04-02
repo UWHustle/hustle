@@ -410,15 +410,26 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 
     auto group_by_col = group_ref.table->get_column_by_name(group_ref.col_name);
 
+    std::shared_ptr<arrow::ChunkedArray> filter;
     arrow::compute::Datum selection;
     for (int i=0; i<join_result_.size(); i++) {
         if (join_result_[i].table == group_ref.table) {
+            filter = join_result_[i].filter;
             selection = join_result_[i].selection;
         }
     }
 
 //    std::cout << join_result_[0].selection.make_array()->ToString() <<
 //    std::endl;
+
+    if( filter != nullptr) {
+        status = arrow::compute::Filter(&function_context,
+                                        *group_by_col,
+                                        *filter,
+                                        &group_by_col);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    }
+
     status = arrow::compute::Take(
             &function_context,
             *group_by_col,

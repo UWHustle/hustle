@@ -918,8 +918,8 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     auto res2 = join_op_2->hash_join(
             res1, supp, supp_selection);
 
-//    auto res3 = join_op_2->hash_join(
-//            res2, date, empty_selection);
+    auto res3 = join_op_3->hash_join(
+            res2, date, empty_selection);
 
 //    arrow::compute::FunctionContext function_context(
 //            arrow::default_memory_pool());
@@ -954,57 +954,57 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
 //    auto res3 = join_op_2->hash_join(
 //            res2, date, empty_selection);
 
-//    std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
-//    std::vector<std::string> order_bys = {"year", "brand1"};
-//    AggregateUnit agg_unit = {AggregateKernels::SUM,
-//                              lineorder,
-//                              res3[0].selection,
-//                              "revenue"};
-//
-//    std::vector<AggregateUnit> units = {agg_unit};
-//
-//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-//            res3,
-//            units,
-//            group_bys,
-//            order_bys);
-//
-//    // Perform aggregate
-//    auto aggregate = aggregate_op->run_operator({date});
-//
-//    // Print the result. The valid bit will be printed as the first column.
-//    if (aggregate != nullptr) aggregate->print();
+    std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
+    std::vector<std::string> order_bys = {"year", "brand1"};
+    AggregateUnit agg_unit = {AggregateKernels::SUM,
+                              lineorder,
+                              res3[0].selection,
+                              "revenue"};
 
-    ProjectionUnit p1 = {
-            res2[0],
-            {lineorder->get_schema()->GetFieldByName("order key"),
-             lineorder->get_schema()->GetFieldByName("part key")}
-    };
-    ProjectionUnit p2 = {
-            res2[1],
-            {part->get_schema()->GetFieldByName("brand1")}
-    };
-//    1	1	155190
-//    1	1	67310
-//    1	1	63700
-//    1	1	2132
-//    1	1	24027
-//    1	1	15635
-//    1	2	106170
-    ProjectionUnit p3 = {
-            res2[2],
-            {supp->get_schema()->GetFieldByName("supp key"),
-             supp->get_schema()->GetFieldByName("region")}
-    };
+    std::vector<AggregateUnit> units = {agg_unit};
+
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            res3,
+            units,
+            group_bys,
+            order_bys);
+
+    // Perform aggregate
+    auto aggregate = aggregate_op->run_operator({date});
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
 //
-//    ProjectionUnit p4 = {
-//            res3[3],
-//            {date->get_schema()->GetFieldByName("year")}
+//    ProjectionUnit p1 = {
+//            res2[0],
+//            {lineorder->get_schema()->GetFieldByName("order key"),
+//             lineorder->get_schema()->GetFieldByName("part key")}
 //    };
-
-    Projection p({});
-    auto out_table = p.Project({p1,p2,p3});
-    out_table->print();
+//    ProjectionUnit p2 = {
+//            res2[1],
+//            {part->get_schema()->GetFieldByName("brand1")}
+//    };
+////    1	1	155190
+////    1	1	67310
+////    1	1	63700
+////    1	1	2132
+////    1	1	24027
+////    1	1	15635
+////    1	2	106170
+//    ProjectionUnit p3 = {
+//            res2[2],
+//            {supp->get_schema()->GetFieldByName("supp key"),
+//             supp->get_schema()->GetFieldByName("region")}
+//    };
+////
+////    ProjectionUnit p4 = {
+////            res3[3],
+////            {date->get_schema()->GetFieldByName("year")}
+////    };
+//
+//    Projection p({});
+//    auto out_table = p.Project({p1,p2,p3});
+//    out_table->print();
 
 }
 
