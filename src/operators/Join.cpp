@@ -51,10 +51,6 @@ std::vector<SelectionReference> Join::hash_join(
     left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
-    std::cout << "lineorder " << out[0].selection.make_array()->ToString() <<
-    std::endl;
-    std::cout << "part" << out[1].selection.make_array()->ToString() <<
-    std::endl;
 
     return out;
 
@@ -107,10 +103,6 @@ std::vector<SelectionReference> Join::hash_join(
 
     auto out = probe_hash_table(left_join_col);
 
-    std::cout << "lineorder 2 " << out[0].selection.make_array()->ToString() <<
-              std::endl;
-    std::cout << "part 2" << out[1].selection.make_array()->ToString() <<
-              std::endl;
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
@@ -119,30 +111,13 @@ std::vector<SelectionReference> Join::hash_join(
     arrow::compute::Datum out_indices;
     std::shared_ptr<arrow::ChunkedArray> out_ref;
 
-    std::cout << "BEFORE MATCH 1" << out[0].selection.make_array()->ToString
-    () <<
-    std::endl;
-        std::cout << "BEFORE MATCH 2" <<left[selection_reference_index]
-        .selection
-    .make_array()
-    ->ToString() <<std::endl;
-
-        out_indices = arrow::compute::Datum(out[0].selection)
+    out_indices = arrow::compute::Datum(out[0].selection)
 ;
 //    status = arrow::compute::Match(
 //            &function_context,
 //           out[0].selection,
 //           left[selection_reference_index].selection,
 //            &matched_indices);
-
-
-//    std::cout << "match" << out_indices.make_array()->ToString() <<
-//              std::endl;
-//    std::cout << "lineorder after" << out[0].selection.make_array()->ToString
-//    () <<
-//    std::endl;
-
-
 
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
@@ -151,17 +126,9 @@ std::vector<SelectionReference> Join::hash_join(
     std::vector<SelectionReference> output;
     output.push_back(out[0]);
 
-
-
     for (int i=0; i<left.size(); i++) {
         if (i != selection_reference_index) {
 
-            std::cout << "BEFORE " << left[i].selection.make_array()->ToString
-            () <<
-                      std::endl;
-            std::cout << "TAKING " << out_indices.make_array()->ToString
-            () <<
-                      std::endl;
             status = arrow::compute::Take(&function_context,
                                           left[i].selection,
                                           out_indices,
@@ -170,9 +137,6 @@ std::vector<SelectionReference> Join::hash_join(
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             output.push_back({left[i].table, left[i].col, left[i].filter, res});
 
-            std::cout << "AFTER " << res.make_array()->ToString
-                    () <<
-                      std::endl;
         }
     }
 
