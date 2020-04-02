@@ -11,80 +11,111 @@
 namespace hustle {
 namespace operators {
 
-Join::Join(std::string left_column_name, std::string right_column_name) {
-    left_join_column_name_ = std::move(left_column_name);
-    right_join_column_name_ = std::move(right_column_name);
+Join::Join(std::shared_ptr<Table>& left_table,
+         arrow::compute::Datum& left_selection,
+         std::string left_column_name,
+         std::shared_ptr<Table>& right_table,
+         arrow::compute::Datum& right_selection,
+         std::string right_column_name){
 
-    std::tuple<std::shared_ptr<Table>, std::shared_ptr<Table>> tables;
+    left_join_col_name_ = left_column_name;
+    right_join_col_name_ = right_column_name;
+
+    left_table_ = left_table;
+    right_table_ = right_table;
+
+    left_selection_ = left_selection;
+    right_selection_ = right_selection;
+}
+
+Join::Join(std::vector<SelectionReference>& left_join_result,
+         std::string left_column_name,
+         std::shared_ptr<Table>& right_table,
+         arrow::compute::Datum& right_selection,
+         std::string right_column_name) {
+
+        left_join_col_name_ = left_column_name;
+        right_join_col_name_ = right_column_name;
+
+        left_join_result_ = left_join_result;
+        right_table_ = right_table;
+
+        right_selection_ = right_selection;
+    }
+
+std::vector<SelectionReference> Join::hash_join() {
+
+    std::vector<SelectionReference> out_join_result;
+
+    if (left_table_ == nullptr) {
+        out_join_result = hash_join(left_join_result_, right_table_);
+    }
+    else {
+        out_join_result = hash_join(left_table_, right_table_);
+    }
+
+    return out_join_result;
 
 }
 
 std::vector<SelectionReference> Join::hash_join(
         const std::shared_ptr<Table>& left_table,
-        const arrow::compute::Datum& left_selection,
-        const std::shared_ptr<Table>& right_table,
-        const arrow::compute::Datum& right_selection) {
+        const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
 
-    left_table_ = left_table;
-    right_table_ = right_table;
-
-    if (left_selection.is_arraylike()) {
-        left_filter_ = left_selection.chunked_array();
+    if (left_selection_.is_arraylike()) {
+        left_filter_ = left_selection_.chunked_array();
     }
-    if (right_selection.is_arraylike()) {
-        right_filter_ = right_selection.chunked_array();
+    if (right_selection_.is_arraylike()) {
+        right_filter_ = right_selection_.chunked_array();
     }
 
     auto right_join_col = apply_selection(
-            right_table->get_column_by_name(right_join_column_name_),
-            right_selection);
+            right_table_->get_column_by_name(right_join_col_name_),
+            right_selection_);
 
     right_join_col_ = right_join_col;
     hash_table_ = build_hash_table(right_join_col);
-//    probe_hash_table(left_table, left_selection);
+//    probe_hash_table(left_table, left_selection_);
 
     auto left_join_col = apply_selection(
-            left_table->get_column_by_name(left_join_column_name_),
-            left_selection);
+            left_table_->get_column_by_name(left_join_col_name_),
+            left_selection_);
     left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
-
     return out;
-
 }
 
 
 std::vector<SelectionReference> Join::hash_join(
-        const std::vector<SelectionReference>& left,
-        const std::shared_ptr<Table>& right_table,
-        const arrow::compute::Datum& right_selection) {
+        std::vector<SelectionReference>& left_join_result,
+        const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
 
     right_table_ = right_table;
 
-    if (right_selection.is_arraylike()) {
-        right_filter_ = right_selection.chunked_array();
+    if (right_selection_.is_arraylike()) {
+        right_filter_ = right_selection_.chunked_array();
     }
 
     auto right_join_col = apply_selection(
-            right_table->get_column_by_name(right_join_column_name_),
-            right_selection);
+            right_table->get_column_by_name(right_join_col_name_),
+            right_selection_);
 
 
     right_join_col_ = right_join_col;
-//right_join_col_ = right_table->get_column_by_name(right_join_column_name_);
+//right_join_col_ = right_table->get_column_by_name(right_join_col_name_);
     hash_table_ = build_hash_table(right_join_col);
 
     int selection_reference_index = -1;
     int left_join_col_index = -1;
 
-    for (int i=0; i<left.size(); i++) {
-        int index = left[i].table->get_schema()->GetFieldIndex
-                (left_join_column_name_);
+    for (int i=0; i<left_join_result_.size(); i++) {
+        int index = left_join_result_[i].table->get_schema()->GetFieldIndex
+                (left_join_col_name_);
         if (index >= 0) {
             left_join_col_index = index;
             selection_reference_index = i;
@@ -94,15 +125,16 @@ std::vector<SelectionReference> Join::hash_join(
     //TODO(nicholas): left_table_ must also be filtered! None of the SSB
     // queries with multiple joins select on Lineorder, so this part is not
     // yet verified!
-    left_table_ = left[selection_reference_index].table;
+    left_table_ = left_join_result_[selection_reference_index].table;
     auto left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
-            arrow::compute::Datum(left[selection_reference_index].filter)
+            arrow::compute::Datum(left_join_result_[selection_reference_index]
+            .filter)
     );
 
     left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
-            left[selection_reference_index].selection
+            left_join_result_[selection_reference_index].selection
     );
 
     left_join_col_ = left_join_col;
@@ -119,11 +151,7 @@ std::vector<SelectionReference> Join::hash_join(
 
     out_indices = arrow::compute::Datum(out[0].selection)
 ;
-//    status = arrow::compute::Match(
-//            &function_context,
-//           out[0].selection,
-//           left[selection_reference_index].selection,
-//            &matched_indices);
+
 
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
@@ -132,16 +160,19 @@ std::vector<SelectionReference> Join::hash_join(
     std::vector<SelectionReference> output;
     output.push_back(out[0]);
 
-    for (int i=0; i<left.size(); i++) {
+    for (int i=0; i<left_join_result_.size(); i++) {
         if (i != selection_reference_index) {
 
             status = arrow::compute::Take(&function_context,
-                                          left[i].selection,
+                                          left_join_result_[i].selection,
                                           out_indices,
                                           take_options,
                                           &res);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            output.push_back({left[i].table, left[i].col, left[i].filter, res});
+            output.push_back({left_join_result_[i].table,
+                              left_join_result_[i].col,
+                              left_join_result_[i].filter,
+                              res});
 
         }
     }

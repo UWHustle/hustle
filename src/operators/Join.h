@@ -43,17 +43,39 @@ public:
 
 //    Interface Joinable;
 
-    std::vector<SelectionReference> hash_join(
-            const std::shared_ptr<Table>& left_table,
-            const arrow::compute::Datum& left_selection,
-            const std::shared_ptr<Table>& right_table,
-            const arrow::compute::Datum& right_selection);
+    Join(std::shared_ptr<Table>& left_table,
+            arrow::compute::Datum& left_selection,
+            std::string left_column_name,
+            std::shared_ptr<Table>& right_table,
+            arrow::compute::Datum& right_selection,
+            std::string right_column_name);
 
-    std::vector<SelectionReference> hash_join(
-            const std::vector<SelectionReference>& left_table,
-            const std::shared_ptr<Table>& right_table,
-            const arrow::compute::Datum& right_selection);
+    Join(std::vector<SelectionReference>& left_join_result,
+            std::string left_column_name,
+            std::shared_ptr<Table>& right_table,
+            arrow::compute::Datum& right_selection,
+            std::string right_column_name);
 
+//TODO(nicholas): Should these be implemented?
+
+//    Join(const std::shared_ptr<Table>& left_table,
+//         const std::string& left_column_name,
+//         const std::shared_ptr<Table>& right_table,
+//         const std::string& right_column_name);
+//
+//    Join(const std::shared_ptr<Table>& left_table,
+//         const std::string& left_column_name,
+//         const arrow::compute::Datum& left_selection,
+//         const std::shared_ptr<Table>& right_table,
+//         const std::string& right_column_name);
+//
+//    Join(const std::shared_ptr<Table>& left_table,
+//         const std::string& left_column_name,
+//         const std::shared_ptr<Table>& right_table,
+//         const std::string& right_column_name,
+//         const arrow::compute::Datum& right_selection);
+
+    std::vector<SelectionReference> hash_join();
     arrow::compute::Datum get_left_indices();
     arrow::compute::Datum get_right_indices();
     arrow::compute::Datum get_indices_for_table(
@@ -62,22 +84,36 @@ public:
 private:
     arrow::compute::Datum left_filter_;
     arrow::compute::Datum right_filter_;
+
     std::shared_ptr<arrow::ChunkedArray> left_join_col_;
     std::shared_ptr<arrow::ChunkedArray> right_join_col_;
 
-    std::vector<SelectionReference> left_;
+    arrow::compute::Datum left_selection_;
+    arrow::compute::Datum right_selection_;
+
+    //TODO(nicholas): a better name?
+    std::vector<SelectionReference> left_join_result_;
+    std::vector<SelectionReference> right_join_result_;
+
     std::shared_ptr<Table> left_table_;
     std::shared_ptr<Table> right_table_;
 
-    std::string left_join_column_name_;
-    std::string right_join_column_name_;
+    std::string left_join_col_name_;
+    std::string right_join_col_name_;
 
     std::shared_ptr<arrow::Array> left_indices_;
     std::shared_ptr<arrow::Array> right_indices_;
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-    std::vector<SelectionReference> probe_hash_table
+        std::vector<SelectionReference> hash_join(
+                std::vector<SelectionReference>&,
+                const std::shared_ptr<Table>& right_table);
+        std::vector<SelectionReference> hash_join(
+                const std::shared_ptr<Table>& left_table,
+                const std::shared_ptr<Table>& right_table);
+
+        std::vector<SelectionReference> probe_hash_table
             (std::shared_ptr<arrow::ChunkedArray> probe_col);
         std::vector<SelectionReference> probe_hash_table
                 (std::shared_ptr<arrow::ChunkedArray> probe_col, int
