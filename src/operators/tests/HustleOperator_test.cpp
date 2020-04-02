@@ -358,6 +358,8 @@ protected:
     std::shared_ptr<arrow::Schema> date_schema;
     std::shared_ptr<arrow::Schema> part_schema;
     std::shared_ptr<arrow::Schema> supp_schema;
+    std::shared_ptr<arrow::Schema> cust_schema;
+
 
     std::shared_ptr<arrow::BooleanArray> valid;
     std::shared_ptr<arrow::Int64Array> column1;
@@ -369,6 +371,8 @@ protected:
     std::shared_ptr<Table> date;
     std::shared_ptr<Table> part;
     std::shared_ptr<Table> supp;
+    std::shared_ptr<Table> cust;
+
 
 
     void SetUp() override {
@@ -508,6 +512,51 @@ protected:
         supp_schema = arrow::schema({ s_field1,  s_field2,  s_field3,  s_field4,
                                       s_field5,
                                       s_field6,  s_field7});
+
+
+        std::shared_ptr<arrow::Field> c_field1 = arrow::field("cust key",
+                                                              arrow::int64());
+        std::shared_ptr<arrow::Field> c_field2 = arrow::field("name",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> c_field3 = arrow::field("address",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> c_field4 = arrow::field("city",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> c_field5 = arrow::field("nation",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> c_field6 = arrow::field("region",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> c_field7 = arrow::field("phone",
+                                                              arrow::utf8());
+        std::shared_ptr<arrow::Field> c_field8 = arrow::field("mkt segment",
+                                                              arrow::utf8());
+
+        cust_schema = arrow::schema({ c_field1,  c_field2,  c_field3,  c_field4,
+                                      c_field5, c_field6, c_field7, c_field8});
+
+        lineorder = read_from_file
+                ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
+
+        date = read_from_file
+                ("/Users/corrado/hustle/src/table/tests/date.hsl");
+
+        part = read_from_file
+                ("/Users/corrado/hustle/src/table/tests/part.hsl");
+
+        supp = read_from_file
+                ("/Users/corrado/hustle/src/table/tests/supplier.hsl");
+
+//        cust = read_from_csv_file
+//                ("/Users/corrado/hustle/src/table/tests/customer.tbl",
+//                        cust_schema,
+//                 BLOCK_SIZE);
+//
+//        write_to_file("/Users/corrado/hustle/src/table/tests/customer.hsl",
+//                      *cust);
+
+        cust = read_from_file
+                ("/Users/corrado/hustle/src/table/tests/customer.hsl");
+
     }
 };
 
@@ -527,11 +576,7 @@ TEST_F(SSBTestFixture, CSVtoHSL) {
 
 TEST_F(SSBTestFixture, GroupByTest) {
 
-//    date = read_from_csv_file
-//            ("/Users/corrado/hustle/src/table/tests/date.tbl", date_schema, BLOCK_SIZE);
-//
-//    write_to_file("/Users/corrado/hustle/src/table/tests/date.hsl",
-//                  *date);
+
 
     date = read_from_file
             ("/Users/corrado/hustle/src/table/tests/date.hsl");
@@ -954,6 +999,8 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
 //    auto res3 = join_op_2->hash_join(
 //            res2, date, empty_selection);
 
+    std::cout << "NUM ROWS" << res3[0].selection.length() << std::endl;
+
     std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
     std::vector<std::string> order_bys = {"year", "brand1"};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
@@ -1005,6 +1052,104 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
 //    Projection p({});
 //    auto out_table = p.Project({p1,p2,p3});
 //    out_table->print();
+
+}
+
+
+TEST_F(SSBTestFixture, SSBQ4_1) {
+
+    // IMPORTANT: There is no Datum constructor that accepts a string as a
+    // parameter. You must first create a StringScalar and then pass that in.
+    // If you pass in a string to the Datum constructor, it will interpet it
+    // as boolean.
+    auto part_select_op_1 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "mfgr",
+            arrow::compute::Datum(
+                    std::make_shared<arrow::StringScalar>("MFGR#1"))
+    );
+
+    auto part_select_op_2 = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "mfgr",
+            arrow::compute::Datum(
+                    std::make_shared<arrow::StringScalar>("MFGR#2"))
+    );
+
+    auto part_select_op_composite_1 =
+            std::make_shared<hustle::operators::SelectComposite>
+                    (part_select_op_1, part_select_op_2,
+                     hustle::operators::FilterOperator::OR);
+
+    auto cust_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "region",
+            arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                          ("AMERICA"))
+    );
+
+    auto supp_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "region",
+            arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                          ("AMERICA"))
+    );
+
+
+
+    auto join_op_1 = std::make_shared<hustle::operators::Join>("part key",
+                                                               "part key");
+    auto join_op_2 = std::make_shared<hustle::operators::Join>("supp key",
+                                                               "supp key");
+    auto join_op_3 = std::make_shared<hustle::operators::Join>("cust key",
+                                                               "cust key");
+    auto join_op_4 = std::make_shared<hustle::operators::Join>("order date",
+                                                               "date key");
+
+    arrow::compute::Datum empty_selection;
+
+    arrow::compute::Datum part_selection =
+            part_select_op_composite_1->get_filter(part);
+    arrow::compute::Datum supp_selection =
+            supp_select_op->get_filter(supp);
+    arrow::compute::Datum cust_selection =
+            cust_select_op->get_filter(cust);
+
+    auto res1 = join_op_1->hash_join(
+            lineorder, empty_selection,
+            part, part_selection);
+
+    auto res2 = join_op_2->hash_join(
+            res1, supp, supp_selection);
+
+    auto res3 = join_op_3->hash_join(
+            res2, cust, cust_selection);
+
+    auto res4 = join_op_4->hash_join(
+            res3, date, empty_selection);
+
+    std::cout << "NUM ROWS" << res4[0].selection.length() << std::endl;
+
+    std::vector<ColumnReference> group_bys = {{date, "year"}, {cust, "nation"}};
+    std::vector<std::string> order_bys = {"year", "nation"};
+    AggregateUnit agg_unit = {AggregateKernels::SUM,
+                              lineorder,
+                              res4[0].selection,
+                              "revenue"};
+
+    std::vector<AggregateUnit> units = {agg_unit};
+
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            res4,
+            units,
+            group_bys,
+            order_bys);
+
+    // Perform aggregate
+    auto aggregate = aggregate_op->run_operator({date});
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
 
 }
 
