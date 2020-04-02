@@ -51,6 +51,11 @@ std::vector<SelectionReference> Join::hash_join(
     left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
+    std::cout << "lineorder " << out[0].selection.make_array()->ToString() <<
+    std::endl;
+    std::cout << "part" << out[1].selection.make_array()->ToString() <<
+    std::endl;
+
     return out;
 
 }
@@ -75,6 +80,7 @@ std::vector<SelectionReference> Join::hash_join(
 
 
     right_join_col_ = right_join_col;
+//right_join_col_ = right_table->get_column_by_name(right_join_column_name_);
     hash_table_ = build_hash_table(right_join_col);
 
     int selection_reference_index = -1;
@@ -89,25 +95,55 @@ std::vector<SelectionReference> Join::hash_join(
             break;
         }
     }
+    //TODO(nicholas): left_table_ must also be filtered!
     left_table_ = left[selection_reference_index].table;
     auto left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
             left[selection_reference_index].selection
     );
 
+    left_join_col_ = left_join_col;
+//    left_join_col_ = left_table_->get_column(left_join_col_index);
+
     auto out = probe_hash_table(left_join_col);
+
+    std::cout << "lineorder 2 " << out[0].selection.make_array()->ToString() <<
+              std::endl;
+    std::cout << "part 2" << out[1].selection.make_array()->ToString() <<
+              std::endl;
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
+    arrow::compute::Datum matched_indices;
     arrow::compute::Datum out_indices;
     std::shared_ptr<arrow::ChunkedArray> out_ref;
 
-    status = arrow::compute::Match(&function_context,
-                                   out[0].selection,
-            left[selection_reference_index].selection,
+    std::cout << "BEFORE MATCH 1" << out[0].selection.make_array()->ToString
+    () <<
+    std::endl;
+        std::cout << "BEFORE MATCH 2" <<left[selection_reference_index]
+        .selection
+    .make_array()
+    ->ToString() <<std::endl;
 
-            &out_indices);
+        out_indices = arrow::compute::Datum(out[0].selection)
+;
+//    status = arrow::compute::Match(
+//            &function_context,
+//           out[0].selection,
+//           left[selection_reference_index].selection,
+//            &matched_indices);
+
+
+//    std::cout << "match" << out_indices.make_array()->ToString() <<
+//              std::endl;
+//    std::cout << "lineorder after" << out[0].selection.make_array()->ToString
+//    () <<
+//    std::endl;
+
+
+
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     arrow::compute::Datum res;
@@ -116,12 +152,15 @@ std::vector<SelectionReference> Join::hash_join(
     output.push_back(out[0]);
 
 
+
     for (int i=0; i<left.size(); i++) {
         if (i != selection_reference_index) {
 
-            std::cout << left[i].selection.make_array()->length() <<
+            std::cout << "BEFORE " << left[i].selection.make_array()->ToString
+            () <<
                       std::endl;
-            std::cout << out_indices.make_array()->length() <<
+            std::cout << "TAKING " << out_indices.make_array()->ToString
+            () <<
                       std::endl;
             status = arrow::compute::Take(&function_context,
                                           left[i].selection,
@@ -130,6 +169,10 @@ std::vector<SelectionReference> Join::hash_join(
                                           &res);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             output.push_back({left[i].table, left[i].col, left[i].filter, res});
+
+            std::cout << "AFTER " << res.make_array()->ToString
+                    () <<
+                      std::endl;
         }
     }
 
@@ -199,7 +242,6 @@ std::vector<SelectionReference> Join::probe_hash_table
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
-
         row_offset += left_join_chunk->length();
     }
 

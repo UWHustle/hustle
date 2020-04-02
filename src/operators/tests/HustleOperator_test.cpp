@@ -14,6 +14,7 @@
 
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
+#include <arrow/compute/kernels/match.h>
 
 using namespace testing;
 using hustle::operators::Aggregate;
@@ -255,50 +256,52 @@ TEST_F(OperatorsTestFixture2, HashJoin) {
 
     auto join_op = hustle::operators::Join("id","id");
 
+
+
     arrow::compute::Datum left_selection;
     arrow::compute::Datum right_selection;
 
     auto result = join_op.hash_join(left_table, left_selection,
             right_table, right_selection);
 
-//    ProjectionUnit p1 = {
-//            left_table, result[0].selection,
-//            {left_table->get_schema()->GetFieldByName("id"),
-//             left_table->get_schema()->GetFieldByName("B")}
-//    };
-//    ProjectionUnit p2 = {
-//            right_table, result[1].selection,
-//            {right_table->get_schema()->GetFieldByName("B")}
-//    };
-//
-//    Projection p({});
-//    auto out_table = p.Project({p1,p2});
-//
-//    out_table->print();
+    ProjectionUnit p1 = {
+            result[0],
+            {left_table->get_schema()->GetFieldByName("id"),
+             left_table->get_schema()->GetFieldByName("B")}
+    };
+    ProjectionUnit p2 = {
+            result[1],
+            {right_table->get_schema()->GetFieldByName("B")}
+    };
+
+    Projection p({});
+    auto out_table = p.Project({p1,p2});
+
+    out_table->print();
 //
 //    std::cout << result[0].selection.make_array()->ToString() << std::endl;
 //    std::cout << result[1].selection.make_array()->ToString() << std::endl;
 //
 //
 //
-//    result = join_op.hash_join(result, third_table, right_selection);
-//    ProjectionUnit p11 = {
-//            left_table, result[0].selection,
-//            {left_table->get_schema()->GetFieldByName("id"),
-//             left_table->get_schema()->GetFieldByName("B")}
-//    };
-//    ProjectionUnit p22 = {
-//            right_table, result[1].selection,
-//            {right_table->get_schema()->GetFieldByName("B")}
-//    };
-//    ProjectionUnit p33 = {
-//            third_table, result[2].selection,
-//            {third_table->get_schema()->GetFieldByName("B")}
-//    };
-//
-//    auto out_table2 = p.Project({p11,p22,p33});
-//
-//    out_table2->print();
+    result = join_op.hash_join(result, third_table, right_selection);
+    ProjectionUnit p11 = {
+            result[0],
+            {left_table->get_schema()->GetFieldByName("id"),
+             left_table->get_schema()->GetFieldByName("B")}
+    };
+    ProjectionUnit p22 = {
+            result[1],
+            {right_table->get_schema()->GetFieldByName("B")}
+    };
+    ProjectionUnit p33 = {
+            result[2],
+            {third_table->get_schema()->GetFieldByName("B")}
+    };
+
+    auto out_table2 = p.Project({p11,p22,p33});
+
+    out_table2->print();
 
 //    for (int i=0; i<out_table->get_num_blocks(); i++) {
 //
@@ -617,29 +620,30 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     }
     indices_builder.Finish(&indices);
 
-//    std::vector<SelectionReference> join_result = {
-//            {date, date->get_column_by_name("date key"), indices}
-//    };
-//
-//
-//    AggregateUnit agg_unit = {AggregateKernels::SUM,
-//                              date,
-//                              indices,
-//                              "date key"};
-//
-//    std::vector<AggregateUnit> units = {agg_unit};
-//
-//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-//            join_result,
-//            units,
-//            col_refs,
-//            order_fields);
-//
-//    // Perform aggregate
-//    auto aggregate = aggregate_op->run_operator({date});
-//
-//    // Print the result. The valid bit will be printed as the first column.
-//    if (aggregate != nullptr) aggregate->print();
+    std::shared_ptr<arrow::ChunkedArray> filter;
+
+    std::vector<SelectionReference> join_result = {
+            {date, date->get_column_by_name("date key"), filter, indices}
+    };
+
+    AggregateUnit agg_unit = {AggregateKernels::SUM,
+                              date,
+                              indices,
+                              "date key"};
+
+    std::vector<AggregateUnit> units = {agg_unit};
+
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            join_result,
+            units,
+            col_refs,
+            order_fields);
+
+    // Perform aggregate
+    auto aggregate = aggregate_op->run_operator({date});
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
 
 }
 
@@ -845,6 +849,13 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
 TEST_F(SSBTestFixture, SSBQ2_1) {
 
 
+//        lineorder = read_from_csv_file
+//            ("/Users/corrado/hustle/src/table/tests/lineorder_small.tbl",
+//                    lineorder_schema, BLOCK_SIZE);
+//
+//    write_to_file("/Users/corrado/hustle/src/table/tests/lineorder_small.hsl",
+//                  *lineorder);
+
     lineorder = read_from_file
             ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
 
@@ -875,6 +886,12 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
                                           ("AMERICA"))
     );
 
+    auto date_select_op = std::make_shared<hustle::operators::Select>(
+            arrow::compute::CompareOperator::EQUAL,
+            "year month num",
+            arrow::compute::Datum((int64_t) 1993)
+    );
+
     auto join_op_3 = std::make_shared<hustle::operators::Join>("order date",
                                                                "date key");
     auto join_op_1 = std::make_shared<hustle::operators::Join>("part key",
@@ -882,155 +899,144 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     auto join_op_2 = std::make_shared<hustle::operators::Join>("supp key",
                                                                "supp key");
 
-
     arrow::compute::Datum empty_selection;
 
     arrow::compute::Datum part_selection =
             part_select_op->get_filter(part);
     arrow::compute::Datum supp_selection =
             supp_select_op->get_filter(supp);
-
-    auto col1 = supp->get_column_by_name("region");
-//    auto col2 = supp->get_column_by_name("brand1");
-    std::shared_ptr<arrow::ChunkedArray> out_col1;
-    std::shared_ptr<arrow::ChunkedArray> out_col2;
-
-    arrow::compute::FunctionContext function_context(
-            arrow::default_memory_pool());
-    std::shared_ptr<arrow::ChunkedArray> out;
-
-    arrow::compute::Filter(&function_context,
-                                    *col1,
-                                    *supp_selection.chunked_array(),
-                                    &out_col1);
-
-    std::cout << out_col1->chunk(0)->ToString() << std::endl;
-//
-//    arrow::compute::Filter(&function_context,
-//                           *col2,
-//                           *supp_selection.chunked_array(),
-//                           &out_col2);
-//
-//    std::cout << out_col2->chunk(0)->ToString() << std::endl;
+    arrow::compute::Datum date_selection =
+            date_select_op->get_filter(date);
 
     auto res1 = join_op_1->hash_join(
             lineorder, empty_selection,
             part, part_selection);
 
-    std::cout << res1[0].selection.make_array()->ToString() << std::endl;
-    std::cout << res1[1].selection.make_array()->ToString() << std::endl;
+//    std::cout << res1[0].selection.make_array()->ToString() << std::endl;
+//    std::cout << res1[1].selection.make_array()->ToString() << std::endl;
 
-//    auto res2 = join_op_2->hash_join(
-//            res1, supp, empty_selection);
+    auto res2 = join_op_2->hash_join(
+            res1, supp, supp_selection);
 
-    ProjectionUnit p1 = {
-            res1[1],
-            {part->get_schema()->GetFieldByName("brand1")}
-    };
-
-    ProjectionUnit p2 = {
-            res1[0],
-            {lineorder->get_schema()->GetFieldByName("part key")}
-    };
-
-    Projection p({});
-    auto out_table = p.Project({p1});
-    out_table->print();
-
-//    ProjectionUnit p2 = {
-//            supp, res2[2].selection,
-//            {supp->get_schema()->GetFieldByName("region"),
-//             supp->get_schema()->GetFieldByName("supp key")}
-//    };
-
-
-
-//
-//    auto res3 = join_op_3->hash_join(
+//    auto res3 = join_op_2->hash_join(
 //            res2, date, empty_selection);
-//
-//    for (auto &ref : res3) {
-//        std::cout << ref.table->get_num_rows() << std::endl;
-//    }
 
+//    arrow::compute::FunctionContext function_context(
+//            arrow::default_memory_pool());
+//    arrow::compute::TakeOptions take_options;
+//    std::shared_ptr<arrow::ChunkedArray> out_col;
+//
+//    arrow::Status status = arrow::compute::Filter(&function_context,
+//                                    *part->get_column_by_name("category"),
+//                                    *res1[1].filter,
+//                                    &out_col);
+//    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//
+//    std::cout << "res2 " << out_col->chunk(0)->ToString() <<
+//              std::endl;
+//    std::cout << res1[1].selection.make_array()->ToString() <<std::endl;
+//
+//    status = arrow::compute::Take(&function_context,
+//                                  *out_col,
+//                                  *res1[1].selection.make_array(),
+//                                  take_options,
+//                                  &out_col);
+//    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//
+//    std::cout << "res2 2" << out_col->chunk(0)->ToString() <<
+//    std::endl;
 
-//    ProjectionUnit p1 =
-//            {res3[3].table, res3[3].selection,
-//             {res3[3].table->get_schema()->GetFieldByName("brand1")}};
-//
-//    Projection p({p1});
-//    auto t = p.Project({p1});
-//    auto x = t->get_num_rows();
-//    t->print();
-//
-//   std::cout << res3[0].selection.length() << std::endl;
-//
-//   AggregateUnit a1 = {
-//           AggregateKernels::SUM,
-//           lineorder,
-//           res3[0].selection,
-//           "revenue"
-//   };
-//
-//    std::vector<ColumnReference> group_refs;
-//    group_refs.push_back({date, "year"});
-//    group_refs.push_back({part, "brand1"});
-//
-//   Aggregate a(res3,{a1},group_refs, {"year","brand1"});
-//
-//   auto table = a.run_operator({});
-//   table->print();
-//    ProjectionUnit p1 = {
-//            res3[0].table,
-//            res3[0].selection,
-//
-//    };
-//    Projection p();
+//    std::cout << "res2 " << res2[0].selection.make_array()->ToString() <<
+//    std::endl;
+//    std::cout << "res2 " << res2[1].selection.make_array()->ToString() <<
+//    std::endl;
 
-//    std::cout << "NUM ROWS = " << join_table_1->get_num_rows() << std::endl;
+//    auto res3 = join_op_2->hash_join(
+//            res2, date, empty_selection);
 
+//    std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
+//    std::vector<std::string> order_bys = {"year", "brand1"};
+//    AggregateUnit agg_unit = {AggregateKernels::SUM,
+//                              lineorder,
+//                              res3[0].selection,
+//                              "revenue"};
 //
-
-
-//    auto res2 = join_op_2->hash_join(
-//            res1,
-//            part, right_selection_2);
-
+//    std::vector<AggregateUnit> units = {agg_unit};
 //
-////    auto join_table_3 = join_op_3->hash_join2(
-////            lineorder, left_indices_1,
-////            date, right_selection_2);
-//
-//    join_table_2->print();
-//
-////    std::cout << left_indices.make_array()->ToString() << std::endl;
-////    std::cout << right_indices.make_array()->ToString() << std::endl;
-//
-////    auto join_table_2 = join_op->hash_join2(
-////            lineorder, left_indices,
-////            date, right_indices);
-//
-//    // Create aggregate operator
-//
-//    std::vector<std::shared_ptr<arrow::Field>> agg_fields =
-//            {arrow::field("revenue", arrow::utf8())};
-//    std::vector<std::shared_ptr<arrow::Field>> group_fields = {};
-//    std::vector<std::shared_ptr<arrow::Field>> order_fields = {};
 //    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-//            hustle::operators::AggregateKernels::SUM,
-//            agg_fields,
-//            group_fields,
-//            order_fields);
+//            res3,
+//            units,
+//            group_bys,
+//            order_bys);
 //
-//    // Perform aggregate over resulting join table
-////    auto aggregate = aggregate_op->run_operator({join_table_2});
+//    // Perform aggregate
+//    auto aggregate = aggregate_op->run_operator({date});
 //
 //    // Print the result. The valid bit will be printed as the first column.
-////    if (aggregate != nullptr) aggregate->print();
+//    if (aggregate != nullptr) aggregate->print();
+
+    ProjectionUnit p1 = {
+            res2[0],
+            {lineorder->get_schema()->GetFieldByName("order key"),
+             lineorder->get_schema()->GetFieldByName("part key")}
+    };
+    ProjectionUnit p2 = {
+            res2[1],
+            {part->get_schema()->GetFieldByName("brand1")}
+    };
+//    1	1	155190
+//    1	1	67310
+//    1	1	63700
+//    1	1	2132
+//    1	1	24027
+//    1	1	15635
+//    1	2	106170
+    ProjectionUnit p3 = {
+            res2[2],
+            {supp->get_schema()->GetFieldByName("supp key"),
+             supp->get_schema()->GetFieldByName("region")}
+    };
 //
-//    auto t2 = std::chrono::high_resolution_clock::now();
-//
-//    std::cout << "QUERY EXECUTION TIME = " <<
-//              std::chrono::duration_cast<std::chrono::milliseconds>
-//                      (t2-t1).count() << std::endl;
+//    ProjectionUnit p4 = {
+//            res3[3],
+//            {date->get_schema()->GetFieldByName("year")}
+//    };
+
+    Projection p({});
+    auto out_table = p.Project({p1,p2,p3});
+    out_table->print();
+
+}
+
+TEST_F(SSBTestFixture, testest){
+
+    date = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/date.hsl");
+
+    arrow::Int64Builder indices_builder;
+    std::shared_ptr<arrow::Int64Array> indices;
+    for(int i=0; i<date->get_num_rows(); i++) {
+        indices_builder.Append(i);
+    }
+    indices_builder.Finish(&indices);
+
+    std::shared_ptr<arrow::Int64Array> indices2;
+    for(int i=0; i<date->get_num_rows(); i+=2) {
+        indices_builder.Append(i);
+    }
+    indices_builder.Finish(&indices2);
+
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    arrow::compute::TakeOptions take_options;
+    arrow::compute::Datum out_indices;
+    std::shared_ptr<arrow::ChunkedArray> out_ref;
+
+    arrow::compute::Match(&function_context,
+                          indices2, indices, &out_indices);
+
+        std::cout << out_indices.make_array()->ToString() <<
+    std::endl;
+
+
 }
