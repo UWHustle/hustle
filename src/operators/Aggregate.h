@@ -34,28 +34,9 @@ public:
              std::vector<ColumnReference> group_by_fields,
              std::vector<std::string> order_by_fields);
 
+    std::shared_ptr<Table> aggregate();
     std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
                                         tables) override;
-
-    void insert_group(
-            std::vector<std::shared_ptr<arrow::Array>> unique_values, int *its);
-    void insert_group_aggregate(arrow::compute::Datum aggregate);
-
-    std::shared_ptr<arrow::ChunkedArray> get_group_filter(
-            std::vector<std::shared_ptr<arrow::Array>> unique_values,
-            int* its);
-
-    std::shared_ptr<Table> iterate_over_groups
-            ();
-
-    std::shared_ptr<arrow::Array> get_unique_values(
-            ColumnReference group_ref);
-    std::shared_ptr<arrow::ChunkedArray> get_filter
-            (ColumnReference col_ref,
-             std::shared_ptr<arrow::Field> field, arrow::compute::Datum value);
-
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>
-    get_group_builders();
 
 protected:
     arrow::compute::Datum selection_;
@@ -79,6 +60,26 @@ protected:
 
     std::shared_ptr<arrow::ArrayBuilder>
     get_aggregate_builder(AggregateKernels kernel);
+
+    void insert_group(
+            std::vector<std::shared_ptr<arrow::Array>> unique_values, int *its);
+    void insert_group_aggregate(arrow::compute::Datum aggregate);
+
+    std::shared_ptr<arrow::ChunkedArray> get_group_filter(
+            std::vector<std::shared_ptr<arrow::Array>> unique_values,
+            int* its);
+
+    std::shared_ptr<Table> iterate_over_groups
+            ();
+
+    std::shared_ptr<arrow::Array> get_unique_values(
+            ColumnReference group_ref);
+    std::shared_ptr<arrow::ChunkedArray> get_filter
+            (ColumnReference col_ref,
+             std::shared_ptr<arrow::Field> field, arrow::compute::Datum value);
+
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>
+    get_group_builders();
 };
 
 } // namespace operators

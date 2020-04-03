@@ -36,6 +36,12 @@ Aggregate::Aggregate(
     
 }
 
+std::shared_ptr<Table> Aggregate::aggregate() {
+
+    return iterate_over_groups();
+}
+
+
 std::shared_ptr<Table> Aggregate::run_operator
         (std::vector<std::shared_ptr<Table>> tables) {
 
