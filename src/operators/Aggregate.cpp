@@ -457,6 +457,8 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     // If this field is in the Order By clause, sort it now.
+    //TODO(nicholas): Unexpected behavior when two group bys have the same
+    // column name.
     for (auto & name : order_by_names_) {
         if (name == group_ref.col_name) {
 
@@ -568,7 +570,6 @@ arrow::compute::Datum Aggregate::compute_aggregate(
         }
             // Returns a Datum of the same type as the column
         case COUNT: {
-            // TODO(martin): count options
             // TODO(nicholas): Currently, Count cannot accept
             //  ChunkedArray Datums. Support for ChunkedArray Datums
             //  was recently added (late January) for Sum and Mean,
