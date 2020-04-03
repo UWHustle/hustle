@@ -6,12 +6,11 @@
 #include "../table/util.h"
 
 hustle::operators::Projection::Projection(
-        std::vector<ProjectionUnit> projection_units) {
-
+        std::vector<ProjectionUnit>projection_units) {
+    projection_units_ = projection_units;
 }
 
-std::shared_ptr<Table> hustle::operators::Projection::Project(
-        std::vector<ProjectionUnit> projection_units) {
+std::shared_ptr<Table> hustle::operators::Projection::project() {
 
     arrow::Status status;
 
@@ -25,7 +24,7 @@ std::shared_ptr<Table> hustle::operators::Projection::Project(
     std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
     // TODO(nicholas): for now, assume that the selections are always arrays
     //  of indices, not filters.
-    for (auto &unit : projection_units) {
+    for (auto &unit : projection_units_) {
 
         auto table = unit.ref.table;
         auto filter = unit.ref.filter;

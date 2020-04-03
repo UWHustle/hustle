@@ -23,11 +23,12 @@ class Projection : public Operator {
 public:
 
     Projection(std::vector<ProjectionUnit> projection_units);
-    std::shared_ptr<Table> Project(std::vector<ProjectionUnit> projection_units);
+    std::shared_ptr<Table> project();
 
     std::shared_ptr<Table> run_operator
             (std::vector<std::shared_ptr<Table>> tables);
-
+private:
+    std::vector<ProjectionUnit> projection_units_;
 };
 
 
