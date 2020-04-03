@@ -77,7 +77,6 @@ std::vector<JoinResult> Join::hash_join(
 
     right_join_col_ = right_join_col;
     hash_table_ = build_hash_table(right_join_col);
-//    probe_hash_table(left_table, left_selection_);
 
     auto left_join_col = apply_selection(
             left_table_->get_column_by_name(left_join_col_name_),
@@ -113,6 +112,8 @@ std::vector<JoinResult> Join::hash_join(
     int selection_reference_index = -1;
     int left_join_col_index = -1;
 
+    // TODO(nicholas): This will find the wrong table if lineorder is not
+    //  at index 0.
     for (int i=0; i<left_join_result_.size(); i++) {
         int index = left_join_result_[i].table->get_schema()->GetFieldIndex
                 (left_join_col_name_);
@@ -124,7 +125,7 @@ std::vector<JoinResult> Join::hash_join(
     }
     //TODO(nicholas): left_table_ must also be filtered! None of the SSB
     // queries with multiple joins select on Lineorder, so this part is not
-    // yet verified!
+    // yet verified.
     left_table_ = left_join_result_[selection_reference_index].table;
     auto left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
