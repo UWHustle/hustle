@@ -29,10 +29,6 @@ public:
     std::shared_ptr<Table> run_operator
     (std::vector<std::shared_ptr<Table>> tables) override;
 
-    std::shared_ptr<Table> materialize
-            (std::vector<std::shared_ptr<Table>> tables,
-                    arrow::compute::Datum filter);
-
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block) override;
 
@@ -41,6 +37,7 @@ public:
 
 
 private:
+    std::shared_ptr<Table> table_;
     arrow::compute::CompareOperator compare_operator_;
     std::string column_name_;
     arrow::compute::Datum column_value_;
@@ -57,10 +54,6 @@ public:
     std::shared_ptr<Table> run_operator
             (std::vector<std::shared_ptr<Table>> tables) override;
 
-    std::shared_ptr<Table> materialize
-            (std::vector<std::shared_ptr<Table>> tables,
-             arrow::compute::Datum filter);
-
     arrow::compute::Datum get_filter
             (std::shared_ptr<Block> block) override;
 
@@ -71,6 +64,7 @@ public:
             (std::shared_ptr<Table> table);
 
 private:
+    std::shared_ptr<Table> table_;
     std::shared_ptr<SelectOperator> left_child_;
     std::shared_ptr<SelectOperator> right_child_;
     FilterOperator filter_operator_;

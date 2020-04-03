@@ -13,9 +13,10 @@ SelectComposite::SelectComposite(
         std::shared_ptr<SelectOperator> left_child,
         std::shared_ptr<SelectOperator> right_child,
         FilterOperator filter_operator){
-  left_child_ = std::move(left_child);
-  right_child_ = std::move(right_child);
-  filter_operator_ = filter_operator;
+
+    left_child_ = std::move(left_child);
+    right_child_ = std::move(right_child);
+    filter_operator_ = filter_operator;
 }
 
 arrow::compute::Datum SelectComposite::get_filter
@@ -34,8 +35,6 @@ arrow::compute::Datum SelectComposite::get_filter
     arrow::compute::Datum out(chunked_filter);
     return out;
 }
-
-
 
 arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         block) {
@@ -162,56 +161,6 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
         arrow::compute::Datum out(chunked_filter);
         return out;
-    }
-
-
-    std::shared_ptr<Table> Select::materialize
-            (std::vector<std::shared_ptr<Table>> tables,
-                    arrow::compute::Datum filter) {
-
-
-        arrow::Status status;
-        // operator only uses first table
-        auto table = tables[0];
-
-        arrow::SchemaBuilder out_schema_builder;
-        status = out_schema_builder.AddSchema(table->get_schema());
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        std::shared_ptr<arrow::Schema> out_schema;
-        auto result = out_schema_builder.Finish();
-        status = result.status();
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        out_schema = result.ValueOrDie();
-        auto out_table = std::make_shared<Table>("out", out_schema,
-                                                 BLOCK_SIZE);
-
-        std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_cols;
-        std::shared_ptr<arrow::ChunkedArray> out_col;
-        arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-
-
-        for (int j = 0; j < table->get_num_cols(); j++) {
-            status = arrow::compute::Filter(&function_context,
-                                            *table->get_column(j),
-                                            *filter.chunked_array(),
-                                            &out_col);
-
-            evaluate_status(status, __FUNCTION__, __LINE__);
-//                out_cols[j] = out_col->array();
-            out_table_cols.push_back(out_col);
-        }
-
-        std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
-
-        for (int chunk_i=0; chunk_i<out_table_cols[0]->num_chunks();
-             chunk_i++) {
-            for (auto &col : out_table_cols) {
-                out_block_data.push_back(col->chunk(chunk_i)->data());
-            }
-            out_table->insert_records(out_block_data);
-            out_block_data.clear();
-        }
-        return out_table;
     }
 
     std::shared_ptr<Table> Select::run_operator
