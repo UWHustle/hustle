@@ -24,23 +24,21 @@ public:
         std::string column_name,
         arrow::compute::Datum column_value
         );
-
+    arrow::compute::Datum select(std::shared_ptr<Table> table);
     // Operator.h
     std::shared_ptr<Table> run_operator
     (std::vector<std::shared_ptr<Table>> tables) override;
 
-    arrow::compute::Datum get_filter
-            (std::shared_ptr<Block> block) override;
-
-    arrow::compute::Datum get_filter
-            (std::shared_ptr<Table> table);
-
-
 private:
-    std::shared_ptr<Table> table_;
+//    std::shared_ptr<Table> table_;
     arrow::compute::CompareOperator compare_operator_;
     std::string column_name_;
     arrow::compute::Datum column_value_;
+
+    arrow::compute::Datum get_filter
+            (std::shared_ptr<Block> block) override;
+    arrow::compute::Datum get_filter
+            (std::shared_ptr<Table> table);
 };
 
 class SelectComposite : public SelectOperator{
@@ -51,23 +49,22 @@ public:
         FilterOperator filter_operator
     );
 
+    arrow::compute::Datum select(std::shared_ptr<Table> table);
     std::shared_ptr<Table> run_operator
             (std::vector<std::shared_ptr<Table>> tables) override;
 
-    arrow::compute::Datum get_filter
-            (std::shared_ptr<Block> block) override;
-
-//    std::vector<arrow::compute::Datum> get_filter
-//            (std::shared_ptr<Table> table);
-
-    arrow::compute::Datum get_filter
-            (std::shared_ptr<Table> table);
 
 private:
     std::shared_ptr<Table> table_;
     std::shared_ptr<SelectOperator> left_child_;
     std::shared_ptr<SelectOperator> right_child_;
     FilterOperator filter_operator_;
+
+    arrow::compute::Datum get_filter
+            (std::shared_ptr<Block> block) override;
+
+        arrow::compute::Datum get_filter
+                (std::shared_ptr<Table> table);
 };
 
 } // namespace operators

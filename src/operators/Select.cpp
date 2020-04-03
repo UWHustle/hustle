@@ -19,6 +19,11 @@ SelectComposite::SelectComposite(
     filter_operator_ = filter_operator;
 }
 
+arrow::compute::Datum SelectComposite::select(std::shared_ptr<Table> table) {
+
+    return get_filter(table);
+}
+
 arrow::compute::Datum SelectComposite::get_filter
     (std::shared_ptr<Table> table) {
 
@@ -122,6 +127,11 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         column_value_ = std::move(column_value);
     }
 
+    arrow::compute::Datum Select::select(std::shared_ptr<Table>
+            table) {
+
+    return get_filter(table);
+}
 
     arrow::compute::Datum Select::get_filter
             (std::shared_ptr<Block> block) {
