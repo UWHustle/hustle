@@ -15,13 +15,13 @@ Aggregate::Aggregate(
         std::vector<JoinResult> join_result,
                      std::vector<AggregateUnit> aggregate_units,
                      std::vector<ColumnReference> group_bys,
-                     std::vector<std::string> order_by_fields) {
+                     std::vector<std::string> order_by_names) {
 
     join_result_ = join_result;
     aggregate_units_ = aggregate_units;
 
     group_bys_ = std::move(group_bys);
-    order_by_fields_ = std::move(order_by_fields);
+    order_by_names_ = std::move(order_by_names);
 
     aggregate_builder_ = get_aggregate_builder(aggregate_units_[0].kernel);
 
@@ -457,7 +457,7 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     // If this field is in the Order By clause, sort it now.
-    for (auto & name : order_by_fields_) {
+    for (auto & name : order_by_names_) {
         if (name == group_ref.col_name) {
 
             std::shared_ptr<arrow::Array> sorted_indices;

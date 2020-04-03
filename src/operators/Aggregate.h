@@ -43,7 +43,7 @@ protected:
 
     std::vector<ColumnReference> group_bys_;
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields_;
-    std::vector<std::string> order_by_fields_;
+    std::vector<std::string> order_by_names_;
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
     std::shared_ptr<arrow::DataType> group_type;
     std::shared_ptr<arrow::StructBuilder> group_builder;
