@@ -44,7 +44,7 @@ public:
             arrow::compute::Datum& right_selection,
             std::string right_column_name);
 
-    Join(std::vector<SelectionReference>& left_join_result,
+    Join(std::vector<JoinResult>& left_join_result,
             std::string left_column_name,
             std::shared_ptr<Table>& right_table,
             arrow::compute::Datum& right_selection,
@@ -69,7 +69,7 @@ public:
 //         const std::string& right_column_name,
 //         const arrow::compute::Datum& right_selection);
 
-    std::vector<SelectionReference> hash_join();
+    std::vector<JoinResult> hash_join();
 
 private:
     arrow::compute::Datum left_filter_;
@@ -82,8 +82,8 @@ private:
     arrow::compute::Datum right_selection_;
 
     //TODO(nicholas): a better name?
-    std::vector<SelectionReference> left_join_result_;
-    std::vector<SelectionReference> right_join_result_;
+    std::vector<JoinResult> left_join_result_;
+    std::vector<JoinResult> right_join_result_;
 
     std::shared_ptr<Table> left_table_;
     std::shared_ptr<Table> right_table_;
@@ -96,14 +96,14 @@ private:
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-    std::vector<SelectionReference> hash_join(
-            std::vector<SelectionReference>&,
+    std::vector<JoinResult> hash_join(
+            std::vector<JoinResult>&,
             const std::shared_ptr<Table>& right_table);
-    std::vector<SelectionReference> hash_join(
+    std::vector<JoinResult> hash_join(
             const std::shared_ptr<Table>& left_table,
             const std::shared_ptr<Table>& right_table);
 
-    std::vector<SelectionReference> probe_hash_table
+    std::vector<JoinResult> probe_hash_table
         (std::shared_ptr<arrow::ChunkedArray> probe_col);
 
     arrow::compute::Datum get_left_indices();

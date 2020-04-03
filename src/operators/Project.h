@@ -15,7 +15,7 @@ namespace hustle {
 namespace operators {
 
 struct ProjectionUnit {
-    SelectionReference ref;
+    JoinResult ref;
     std::vector<std::shared_ptr<arrow::Field>> fields;
 };
 

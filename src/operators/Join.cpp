@@ -28,7 +28,7 @@ Join::Join(std::shared_ptr<Table>& left_table,
     right_selection_ = right_selection;
 }
 
-Join::Join(std::vector<SelectionReference>& left_join_result,
+Join::Join(std::vector<JoinResult>& left_join_result,
          std::string left_column_name,
          std::shared_ptr<Table>& right_table,
          arrow::compute::Datum& right_selection,
@@ -43,9 +43,9 @@ Join::Join(std::vector<SelectionReference>& left_join_result,
         right_selection_ = right_selection;
     }
 
-std::vector<SelectionReference> Join::hash_join() {
+std::vector<JoinResult> Join::hash_join() {
 
-    std::vector<SelectionReference> out_join_result;
+    std::vector<JoinResult> out_join_result;
 
     if (left_table_ == nullptr) {
         out_join_result = hash_join(left_join_result_, right_table_);
@@ -58,7 +58,7 @@ std::vector<SelectionReference> Join::hash_join() {
 
 }
 
-std::vector<SelectionReference> Join::hash_join(
+std::vector<JoinResult> Join::hash_join(
         const std::shared_ptr<Table>& left_table,
         const std::shared_ptr<Table>& right_table) {
 
@@ -89,8 +89,8 @@ std::vector<SelectionReference> Join::hash_join(
 }
 
 
-std::vector<SelectionReference> Join::hash_join(
-        std::vector<SelectionReference>& left_join_result,
+std::vector<JoinResult> Join::hash_join(
+        std::vector<JoinResult>& left_join_result,
         const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
@@ -157,7 +157,7 @@ std::vector<SelectionReference> Join::hash_join(
 
     arrow::compute::Datum res;
 
-    std::vector<SelectionReference> output;
+    std::vector<JoinResult> output;
     output.push_back(out[0]);
 
     for (int i=0; i<left_join_result_.size(); i++) {
@@ -210,7 +210,7 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
     return hash;
 }
 
-std::vector<SelectionReference> Join::probe_hash_table
+std::vector<JoinResult> Join::probe_hash_table
 (std::shared_ptr<arrow::ChunkedArray> probe_col) {
 
     arrow::Status status;
@@ -256,7 +256,7 @@ std::vector<SelectionReference> Join::probe_hash_table
     left_indices_ = left_indices;
     right_indices_ = right_indices;
 
-    std::vector<SelectionReference> out;
+    std::vector<JoinResult> out;
     out.push_back({left_table_, probe_col, arrow::compute::Datum(left_filter_),
                    get_left_indices()});
     out.push_back({right_table_, right_join_col_,
