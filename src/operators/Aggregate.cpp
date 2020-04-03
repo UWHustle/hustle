@@ -168,6 +168,19 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
         auto aggregate_col = table->get_column_by_name(
                 aggregate_units_[0].col_name);
 
+        // Apply selection filter
+        // TODO(nicholas): Is this necessary?
+        if (aggregate_units_[0].filter.kind() ==
+            arrow::compute::Datum::CHUNKED_ARRAY) {
+            status = arrow::compute::Filter(
+                    &function_context,
+                    *aggregate_col,
+                    *aggregate_units_[0].filter.chunked_array(),
+                    &aggregate_col);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
+
+
         //////////
         std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
         // TODO(nicholas): for now, assume that the selections are always arrays
@@ -529,19 +542,15 @@ arrow::compute::Datum Aggregate::compute_aggregate(
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
-    std::shared_ptr<arrow::ChunkedArray> aggregate_group_col;
 
-    if (group_filter == nullptr) {
-        aggregate_group_col = aggregate_col;
-    } else {
-//        std::cout << aggregate_col->length() << std::endl;
-//        std::cout << group_filter->length() << std::endl;
-
+    // Note that the selection filter was already applied in the main loop
+    // Apply group filter
+    if (group_filter != nullptr) {
         status = arrow::compute::Filter(
                 &function_context,
                 *aggregate_col,
                 *group_filter,
-                &aggregate_group_col);
+                &aggregate_col);
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
 
@@ -552,7 +561,7 @@ arrow::compute::Datum Aggregate::compute_aggregate(
         case SUM: {
             status = arrow::compute::Sum(
                     &function_context,
-                    aggregate_group_col,
+                    aggregate_col,
                     &out_aggregate
             );
             break;
@@ -572,7 +581,7 @@ arrow::compute::Datum Aggregate::compute_aggregate(
             status = arrow::compute::Count(
                     &function_context,
                     count_options,
-                    aggregate_group_col,
+                    aggregate_col,
                     &out_aggregate
             );
             evaluate_status(status, __FUNCTION__, __LINE__);
@@ -582,7 +591,7 @@ arrow::compute::Datum Aggregate::compute_aggregate(
         case MEAN: {
             status = arrow::compute::Mean(
                     &function_context,
-                    aggregate_group_col,
+                    aggregate_col,
                     &out_aggregate
             );
             break;
