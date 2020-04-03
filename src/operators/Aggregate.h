@@ -33,7 +33,7 @@ public:
             std::vector<JoinResult> join_result,
              std::vector<AggregateUnit> Aggregate_units,
              std::vector<ColumnReference> group_by_fields,
-             std::vector<std::string> order_by_fields);
+             std::vector<ColumnReference> order_by_fields);
 
     std::shared_ptr<Table> aggregate();
 
@@ -41,9 +41,10 @@ protected:
     arrow::compute::Datum selection_;
     std::vector<JoinResult> join_result_;
 
+    std::vector<ColumnReference> order_bys_;
     std::vector<ColumnReference> group_bys_;
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields_;
-    std::vector<std::string> order_by_names_;
+
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
     std::shared_ptr<arrow::DataType> group_type;
     std::shared_ptr<arrow::StructBuilder> group_builder;
