@@ -19,6 +19,7 @@ std::shared_ptr<Table> hustle::operators::Projection::project() {
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
+    arrow::compute::FilterOptions filter_options;
     std::shared_ptr<arrow::ChunkedArray> out_col;
 
     std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
@@ -38,12 +39,14 @@ std::shared_ptr<Table> hustle::operators::Projection::project() {
             auto col = table->get_column_by_name(field->name());
 
             if (filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
-
+                arrow::compute::Datum datum_col;
                 status = arrow::compute::Filter(&function_context,
-                                                *col,
-                                                *filter.chunked_array(),
-                                                &col);
+                                                col,
+                                                filter.chunked_array(),
+                                                filter_options,
+                                                &datum_col);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                col = datum_col.chunked_array();
             }
 
 

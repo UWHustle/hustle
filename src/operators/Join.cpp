@@ -339,21 +339,27 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum selection) {
 
     arrow::Status status;
+    auto datum_col = arrow::compute::Datum(col);
     auto out_col = col;
     // If a selection was previously performed on the left table,
     // apply it to the join column.
     if (selection.is_arraylike()) {
         arrow::compute::FunctionContext function_context(
                 arrow::default_memory_pool());
+        arrow::compute::FilterOptions filter_options;
         std::shared_ptr<arrow::ChunkedArray> out;
 
         switch(selection.type()->id()) {
             case arrow::Type::BOOL: {
                 status = arrow::compute::Filter(&function_context,
-                                                *col,
-                                                *selection.chunked_array(),
-                                                &out_col);
+                                                col,
+                                                selection.chunked_array(),
+                                                filter_options,
+                                                &datum_col);
+
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+                out_col = datum_col.chunked_array();
                 break;
             }
             case arrow::Type::INT64: {

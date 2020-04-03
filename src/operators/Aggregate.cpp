@@ -132,6 +132,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     arrow::Status status;
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
+    arrow::compute::FilterOptions filter_options;
     arrow::compute::TakeOptions take_options;
 
     auto out_schema = get_output_schema(aggregate_units_[0].kernel);
@@ -158,15 +159,19 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
     auto aggregate_col = table->get_column_by_name(
             aggregate_units_[0].col_name);
+
+    auto datum_col = arrow::compute::Datum(aggregate_col);
     // Apply filter
     if (aggregate_units_[0].filter.kind() ==
         arrow::compute::Datum::CHUNKED_ARRAY) {
         status = arrow::compute::Filter(
                 &function_context,
-                *aggregate_col,
-                *filter.chunked_array(),
-                &aggregate_col);
+                aggregate_col,
+                filter.chunked_array(),
+                filter_options,
+                &datum_col);
         evaluate_status(status, __FUNCTION__, __LINE__);
+        aggregate_col = datum_col.chunked_array();
     }
     // Take indices
     if (aggregate_units_[0].selection.kind() ==
@@ -434,6 +439,7 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
+    arrow::compute::FilterOptions filter_options;
     std::shared_ptr<arrow::Array> unique_values;
 
     auto group_by_col = group_ref.table->get_column_by_name(group_ref.col_name);
@@ -450,12 +456,15 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 //    std::cout << join_result_[0].selection.make_array()->ToString() <<
 //    std::endl;
 
+    auto datum_col = arrow::compute::Datum(group_by_col);
     if( filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
         status = arrow::compute::Filter(&function_context,
-                                        *group_by_col,
-                                        *filter.chunked_array(),
-                                        &group_by_col);
+                                        group_by_col,
+                                        filter.chunked_array(),
+                                        filter_options,
+                                        &datum_col);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        group_by_col = datum_col.chunked_array();
     }
 
     status = arrow::compute::Take(
@@ -502,6 +511,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
     arrow::compute::CompareOptions compare_options(
             arrow::compute::CompareOperator::EQUAL);
     arrow::compute::TakeOptions take_options;
+    arrow::compute::FilterOptions filter_options;
     arrow::compute::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
@@ -516,12 +526,16 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
 
     std::shared_ptr<arrow::ChunkedArray> group_by_col = group_ref
             .table->get_column_by_name(group_ref.col_name);
+
+    arrow::compute::Datum datum_col;
     if( filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
         status = arrow::compute::Filter(&function_context,
-                                        *group_by_col,
-                                        *filter.chunked_array(),
-                                        &group_by_col);
+                                        group_by_col,
+                                        filter.chunked_array(),
+                                        filter_options,
+                                        &datum_col);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        group_by_col = datum_col.chunked_array();
     }
 
     status = arrow::compute::Take(
@@ -557,18 +571,22 @@ arrow::compute::Datum Aggregate::compute_aggregate(
 
     arrow::Status status;
 
+    arrow::compute::FilterOptions filter_options;
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
 
+    arrow::compute::Datum datum_col;
     // Note that the selection filter was already applied in the main loop
     // Apply group filter
     if (group_filter != nullptr) {
         status = arrow::compute::Filter(
                 &function_context,
-                *aggregate_col,
-                *group_filter,
-                &aggregate_col);
+                aggregate_col,
+                group_filter,
+                filter_options,
+                &datum_col);
         evaluate_status(status, __FUNCTION__, __LINE__);
+        aggregate_col = datum_col.chunked_array();
     }
 
     arrow::compute::Datum out_aggregate;
