@@ -1181,6 +1181,8 @@ TEST_F(SSBTestFixture, SSBQ3_2) {
 
     auto join_result_3 = join_op_3->hash_join();
 
+    //TODO(nicholas): Result is incorrectly grouped when two column
+    // references share the same name.
     std::vector<ColumnReference> group_bys = {{cust, "city"},
                                               {supp, "city"},
                                               {date,"year"}};
@@ -1189,7 +1191,7 @@ TEST_F(SSBTestFixture, SSBQ3_2) {
     //TODO(nicholas): The strings in order_bys must correspond to the
     // ColumnReferences in group_bys. Since we group_by year last, we must
     // put two placeholder empty string before it. Need to fix this.
-    std::vector<std::string> order_bys = {"","","year"};
+    std::vector<std::string> order_bys = {"n","n","year"};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_3[0].filter,
@@ -1337,6 +1339,8 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
 
 TEST_F(SSBTestFixture, SSBQ4_1) {
 
+    auto t11 = std::chrono::high_resolution_clock::now();
+
     lineorder = read_from_file
             ("/Users/corrado/hustle/src/table/tests/lineorder.hsl");
 
@@ -1348,6 +1352,18 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
 
     supp = read_from_file
             ("/Users/corrado/hustle/src/table/tests/supplier.hsl");
+
+    cust = read_from_file
+            ("/Users/corrado/hustle/src/table/tests/customer.hsl");
+
+    auto t22 = std::chrono::high_resolution_clock::now();
+
+    std::cout << "READ FROM FILE TIME = " <<
+              std::chrono::duration_cast<std::chrono::milliseconds>
+                      (t22-t11).count() << " ms" << std::endl;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+
     // IMPORTANT: There is no Datum constructor that accepts a string as a
     // parameter. You must first create a StringScalar and then pass that in.
     // If you pass in a string to the Datum constructor, it will interpet it
@@ -1371,7 +1387,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
                     (p_select_op_1, p_select_op_2,
                      hustle::operators::FilterOperator::OR);
 
-    auto cust_select_op = std::make_shared<hustle::operators::Select>(
+    auto c_select_op = std::make_shared<hustle::operators::Select>(
             arrow::compute::CompareOperator::EQUAL,
             "region",
             arrow::compute::Datum(std::make_shared<arrow::StringScalar>
@@ -1386,60 +1402,69 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     );
 
 
-//
-//    auto join_op_1 = std::make_shared<hustle::operators::Join>("part key",
-//                                                               "part key");
-//    auto join_op_2 = std::make_shared<hustle::operators::Join>("supp key",
-//                                                               "supp key");
-//    auto join_op_3 = std::make_shared<hustle::operators::Join>("cust key",
-//                                                               "cust key");
-//    auto join_op_4 = std::make_shared<hustle::operators::Join>("order date",
-//                                                               "date key");
-//
-//    arrow::compute::Datum empty_selection;
-//
-//    arrow::compute::Datum p_selection =
-//            p_select_op_composite_1->select(part);
-//    arrow::compute::Datum s_selection =
-//            s_select_op->select(supp);
-//    arrow::compute::Datum cust_selection =
-//            cust_select_op->select(cust);
-//
-//    auto res1 = join_op_1->hash_join(
-//            lineorder, empty_selection,
-//            part, p_selection);
-//
-//    auto res2 = join_op_2->hash_join(
-//            res1, supp, s_selection);
-//
-//    auto res3 = join_op_3->hash_join(
-//            res2, cust, cust_selection);
-//
-//    auto res4 = join_op_4->hash_join(
-//            res3, date, empty_selection);
-//
-//    std::cout << "NUM ROWS" << res4[0].selection.length() << std::endl;
-//
-//    std::vector<ColumnReference> group_bys = {{date, "year"}, {cust, "nation"}};
-//    std::vector<std::string> order_bys = {"year", "nation"};
-//    AggregateUnit agg_unit = {AggregateKernels::SUM,
-//                              lineorder,
-//                              res4[0].selection,
-//                              "revenue"};
-//
-//    std::vector<AggregateUnit> units = {agg_unit};
-//
-//    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-//            res4,
-//            units,
-//            group_bys,
-//            order_bys);
-//
-//    // Perform aggregate
-//    auto aggregate = aggregate_op->run_operator({date});
-//
-//    // Print the result. The valid bit will be printed as the first column.
-//    if (aggregate != nullptr) aggregate->print();
+    arrow::compute::Datum empty_selection;
+
+    auto p_selection = p_select_op_composite_1->select(part);
+    auto s_selection = s_select_op->select(supp);
+    auto c_selection = c_select_op->select(cust);
+
+    auto join_op_1 = std::make_shared<hustle::operators::Join>(
+            lineorder, empty_selection, "supp key",
+            supp, s_selection, "supp key");
+
+    auto join_result_1 = join_op_1->hash_join();
+
+    auto join_op_2 = std::make_shared<hustle::operators::Join>(
+            join_result_1, "cust key",
+            cust, c_selection, "cust key");
+
+    auto join_result_2 = join_op_2->hash_join();
+
+    auto join_op_3 = std::make_shared<hustle::operators::Join>(
+            join_result_2, "part key",
+            part, p_selection, "part key");
+
+    auto join_result_3 = join_op_3->hash_join();
+
+    auto join_op_4 = std::make_shared<hustle::operators::Join>(
+            join_result_3,  "order date",
+            date, empty_selection, "date key");
+
+    auto join_result_4 = join_op_4->hash_join();
+
+    std::vector<ColumnReference> group_bys = {{date,"year"},
+                                              {cust, "nation"}};
+    //TODO(nicholas): We currently do not support sorting on the aggregate
+    // column, so this result will not look as expected.
+    //TODO(nicholas): The strings in order_bys must correspond to the
+    // ColumnReferences in group_bys. Since we group_by year last, we must
+    // put two placeholder empty string before it. Need to fix this.
+    std::vector<std::string> order_bys = {"year","nation"};
+    AggregateUnit agg_unit = {AggregateKernels::SUM,
+                              lineorder,
+                              join_result_4[0].filter,
+                              join_result_4[0].selection,
+                              "revenue"};
+
+    std::vector<AggregateUnit> units = {agg_unit};
+
+    auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
+            join_result_4,
+            units,
+            group_bys,
+            order_bys);
+
+    // Perform aggregate
+    auto aggregate = aggregate_op->aggregate();
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->print();
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    std::cout << "QUERY EXECUTION TIME = " <<
+              std::chrono::duration_cast<std::chrono::milliseconds>
+                      (t2-t1).count() << " ms" << std::endl;
 
 }
 
