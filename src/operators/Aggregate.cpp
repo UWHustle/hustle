@@ -42,12 +42,6 @@ std::shared_ptr<Table> Aggregate::aggregate() {
 }
 
 
-std::shared_ptr<Table> Aggregate::run_operator
-        (std::vector<std::shared_ptr<Table>> tables) {
-
-//    auto table = tables[0];
-    return iterate_over_groups();
-}
 
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
         Aggregate::get_group_builders() {

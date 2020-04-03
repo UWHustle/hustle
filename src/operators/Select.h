@@ -25,9 +25,6 @@ public:
         arrow::compute::Datum column_value
         );
     arrow::compute::Datum select(std::shared_ptr<Table> table);
-    // Operator.h
-    std::shared_ptr<Table> run_operator
-    (std::vector<std::shared_ptr<Table>> tables) override;
 
 private:
 //    std::shared_ptr<Table> table_;
@@ -50,9 +47,6 @@ public:
     );
 
     arrow::compute::Datum select(std::shared_ptr<Table> table);
-    std::shared_ptr<Table> run_operator
-            (std::vector<std::shared_ptr<Table>> tables) override;
-
 
 private:
     std::shared_ptr<Table> table_;

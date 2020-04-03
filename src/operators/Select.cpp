@@ -79,45 +79,6 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
 
 }
 
-    std::shared_ptr<Table> SelectComposite::run_operator
-            (std::vector<std::shared_ptr<Table>> tables) {
-
-        arrow::Status status;
-        // operator only uses first table
-        auto table = tables[0];
-        auto out_table = std::make_shared<Table>("out", table->get_schema(),
-                                                 BLOCK_SIZE);
-
-        arrow::compute::Datum out_col;
-        std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
-        out_cols.reserve(table->get_num_cols());
-
-
-        for (int i=0; i<table->get_num_blocks(); i++) {
-            auto block = table->get_block(i);
-            auto block_filter = get_filter(block);
-
-            arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-
-
-            for (int j = 0; j < table->get_num_cols(); j++) {
-
-                status = arrow::compute::Filter(&function_context,
-                                                block->get_column(j),
-                                                block_filter,
-                                                &out_col);
-
-                evaluate_status(status, __FUNCTION__, __LINE__);
-                out_cols.push_back(out_col.array());
-            }
-            out_table->insert_records(out_cols);
-            out_cols.clear();
-        }
-
-        return out_table;
-
-    }
-
     Select::Select(
             arrow::compute::CompareOperator compare_operator,
             std::string column_name,
@@ -171,50 +132,6 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
         arrow::compute::Datum out(chunked_filter);
         return out;
-    }
-
-    std::shared_ptr<Table> Select::run_operator
-            (std::vector<std::shared_ptr<Table>> tables) {
-
-
-        arrow::Status status;
-        // operator only uses first table
-        auto table = tables[0];
-
-        arrow::SchemaBuilder out_schema_builder;
-        status = out_schema_builder.AddSchema(table->get_schema());
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        std::shared_ptr<arrow::Schema> out_schema;
-        auto result = out_schema_builder.Finish();
-        status = result.status();
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        out_schema = result.ValueOrDie();
-        auto out_table = std::make_shared<Table>("out", out_schema,
-                                                 BLOCK_SIZE);
-
-        std::vector<std::shared_ptr<arrow::ArrayData>> out_cols;
-        arrow::compute::Datum out_col;
-        arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-
-        for (int i=0; i<table->get_num_blocks(); i++) {
-            auto block = table->get_block(i);
-            auto block_filter = get_filter(block);
-
-            for (int j = 0; j < table->get_num_cols(); j++) {
-                status = arrow::compute::Filter(&function_context,
-                                                block->get_column(j),
-                                                block_filter,
-                                                &out_col);
-
-                evaluate_status(status, __FUNCTION__, __LINE__);
-//                out_cols[j] = out_col->array();
-                out_cols.push_back(out_col.array());
-            }
-            out_table->insert_records(out_cols);
-            out_cols.clear();
-        }
-
-        return out_table;
     }
 
     } // namespace operators

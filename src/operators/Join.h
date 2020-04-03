@@ -25,12 +25,6 @@ struct record_id {
 
 class Join : public Operator{
 public:
-    Join(std::string left_column_name, std::string right_column_name);
-
-    // TODO(nicholas): These function are not implemented.
-    std::shared_ptr<Table> run_operator
-    (std::vector<std::shared_ptr<Table>> table) override;
-
     /**
     * Perform a natural join on two tables using hash join. Projections are not
     * yet supported; all columns from both tables will be returned in the

@@ -35,8 +35,6 @@ public:
              std::vector<std::string> order_by_fields);
 
     std::shared_ptr<Table> aggregate();
-    std::shared_ptr<Table> run_operator(std::vector<std::shared_ptr<Table>>
-                                        tables) override;
 
 protected:
     arrow::compute::Datum selection_;

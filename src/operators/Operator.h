@@ -32,8 +32,6 @@ struct ColumnReference {
 class Operator {
 public:
 
-    virtual std::shared_ptr<Table> run_operator
-    (std::vector<std::shared_ptr<Table>> tables) = 0;
 };
 } // namespace operators
 } // namespace hustle

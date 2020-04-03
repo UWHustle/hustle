@@ -304,10 +304,6 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
     return out_col;
 }
 
-    std::shared_ptr<Table> Join::run_operator(
-            std::vector<std::shared_ptr<Table>> tables) {
-        return nullptr;
-    }
 
     arrow::compute::Datum Join::get_indices_for_table(
             const std::shared_ptr<Table>& other) {

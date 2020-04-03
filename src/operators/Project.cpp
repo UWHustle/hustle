@@ -77,8 +77,3 @@ std::shared_ptr<Table> hustle::operators::Projection::project() {
 
     return out_table;
 }
-
-std::shared_ptr<Table> hustle::operators::Projection::run_operator(
-        std::vector<std::shared_ptr<Table>> tables) {
-    return std::shared_ptr<Table>();
-}

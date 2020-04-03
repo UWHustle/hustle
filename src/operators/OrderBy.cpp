@@ -18,11 +18,9 @@ OrderBy::OrderBy(const std::shared_ptr<Table>& table,
 
 }
 
-std::shared_ptr<Table> OrderBy::run_operator(
-        std::vector<std::shared_ptr<Table>> tables) {
+std::shared_ptr<Table> OrderBy::order_by(std::shared_ptr<Table> table) {
 
     arrow::Status status;
-    auto table = tables[0];
 
     auto out_table = std::make_shared<Table>("table", table->get_schema(),
                                              BLOCK_SIZE);
