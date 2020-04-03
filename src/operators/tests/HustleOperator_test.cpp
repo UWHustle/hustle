@@ -317,7 +317,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
     col_refs.push_back({date, "day of week"});
 //    col_refs.push_back({date, "weekday fl"});
 
-    std::vector<std::string> order_fields =
+    std::vector<ColumnReference> order_fields =
             {"selling season", "day of week"};
 
     arrow::Int64Builder indices_builder;
@@ -408,9 +408,11 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     arrow::compute::Datum right_selection =
             d_select_op->select(date);
 
+    arrow::compute::Datum empty_selection;
+
     // Join lineorder.order date == date.date key
     Join join_op(lineorder, left_selection, "order date",
-            date,right_selection,"date key");
+            date, right_selection,"date key");
     auto join_result = join_op.hash_join();
 
     AggregateUnit agg_unit = {AggregateKernels::SUM,
@@ -420,8 +422,8 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
-    std::vector<ColumnReference> group_bys = {};
-    std::vector<std::string> order_bys = {};
+    std::vector<ColumnReference> group_bys = {{date, "year"}};
+    std::vector<ColumnReference> order_bys = {};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             join_result,
@@ -433,7 +435,21 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     auto aggregate = aggregate_op->aggregate();
 
     // Print the result. The valid bit will be printed as the first column.
+    std::cout << "\nAGGREGATE" << std::endl;
     if (aggregate != nullptr) aggregate->print();
+
+//    ProjectionUnit p1 = {join_result[0],
+//                         {lineorder->get_schema()->GetFieldByName("order "
+//                                                                  "date")}};
+//
+//    ProjectionUnit p2 = {join_result[0],
+//                         {lineorder->get_schema()->GetFieldByName("revenue")}};
+//    ProjectionUnit p3 = {join_result[1],
+//                         {date->get_schema()->GetFieldByName("date key")}};
+//
+//    Projection p({p1, p2,p3});
+//    std::cout << "\nPROJECTION" << std::endl;
+//    p.project()->print();
 }
 
 TEST_F(SSBTestFixture, SSBQ1_2) {
@@ -524,7 +540,7 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
 
     std::vector<AggregateUnit> units = {agg_unit};
     std::vector<ColumnReference> group_bys = {};
-    std::vector<std::string> order_bys = {};
+    std::vector<ColumnReference> order_bys = {};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             join_result,
@@ -646,7 +662,7 @@ TEST_F(SSBTestFixture, SSBQ1_3) {
 
     std::vector<AggregateUnit> units = {agg_unit};
     std::vector<ColumnReference> group_bys = {};
-    std::vector<std::string> order_bys = {};
+    std::vector<ColumnReference> order_bys = {};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
             join_result,
@@ -709,7 +725,7 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
                                           ("AMERICA"))
     );
 
-    
+
     arrow::compute::Datum empty_selection;
 
     arrow::compute::Datum p_selection =
@@ -733,14 +749,12 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
             join_result_2, "order date",
             date, empty_selection, "date key");
-
     auto join_result_3 = join_op_3->hash_join();
 
-
-
     std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
-    std::vector<std::string> order_bys = {"year", "brand1"};
-    AggregateUnit agg_unit = {AggregateKernels::SUM,
+    std::vector<ColumnReference> order_bys = {{date, "year"}, {part, "brand1"}};
+
+AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_3[0].filter,
                               join_result_3[0].selection,
@@ -765,6 +779,23 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     std::cout << "QUERY EXECUTION TIME = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
                       (t2-t1).count() << " ms" << std::endl;
+
+//    ProjectionUnit p1 = {join_result_1[0],
+//                         {lineorder->get_schema()->GetFieldByName("order "
+//                                                                  "date")}};
+
+//    ProjectionUnit p2 = {join_result_2[0],
+//                         {lineorder->get_schema()->GetFieldByName("revenue")}};
+//    ProjectionUnit p3 = {join_result_2[1],
+//                         {supp->get_schema()->GetFieldByName("supp key")
+//                          }};
+//    ProjectionUnit p4 = {join_result_2[2],
+//                         {part->get_schema()->GetFieldByName("part key")
+//                         }};
+//
+//    Projection p({p2,p3,p4});
+//    std::cout << "\nPROJECTION" << std::endl;
+//    p.project()->print();
 
 }
 
@@ -852,7 +883,7 @@ TEST_F(SSBTestFixture, SSBQ2_2) {
 
 
     std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
-    std::vector<std::string> order_bys = {"year", "brand1"};
+    std::vector<ColumnReference> order_bys = {{date, "year"}, {part,"brand1"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_3[0].filter,
@@ -953,7 +984,7 @@ TEST_F(SSBTestFixture, SSBQ2_3) {
 
 
     std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
-    std::vector<std::string> order_bys = {"year", "brand1"};
+    std::vector<ColumnReference> order_bys = {{date, "year"}, {part,"brand1"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_3[0].filter,
@@ -1073,7 +1104,7 @@ TEST_F(SSBTestFixture, SSBQ3_1) {
     //TODO(nicholas): The strings in order_bys must correspond to the
     // ColumnReferences in group_bys. Since we group_by year last, we must
     // put two placeholder empty string before it. Need to fix this.
-    std::vector<std::string> order_bys = {"","","year"};
+    std::vector<ColumnReference> order_bys = {{date,"year"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_3[0].filter,
@@ -1191,7 +1222,7 @@ TEST_F(SSBTestFixture, SSBQ3_2) {
     //TODO(nicholas): The strings in order_bys must correspond to the
     // ColumnReferences in group_bys. Since we group_by year last, we must
     // put two placeholder empty string before it. Need to fix this.
-    std::vector<std::string> order_bys = {"n","n","year"};
+    std::vector<ColumnReference> order_bys = {{date,"year"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_3[0].filter,
@@ -1299,15 +1330,16 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
 
     auto join_result_3 = join_op_3->hash_join();
 
-    std::vector<ColumnReference> group_bys = {{cust, "city"},
+    std::vector<ColumnReference> group_bys = {{date,"year"},
+                                              {cust, "city"},
                                               {supp, "city"},
-                                              {date,"year"}};
+                                              };
     //TODO(nicholas): We currently do not support sorting on the aggregate
     // column, so this result will not look as expected.
     //TODO(nicholas): The strings in order_bys must correspond to the
     // ColumnReferences in group_bys. Since we group_by year last, we must
     // put two placeholder empty string before it. Need to fix this.
-    std::vector<std::string> order_bys = {"","","year"};
+    std::vector<ColumnReference> order_bys = {{date,"year"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_3[0].filter,
@@ -1335,7 +1367,6 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
                       (t2-t1).count() << " ms" << std::endl;
 
 }
-
 
 TEST_F(SSBTestFixture, SSBQ4_1) {
 
@@ -1439,7 +1470,8 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     //TODO(nicholas): The strings in order_bys must correspond to the
     // ColumnReferences in group_bys. Since we group_by year last, we must
     // put two placeholder empty string before it. Need to fix this.
-    std::vector<std::string> order_bys = {"year","nation"};
+    std::vector<ColumnReference> order_bys = {{date,"year"},
+                                              {cust, "nation"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
                               join_result_4[0].filter,
