@@ -147,6 +147,25 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 //        std::cout << unique_values[i]->ToString() << std::endl;
     }
 
+    // TODO(nicholas): for now, assume that the selections are always arrays
+    //  of indices, not filters.
+    // TODO(nicholas): If want to compute multiple aggregates, we'll need to
+    // move this inside of the loop but only call it once.
+//    auto table = aggregate_units_[0].table;
+    auto selection = aggregate_units_[0].selection;
+    auto name = aggregate_units_[0].col_name;
+
+    auto aggregate_col = table->get_column_by_name(
+            aggregate_units_[0].col_name);
+    status = arrow::compute::Take(&function_context,
+                                  *aggregate_col,
+                                  *selection.make_array(),
+                                  take_options,
+                                  &aggregate_col);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    //////////
+
+
     // Initialize the slots to hold the current iteration value for each depth
     int n = group_by_fields_.size();
     int its[n];
@@ -165,8 +184,6 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 //        }
 //        std::cout << std::endl;
         // DoSomething() loop
-        auto aggregate_col = table->get_column_by_name(
-                aggregate_units_[0].col_name);
 
         // Apply selection filter
         // TODO(nicholas): Is this necessary?
@@ -183,23 +200,6 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
         //////////
         std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
-        // TODO(nicholas): for now, assume that the selections are always arrays
-        //  of indices, not filters.
-
-        auto table = aggregate_units_[0].table;
-        auto selection = aggregate_units_[0].selection;
-        auto name = aggregate_units_[0].col_name;
-
-        auto col = table->get_column_by_name(name);
-
-        status = arrow::compute::Take(&function_context,
-                                      *col,
-                                      *selection.make_array(),
-                                      take_options,
-                                      &aggregate_col);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        //////////
-
 
         auto group_filter = get_group_filter(unique_values, its);
         auto aggregate = compute_aggregate(aggregate_units_[0].kernel, 
