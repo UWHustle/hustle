@@ -158,6 +158,27 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 
     auto aggregate_col = table->get_column_by_name(
             aggregate_units_[0].col_name);
+    // Apply filter
+    if (aggregate_units_[0].filter.kind() ==
+        arrow::compute::Datum::CHUNKED_ARRAY) {
+        status = arrow::compute::Filter(
+                &function_context,
+                *aggregate_col,
+                *filter.chunked_array(),
+                &aggregate_col);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+    }
+    // Take indices
+    if (aggregate_units_[0].selection.kind() ==
+        arrow::compute::Datum::ARRAY) {
+        status = arrow::compute::Take(
+                &function_context,
+                *aggregate_col,
+                *selection.make_array(),
+                take_options,
+                &aggregate_col);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+    }
 
 //    if (filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
 //        status = arrow::compute::Filter(&function_context,
@@ -188,29 +209,9 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 //        std::cout << std::endl;
         // DoSomething() loop
 
-        // Apply selection filter
-        // TODO(nicholas): Is this necessary?
-        if (aggregate_units_[0].filter.kind() ==
-            arrow::compute::Datum::CHUNKED_ARRAY) {
-            status = arrow::compute::Filter(
-                    &function_context,
-                    *aggregate_col,
-                    *aggregate_units_[0].filter.chunked_array(),
-                    &aggregate_col);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-        if (aggregate_units_[0].selection.kind() ==
-            arrow::compute::Datum::ARRAY) {
-            status = arrow::compute::Take(
-                    &function_context,
-                    *aggregate_col,
-                    *selection.make_array(),
-                    take_options,
-                    &aggregate_col);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-
-
+//        std::cout << filter.length() << std::endl;
+//        std::cout << aggregate_col->length() << std::endl;
+//
         //////////
         std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
 
