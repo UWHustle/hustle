@@ -152,17 +152,20 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
     // TODO(nicholas): If want to compute multiple aggregates, we'll need to
     // move this inside of the loop but only call it once.
 //    auto table = aggregate_units_[0].table;
+    auto filter = aggregate_units_[0].filter;
     auto selection = aggregate_units_[0].selection;
     auto name = aggregate_units_[0].col_name;
 
     auto aggregate_col = table->get_column_by_name(
             aggregate_units_[0].col_name);
-    status = arrow::compute::Take(&function_context,
-                                  *aggregate_col,
-                                  *selection.make_array(),
-                                  take_options,
-                                  &aggregate_col);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+//    if (filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
+//        status = arrow::compute::Filter(&function_context,
+//                                        *aggregate_col,
+//                                        *filter.chunked_array(),
+//                                        &aggregate_col);
+//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//    }
     //////////
 
 
@@ -193,6 +196,16 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
                     &function_context,
                     *aggregate_col,
                     *aggregate_units_[0].filter.chunked_array(),
+                    &aggregate_col);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
+        if (aggregate_units_[0].selection.kind() ==
+            arrow::compute::Datum::ARRAY) {
+            status = arrow::compute::Take(
+                    &function_context,
+                    *aggregate_col,
+                    *selection.make_array(),
+                    take_options,
                     &aggregate_col);
             evaluate_status(status, __FUNCTION__, __LINE__);
         }
