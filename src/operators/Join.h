@@ -105,6 +105,8 @@ private:
 
     std::vector<JoinResult> probe_hash_table
         (std::shared_ptr<arrow::ChunkedArray> probe_col);
+        std::vector<JoinResult> probe_hash_table_2
+                (std::shared_ptr<arrow::ChunkedArray> probe_col);
 
     arrow::compute::Datum get_left_indices();
     arrow::compute::Datum get_right_indices();
