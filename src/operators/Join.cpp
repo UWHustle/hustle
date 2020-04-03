@@ -151,27 +151,10 @@ std::vector<JoinResult> Join::hash_join(
 
     out_indices = arrow::compute::Datum(out[0].selection);
 
-    std::cout << "new " << out[0].selection.make_array()->ToString() <<
-    std::endl;
-    std::cout << "old " << left_join_result_[selection_reference_index]
-    .selection.make_array()->ToString()<<
-              std::endl;
-
-    auto test = std::static_pointer_cast<arrow::Int64Array>
-            (left_join_col->chunk(0));
-    for(int i=0; i<test->length(); i++) {
-        std::cout << "i = " << i << ", val = " << test->Value(i) << std::endl;
-
-    }
-
     status = arrow::compute::Match(&function_context, out[0].selection,
             left_join_result_[selection_reference_index].selection,
             &matched_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-    std::cout << "matched indices " <<
-    matched_indices.make_array()->ToString()<<
-              std::endl;
 
     status = arrow::compute::Take(&function_context,
                                   left_join_result_[selection_reference_index].selection,
@@ -179,9 +162,6 @@ std::vector<JoinResult> Join::hash_join(
                                   take_options,
                                   &out[0].selection);
 
-    std::cout << "indices we want " << out[0].selection.make_array()->ToString
-    () <<
-              std::endl;
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     arrow::compute::Datum res;
