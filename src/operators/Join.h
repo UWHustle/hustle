@@ -15,64 +15,52 @@ namespace operators {
 class Join : public Operator{
 public:
 
-    // TODO(nicholas): Joinable iterface?
-
-    // TODO(nicholas): Join should accept ColumnReferences instead of
-    //  tables and column names. This is more consistent with the other
-    //  operators, and it prevents anny issues arising when tables hav
-    //  columns with the same name.
     /**
-     * Construct a Join operator to perform a natural join using hash join.
+     * Construct an Join operator to perform hash join on two Tables.
      *
-     * @param left_table outer table (i.e. we probe values from this table)
-     * @param left_selection If a selection was previously performed on
-     * left_table,
-     * @param left_column_name name of the join column in left_table
-     * @param right_table inner table (i.e. we build a hash table on this table)
-     * @param right_selection
-     * @param right_column_name name of the join column in the right table
+     * @param left a ColumnReference containing the left (outer) table and
+     * the name of the left join column.
+     * @param left_selection the filter returned by an earlier selection on the
+     * left table. If no selection was performed, pass in a null Datum.
+     * @param right a ColumnReference containing the right (inner) table and
+     * the name of the right join column.
+     * @param right_selection the filter returned by an earlier selection on the
+     * right table. If no selection was performed, pass in a null Datum.
      */
     Join(ColumnReference left,
                arrow::compute::Datum& left_selection,
                ColumnReference right,
                arrow::compute::Datum& right_selection);
 
+    /**
+     * Construct an Join operator to perform hash join on a vector of
+     * JoinResults and a Table.
+     *
+     * @param left_join_result The output of a previous call to hash_join().
+     * @param left a ColumnReference containing the left (outer) table and
+     * the name of the left join column. The left table must match one of the
+     * tables referenced in left_join_result.
+     * @param right a ColumnReference containing the right (inner) table and
+     * the name of the right join column.
+     * @param right_selection the filter returned by an earlier selection on the
+     * right table. If no selection was performed, pass in a null Datum.
+     */
     Join(std::vector<JoinResult>& left_join_result,
                ColumnReference left,
                ColumnReference right,
                arrow::compute::Datum& right_selection);
 
-//TODO(nicholas): Should these be implemented?
-
-//    Join(const std::shared_ptr<Table>& left_table,
-//         const std::string& left_column_name,
-//         const std::shared_ptr<Table>& right_table,
-//         const std::string& right_column_name);
-//
-//    Join(const std::shared_ptr<Table>& left_table,
-//         const std::string& left_column_name,
-//         const arrow::compute::Datum& left_selection,
-//         const std::shared_ptr<Table>& right_table,
-//         const std::string& right_column_name);
-//
-//    Join(const std::shared_ptr<Table>& left_table,
-//         const std::string& left_column_name,
-//         const std::shared_ptr<Table>& right_table,
-//         const std::string& right_column_name,
-//         const arrow::compute::Datum& right_selection);
-
     /**
-    * Perform a natural join on two tables using hash join. Projections are not
-    * yet supported; all columns from both tables will be returned in the
-    * resulting table (excluding the duplicate join column).
+    * Perform a natural join on two tables using hash join.
     *
-    * @param left_table The table that will probe the hash table
-    * @param right_table The table for which a hash table is built
-    * @return A new table containing the results of the join
+    * @return A vector of JoinResult.
     */
     std::vector<JoinResult> hash_join();
 
 private:
+
+    
+    //
     arrow::compute::Datum left_filter_;
     arrow::compute::Datum right_filter_;
 
