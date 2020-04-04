@@ -14,6 +14,7 @@
 namespace hustle {
 namespace operators {
 
+    //TODO(nicholas): Change JoinResult to ColumnReference
 struct ProjectionUnit {
     JoinResult ref;
     std::vector<std::shared_ptr<arrow::Field>> fields;
