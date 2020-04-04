@@ -17,6 +17,7 @@ enum FilterOperator {
 
 //TODO(nicholas): Better name?
 struct JoinResult {
+    // TODO(nicholas): Combine into a ColumnReference?
     std::shared_ptr<Table> table;
     std::string join_col_name;
     // column AFTER a filter from a select predicate was applied.
