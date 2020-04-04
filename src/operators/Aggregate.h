@@ -20,8 +20,6 @@ enum AggregateKernels {
 struct AggregateUnit {
     AggregateKernels kernel;
     std::shared_ptr<Table> table;
-    arrow::compute::Datum filter;
-    arrow::compute::Datum selection;
     std::string col_name;
 };
 

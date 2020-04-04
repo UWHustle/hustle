@@ -148,21 +148,34 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
 //        std::cout << unique_values[i]->ToString() << std::endl;
     }
 
+
     // TODO(nicholas): for now, assume that the selections are always arrays
     //  of indices, not filters.
     // TODO(nicholas): If want to compute multiple aggregates, we'll need to
     // move this inside of the loop but only call it once.
 //    auto table = aggregate_units_[0].table;
-    auto filter = aggregate_units_[0].filter;
-    auto selection = aggregate_units_[0].selection;
-    auto name = aggregate_units_[0].col_name;
+
+    arrow::compute::Datum filter;
+    arrow::compute::Datum selection;
+    std::string name;
+
+    int aggregate_index = -1;
+    for (int i=0; i<join_result_.size(); i++) {
+        if (table == join_result_[i].table) {
+            aggregate_index = i;
+            break;
+        }
+    }
+    filter = join_result_[aggregate_index].filter;
+    selection = join_result_[aggregate_index].selection;
+    name = aggregate_units_[0].col_name;
 
     auto aggregate_col = table->get_column_by_name(
             aggregate_units_[0].col_name);
 
     auto datum_col = arrow::compute::Datum(aggregate_col);
     // Apply filter
-    if (aggregate_units_[0].filter.kind() ==
+    if (filter.kind() ==
         arrow::compute::Datum::CHUNKED_ARRAY) {
         status = arrow::compute::Filter(
                 &function_context,
@@ -174,7 +187,7 @@ std::shared_ptr<Table> Aggregate::iterate_over_groups() {
         aggregate_col = datum_col.chunked_array();
     }
     // Take indices
-    if (aggregate_units_[0].selection.kind() ==
+    if (selection.kind() ==
         arrow::compute::Datum::ARRAY) {
         status = arrow::compute::Take(
                 &function_context,
