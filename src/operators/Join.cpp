@@ -11,34 +11,31 @@
 namespace hustle {
 namespace operators {
 
-Join::Join(std::shared_ptr<Table>& left_table,
+Join::Join(ColumnReference left,
          arrow::compute::Datum& left_selection,
-         std::string left_column_name,
-         std::shared_ptr<Table>& right_table,
-         arrow::compute::Datum& right_selection,
-         std::string right_column_name){
+         ColumnReference right,
+         arrow::compute::Datum& right_selection){
 
-    left_join_col_name_ = left_column_name;
-    right_join_col_name_ = right_column_name;
+    left_join_col_name_ = left.col_name;
+    right_join_col_name_ = right.col_name;
 
-    left_table_ = left_table;
-    right_table_ = right_table;
+    left_table_ = left.table;
+    right_table_ = right.table;
 
     left_selection_ = left_selection;
     right_selection_ = right_selection;
 }
 
 Join::Join(std::vector<JoinResult>& left_join_result,
-         std::string left_column_name,
-         std::shared_ptr<Table>& right_table,
-         arrow::compute::Datum& right_selection,
-         std::string right_column_name) {
+        ColumnReference left,
+         ColumnReference right,
+         arrow::compute::Datum& right_selection) {
 
-        left_join_col_name_ = left_column_name;
-        right_join_col_name_ = right_column_name;
+        left_join_col_name_ = left.col_name;
+        right_join_col_name_ = right.col_name;
 
         left_join_result_ = left_join_result;
-        right_table_ = right_table;
+        right_table_ = right.table;
 
         right_selection_ = right_selection;
     }
@@ -113,7 +110,8 @@ std::vector<JoinResult> Join::hash_join(
     int left_join_col_index = -1;
 
     // TODO(nicholas): This will find the wrong table if lineorder is not
-    //  at index 0.
+    //  at index 0, since the left and right join columns usually have the
+    //  same name!
     for (int i=0; i<left_join_result_.size(); i++) {
         int index = left_join_result_[i].table->get_schema()->GetFieldIndex
                 (left_join_col_name_);
@@ -124,8 +122,8 @@ std::vector<JoinResult> Join::hash_join(
         }
     }
     //TODO(nicholas): left_table_ must also be filtered! None of the SSB
-    // queries with multiple joins select on Lineorder, so this part is not
-    // yet verified.
+    // queries with multiple joins perform a selection on Lineorder beforehand,
+    // so this part is not yet verified.
     left_table_ = left_join_result_[selection_reference_index].table;
     auto left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),

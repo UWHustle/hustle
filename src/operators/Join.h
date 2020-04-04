@@ -11,44 +11,36 @@
 namespace hustle {
 namespace operators {
 
-class JoinOperator : public Operator {
-
-    virtual arrow::compute::Datum get_indices() = 0;
-};
-
-struct record_id {
-    // For Tables, offset = block_row_offset.
-    // For ChunkedArrays (i.e. arrays of indices), offset = chunk number
-    int offset;
-    int row_index;
-};
 
 class Join : public Operator{
 public:
+
+    // TODO(nicholas): Joinable iterface?
+
+    // TODO(nicholas): Join should accept ColumnReferences instead of
+    //  tables and column names. This is more consistent with the other
+    //  operators, and it prevents anny issues arising when tables hav
+    //  columns with the same name.
     /**
-    * Perform a natural join on two tables using hash join. Projections are not
-    * yet supported; all columns from both tables will be returned in the
-    * resulting table (excluding the duplicate join column).
-    *
-    * @param left_table The table that will probe the hash table
-    * @param right_table The table for which a hash table is built
-    * @return A new table containing the results of the join
-    */
-
-//    Interface Joinable;
-
-    Join(std::shared_ptr<Table>& left_table,
-            arrow::compute::Datum& left_selection,
-            std::string left_column_name,
-            std::shared_ptr<Table>& right_table,
-            arrow::compute::Datum& right_selection,
-            std::string right_column_name);
+     * Construct a Join operator to perform a natural join using hash join.
+     *
+     * @param left_table outer table (i.e. we probe values from this table)
+     * @param left_selection If a selection was previously performed on
+     * left_table,
+     * @param left_column_name name of the join column in left_table
+     * @param right_table inner table (i.e. we build a hash table on this table)
+     * @param right_selection
+     * @param right_column_name name of the join column in the right table
+     */
+    Join(ColumnReference left,
+               arrow::compute::Datum& left_selection,
+               ColumnReference right,
+               arrow::compute::Datum& right_selection);
 
     Join(std::vector<JoinResult>& left_join_result,
-            std::string left_column_name,
-            std::shared_ptr<Table>& right_table,
-            arrow::compute::Datum& right_selection,
-            std::string right_column_name);
+               ColumnReference left,
+               ColumnReference right,
+               arrow::compute::Datum& right_selection);
 
 //TODO(nicholas): Should these be implemented?
 
@@ -69,6 +61,15 @@ public:
 //         const std::string& right_column_name,
 //         const arrow::compute::Datum& right_selection);
 
+    /**
+    * Perform a natural join on two tables using hash join. Projections are not
+    * yet supported; all columns from both tables will be returned in the
+    * resulting table (excluding the duplicate join column).
+    *
+    * @param left_table The table that will probe the hash table
+    * @param right_table The table for which a hash table is built
+    * @return A new table containing the results of the join
+    */
     std::vector<JoinResult> hash_join();
 
 private:

@@ -354,7 +354,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
 
 }
 */
-
+/*
 TEST_F(SSBTestFixture, SSBQ1_1) {
 
     lineorder = read_from_file
@@ -1367,7 +1367,7 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
                       (t2-t1).count() << " ms" << std::endl;
 
 }
-
+*/
 TEST_F(SSBTestFixture, SSBQ4_1) {
 
     auto t11 = std::chrono::high_resolution_clock::now();
@@ -1439,27 +1439,37 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     auto s_selection = s_select_op->select(supp);
     auto c_selection = c_select_op->select(cust);
 
+    ColumnReference lo_s_ref = {lineorder, "supp key"};
+    ColumnReference lo_c_ref = {lineorder, "cust key"};
+    ColumnReference lo_p_ref = {lineorder, "part key"};
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference s_ref = {supp, "supp key"};
+    ColumnReference c_ref = {cust, "cust key"};
+    ColumnReference p_ref = {part, "part key"};
+    ColumnReference d_ref = {date, "date key"};
+
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lineorder, empty_selection, "supp key",
-            supp, s_selection, "supp key");
+            lo_s_ref, empty_selection,
+            s_ref, s_selection);
 
     auto join_result_1 = join_op_1->hash_join();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, "cust key",
-            cust, c_selection, "cust key");
+            join_result_1, lo_c_ref,
+            c_ref, c_selection);
 
     auto join_result_2 = join_op_2->hash_join();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, "part key",
-            part, p_selection, "part key");
+            join_result_2, lo_p_ref,
+            p_ref, p_selection);
 
     auto join_result_3 = join_op_3->hash_join();
 
     auto join_op_4 = std::make_shared<hustle::operators::Join>(
-            join_result_3,  "order date",
-            date, empty_selection, "date key");
+            join_result_3,  lo_d_ref,
+            d_ref, empty_selection);
 
     auto join_result_4 = join_op_4->hash_join();
 
