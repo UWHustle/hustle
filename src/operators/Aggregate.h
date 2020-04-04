@@ -19,6 +19,8 @@ enum AggregateKernels {
 
 struct AggregateUnit {
     AggregateKernels kernel;
+    // TODO(nicholas): should table and col_name be combined into a
+    //  ColumnReference?
     std::shared_ptr<Table> table;
     std::string col_name;
 };
