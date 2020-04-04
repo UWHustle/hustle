@@ -50,8 +50,6 @@ protected:
     std::shared_ptr<Table> supp;
     std::shared_ptr<Table> cust;
 
-
-
     void SetUp() override {
 
         arrow::Status status;
@@ -354,7 +352,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
 
 }
 */
-/*
+
 TEST_F(SSBTestFixture, SSBQ1_1) {
 
     lineorder = read_from_file
@@ -403,22 +401,24 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    arrow::compute::Datum left_selection =
+    arrow::compute::Datum lo_selection =
             lo_select_op_composite_2->select(lineorder);
-    arrow::compute::Datum right_selection =
+    arrow::compute::Datum d_selection =
             d_select_op->select(date);
 
     arrow::compute::Datum empty_selection;
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference d_ref = {date, "date key"};
 
     // Join lineorder.order date == date.date key
-    Join join_op(lineorder, left_selection, "order date",
-            date, right_selection,"date key");
+    Join join_op(lo_d_ref, lo_selection,
+                 d_ref, d_selection);
+
     auto join_result = join_op.hash_join();
 
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result[0].filter,
-                              join_result[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -438,18 +438,6 @@ TEST_F(SSBTestFixture, SSBQ1_1) {
     std::cout << "\nAGGREGATE" << std::endl;
     if (aggregate != nullptr) aggregate->print();
 
-//    ProjectionUnit p1 = {join_result[0],
-//                         {lineorder->get_schema()->GetFieldByName("order "
-//                                                                  "date")}};
-//
-//    ProjectionUnit p2 = {join_result[0],
-//                         {lineorder->get_schema()->GetFieldByName("revenue")}};
-//    ProjectionUnit p3 = {join_result[1],
-//                         {date->get_schema()->GetFieldByName("date key")}};
-//
-//    Projection p({p1, p2,p3});
-//    std::cout << "\nPROJECTION" << std::endl;
-//    p.project()->print();
 }
 
 TEST_F(SSBTestFixture, SSBQ1_2) {
@@ -526,16 +514,18 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
             (lineorder);
     auto d_selection = d_select_op->select(date);
 
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference d_ref = {date, "date key"};
+
     // Join lineorder.order date == date.date key
-    Join join_op(lineorder, lo_selection, "order date",
-                 date, d_selection, "date key");
+    Join join_op(lo_d_ref, lo_selection,
+                 d_ref, d_selection);
 
     auto join_result = join_op.hash_join();
 
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result[0].filter,
-                              join_result[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -648,16 +638,18 @@ TEST_F(SSBTestFixture, SSBQ1_3) {
             (lineorder);
     auto d_selection = d_select_op_composite_1->select(date);
 
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference d_ref = {date, "date key"};
+
     // Join lineorder.order date == date.date key
-    Join join_op(lineorder, lo_selection, "order date",
-                 date, d_selection, "date key");
+    Join join_op(lo_d_ref, lo_selection,
+                 d_ref, d_selection);
 
     auto join_result = join_op.hash_join();
 
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result[0].filter,
-                              join_result[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -733,22 +725,30 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
     arrow::compute::Datum s_selection =
             s_select_op->select(supp);
 
+    ColumnReference lo_s_ref = {lineorder, "supp key"};
+    ColumnReference lo_p_ref = {lineorder, "part key"};
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference s_ref = {supp, "supp key"};
+    ColumnReference p_ref = {part, "part key"};
+    ColumnReference d_ref = {date, "date key"};
 
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lineorder, empty_selection, "supp key",
-            supp, s_selection, "supp key");
+            lo_s_ref, empty_selection,
+            s_ref, s_selection);
 
     auto join_result_1 = join_op_1->hash_join();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, "part key",
-            part, p_selection, "part key");
+            join_result_1, lo_p_ref,
+            p_ref, p_selection);
 
     auto join_result_2 = join_op_2->hash_join();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, "order date",
-            date, empty_selection, "date key");
+            join_result_2, lo_d_ref,
+            d_ref, empty_selection);
+
     auto join_result_3 = join_op_3->hash_join();
 
     std::vector<ColumnReference> group_bys = {{date, "year"}, {part, "brand1"}};
@@ -756,8 +756,6 @@ TEST_F(SSBTestFixture, SSBQ2_1) {
 
 AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result_3[0].filter,
-                              join_result_3[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -779,23 +777,6 @@ AggregateUnit agg_unit = {AggregateKernels::SUM,
     std::cout << "QUERY EXECUTION TIME = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
                       (t2-t1).count() << " ms" << std::endl;
-
-//    ProjectionUnit p1 = {join_result_1[0],
-//                         {lineorder->get_schema()->GetFieldByName("order "
-//                                                                  "date")}};
-
-//    ProjectionUnit p2 = {join_result_2[0],
-//                         {lineorder->get_schema()->GetFieldByName("revenue")}};
-//    ProjectionUnit p3 = {join_result_2[1],
-//                         {supp->get_schema()->GetFieldByName("supp key")
-//                          }};
-//    ProjectionUnit p4 = {join_result_2[2],
-//                         {part->get_schema()->GetFieldByName("part key")
-//                         }};
-//
-//    Projection p({p2,p3,p4});
-//    std::cout << "\nPROJECTION" << std::endl;
-//    p.project()->print();
 
 }
 
@@ -861,22 +842,29 @@ TEST_F(SSBTestFixture, SSBQ2_2) {
     arrow::compute::Datum s_selection =
             s_select_op->select(supp);
 
+    ColumnReference lo_s_ref = {lineorder, "supp key"};
+    ColumnReference lo_p_ref = {lineorder, "part key"};
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference s_ref = {supp, "supp key"};
+    ColumnReference p_ref = {part, "part key"};
+    ColumnReference d_ref = {date, "date key"};
 
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lineorder, empty_selection, "supp key",
-            supp, s_selection, "supp key");
+            lo_s_ref, empty_selection,
+            s_ref, s_selection);
 
     auto join_result_1 = join_op_1->hash_join();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, "part key",
-            part, p_selection, "part key");
+            join_result_1, lo_p_ref,
+            p_ref, p_selection);
 
     auto join_result_2 = join_op_2->hash_join();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, "order date",
-            date, empty_selection, "date key");
+            join_result_2, lo_d_ref,
+            d_ref, empty_selection);
 
     auto join_result_3 = join_op_3->hash_join();
 
@@ -886,8 +874,6 @@ TEST_F(SSBTestFixture, SSBQ2_2) {
     std::vector<ColumnReference> order_bys = {{date, "year"}, {part,"brand1"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result_3[0].filter,
-                              join_result_3[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -963,23 +949,32 @@ TEST_F(SSBTestFixture, SSBQ2_3) {
             s_select_op->select(supp);
 
 
+    ColumnReference lo_s_ref = {lineorder, "supp key"};
+    ColumnReference lo_p_ref = {lineorder, "part key"};
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference s_ref = {supp, "supp key"};
+    ColumnReference p_ref = {part, "part key"};
+    ColumnReference d_ref = {date, "date key"};
+
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lineorder, empty_selection, "supp key",
-            supp, s_selection, "supp key");
+            lo_s_ref, empty_selection,
+            s_ref, s_selection);
 
     auto join_result_1 = join_op_1->hash_join();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, "part key",
-            part, p_selection, "part key");
+            join_result_1, lo_p_ref,
+            p_ref, p_selection);
 
     auto join_result_2 = join_op_2->hash_join();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, "order date",
-            date, empty_selection, "date key");
+            join_result_2, lo_d_ref,
+            d_ref, empty_selection);
 
     auto join_result_3 = join_op_3->hash_join();
+
 
 
 
@@ -987,8 +982,6 @@ TEST_F(SSBTestFixture, SSBQ2_3) {
     std::vector<ColumnReference> order_bys = {{date, "year"}, {part,"brand1"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result_3[0].filter,
-                              join_result_3[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -1076,21 +1069,31 @@ TEST_F(SSBTestFixture, SSBQ3_1) {
     auto s_selection = s_select_op->select(supp);
     auto c_selection = c_select_op->select(cust);
 
+    ColumnReference lo_s_ref = {lineorder, "supp key"};
+    ColumnReference lo_c_ref = {lineorder, "cust key"};
+    ColumnReference lo_p_ref = {lineorder, "part key"};
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference s_ref = {supp, "supp key"};
+    ColumnReference c_ref = {cust, "cust key"};
+    ColumnReference p_ref = {part, "part key"};
+    ColumnReference d_ref = {date, "date key"};
+
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lineorder, empty_selection, "supp key",
-            supp, s_selection, "supp key");
+            lo_s_ref, empty_selection,
+            s_ref, s_selection);
 
     auto join_result_1 = join_op_1->hash_join();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, "cust key",
-            cust, c_selection, "cust key");
+            join_result_1, lo_c_ref,
+            c_ref, c_selection);
 
     auto join_result_2 = join_op_2->hash_join();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, "order date",
-            date, d_selection, "date key");
+            join_result_2, lo_d_ref,
+            d_ref, d_selection);
 
     auto join_result_3 = join_op_3->hash_join();
 
@@ -1101,14 +1104,9 @@ TEST_F(SSBTestFixture, SSBQ3_1) {
                                               {date,"year"}};
     //TODO(nicholas): We currently do not support sorting on the aggregate
     // column, so this result will not look as expected.
-    //TODO(nicholas): The strings in order_bys must correspond to the
-    // ColumnReferences in group_bys. Since we group_by year last, we must
-    // put two placeholder empty string before it. Need to fix this.
     std::vector<ColumnReference> order_bys = {{date,"year"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result_3[0].filter,
-                              join_result_3[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -1194,23 +1192,35 @@ TEST_F(SSBTestFixture, SSBQ3_2) {
     auto s_selection = s_select_op->select(supp);
     auto c_selection = c_select_op->select(cust);
 
+
+    ColumnReference lo_s_ref = {lineorder, "supp key"};
+    ColumnReference lo_c_ref = {lineorder, "cust key"};
+    ColumnReference lo_p_ref = {lineorder, "part key"};
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference s_ref = {supp, "supp key"};
+    ColumnReference c_ref = {cust, "cust key"};
+    ColumnReference p_ref = {part, "part key"};
+    ColumnReference d_ref = {date, "date key"};
+
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lineorder, empty_selection, "supp key",
-            supp, s_selection, "supp key");
+            lo_s_ref, empty_selection,
+            s_ref, s_selection);
 
     auto join_result_1 = join_op_1->hash_join();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, "cust key",
-            cust, c_selection, "cust key");
+            join_result_1, lo_c_ref,
+            c_ref, c_selection);
 
     auto join_result_2 = join_op_2->hash_join();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, "order date",
-            date, d_selection, "date key");
+            join_result_2, lo_d_ref,
+            d_ref, d_selection);
 
     auto join_result_3 = join_op_3->hash_join();
+
 
     //TODO(nicholas): Result is incorrectly grouped when two column
     // references share the same name.
@@ -1225,8 +1235,6 @@ TEST_F(SSBTestFixture, SSBQ3_2) {
     std::vector<ColumnReference> order_bys = {{date,"year"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result_3[0].filter,
-                              join_result_3[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -1312,21 +1320,31 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
     auto s_selection = s_select_op->select(supp);
     auto c_selection = c_select_op->select(cust);
 
+    ColumnReference lo_s_ref = {lineorder, "supp key"};
+    ColumnReference lo_c_ref = {lineorder, "cust key"};
+    ColumnReference lo_p_ref = {lineorder, "part key"};
+    ColumnReference lo_d_ref = {lineorder, "order date"};
+
+    ColumnReference s_ref = {supp, "supp key"};
+    ColumnReference c_ref = {cust, "cust key"};
+    ColumnReference p_ref = {part, "part key"};
+    ColumnReference d_ref = {date, "date key"};
+
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lineorder, empty_selection, "supp key",
-            supp, s_selection, "supp key");
+            lo_s_ref, empty_selection,
+            s_ref, s_selection);
 
     auto join_result_1 = join_op_1->hash_join();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, "cust key",
-            cust, c_selection, "cust key");
+            join_result_1, lo_c_ref,
+            c_ref, c_selection);
 
     auto join_result_2 = join_op_2->hash_join();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, "order date",
-            date, d_selection, "date key");
+            join_result_2, lo_d_ref,
+            d_ref, d_selection);
 
     auto join_result_3 = join_op_3->hash_join();
 
@@ -1336,14 +1354,9 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
                                               };
     //TODO(nicholas): We currently do not support sorting on the aggregate
     // column, so this result will not look as expected.
-    //TODO(nicholas): The strings in order_bys must correspond to the
-    // ColumnReferences in group_bys. Since we group_by year last, we must
-    // put two placeholder empty string before it. Need to fix this.
     std::vector<ColumnReference> order_bys = {{date,"year"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result_3[0].filter,
-                              join_result_3[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
@@ -1367,7 +1380,7 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
                       (t2-t1).count() << " ms" << std::endl;
 
 }
-*/
+
 TEST_F(SSBTestFixture, SSBQ4_1) {
 
     auto t11 = std::chrono::high_resolution_clock::now();
@@ -1435,10 +1448,6 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
 
     arrow::compute::Datum empty_selection;
 
-    auto p_selection = p_select_op_composite_1->select(part);
-    auto s_selection = s_select_op->select(supp);
-    auto c_selection = c_select_op->select(cust);
-
     ColumnReference lo_s_ref = {lineorder, "supp key"};
     ColumnReference lo_c_ref = {lineorder, "cust key"};
     ColumnReference lo_p_ref = {lineorder, "part key"};
@@ -1448,6 +1457,10 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     ColumnReference c_ref = {cust, "cust key"};
     ColumnReference p_ref = {part, "part key"};
     ColumnReference d_ref = {date, "date key"};
+
+    auto p_selection = p_select_op_composite_1->select(part);
+    auto s_selection = s_select_op->select(supp);
+    auto c_selection = c_select_op->select(cust);
 
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
             lo_s_ref, empty_selection,
@@ -1477,15 +1490,10 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
                                               {cust, "nation"}};
     //TODO(nicholas): We currently do not support sorting on the aggregate
     // column, so this result will not look as expected.
-    //TODO(nicholas): The strings in order_bys must correspond to the
-    // ColumnReferences in group_bys. Since we group_by year last, we must
-    // put two placeholder empty string before it. Need to fix this.
     std::vector<ColumnReference> order_bys = {{date,"year"},
                                               {cust, "nation"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
                               lineorder,
-                              join_result_4[0].filter,
-                              join_result_4[0].selection,
                               "revenue"};
 
     std::vector<AggregateUnit> units = {agg_unit};
