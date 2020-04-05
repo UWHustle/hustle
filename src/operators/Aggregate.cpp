@@ -12,12 +12,12 @@ namespace hustle {
 namespace operators {
 
 Aggregate::Aggregate(
-        std::vector<JoinResultColumn> join_result,
+        std::shared_ptr<OperatorResult> join_result,
                      std::vector<AggregateUnit> aggregate_units,
                      std::vector<ColumnReference> group_bys,
                      std::vector<ColumnReference> order_bys) {
 
-    join_result_ = join_result;
+    join_result_ = std::static_pointer_cast<JoinResult>(join_result)->join_results_;
     aggregate_units_ = aggregate_units;
 
     group_bys_ = std::move(group_bys);
@@ -480,13 +480,15 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
         group_by_col = datum_col.chunked_array();
     }
 
-    status = arrow::compute::Take(
-            &function_context,
-            *group_by_col,
-            *selection.make_array(),
-            take_options,
-            &group_by_col);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    if( selection.kind() == arrow::compute::Datum::ARRAY) {
+        status = arrow::compute::Take(
+                &function_context,
+                *group_by_col,
+                *selection.make_array(),
+                take_options,
+                &group_by_col);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+    }
 
     status = arrow::compute::Unique(&function_context, group_by_col,
                                     &unique_values);

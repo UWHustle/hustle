@@ -36,6 +36,7 @@ struct JoinResultColumn {
 class OperatorResult {
 public:
     virtual ~OperatorResult() = default;
+    ResultType get_type();
 protected:
     ResultType type_;
 };
@@ -43,15 +44,19 @@ protected:
 class SelectResult : public OperatorResult {
 public:
     SelectResult(arrow::compute::Datum filter);
-private:
+
     arrow::compute::Datum filter_;
+private:
+
 };
 
 class JoinResult : public OperatorResult {
 public:
     JoinResult(std::vector<JoinResultColumn> join_results);
-private:
+
     std::vector<JoinResultColumn> join_results_;
+private:
+
 };
 
 

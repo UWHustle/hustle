@@ -25,6 +25,7 @@ class Select : public SelectOperator{
 public:
 
     Select(
+        std::shared_ptr<Table> table,
         arrow::compute::CompareOperator compare_operator,
         std::string column_name,
         arrow::compute::Datum column_value
@@ -34,7 +35,7 @@ public:
 
 
 private:
-//    std::shared_ptr<Table> table_;
+    std::shared_ptr<Table> table_;
     arrow::compute::CompareOperator compare_operator_;
     std::string column_name_;
     arrow::compute::Datum column_value_;
@@ -48,6 +49,7 @@ private:
 class SelectComposite : public SelectOperator{
 public:
     SelectComposite(
+        std::shared_ptr<Table> table,
         std::shared_ptr<SelectOperator> left_child,
         std::shared_ptr<SelectOperator> right_child,
         FilterOperator filter_operator

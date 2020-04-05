@@ -28,9 +28,18 @@ public:
      * right table. If no selection was performed, pass in a null Datum.
      */
     Join(ColumnReference left,
-               arrow::compute::Datum& left_selection,
+               std::shared_ptr<OperatorResult> left_selection,
                ColumnReference right,
-               arrow::compute::Datum& right_selection);
+               std::shared_ptr<OperatorResult> right_selection);
+
+//    Join(ColumnReference left,
+//         ColumnReference right,
+//         std::shared_ptr<OperatorResult>& right_selection);
+//
+//    Join(ColumnReference left,
+//         std::shared_ptr<OperatorResult>& right_selection
+//         ColumnReference right,
+//         std::shared_ptr<OperatorResult>& right_selection);
 
     /**
      * Construct an Join operator to perform hash join on a vector of
@@ -45,10 +54,10 @@ public:
      * @param right_selection the filter returned by an earlier selection on the
      * right table. If no selection was performed, pass in a null Datum.
      */
-    Join(std::vector<JoinResultColumn>& left_join_result,
-               ColumnReference left,
-               ColumnReference right,
-               arrow::compute::Datum& right_selection);
+//    Join(std::vector<JoinResultColumn>& left_join_result,
+//               ColumnReference left,
+//               ColumnReference right,
+//               std::shared_ptr<OperatorResult>& right_selection);
 
     /**
     * Perform a natural join on two tables using hash join.
@@ -61,8 +70,6 @@ public:
 
 private:
 
-
-    //
     arrow::compute::Datum left_filter_;
     arrow::compute::Datum right_filter_;
 

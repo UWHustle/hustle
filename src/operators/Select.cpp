@@ -10,22 +10,25 @@ namespace hustle {
 namespace operators {
 
 SelectComposite::SelectComposite(
+        std::shared_ptr<Table> table,
         std::shared_ptr<SelectOperator> left_child,
         std::shared_ptr<SelectOperator> right_child,
         FilterOperator filter_operator){
 
+    table_ = table;
     left_child_ = std::move(left_child);
     right_child_ = std::move(right_child);
     filter_operator_ = filter_operator;
 }
 
 std::shared_ptr<OperatorResult> SelectComposite::run() {
-    return std::make_shared<OperatorResult>();
+    auto filter = get_filter(table_);
+    return std::make_shared<SelectResult>(filter);
 }
 
 arrow::compute::Datum SelectComposite::select(std::shared_ptr<Table> table) {
 
-    return get_filter(table);
+    return get_filter(table_);
 }
 
 arrow::compute::Datum SelectComposite::get_filter
@@ -84,9 +87,12 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
 }
 
     Select::Select(
+            std::shared_ptr<Table> table,
             arrow::compute::CompareOperator compare_operator,
             std::string column_name,
             arrow::compute::Datum column_value) {
+
+        table_ = table;
         compare_operator_ = compare_operator;
         column_name_ = std::move(column_name);
         column_value_ = std::move(column_value);
@@ -95,7 +101,7 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
     arrow::compute::Datum Select::select(std::shared_ptr<Table>
             table) {
 
-    return get_filter(table);
+    return get_filter(table_);
 }
 
     arrow::compute::Datum Select::get_filter
@@ -139,7 +145,8 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
     }
 
     std::shared_ptr<OperatorResult> Select::run() {
-        return std::make_shared<OperatorResult>();
+        auto filter = get_filter(table_);
+        return std::make_shared<SelectResult>(filter);
     }
     } // namespace operators
 } // namespace hustle

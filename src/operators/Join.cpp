@@ -12,9 +12,9 @@ namespace hustle {
 namespace operators {
 
 Join::Join(ColumnReference left,
-         arrow::compute::Datum& left_selection,
+         std::shared_ptr<OperatorResult> left_selection,
          ColumnReference right,
-         arrow::compute::Datum& right_selection){
+         std::shared_ptr<OperatorResult> right_selection){
 
     left_join_col_name_ = left.col_name;
     right_join_col_name_ = right.col_name;
@@ -22,23 +22,48 @@ Join::Join(ColumnReference left,
     left_table_ = left.table;
     right_table_ = right.table;
 
-    left_selection_ = left_selection;
-    right_selection_ = right_selection;
+    switch(left_selection->get_type()) {
+        case SELECT: {
+            left_selection_ = std::static_pointer_cast<SelectResult>
+                    (left_selection)->filter_;
+            break;
+        }
+        case JOIN: {
+            left_join_result_ = std::static_pointer_cast<JoinResult>
+                    (left_selection)->join_results_;
+            break;
+        }
+        default: {
+            std::cerr << "left_selection must be of SELECT or JOIN type." <<
+            std::endl;
+        }
+    }
+
+    switch(right_selection->get_type()) {
+        case SELECT: {
+            right_selection_ = std::static_pointer_cast<SelectResult>
+                    (right_selection)->filter_;
+            break;
+        }
+        default: {
+            std::cerr << "right_selection must be of SELECT type." << std::endl;
+        }
+    }
 }
 
-Join::Join(std::vector<JoinResultColumn>& left_join_result,
-        ColumnReference left,
-         ColumnReference right,
-         arrow::compute::Datum& right_selection) {
-
-        left_join_col_name_ = left.col_name;
-        right_join_col_name_ = right.col_name;
-
-        left_join_result_ = left_join_result;
-        right_table_ = right.table;
-
-        right_selection_ = right_selection;
-    }
+//Join::Join(std::vector<JoinResultColumn>& left_join_result,
+//        ColumnReference left,
+//         ColumnReference right,
+//         arrow::compute::Datum& right_selection) {
+//
+//        left_join_col_name_ = left.col_name;
+//        right_join_col_name_ = right.col_name;
+//
+//        left_join_result_ = left_join_result;
+//        right_table_ = right.table;
+//
+//        right_selection_ = right_selection;
+//    }
 
 std::vector<JoinResultColumn> Join::hash_join() {
 
@@ -81,6 +106,7 @@ std::vector<JoinResultColumn> Join::hash_join(
     left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
+    std::make_shared<JoinResult>(out);
     return out;
 }
 
@@ -402,7 +428,17 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
     }
 
     std::shared_ptr<OperatorResult> Join::run() {
-    return std::make_shared<OperatorResult>();
+
+    std::vector<JoinResultColumn> out_join_result_cols;
+
+    if (!left_join_result_.empty()) {
+        out_join_result_cols = hash_join(left_join_result_, right_table_);
+    }
+    else {
+        out_join_result_cols = hash_join(left_table_, right_table_);
+    }
+
+    return std::make_shared<JoinResult>(out_join_result_cols);
 }
 
 } // namespace operators
