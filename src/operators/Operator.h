@@ -37,17 +37,26 @@ class OperatorResult {
 public:
     virtual ~OperatorResult() = default;
 protected:
-    ResultType type;
+    ResultType type_;
 };
 
 class SelectResult : public OperatorResult {
 public:
-    arrow::compute::Datum filter;
+    SelectResult(arrow::compute::Datum filter);
+private:
+    arrow::compute::Datum filter_;
 };
 
 class JoinResult : public OperatorResult {
-    std::vector<JoinResultColumn> join_results;
+public:
+    JoinResult(std::vector<JoinResultColumn> join_results);
+private:
+    std::vector<JoinResultColumn> join_results_;
 };
+
+
+
+
 
 
 

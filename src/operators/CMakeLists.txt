@@ -1,6 +1,6 @@
 add_library(
         operators
-        Operator.h
+        Operator.cpp Operator.h
         Join.h Join.cpp
         Aggregate.h Aggregate.cpp
         Select.h Select.cpp
