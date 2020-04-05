@@ -26,10 +26,6 @@ std::shared_ptr<OperatorResult> SelectComposite::run() {
     return std::make_shared<SelectResult>(filter);
 }
 
-arrow::compute::Datum SelectComposite::select(std::shared_ptr<Table> table) {
-
-    return get_filter(table_);
-}
 
 arrow::compute::Datum SelectComposite::get_filter
     (std::shared_ptr<Table> table) {
@@ -98,11 +94,6 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         column_value_ = std::move(column_value);
     }
 
-    arrow::compute::Datum Select::select(std::shared_ptr<Table>
-            table) {
-
-    return get_filter(table_);
-}
 
     arrow::compute::Datum Select::get_filter
             (std::shared_ptr<Block> block) {

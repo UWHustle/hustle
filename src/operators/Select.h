@@ -30,7 +30,6 @@ public:
         std::string column_name,
         arrow::compute::Datum column_value
         );
-    arrow::compute::Datum select(std::shared_ptr<Table> table);
     std::shared_ptr<OperatorResult> run() override;
 
 
@@ -55,7 +54,6 @@ public:
         FilterOperator filter_operator
     );
 
-    arrow::compute::Datum select(std::shared_ptr<Table> table);
     std::shared_ptr<OperatorResult> run() override;
 
 
