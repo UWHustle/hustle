@@ -106,11 +106,6 @@ private:
         std::vector<JoinResultColumn> probe_hash_table_2
                 (std::shared_ptr<arrow::ChunkedArray> probe_col);
 
-    arrow::compute::Datum get_left_indices();
-    arrow::compute::Datum get_right_indices();
-    arrow::compute::Datum get_indices_for_table(
-            const std::shared_ptr<Table> &other);
-
     std::unordered_map<int64_t, int64_t> build_hash_table
             (std::shared_ptr<arrow::ChunkedArray> col);
     std::shared_ptr<arrow::ChunkedArray> apply_selection

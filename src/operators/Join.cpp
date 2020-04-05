@@ -51,20 +51,6 @@ Join::Join(ColumnReference left,
     }
 }
 
-//Join::Join(std::vector<JoinResultColumn>& left_join_result,
-//        ColumnReference left,
-//         ColumnReference right,
-//         arrow::compute::Datum& right_selection) {
-//
-//        left_join_col_name_ = left.col_name;
-//        right_join_col_name_ = right.col_name;
-//
-//        left_join_result_ = left_join_result;
-//        right_table_ = right.table;
-//
-//        right_selection_ = right_selection;
-//    }
-
 std::vector<JoinResultColumn> Join::hash_join() {
 
     std::vector<JoinResultColumn> out_join_result;
@@ -293,10 +279,10 @@ std::vector<JoinResultColumn> Join::probe_hash_table
     std::vector<JoinResultColumn> out;
     out.push_back({left_table_, left_join_col_name_, probe_col,
                    arrow::compute::Datum(left_filter_),
-                   get_left_indices()});
+                   arrow::compute::Datum(left_indices_)});
     out.push_back({right_table_, right_join_col_name_, right_join_col_,
                    arrow::compute::Datum(right_filter_),
-                   get_right_indices()});
+                   arrow::compute::Datum(right_indices_)});
 
     return out;
 }
@@ -354,10 +340,11 @@ std::vector<JoinResultColumn> Join::probe_hash_table
         std::vector<JoinResultColumn> out;
         out.push_back({left_table_, left_join_col_name_, probe_col,
                        arrow::compute::Datum(left_filter_),
-                       get_left_indices()});
+                       arrow::compute::Datum (left_indices_)});
         out.push_back({right_table_, right_join_col_name_, right_join_col_,
                        arrow::compute::Datum(right_filter_),
-                       get_right_indices()});
+                       arrow::compute::Datum (right_indices_)});
+
 
         return out;
     }
@@ -406,40 +393,19 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
     return out_col;
 }
 
-
-    arrow::compute::Datum Join::get_indices_for_table(
-            const std::shared_ptr<Table>& other) {
-        if (other == left_table_) {
-            return get_left_indices();
-        }
-        else {
-            return get_right_indices();
-        }
-    }
-
-    arrow::compute::Datum Join::get_left_indices() {
-        arrow::compute::Datum out(left_indices_);
-        return out;
-    }
-
-    arrow::compute::Datum Join::get_right_indices() {
-        arrow::compute::Datum out(right_indices_);
-        return out;
-    }
-
     std::shared_ptr<OperatorResult> Join::run() {
 
-    std::vector<JoinResultColumn> out_join_result_cols;
+        std::vector<JoinResultColumn> out_join_result_cols;
 
-    if (!left_join_result_.empty()) {
-        out_join_result_cols = hash_join(left_join_result_, right_table_);
-    }
-    else {
-        out_join_result_cols = hash_join(left_table_, right_table_);
-    }
+        if (!left_join_result_.empty()) {
+            out_join_result_cols = hash_join(left_join_result_, right_table_);
+        }
+        else {
+            out_join_result_cols = hash_join(left_table_, right_table_);
+        }
 
-    return std::make_shared<JoinResult>(out_join_result_cols);
-}
+        return std::make_shared<JoinResult>(out_join_result_cols);
+    }
 
 } // namespace operators
 } // namespace hustle
