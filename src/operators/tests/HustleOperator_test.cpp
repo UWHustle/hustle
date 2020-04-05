@@ -352,7 +352,7 @@ TEST_F(SSBTestFixture, GroupByTest2) {
 
 }
 */
-
+/*
 TEST_F(SSBTestFixture, SSBQ1_1) {
 
     lineorder = read_from_file
@@ -1380,7 +1380,7 @@ TEST_F(SSBTestFixture, SSBQ3_3) {
                       (t2-t1).count() << " ms" << std::endl;
 
 }
-
+*/
 TEST_F(SSBTestFixture, SSBQ4_1) {
 
     auto t11 = std::chrono::high_resolution_clock::now();
@@ -1413,6 +1413,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     // If you pass in a string to the Datum constructor, it will interpet it
     // as boolean.
     auto p_select_op_1 = std::make_shared<hustle::operators::Select>(
+            part,
             arrow::compute::CompareOperator::EQUAL,
             "mfgr",
             arrow::compute::Datum(
@@ -1420,6 +1421,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     );
 
     auto p_select_op_2 = std::make_shared<hustle::operators::Select>(
+            part,
             arrow::compute::CompareOperator::EQUAL,
             "mfgr",
             arrow::compute::Datum(
@@ -1428,10 +1430,11 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
 
     auto p_select_op_composite_1 =
             std::make_shared<hustle::operators::SelectComposite>
-                    (p_select_op_1, p_select_op_2,
+                    (part, p_select_op_1, p_select_op_2,
                      hustle::operators::FilterOperator::OR);
 
     auto c_select_op = std::make_shared<hustle::operators::Select>(
+            cust,
             arrow::compute::CompareOperator::EQUAL,
             "region",
             arrow::compute::Datum(std::make_shared<arrow::StringScalar>
@@ -1439,6 +1442,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     );
 
     auto s_select_op = std::make_shared<hustle::operators::Select>(
+            supp,
             arrow::compute::CompareOperator::EQUAL,
             "region",
             arrow::compute::Datum(std::make_shared<arrow::StringScalar>
@@ -1447,6 +1451,8 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
 
 
     arrow::compute::Datum empty_selection;
+    auto empty_result = std::make_shared<hustle::operators::SelectResult>
+            (empty_selection);
 
     ColumnReference lo_s_ref = {lineorder, "supp key"};
     ColumnReference lo_c_ref = {lineorder, "cust key"};
@@ -1458,33 +1464,33 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     ColumnReference p_ref = {part, "part key"};
     ColumnReference d_ref = {date, "date key"};
 
-    auto p_selection = p_select_op_composite_1->select(part);
-    auto s_selection = s_select_op->select(supp);
-    auto c_selection = c_select_op->select(cust);
+    auto p_selection = p_select_op_composite_1->run();
+    auto s_selection = s_select_op->run();
+    auto c_selection = c_select_op->run();
 
     auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lo_s_ref, empty_selection,
+            lo_s_ref, empty_result,
             s_ref, s_selection);
 
-    auto join_result_1 = join_op_1->hash_join();
+    auto join_result_1 = join_op_1->run();
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            join_result_1, lo_c_ref,
+            lo_c_ref, join_result_1,
             c_ref, c_selection);
 
-    auto join_result_2 = join_op_2->hash_join();
+    auto join_result_2 = join_op_2->run();
 
     auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            join_result_2, lo_p_ref,
+            lo_p_ref, join_result_2,
             p_ref, p_selection);
 
-    auto join_result_3 = join_op_3->hash_join();
+    auto join_result_3 = join_op_3->run();
 
     auto join_op_4 = std::make_shared<hustle::operators::Join>(
-            join_result_3,  lo_d_ref,
-            d_ref, empty_selection);
+            lo_d_ref, join_result_3,
+            d_ref, empty_result);
 
-    auto join_result_4 = join_op_4->hash_join();
+    auto join_result_4 = join_op_4->run();
 
     std::vector<ColumnReference> group_bys = {{date,"year"},
                                               {cust, "nation"}};
