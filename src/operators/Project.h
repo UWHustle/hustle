@@ -25,6 +25,7 @@ public:
 
     Projection(std::vector<ProjectionUnit> projection_units);
     std::shared_ptr<Table> project();
+    std::shared_ptr<OperatorResult> run() override;
 
 private:
     std::vector<ProjectionUnit> projection_units_;

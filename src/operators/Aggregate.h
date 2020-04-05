@@ -36,6 +36,8 @@ public:
              std::vector<ColumnReference> order_by_fields);
 
     std::shared_ptr<Table> aggregate();
+    std::shared_ptr<OperatorResult> run() override;
+
 
 protected:
     arrow::compute::Datum selection_;

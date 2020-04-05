@@ -58,6 +58,7 @@ struct ColumnReference {
 };
 
 class Operator {
+    virtual std::shared_ptr<OperatorResult> run() = 0;
 public:
 
 };

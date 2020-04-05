@@ -56,6 +56,8 @@ public:
     * @return A vector of JoinResult.
     */
     std::vector<JoinResultColumn> hash_join();
+    std::shared_ptr<OperatorResult> run() override;
+
 
 private:
 

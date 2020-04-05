@@ -19,6 +19,10 @@ SelectComposite::SelectComposite(
     filter_operator_ = filter_operator;
 }
 
+std::shared_ptr<OperatorResult> SelectComposite::run() {
+    return std::make_shared<OperatorResult>();
+}
+
 arrow::compute::Datum SelectComposite::select(std::shared_ptr<Table> table) {
 
     return get_filter(table);
@@ -134,5 +138,8 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
         return out;
     }
 
+    std::shared_ptr<OperatorResult> Select::run() {
+        return std::make_shared<OperatorResult>();
+    }
     } // namespace operators
 } // namespace hustle

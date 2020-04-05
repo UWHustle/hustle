@@ -401,5 +401,9 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
         return out;
     }
 
+    std::shared_ptr<OperatorResult> Join::run() {
+    return std::make_shared<OperatorResult>();
+}
+
 } // namespace operators
 } // namespace hustle

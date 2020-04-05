@@ -648,6 +648,8 @@ arrow::compute::Datum Aggregate::compute_aggregate(
     return out_aggregate;
 }
 
-
+    std::shared_ptr<OperatorResult> Aggregate::run() {
+        return std::make_shared<OperatorResult>();
+    }
 } // namespace operators
 } // namespace hustle

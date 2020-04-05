@@ -53,5 +53,9 @@ std::shared_ptr<Table> OrderBy::order_by(std::shared_ptr<Table> table) {
     return std::shared_ptr<Table>();
 }
 
+    std::shared_ptr<OperatorResult> OrderBy::run() {
+        return std::make_shared<OperatorResult>();
+    }
+
 }
 }
