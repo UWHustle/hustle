@@ -12,7 +12,7 @@ namespace hustle {
 namespace operators {
 
 Aggregate::Aggregate(
-        std::vector<JoinResult> join_result,
+        std::vector<JoinResultColumn> join_result,
                      std::vector<AggregateUnit> aggregate_units,
                      std::vector<ColumnReference> group_bys,
                      std::vector<ColumnReference> order_bys) {

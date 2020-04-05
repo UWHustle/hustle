@@ -45,7 +45,7 @@ public:
      * @param right_selection the filter returned by an earlier selection on the
      * right table. If no selection was performed, pass in a null Datum.
      */
-    Join(std::vector<JoinResult>& left_join_result,
+    Join(std::vector<JoinResultColumn>& left_join_result,
                ColumnReference left,
                ColumnReference right,
                arrow::compute::Datum& right_selection);
@@ -55,11 +55,11 @@ public:
     *
     * @return A vector of JoinResult.
     */
-    std::vector<JoinResult> hash_join();
+    std::vector<JoinResultColumn> hash_join();
 
 private:
 
-    
+
     //
     arrow::compute::Datum left_filter_;
     arrow::compute::Datum right_filter_;
@@ -71,8 +71,8 @@ private:
     arrow::compute::Datum right_selection_;
 
     //TODO(nicholas): a better name?
-    std::vector<JoinResult> left_join_result_;
-    std::vector<JoinResult> right_join_result_;
+    std::vector<JoinResultColumn> left_join_result_;
+    std::vector<JoinResultColumn> right_join_result_;
 
     std::shared_ptr<Table> left_table_;
     std::shared_ptr<Table> right_table_;
@@ -85,16 +85,16 @@ private:
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-    std::vector<JoinResult> hash_join(
-            std::vector<JoinResult>&,
+    std::vector<JoinResultColumn> hash_join(
+            std::vector<JoinResultColumn>&,
             const std::shared_ptr<Table>& right_table);
-    std::vector<JoinResult> hash_join(
+    std::vector<JoinResultColumn> hash_join(
             const std::shared_ptr<Table>& left_table,
             const std::shared_ptr<Table>& right_table);
 
-    std::vector<JoinResult> probe_hash_table
+    std::vector<JoinResultColumn> probe_hash_table
         (std::shared_ptr<arrow::ChunkedArray> probe_col);
-        std::vector<JoinResult> probe_hash_table_2
+        std::vector<JoinResultColumn> probe_hash_table_2
                 (std::shared_ptr<arrow::ChunkedArray> probe_col);
 
     arrow::compute::Datum get_left_indices();

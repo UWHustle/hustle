@@ -15,8 +15,15 @@ enum FilterOperator {
     NONE
 };
 
-//TODO(nicholas): Better name?
-struct JoinResult {
+
+enum ResultType {
+    SELECT,
+    JOIN,
+    AGGREGATE,
+    PROJECT,
+};
+
+struct JoinResultColumn {
     // TODO(nicholas): Combine into a ColumnReference?
     std::shared_ptr<Table> table;
     std::string join_col_name;
@@ -25,6 +32,25 @@ struct JoinResult {
     arrow::compute::Datum filter; // filters are ChunkedArrays
     arrow::compute::Datum selection; // selections are Arrays
 };
+
+class OperatorResult {
+public:
+    virtual ~OperatorResult() = default;
+protected:
+    ResultType type;
+};
+
+class SelectResult : public OperatorResult {
+public:
+    arrow::compute::Datum filter;
+};
+
+class JoinResult : public OperatorResult {
+    std::vector<JoinResultColumn> join_results;
+};
+
+
+
 
 struct ColumnReference {
     std::shared_ptr<Table> table;

@@ -16,7 +16,7 @@ namespace operators {
 
     //TODO(nicholas): Change JoinResult to ColumnReference
 struct ProjectionUnit {
-    JoinResult ref;
+    JoinResultColumn ref;
     std::vector<std::shared_ptr<arrow::Field>> fields;
 };
 

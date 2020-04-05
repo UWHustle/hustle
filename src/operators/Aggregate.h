@@ -30,7 +30,7 @@ class Aggregate : public Operator{
 public:
 
     Aggregate(
-            std::vector<JoinResult> join_result,
+            std::vector<JoinResultColumn> join_result,
              std::vector<AggregateUnit> Aggregate_units,
              std::vector<ColumnReference> group_by_fields,
              std::vector<ColumnReference> order_by_fields);
@@ -39,7 +39,7 @@ public:
 
 protected:
     arrow::compute::Datum selection_;
-    std::vector<JoinResult> join_result_;
+    std::vector<JoinResultColumn> join_result_;
 
     std::vector<ColumnReference> order_bys_;
     std::vector<ColumnReference> group_bys_;
