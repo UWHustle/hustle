@@ -19,6 +19,7 @@ namespace operators {
 class SelectOperator : Operator {
 public:
     virtual arrow::compute::Datum get_filter(std::shared_ptr<Block> block) = 0;
+    virtual arrow::compute::Datum get_filter(std::shared_ptr<Table> table) = 0;
 };
 
 class Select : public SelectOperator{
@@ -39,10 +40,8 @@ private:
     std::string column_name_;
     arrow::compute::Datum column_value_;
 
-    arrow::compute::Datum get_filter
-            (std::shared_ptr<Block> block) override;
-    arrow::compute::Datum get_filter
-            (std::shared_ptr<Table> table);
+    arrow::compute::Datum get_filter(std::shared_ptr<Block> block) override;
+    arrow::compute::Datum get_filter(std::shared_ptr<Table> table) override;
 };
 
 class SelectComposite : public SelectOperator{
@@ -63,11 +62,8 @@ private:
     std::shared_ptr<SelectOperator> right_child_;
     FilterOperator filter_operator_;
 
-    arrow::compute::Datum get_filter
-            (std::shared_ptr<Block> block) override;
-
-        arrow::compute::Datum get_filter
-                (std::shared_ptr<Table> table);
+    arrow::compute::Datum get_filter(std::shared_ptr<Block> block) override;
+    arrow::compute::Datum get_filter(std::shared_ptr<Table> table) override;
 };
 
 } // namespace operators
