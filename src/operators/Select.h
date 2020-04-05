@@ -11,6 +11,11 @@
 namespace hustle {
 namespace operators {
 
+
+    //TODO(nicholas): Rename SelectComposite to Select and Select to
+    // SelectNode. Select will internally construct the tree, so Jerry
+    // doesn't have to do it himself. He could just pass in a vector of
+    // SelectPredicates. But how to handle ANDing/ORing of filters?
 class SelectOperator : Operator {
 public:
     virtual arrow::compute::Datum get_filter(std::shared_ptr<Block> block) = 0;
