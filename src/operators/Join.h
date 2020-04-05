@@ -32,33 +32,6 @@ public:
                ColumnReference right,
                std::shared_ptr<OperatorResult> right_selection);
 
-//    Join(ColumnReference left,
-//         ColumnReference right,
-//         std::shared_ptr<OperatorResult>& right_selection);
-//
-//    Join(ColumnReference left,
-//         std::shared_ptr<OperatorResult>& right_selection
-//         ColumnReference right,
-//         std::shared_ptr<OperatorResult>& right_selection);
-
-    /**
-     * Construct an Join operator to perform hash join on a vector of
-     * JoinResults and a Table.
-     *
-     * @param left_join_result The output of a previous call to hash_join().
-     * @param left a ColumnReference containing the left (outer) table and
-     * the name of the left join column. The left table must match one of the
-     * tables referenced in left_join_result.
-     * @param right a ColumnReference containing the right (inner) table and
-     * the name of the right join column.
-     * @param right_selection the filter returned by an earlier selection on the
-     * right table. If no selection was performed, pass in a null Datum.
-     */
-//    Join(std::vector<JoinResultColumn>& left_join_result,
-//               ColumnReference left,
-//               ColumnReference right,
-//               std::shared_ptr<OperatorResult>& right_selection);
-
     /**
     * Perform a natural join on two tables using hash join.
     *
