@@ -150,7 +150,7 @@ std::vector<JoinResultColumn> Join::hash_join(
     left_join_col_ = left_join_col;
 //    left_join_col_ = left_table_->get_column(left_join_col_index);
 
-    auto out = probe_hash_table_2(left_join_col);
+    auto out = probe_hash_table(left_join_col);
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
@@ -240,6 +240,13 @@ std::vector<JoinResultColumn> Join::probe_hash_table
     std::shared_ptr<arrow::Int64Array> left_indices;
     std::shared_ptr<arrow::Int64Array> right_indices;
 
+    std::shared_ptr<arrow::Int64Array> old_indices;
+    if (!left_join_result_.empty()){
+        old_indices = std::static_pointer_cast<arrow::Int64Array>
+                (left_join_result_[0].selection.make_array());
+    }
+
+
     // Probe phase
     int row_offset = 0;
     for (int i = 0; i < probe_col->num_chunks(); i++) {
@@ -255,7 +262,13 @@ std::vector<JoinResultColumn> Join::probe_hash_table
             if (hash_table_.count(key)) {
                 int64_t right_row_index = hash_table_[key];
 
-                int left_row_index = row_offset + row;
+                int left_row_index = -1;
+                if (!left_join_result_.empty()) {
+                    left_row_index = old_indices->Value(row_offset + row);
+                }
+                else {
+                    left_row_index = row_offset + row;
+                }
                 status = left_indices_builder.Append(left_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
@@ -286,68 +299,6 @@ std::vector<JoinResultColumn> Join::probe_hash_table
 
     return out;
 }
-
-    std::vector<JoinResultColumn> Join::probe_hash_table_2
-            (std::shared_ptr<arrow::ChunkedArray> probe_col) {
-
-        arrow::Status status;
-
-        arrow::Int64Builder left_indices_builder;
-        arrow::Int64Builder right_indices_builder;
-        std::shared_ptr<arrow::Int64Array> left_indices;
-        std::shared_ptr<arrow::Int64Array> right_indices;
-
-        auto old_indices = std::static_pointer_cast<arrow::Int64Array>
-                (left_join_result_[0]
-        .selection.make_array());
-
-        // Probe phase
-        int row_offset = 0;
-        for (int i = 0; i < probe_col->num_chunks(); i++) {
-
-            // TODO(nicholas): for now, we assume the join column is INT64 type.
-            auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                    probe_col->chunk(i));
-
-
-            for (int row = 0; row < left_join_chunk->length(); row++) {
-                auto key = left_join_chunk->Value(row);
-
-                if (hash_table_.count(key)) {
-                    int64_t right_row_index = hash_table_[key];
-
-                    int left_row_index = old_indices->Value(row_offset + row);
-                    status = left_indices_builder.Append(left_row_index);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-                    status = right_indices_builder.Append(right_row_index);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                }
-            }
-            row_offset += left_join_chunk->length();
-        }
-
-        // Note that ArrayBuilders are automatically reset by default after
-        // calling Finish()
-        status = left_indices_builder.Finish(&left_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        status = right_indices_builder.Finish(&right_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-        left_indices_ = left_indices;
-        right_indices_ = right_indices;
-
-        std::vector<JoinResultColumn> out;
-        out.push_back({left_table_, left_join_col_name_, probe_col,
-                       arrow::compute::Datum(left_filter_),
-                       arrow::compute::Datum (left_indices_)});
-        out.push_back({right_table_, right_join_col_name_, right_join_col_,
-                       arrow::compute::Datum(right_filter_),
-                       arrow::compute::Datum (right_indices_)});
-
-
-        return out;
-    }
 
 std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum selection) {
