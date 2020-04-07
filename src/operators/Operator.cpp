@@ -11,13 +11,10 @@ namespace operators {
 
     OperatorResultUnit::OperatorResultUnit(
         std::shared_ptr<Table> table,
-        std::string col_name,
-        std::shared_ptr<arrow::ChunkedArray> join_col,
         arrow::compute::Datum filter,
         arrow::compute::Datum selection) {
 
         table_ = table;
-        col_name_ = col_name;
         filter_ = filter;
         selection_ = selection;
     }

@@ -189,8 +189,6 @@ std::vector<JoinResultColumn> Join::hash_join(
                                           &res);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             output.push_back({left_join_result_[i].table,
-                              left_join_result_[i].join_col_name,
-                              left_join_result_[i].join_col,
                               left_join_result_[i].filter,
                               res});
 
@@ -290,10 +288,10 @@ std::vector<JoinResultColumn> Join::probe_hash_table
     right_indices_ = right_indices;
 
     std::vector<JoinResultColumn> out;
-    out.push_back({left_table_, left_join_col_name_, probe_col,
+    out.push_back({left_table_,
                    arrow::compute::Datum(left_filter_),
                    arrow::compute::Datum(left_indices_)});
-    out.push_back({right_table_, right_join_col_name_, right_join_col_,
+    out.push_back({right_table_,
                    arrow::compute::Datum(right_filter_),
                    arrow::compute::Datum(right_indices_)});
 
