@@ -37,7 +37,7 @@ public:
     *
     * @return A vector of JoinResult.
     */
-    std::vector<JoinResultColumn> hash_join();
+    std::vector<OperatorResultUnit> hash_join();
     std::shared_ptr<OperatorResult> run() override;
 
 
@@ -53,8 +53,8 @@ private:
     arrow::compute::Datum right_selection_;
 
     //TODO(nicholas): a better name?
-    std::vector<JoinResultColumn> left_join_result_;
-    std::vector<JoinResultColumn> right_join_result_;
+    std::vector<OperatorResultUnit> left_join_result_;
+    std::vector<OperatorResultUnit> right_join_result_;
 
     std::shared_ptr<Table> left_table_;
     std::shared_ptr<Table> right_table_;
@@ -67,16 +67,16 @@ private:
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-    std::vector<JoinResultColumn> hash_join(
-            std::vector<JoinResultColumn>&,
+    std::vector<OperatorResultUnit> hash_join(
+            std::vector<OperatorResultUnit>&,
             const std::shared_ptr<Table>& right_table);
-    std::vector<JoinResultColumn> hash_join(
+    std::vector<OperatorResultUnit> hash_join(
             const std::shared_ptr<Table>& left_table,
             const std::shared_ptr<Table>& right_table);
 
-    std::vector<JoinResultColumn> probe_hash_table
+    std::vector<OperatorResultUnit> probe_hash_table
         (std::shared_ptr<arrow::ChunkedArray> probe_col);
-        std::vector<JoinResultColumn> probe_hash_table_2
+        std::vector<OperatorResultUnit> probe_hash_table_2
                 (std::shared_ptr<arrow::ChunkedArray> probe_col);
 
     std::unordered_map<int64_t, int64_t> build_hash_table

@@ -23,7 +23,9 @@ SelectComposite::SelectComposite(
 
 std::shared_ptr<OperatorResult> SelectComposite::run() {
     auto filter = get_filter(table_);
-    return std::make_shared<SelectResult>(filter);
+    OperatorResultUnit result_unit(table_, filter, arrow::compute::Datum());
+    OperatorResult result({result_unit});
+    return std::make_shared<OperatorResult>(result);
 }
 
 arrow::compute::Datum SelectComposite::get_filter
@@ -97,7 +99,9 @@ Select::Select(
 
 std::shared_ptr<OperatorResult> Select::run() {
     auto filter = get_filter(table_);
-    return std::make_shared<SelectResult>(filter);
+    OperatorResultUnit result_unit(table_, filter, arrow::compute::Datum());
+    OperatorResult result({result_unit});
+    return std::make_shared<OperatorResult>(result);
 }
 
     arrow::compute::Datum Select::get_filter

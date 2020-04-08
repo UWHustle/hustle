@@ -14,31 +14,24 @@ namespace operators {
         arrow::compute::Datum filter,
         arrow::compute::Datum selection) {
 
-        table_ = table;
-        filter_ = filter;
-        selection_ = selection;
+        this->table = table;
+        this->filter = filter;
+        this->selection = selection;
+    }
+
+    OperatorResult::OperatorResult(
+            std::vector<OperatorResultUnit> units) {
+
+        units_ = units;
+    }
+
+    OperatorResult::OperatorResult(){
+
     }
 
     ResultType OperatorResult::get_type() {
         return type_;
     }
 
-    JoinResult::JoinResult(std::vector <JoinResultColumn> join_results) {
-        join_results_ = join_results;
-        type_ = JOIN;
-    }
-
-//    arrow::compute::Datum JoinResult::get_filter() {
-//        return
-//    }
-
-    SelectResult::SelectResult(arrow::compute::Datum filter) {
-        filter_ = filter;
-        type_ = SELECT;
-    }
-
-//    arrow::compute::Datum SelectResult::get_indices() {
-//        return arrow::compute::Datum();
-//    }
 }
 }

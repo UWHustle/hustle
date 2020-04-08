@@ -25,7 +25,6 @@ using hustle::operators::AggregateKernels ;
 using hustle::operators::Projection ;
 using hustle::operators::ProjectionUnit ;
 using hustle::operators::ColumnReference ;
-using hustle::operators::JoinResult ;
 
 
 class SSBTestFixture : public testing::Test {
@@ -1449,10 +1448,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
                                           ("AMERICA"))
     );
 
-
-    arrow::compute::Datum empty_selection;
-    auto empty_result = std::make_shared<hustle::operators::SelectResult>
-            (empty_selection);
+    auto empty_result = std::make_shared<hustle::operators::OperatorResult>();
 
     ColumnReference lo_s_ref = {lineorder, "supp key"};
     ColumnReference lo_c_ref = {lineorder, "cust key"};
@@ -1473,6 +1469,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
             s_ref, s_selection);
 
     auto join_result_1 = join_op_1->run();
+    std::cout << join_result_1->units_[1].selection.length() << std::endl;
 
     auto join_op_2 = std::make_shared<hustle::operators::Join>(
             lo_c_ref, join_result_1,

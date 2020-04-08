@@ -12,9 +12,9 @@ namespace hustle {
 namespace operators {
 
 Join::Join(ColumnReference left,
-         std::shared_ptr<OperatorResult> left_selection,
+         std::shared_ptr<OperatorResult> left_prev,
          ColumnReference right,
-         std::shared_ptr<OperatorResult> right_selection){
+         std::shared_ptr<OperatorResult> right_prev){
 
     left_join_col_name_ = left.col_name;
     right_join_col_name_ = right.col_name;
@@ -22,40 +22,29 @@ Join::Join(ColumnReference left,
     left_table_ = left.table;
     right_table_ = right.table;
 
-    switch(left_selection->get_type()) {
-        case SELECT: {
-            left_selection_ = std::static_pointer_cast<SelectResult>
-                    (left_selection)->filter_;
-            break;
-        }
-        case JOIN: {
-            left_join_result_ = std::static_pointer_cast<JoinResult>
-                    (left_selection)->join_results_;
-            break;
-        }
-        default: {
-            std::cerr << "left_selection must be of SELECT or JOIN type." <<
-            std::endl;
+    for (int i=0; i<left_prev->units_.size(); i++) {
+        if (left_table_ == left_prev->units_[i].table) {
+            left_filter_ = left_prev->units_[i].filter;
+            left_selection_ = left_prev->units_[i].selection;
+            left_join_result_ = left_prev->units_;
         }
     }
-
-    switch(right_selection->get_type()) {
-        case SELECT: {
-            right_selection_ = std::static_pointer_cast<SelectResult>
-                    (right_selection)->filter_;
-            break;
-        }
-        default: {
-            std::cerr << "right_selection must be of SELECT type." << std::endl;
+    for (int i=0; i<right_prev->units_.size(); i++) {
+        if (right_table_ == right_prev->units_[i].table) {
+            right_filter_ = right_prev->units_[i].filter;
+            right_selection_ = right_prev->units_[i].selection;
+            right_join_result_ = right_prev->units_;
         }
     }
+    
 }
 
-std::vector<JoinResultColumn> Join::hash_join() {
 
-    std::vector<JoinResultColumn> out_join_result;
+std::vector<OperatorResultUnit> Join::hash_join() {
 
-    if (left_table_ == nullptr) {
+    std::vector<OperatorResultUnit> out_join_result;
+
+    if (!left_join_result_.empty()) {
         out_join_result = hash_join(left_join_result_, right_table_);
     }
     else {
@@ -66,21 +55,18 @@ std::vector<JoinResultColumn> Join::hash_join() {
 
 }
 
-std::vector<JoinResultColumn> Join::hash_join(
+std::vector<OperatorResultUnit> Join::hash_join(
         const std::shared_ptr<Table>& left_table,
         const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
 
-    if (left_selection_.is_arraylike()) {
-        left_filter_ = left_selection_.chunked_array();
-    }
-    if (right_selection_.is_arraylike()) {
-        right_filter_ = right_selection_.chunked_array();
-    }
-
     auto right_join_col = apply_selection(
             right_table_->get_column_by_name(right_join_col_name_),
+            right_filter_);
+
+    right_join_col = apply_selection(
+            right_join_col,
             right_selection_);
 
     right_join_col_ = right_join_col;
@@ -92,25 +78,23 @@ std::vector<JoinResultColumn> Join::hash_join(
     left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
-    std::make_shared<JoinResult>(out);
+    std::make_shared<OperatorResult>(out);
     return out;
 }
 
 
-std::vector<JoinResultColumn> Join::hash_join(
-        std::vector<JoinResultColumn>& left_join_result,
+std::vector<OperatorResultUnit> Join::hash_join(
+        std::vector<OperatorResultUnit>& left_join_result,
         const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
 
-    right_table_ = right_table;
-
-    if (right_selection_.is_arraylike()) {
-        right_filter_ = right_selection_.chunked_array();
-    }
-
     auto right_join_col = apply_selection(
             right_table->get_column_by_name(right_join_col_name_),
+            right_filter_);
+
+    right_join_col = apply_selection(
+            right_join_col,
             right_selection_);
 
 
@@ -176,7 +160,7 @@ std::vector<JoinResultColumn> Join::hash_join(
 
     arrow::compute::Datum res;
 
-    std::vector<JoinResultColumn> output;
+    std::vector<OperatorResultUnit> output;
     output.push_back(out[0]);
 
     for (int i=0; i<left_join_result_.size(); i++) {
@@ -228,7 +212,7 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
     return hash;
 }
 
-std::vector<JoinResultColumn> Join::probe_hash_table
+std::vector<OperatorResultUnit> Join::probe_hash_table
 (std::shared_ptr<arrow::ChunkedArray> probe_col) {
 
     arrow::Status status;
@@ -287,7 +271,7 @@ std::vector<JoinResultColumn> Join::probe_hash_table
     left_indices_ = left_indices;
     right_indices_ = right_indices;
 
-    std::vector<JoinResultColumn> out;
+    std::vector<OperatorResultUnit> out;
     out.push_back({left_table_,
                    arrow::compute::Datum(left_filter_),
                    arrow::compute::Datum(left_indices_)});
@@ -344,7 +328,7 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 
     std::shared_ptr<OperatorResult> Join::run() {
 
-        std::vector<JoinResultColumn> out_join_result_cols;
+        std::vector<OperatorResultUnit> out_join_result_cols;
 
         if (!left_join_result_.empty()) {
             out_join_result_cols = hash_join(left_join_result_, right_table_);
@@ -353,8 +337,11 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
             out_join_result_cols = hash_join(left_table_, right_table_);
         }
 
-        return std::make_shared<JoinResult>(out_join_result_cols);
+        return std::make_shared<OperatorResult>(out_join_result_cols);
     }
+
+
+
 
 } // namespace operators
 } // namespace hustle

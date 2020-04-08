@@ -17,7 +17,7 @@ Aggregate::Aggregate(
                      std::vector<ColumnReference> group_bys,
                      std::vector<ColumnReference> order_bys) {
 
-    join_result_ = std::static_pointer_cast<JoinResult>(join_result)->join_results_;
+    join_result_ = join_result->units_;
     aggregate_units_ = aggregate_units;
 
     group_bys_ = std::move(group_bys);
@@ -651,7 +651,9 @@ arrow::compute::Datum Aggregate::compute_aggregate(
 }
 
     std::shared_ptr<OperatorResult> Aggregate::run() {
-        return std::make_shared<OperatorResult>();
+        std::vector<OperatorResultUnit> units;
+        OperatorResult result({units});
+        return std::make_shared<OperatorResult>(result);
     }
 } // namespace operators
 } // namespace hustle

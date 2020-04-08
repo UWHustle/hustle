@@ -41,7 +41,7 @@ public:
 
 protected:
     arrow::compute::Datum selection_;
-    std::vector<JoinResultColumn> join_result_;
+    std::vector<OperatorResultUnit> join_result_;
 
     std::vector<ColumnReference> order_bys_;
     std::vector<ColumnReference> group_bys_;

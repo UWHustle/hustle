@@ -89,7 +89,9 @@ namespace hustle {
         }
 
         std::shared_ptr<OperatorResult> run() {
-            return std::make_shared<OperatorResult>();
+            std::vector<OperatorResultUnit> units;
+            OperatorResult result({units});
+            return std::make_shared<OperatorResult>(result);
         }
 
     }
