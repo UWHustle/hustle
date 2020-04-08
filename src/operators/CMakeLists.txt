@@ -4,7 +4,6 @@ add_library(
         Join.h Join.cpp
         Aggregate.h Aggregate.cpp
         Select.h Select.cpp
-        OrderBy.cpp OrderBy.h
         Project.cpp Project.h
 )
 target_include_directories(operators PUBLIC ${ARROW_INCLUDE_DIR})
