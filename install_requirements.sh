@@ -3,11 +3,15 @@
 if [[ `uname` == "Darwin" ]]; then
                 brew update && brew bundle --file=Brewfile
 elif [[ `uname` == "Linux" ]]; then
-                wget https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz
-                tar -xzvf cmake-3.15.5.tar.gz
-                rm -f cmake-3.15.5.tar.gz
-                cd cmake-3.15.5 && ./bootstrap && make -j 6 && sudo make install
-                rm -rf cmake-3.15.5
+                if [ ! -d "/path/to/dir" ]
+                then
+                  wget https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz
+                  tar -xzvf cmake-3.15.5.tar.gz
+                  rm -f cmake-3.15.5.tar.gz
+                  cd cmake-3.15.5 && ./bootstrap && make -j 6
+                else
+                  cd cmake-3.15.5 && sudo make install
+                fi
                 sudo apt-get install software-properties-common --yes
                 sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
                 sudo apt-get update
