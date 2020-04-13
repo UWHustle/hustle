@@ -7,8 +7,17 @@
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
+#include "Operator.h"
 
+namespace hustle {
+namespace operators {
+
+
+// JoinPredicate vs SelectPredicate? One has another column as the RHS, the
+// other has a literal.
 struct Predicate {
+    // The LHS side of the predicate (i.e. the column) will be provided
+    // inside the operator.
     ColumnReference col_ref;
     arrow::compute::CompareOperator comparator;
     arrow::compute::Datum value;
@@ -22,13 +31,19 @@ struct PredicateNode {
 
 };
 
-class Predicate {
+class PredicateTree {
 
 public:
 
     std::shared_ptr<PredicateNode> root;
 
 };
+
+
+}
+}
+
+
 
 
 
