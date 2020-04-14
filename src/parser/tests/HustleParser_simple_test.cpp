@@ -11,7 +11,7 @@ using namespace testing;
 using namespace hustle::parser;
 using nlohmann::json;
 
-class ResolverSimpleTest : public Test {
+class ParserSimpleTest : public Test {
   void SetUp() override {
     /**
       CREATE TABLE Subscriber(c1 INT  NOT NULL , c2 CHAR(10)  UNIQUE);
@@ -47,7 +47,7 @@ class ResolverSimpleTest : public Test {
   }
 };
 
-TEST_F(ResolverSimpleTest, test1) {
+TEST_F(ParserSimpleTest, test1) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
@@ -86,7 +86,7 @@ TEST_F(ResolverSimpleTest, test1) {
   EXPECT_EQ(out, out_val);
 }
 
-TEST_F(ResolverSimpleTest, test2) {
+TEST_F(ParserSimpleTest, test2) {
   hustle::HustleDB hustleDB("db_directory");
 
   std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
