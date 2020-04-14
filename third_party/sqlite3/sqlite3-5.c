@@ -3,6 +3,7 @@ extern char tableList[];
 extern char project[];
 extern char loopPred[];
 extern char otherPred[];
+extern char aggregate[];
 extern char groupBy[];
 extern char orderBy[];
 extern char* currPos;
@@ -6688,7 +6689,7 @@ SQLITE_PRIVATE int sqlite3Select(
 
   } /* endif aggregate query */
 
-  /// Lichengxi: generate project, groouBy and orderBy
+  /// Lichengxi: generate project, aggregate, groupBy and orderBy
   if (currPos != NULL) {
     currPos = project;
     for (int k = 0; k < pEList->nExpr; k++) {
@@ -6697,6 +6698,13 @@ SQLITE_PRIVATE int sqlite3Select(
       currPos += sprintf(currPos, "}");
       if (k != pEList->nExpr - 1) {
         currPos += sprintf(currPos, ", ");
+      }
+    }
+
+    currPos = aggregate;
+    for (int k = 0; k < pEList->nExpr; k++) {
+      if (pEList->a[k].pExpr->op == TK_AGG_FUNCTION) {
+        resolveExpr(pEList->a[k].pExpr);
       }
     }
 

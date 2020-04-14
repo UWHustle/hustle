@@ -1,14 +1,14 @@
 add_library(
         parser
-        Parser.h
-        ParseTree.h
+        Parser.h Parser.cpp
+        ParseTree.h ParseTree.cpp
 )
 
 target_link_libraries(parser
         catalog
 )
 
-add_executable(hustle_parser_simple_test "tests/HustleParser_simple_test.cpp")
+add_executable(hustle_parser_simple_test tests/HustleParser_simple_test.cpp)
 target_link_libraries(hustle_parser_simple_test
         gtest
         gtest_main
@@ -16,6 +16,7 @@ target_link_libraries(hustle_parser_simple_test
         catalog
         sqlite3
         hustleDB
+        parser
         )
 add_test(HustleParser_test hustle_parser_simple_test)
 
@@ -27,5 +28,6 @@ target_link_libraries(hustle_parser_ssb_test
         catalog
         sqlite3
         hustleDB
+        parser
         )
 add_test(HustleParser_test hustle_parser_ssb_test)

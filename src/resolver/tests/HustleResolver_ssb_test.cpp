@@ -1,5 +1,4 @@
 #include <iostream>
-#include <resolver/Resolver.h>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "sqlite3/sqlite3.h"
@@ -7,12 +6,14 @@
 #include "api/HustleDB.h"
 #include "catalog/Catalog.h"
 #include "parser/Parser.h"
+#include <resolver/Resolver.h>
 
 using namespace testing;
 using namespace hustle::parser;
 using nlohmann::json;
 
 class ResolverSSBTest : public Test {
+ protected:
   void SetUp() override {
   /**
     CREATE TABLE part
@@ -244,40 +245,20 @@ class ResolverSSBTest : public Test {
   }
 };
 
-
-TEST_F(ResolverSSBTest, ssb_qtemp) {
-  hustle::HustleDB hustleDB("db_directory");
-
-  std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice) as revenue "
-                      "from lineorder, ddate "
-                      "where lo_orderdate = d_datekey and d_year = 1993 and lo_discount between 1 and 3 and lo_quantity < 25;";
-
-  hustleDB.getPlan(query);
-
-  auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
-  parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
-
-  // TODO(Lichengxi): build validation plan
-
-}
-
 TEST_F(ResolverSSBTest, ssb_q1) {
   hustle::HustleDB hustleDB("db_directory");
 
-  std::string query = "EXPLAIN QUERY PLAN select lo_extendedprice, sum(lo_extendedprice * lo_discount) as revenue "
+  std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice * lo_discount) as revenue "
                       "from lineorder, ddate "
                       "where lo_orderdate = d_datekey and d_year = 1993 and lo_discount between 1 and 3 and lo_quantity < 25;";
 
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 
@@ -296,10 +277,10 @@ TEST_F(ResolverSSBTest, ssb_q2) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 
@@ -308,7 +289,7 @@ TEST_F(ResolverSSBTest, ssb_q2) {
 TEST_F(ResolverSSBTest, ssb_q3) {
   hustle::HustleDB hustleDB("db_directory");
 
-  std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice*lo_discount) as revenue\n"
+  std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice * lo_discount) as revenue\n"
                       "from lineorder, ddate\n"
                       "where lo_orderdate = d_datekey\n"
                       "and d_weeknuminyear = 6 and d_year = 1994\n"
@@ -318,10 +299,10 @@ TEST_F(ResolverSSBTest, ssb_q3) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -342,10 +323,11 @@ TEST_F(ResolverSSBTest, ssb_q4) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  std::cout << "Plan:" << parser->toString(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -366,10 +348,10 @@ TEST_F(ResolverSSBTest, ssb_q5) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -390,10 +372,10 @@ TEST_F(ResolverSSBTest, ssb_q6) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -415,10 +397,11 @@ TEST_F(ResolverSSBTest, ssb_q7) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  std::cout << "Plan:" << parser->toString(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -440,10 +423,10 @@ TEST_F(ResolverSSBTest, ssb_q8) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -465,10 +448,10 @@ TEST_F(ResolverSSBTest, ssb_q9) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -490,10 +473,10 @@ TEST_F(ResolverSSBTest, ssb_q10) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -516,10 +499,10 @@ TEST_F(ResolverSSBTest, ssb_q11) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -527,27 +510,26 @@ TEST_F(ResolverSSBTest, ssb_q11) {
 TEST_F(ResolverSSBTest, ssb_q12) {
   hustle::HustleDB hustleDB("db_directory");
 
-  std::string
-      query = "EXPLAIN QUERY PLAN select d_year, s_nation, p_category, sum(lo_revenue-lo_supplycost) as profit1\n"
-              "\tfrom ddate, customer, supplier, part, lineorder\n"
-              "\twhere lo_partkey = p_partkey\n"
-              "\t\tand lo_suppkey = s_suppkey\n"
-              "\t\tand lo_custkey = c_custkey\n"
-              "\t\tand lo_orderdate = d_datekey\n"
-              "\t\tand c_region = 'AMERICA'\n"
-              "\t\tand s_region = 'AMERICA'\n"
-              "\t\tand (d_year = 1997 or d_year = 1998)\n"
-              "\t\tand (p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2')\n"
-              "\tgroup by d_year, s_nation, p_category\n"
-              "\torder by d_year, s_nation, p_category;";
+  std::string query = "EXPLAIN QUERY PLAN select d_year, s_nation, p_category, sum(lo_revenue) as profit1\n"
+                      "\tfrom ddate, customer, supplier, part, lineorder\n"
+                      "\twhere lo_partkey = p_partkey\n"
+                      "\t\tand lo_suppkey = s_suppkey\n"
+                      "\t\tand lo_custkey = c_custkey\n"
+                      "\t\tand lo_orderdate = d_datekey\n"
+                      "\t\tand c_region = 'AMERICA'\n"
+                      "\t\tand s_region = 'AMERICA'\n"
+                      "\t\tand (d_year = 1997 or d_year = 1998)\n"
+                      "\t\tand (p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2')\n"
+                      "\tgroup by d_year, s_nation, p_category\n"
+                      "\torder by d_year, s_nation, p_category;";
 
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 }
@@ -555,7 +537,7 @@ TEST_F(ResolverSSBTest, ssb_q12) {
 TEST_F(ResolverSSBTest, ssb_q13) {
   hustle::HustleDB hustleDB("db_directory");
 
-  std::string query = "EXPLAIN QUERY PLAN select d_year, s_city, p_brand1, sum(lo_revenue-lo_supplycost) as profit1\n"
+  std::string query = "EXPLAIN QUERY PLAN select d_year, s_city, p_brand1, sum(lo_revenue) as profit1\n"
                       "\tfrom ddate, customer, supplier, part, lineorder\n"
                       "\twhere lo_partkey = p_partkey\n"
                       "\t\tand lo_suppkey = s_suppkey\n"
@@ -571,10 +553,10 @@ TEST_F(ResolverSSBTest, ssb_q13) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>();
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
   parser->parse(query, hustleDB);
-  resolver->resolve(parser->get_parse_tree(), hustleDB.getCatalog());
-  std::cout << "Plan:" << resolver->to_string(4) << std::endl;
+  resolver->resolve(parser->getParseTree());
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation plan
 
