@@ -13,19 +13,20 @@ We follow [these guidelines](https://arrow.apache.org/docs/developers/cpp/develo
 
 ## Build Hustle
 
-To install the required packages for Hustle use the following script:
+To install the required packages for Hustle use the following scripts:
 
 ```
 ./install_requirements.sh
-
+./install_arrow.sh
 ```
-This script will install g++9 and cmake 3.15.
+The scripts will install g++9, cmake 3.15 and Apache Arrow.
 
 Then use cmake to build Hustle:
 ```
 mkdir build
 cd build
 cmake -D CMAKE_BUILD_TYPE=DEBUG .. 
+make -j<number of cores>
 ```
 
 To run the test go into the build directory and use:
