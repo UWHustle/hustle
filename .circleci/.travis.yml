@@ -1,0 +1,11 @@
+language: cpp
+
+dist: bionic
+
+script:
+  - ./install_requirements.sh
+  - ./install_arrow.sh
+  - mkdir build
+  - (cd build && ../cmake-3.15.5/bin/cmake .. )
+  - (cd build && make -j 4)
+  - (cd build && ../cmake-3.15.5/bin/ctest --output-on-failure)
