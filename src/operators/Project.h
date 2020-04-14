@@ -14,11 +14,8 @@
 namespace hustle {
 namespace operators {
 
-    //TODO(nicholas): Make ProjectionUnit a SelectionReference containing a
-    // ColumnReference?
 struct ProjectionUnit {
-    std::shared_ptr<Table> table;
-    arrow::compute::Datum selection;
+    OperatorResultUnit ref;
     std::vector<std::shared_ptr<arrow::Field>> fields;
 };
 
@@ -26,11 +23,11 @@ class Projection : public Operator {
 public:
 
     Projection(std::vector<ProjectionUnit> projection_units);
-    std::shared_ptr<Table> Project(std::vector<ProjectionUnit> projection_units);
+    std::shared_ptr<Table> project();
+    std::shared_ptr<OperatorResult> run() override;
 
-    std::shared_ptr<Table> run_operator
-            (std::vector<std::shared_ptr<Table>> tables);
-
+private:
+    std::vector<ProjectionUnit> projection_units_;
 };
 
 

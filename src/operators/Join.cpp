@@ -11,118 +11,175 @@
 namespace hustle {
 namespace operators {
 
-Join::Join(std::string left_column_name, std::string right_column_name) {
-    left_join_column_name_ = std::move(left_column_name);
-    right_join_column_name_ = std::move(right_column_name);
+Join::Join(ColumnReference left,
+         std::shared_ptr<OperatorResult> left_prev,
+         ColumnReference right,
+         std::shared_ptr<OperatorResult> right_prev){
 
-    std::tuple<std::shared_ptr<Table>, std::shared_ptr<Table>> tables;
+    left_join_col_name_ = left.col_name;
+    right_join_col_name_ = right.col_name;
+
+    left_table_ = left.table;
+    right_table_ = right.table;
+
+    for (int i=0; i<left_prev->units_.size(); i++) {
+        if (left_table_ == left_prev->units_[i].table) {
+            left_filter_ = left_prev->units_[i].filter;
+            left_selection_ = left_prev->units_[i].selection;
+            left_join_result_ = left_prev->units_;
+        }
+    }
+    for (int i=0; i<right_prev->units_.size(); i++) {
+        if (right_table_ == right_prev->units_[i].table) {
+            right_filter_ = right_prev->units_[i].filter;
+            right_selection_ = right_prev->units_[i].selection;
+            right_join_result_ = right_prev->units_;
+        }
+    }
+    
+}
+
+
+std::vector<OperatorResultUnit> Join::hash_join() {
+
+    std::vector<OperatorResultUnit> out_join_result;
+
+    if (!left_join_result_.empty()) {
+        out_join_result = hash_join(left_join_result_, right_table_);
+    }
+    else {
+        out_join_result = hash_join(left_table_, right_table_);
+    }
+
+    return out_join_result;
 
 }
 
-std::vector<SelectionReference> Join::hash_join(
+std::vector<OperatorResultUnit> Join::hash_join(
         const std::shared_ptr<Table>& left_table,
-        const arrow::compute::Datum& left_selection,
-        const std::shared_ptr<Table>& right_table,
-        const arrow::compute::Datum& right_selection) {
+        const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
 
-    left_table_ = left_table;
-    right_table_ = right_table;
-
     auto right_join_col = apply_selection(
-            right_table->get_column_by_name(right_join_column_name_),
-            right_selection);
+            right_table_->get_column_by_name(right_join_col_name_),
+            right_filter_);
 
+    right_join_col = apply_selection(
+            right_join_col,
+            right_selection_);
+
+    right_join_col_ = right_join_col;
     hash_table_ = build_hash_table(right_join_col);
-//    probe_hash_table(left_table, left_selection);
 
     auto left_join_col = apply_selection(
-            left_table->get_column_by_name(left_join_column_name_),
-            left_selection);
-
+            left_table_->get_column_by_name(left_join_col_name_),
+            left_selection_);
+    left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
+    std::make_shared<OperatorResult>(out);
     return out;
-
 }
 
 
-std::vector<SelectionReference> Join::hash_join(
-        const std::vector<SelectionReference>& left,
-        const std::shared_ptr<Table>& right_table,
-        const arrow::compute::Datum& right_selection) {
+std::vector<OperatorResultUnit> Join::hash_join(
+        std::vector<OperatorResultUnit>& left_join_result,
+        const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
 
-    right_table_ = right_table;
-
     auto right_join_col = apply_selection(
-            right_table->get_column_by_name(right_join_column_name_),
-            right_selection);
+            right_table->get_column_by_name(right_join_col_name_),
+            right_filter_);
 
+    right_join_col = apply_selection(
+            right_join_col,
+            right_selection_);
+
+
+    right_join_col_ = right_join_col;
+//right_join_col_ = right_table->get_column_by_name(right_join_col_name_);
     hash_table_ = build_hash_table(right_join_col);
 
     int selection_reference_index = -1;
     int left_join_col_index = -1;
 
-    for (int i=0; i<left.size(); i++) {
-        int index = left[i].table->get_schema()->GetFieldIndex
-                (left_join_column_name_);
+    // TODO(nicholas): This will find the wrong table if lineorder is not
+    //  at index 0, since the left and right join columns usually have the
+    //  same name!
+    for (int i=0; i<left_join_result_.size(); i++) {
+        int index = left_join_result_[i].table->get_schema()->GetFieldIndex
+                (left_join_col_name_);
         if (index >= 0) {
             left_join_col_index = index;
             selection_reference_index = i;
             break;
         }
     }
-    left_table_ = left[selection_reference_index].table;
+    //TODO(nicholas): left_table_ must also be filtered! None of the SSB
+    // queries with multiple joins perform a selection on Lineorder beforehand,
+    // so this part is not yet verified.
+    left_table_ = left_join_result_[selection_reference_index].table;
     auto left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
-            left[selection_reference_index].selection
+            arrow::compute::Datum(left_join_result_[selection_reference_index]
+            .filter)
     );
+    left_join_col = apply_selection(
+            left_table_->get_column(left_join_col_index),
+            left_join_result_[selection_reference_index].selection
+    );
+
+    left_join_col_ = left_join_col;
+//    left_join_col_ = left_table_->get_column(left_join_col_index);
 
     auto out = probe_hash_table(left_join_col);
 
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
+    arrow::compute::Datum matched_indices;
     arrow::compute::Datum out_indices;
     std::shared_ptr<arrow::ChunkedArray> out_ref;
 
-    std::cout << "BEFORE = " << left[selection_reference_index].selection
-    .make_array()->ToString() << std::endl;
-//    status = arrow::compute::Match(&function_context,
-//                                   out[0].selection,
-//            left[selection_reference_index].selection,
-//            &out_indices);
-    status = arrow::compute::Match(&function_context,
-                                   left[selection_reference_index].selection,
-                                   out[0].selection,
-                                   &out_indices);
-    std::cout << "AFTER = " << out_indices.make_array()->ToString() <<
-    std::endl;
+    out_indices = arrow::compute::Datum(out[0].selection);
+
+    status = arrow::compute::Match(&function_context, out[0].selection,
+            left_join_result_[selection_reference_index].selection,
+            &matched_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    status = arrow::compute::Take(&function_context,
+                                  left_join_result_[selection_reference_index].selection,
+                                  matched_indices,
+                                  take_options,
+                                  &out[0].selection);
 
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     arrow::compute::Datum res;
 
-    std::vector<SelectionReference> output;
+    std::vector<OperatorResultUnit> output;
     output.push_back(out[0]);
-    output.push_back(out[1]);
 
-
-    for (int i=0; i<left.size(); i++) {
+    for (int i=0; i<left_join_result_.size(); i++) {
         if (i != selection_reference_index) {
+
             status = arrow::compute::Take(&function_context,
-                                          left[i].selection,
-                                          out_indices,
+                                          left_join_result_[i].selection,
+                                          matched_indices,
                                           take_options,
                                           &res);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            output.push_back({left[i].table, res});
+            output.push_back({left_join_result_[i].table,
+                              left_join_result_[i].filter,
+                              res});
+
         }
     }
 
+    output.push_back(out[1]);
 
     return output;
 
@@ -148,7 +205,6 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
 
         for (int row=0; row<chunk->length(); row++) {
             hash[chunk->Value(row)] = row_offset + row;
-            // We only need this info if no selection was done beforehand.
         }
         row_offset += chunk->length();
     }
@@ -156,7 +212,7 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
     return hash;
 }
 
-std::vector<SelectionReference> Join::probe_hash_table
+std::vector<OperatorResultUnit> Join::probe_hash_table
 (std::shared_ptr<arrow::ChunkedArray> probe_col) {
 
     arrow::Status status;
@@ -166,8 +222,15 @@ std::vector<SelectionReference> Join::probe_hash_table
     std::shared_ptr<arrow::Int64Array> left_indices;
     std::shared_ptr<arrow::Int64Array> right_indices;
 
-    int left_block_offset = 0;
+    std::shared_ptr<arrow::Int64Array> old_indices;
+    if (!left_join_result_.empty()){
+        old_indices = std::static_pointer_cast<arrow::Int64Array>
+                (left_join_result_[0].selection.make_array());
+    }
+
+
     // Probe phase
+    int row_offset = 0;
     for (int i = 0; i < probe_col->num_chunks(); i++) {
 
         // TODO(nicholas): for now, we assume the join column is INT64 type.
@@ -181,7 +244,13 @@ std::vector<SelectionReference> Join::probe_hash_table
             if (hash_table_.count(key)) {
                 int64_t right_row_index = hash_table_[key];
 
-                int left_row_index = left_block_offset + row;
+                int left_row_index = -1;
+                if (!left_join_result_.empty()) {
+                    left_row_index = old_indices->Value(row_offset + row);
+                }
+                else {
+                    left_row_index = row_offset + row;
+                }
                 status = left_indices_builder.Append(left_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
@@ -189,7 +258,7 @@ std::vector<SelectionReference> Join::probe_hash_table
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
-        left_block_offset += left_join_chunk->length();
+        row_offset += left_join_chunk->length();
     }
 
     // Note that ArrayBuilders are automatically reset by default after
@@ -202,9 +271,13 @@ std::vector<SelectionReference> Join::probe_hash_table
     left_indices_ = left_indices;
     right_indices_ = right_indices;
 
-    std::vector<SelectionReference> out;
-    out.push_back({left_table_, get_left_indices()});
-    out.push_back({right_table_, get_right_indices()});
+    std::vector<OperatorResultUnit> out;
+    out.push_back({left_table_,
+                   arrow::compute::Datum(left_filter_),
+                   arrow::compute::Datum(left_indices_)});
+    out.push_back({right_table_,
+                   arrow::compute::Datum(right_filter_),
+                   arrow::compute::Datum(right_indices_)});
 
     return out;
 }
@@ -213,21 +286,27 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum selection) {
 
     arrow::Status status;
+    auto datum_col = arrow::compute::Datum(col);
     auto out_col = col;
     // If a selection was previously performed on the left table,
     // apply it to the join column.
     if (selection.is_arraylike()) {
         arrow::compute::FunctionContext function_context(
                 arrow::default_memory_pool());
+        arrow::compute::FilterOptions filter_options;
         std::shared_ptr<arrow::ChunkedArray> out;
 
         switch(selection.type()->id()) {
             case arrow::Type::BOOL: {
                 status = arrow::compute::Filter(&function_context,
-                                                *col,
-                                                *selection.chunked_array(),
-                                                &out_col);
+                                                col,
+                                                selection.chunked_array(),
+                                                filter_options,
+                                                &datum_col);
+
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+                out_col = datum_col.chunked_array();
                 break;
             }
             case arrow::Type::INT64: {
@@ -247,30 +326,22 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
     return out_col;
 }
 
-    std::shared_ptr<Table> Join::run_operator(
-            std::vector<std::shared_ptr<Table>> tables) {
-        return nullptr;
-    }
+    std::shared_ptr<OperatorResult> Join::run() {
 
-    arrow::compute::Datum Join::get_indices_for_table(
-            const std::shared_ptr<Table>& other) {
-        if (other == left_table_) {
-            return get_left_indices();
+        std::vector<OperatorResultUnit> out_join_result_cols;
+
+        if (!left_join_result_.empty()) {
+            out_join_result_cols = hash_join(left_join_result_, right_table_);
         }
         else {
-            return get_right_indices();
+            out_join_result_cols = hash_join(left_table_, right_table_);
         }
+
+        return std::make_shared<OperatorResult>(out_join_result_cols);
     }
 
-    arrow::compute::Datum Join::get_left_indices() {
-        arrow::compute::Datum out(left_indices_);
-        return out;
-    }
 
-    arrow::compute::Datum Join::get_right_indices() {
-        arrow::compute::Datum out(right_indices_);
-        return out;
-    }
+
 
 } // namespace operators
 } // namespace hustle

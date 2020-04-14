@@ -11,72 +11,79 @@
 namespace hustle {
 namespace operators {
 
-class JoinOperator : public Operator {
-
-    virtual arrow::compute::Datum get_indices() = 0;
-};
 
 class Join : public Operator{
 public:
-    Join(std::string left_column_name, std::string right_column_name);
-
-    // TODO(nicholas): These function are not implemented.
-    std::shared_ptr<Table> run_operator
-    (std::vector<std::shared_ptr<Table>> table) override;
 
     /**
-    * Perform a natural join on two tables using hash join. Projections are not
-    * yet supported; all columns from both tables will be returned in the
-    * resulting table (excluding the duplicate join column).
+     * Construct an Join operator to perform hash join on two Tables.
+     *
+     * @param left a ColumnReference containing the left (outer) table and
+     * the name of the left join column.
+     * @param left_selection the filter returned by an earlier selection on the
+     * left table. If no selection was performed, pass in a null Datum.
+     * @param right a ColumnReference containing the right (inner) table and
+     * the name of the right join column.
+     * @param right_selection the filter returned by an earlier selection on the
+     * right table. If no selection was performed, pass in a null Datum.
+     */
+    Join(ColumnReference left,
+               std::shared_ptr<OperatorResult> left_selection,
+               ColumnReference right,
+               std::shared_ptr<OperatorResult> right_selection);
+
+    /**
+    * Perform a natural join on two tables using hash join.
     *
-    * @param left_table The table that will probe the hash table
-    * @param right_table The table for which a hash table is built
-    * @return A new table containing the results of the join
+    * @return A vector of JoinResult.
     */
+    std::vector<OperatorResultUnit> hash_join();
+    std::shared_ptr<OperatorResult> run() override;
 
-//    Interface Joinable;
-
-    std::vector<SelectionReference> hash_join(
-            const std::shared_ptr<Table>& left_table,
-            const arrow::compute::Datum& left_selection,
-            const std::shared_ptr<Table>& right_table,
-            const arrow::compute::Datum& right_selection);
-
-    std::vector<SelectionReference> hash_join(
-            const std::vector<SelectionReference>& left_table,
-            const std::shared_ptr<Table>& right_table,
-            const arrow::compute::Datum& right_selection);
-
-    arrow::compute::Datum get_left_indices();
-    arrow::compute::Datum get_right_indices();
-    arrow::compute::Datum get_indices_for_table(
-            const std::shared_ptr<Table> &other);
 
 private:
-    std::vector<SelectionReference> left_;
+
+    arrow::compute::Datum left_filter_;
+    arrow::compute::Datum right_filter_;
+
+    std::shared_ptr<arrow::ChunkedArray> left_join_col_;
+    std::shared_ptr<arrow::ChunkedArray> right_join_col_;
+
+    arrow::compute::Datum left_selection_;
+    arrow::compute::Datum right_selection_;
+
+    //TODO(nicholas): a better name?
+    std::vector<OperatorResultUnit> left_join_result_;
+    std::vector<OperatorResultUnit> right_join_result_;
+
     std::shared_ptr<Table> left_table_;
     std::shared_ptr<Table> right_table_;
 
-    std::string left_join_column_name_;
-    std::string right_join_column_name_;
+    std::string left_join_col_name_;
+    std::string right_join_col_name_;
 
     std::shared_ptr<arrow::Array> left_indices_;
     std::shared_ptr<arrow::Array> right_indices_;
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-    std::vector<SelectionReference> probe_hash_table
-            (std::shared_ptr<arrow::ChunkedArray> probe_col);
-        std::vector<SelectionReference> probe_hash_table
-                (std::shared_ptr<arrow::ChunkedArray> probe_col, int
-                probe_col_index);
+    std::vector<OperatorResultUnit> hash_join(
+            std::vector<OperatorResultUnit>&,
+            const std::shared_ptr<Table>& right_table);
+    std::vector<OperatorResultUnit> hash_join(
+            const std::shared_ptr<Table>& left_table,
+            const std::shared_ptr<Table>& right_table);
+
+    std::vector<OperatorResultUnit> probe_hash_table
+        (std::shared_ptr<arrow::ChunkedArray> probe_col);
+        std::vector<OperatorResultUnit> probe_hash_table_2
+                (std::shared_ptr<arrow::ChunkedArray> probe_col);
+
     std::unordered_map<int64_t, int64_t> build_hash_table
             (std::shared_ptr<arrow::ChunkedArray> col);
     std::shared_ptr<arrow::ChunkedArray> apply_selection
             (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum
             selection);
-
-
 
 };
 

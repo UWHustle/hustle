@@ -1,11 +1,12 @@
 add_library(
         operators
-        Operator.h
+        Operator.cpp Operator.h
         Join.h Join.cpp
         Aggregate.h Aggregate.cpp
         Select.h Select.cpp
-        OrderBy.cpp OrderBy.h
         Project.cpp Project.h
+        JoinTree.cpp JoinTree.h
+        Predicate.cpp Predicate.h
 )
 target_include_directories(operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(operators PUBLIC

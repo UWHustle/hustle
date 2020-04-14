@@ -15,10 +15,46 @@ enum FilterOperator {
     NONE
 };
 
-//TODO(nicholas): Needs a more descriptive name
-struct SelectionReference {
-    std::shared_ptr<Table> table;
-    arrow::compute::Datum selection;
+
+enum ResultType {
+    SELECT,
+    JOIN,
+    AGGREGATE,
+    PROJECT,
+};
+
+
+    class OperatorResultUnit {
+
+    public:
+
+        OperatorResultUnit(
+                std::shared_ptr<Table> table,
+                arrow::compute::Datum filter,
+                arrow::compute::Datum selection
+        );
+
+        // TODO(nicholas): Combine into a ColumnReference?
+        std::shared_ptr<Table> table;
+        arrow::compute::Datum filter; // filters are ChunkedArrays
+        arrow::compute::Datum selection; // selections are Arrays
+
+    private:
+
+    };
+
+class OperatorResult {
+public:
+//    virtual arrow::compute::Datum get_filter() = 0;
+//    virtual arrow::compute::Datum get_indices() = 0;
+//    OperatorResult() = default;
+    OperatorResult();
+    OperatorResult(std::vector<OperatorResultUnit> units);
+
+    std::vector<OperatorResultUnit> units_;
+    ResultType get_type();
+protected:
+    ResultType type_;
 };
 
 struct ColumnReference {
@@ -33,11 +69,14 @@ struct GroupReference {
 };
 
 class Operator {
+    virtual std::shared_ptr<OperatorResult> run() = 0;
 public:
 
-    virtual std::shared_ptr<Table> run_operator
-    (std::vector<std::shared_ptr<Table>> tables) = 0;
 };
+
+
+
+
 } // namespace operators
 } // namespace hustle
 
