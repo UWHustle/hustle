@@ -20343,12 +20343,14 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
       break;
 
     case TK_COLUMN:
-    case TK_AGG_COLUMN:currPos += sprintf(currPos,
-                                          "{\"type\": \"%s\", \"column_name\": \"%s\", \"i_table\": %d, \"i_column\": %d}",
-                                          "ColumnReference",
-                                          pExpr->y.pTab->aCol[pExpr->iColumn].zName,
-                                          pExpr->iTable,
-                                          pExpr->iColumn);
+    case TK_AGG_COLUMN:
+      if (pExpr->iColumn < 0) return;
+      currPos += sprintf(currPos,
+                         "{\"type\": \"%s\", \"column_name\": \"%s\", \"i_table\": %d, \"i_column\": %d}",
+                         "ColumnReference",
+                         pExpr->y.pTab->aCol[pExpr->iColumn].zName,
+                         pExpr->iTable,
+                         pExpr->iColumn);
       break;
 
     case TK_BETWEEN:
