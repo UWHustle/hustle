@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/UWQuickstep/hustle.svg?style=shield&circle-token=7ac82dc32c93004b877cc6ac9009e5a43f59e88b)](https://circleci.com/gh/UWQuickstep/hustle)
+[![Hustle](https://circleci.com/gh/UWQuickstep/hustle.svg?style=shield)](https://circleci.com/gh/UWQuickstep/hustle)
 
 
 # Hustle
