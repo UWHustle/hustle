@@ -9,7 +9,6 @@ elif [[ `uname` == "Linux" ]]; then
                   tar -xzvf cmake-3.15.5.tar.gz
                   rm -f cmake-3.15.5.tar.gz
                   cd cmake-3.15.5 && ./bootstrap && make -j 6
-                else
                   cd cmake-3.15.5 && sudo make install
                 fi
                 sudo apt-get install software-properties-common --yes

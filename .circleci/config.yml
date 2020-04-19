@@ -5,13 +5,15 @@ jobs:
       image: 'ubuntu-1604:201903-01'
     steps:
       - checkout
+      - restore_cache:
+            keys: hustle-cache
       - run: ./install_requirements.sh
       - run: ./install_arrow.sh
-      - persist_to_workspace:
-          root: ./
-          paths:
-            - cmake-3.15.5
-            - arrow
+      - save_cache:
+        keys: hustle-cache
+        paths:
+          - cmake-3.15.5
+          - arrow
       - run: mkdir build
       - run: (cd build && ../cmake-3.15.5/bin/cmake .. )
       - run: (cd build && make -j 4)
