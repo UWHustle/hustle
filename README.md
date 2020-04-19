@@ -1,6 +1,3 @@
-[![CircleCI](https://circleci.com/gh/UWQuickstep/hustle.svg?style=shield&circle-token=7ac82dc32c93004b877cc6ac9009e5a43f59e88b)](https://circleci.com/gh/UWQuickstep/hustle)
-
-
 # Hustle
 Hustle is an efficient data platform, organized as a collection of data processing kernels, based on a micro services architecture, serving heterogeneous application query languages that map to core relational algebraic DSL
 

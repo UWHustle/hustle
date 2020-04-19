@@ -7,6 +7,7 @@
 #include "parser/Parser.h"
 #include "resolver/Resolver.h"
 
+// Showcases some functions of Hustle
 int main(int argc, char *argv[]) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
