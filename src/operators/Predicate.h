@@ -15,30 +15,37 @@ namespace operators {
 
 // JoinPredicate vs SelectPredicate? One has another column as the RHS, the
 // other has a literal.
-struct Predicate {
-    // The LHS side of the predicate (i.e. the column) will be provided
-    // inside the operator.
-    ColumnReference col_ref;
-    arrow::compute::CompareOperator comparator;
-    arrow::compute::Datum value;
-};
-
-struct PredicateNode {
-
-    Predicate predicate;
-    std::shared_ptr<PredicateNode> left_child;
-    std::shared_ptr<PredicateNode> right_child;
-
-};
-
-class PredicateTree {
-
+// Predicate
+class Predicate {
 public:
-
-    std::shared_ptr<PredicateNode> root;
-
+    virtual bool has_children() = 0;
 };
 
+class SimplePredicate : Predicate {
+public:
+    SimplePredicate(ColumnReference col_ref,
+            arrow::compute::CompareOperator comparator,
+            arrow::compute::Datum value);
+
+private:
+    bool has_children() override;
+
+    ColumnReference col_ref_;
+    arrow::compute::CompareOperator comparator_;
+    arrow::compute::Datum value_;
+};
+
+class ConnectivePredicate : Predicate {
+public:
+    ConnectivePredicate(std::shared_ptr<Predicate> left_child,
+            std::shared_ptr<Predicate> right_child);
+private:
+
+    bool has_children() override;
+
+    std::shared_ptr<Predicate> left_child_;
+    std::shared_ptr<Predicate> right_child_;
+};
 
 }
 }
