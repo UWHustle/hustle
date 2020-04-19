@@ -6,7 +6,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-            keys: hustle-cache
+            keys: my-cache
       - run: ./install_requirements.sh
       - run: ./install_arrow.sh
       - save_cache:
