@@ -12,7 +12,7 @@ namespace operators {
 enum FilterOperator {
     AND,
     OR,
-    NONE
+    NONE,
 };
 
 

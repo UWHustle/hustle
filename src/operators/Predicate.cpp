@@ -4,32 +4,48 @@
 
 #include "Predicate.h"
 
+#include <utility>
+
 namespace hustle {
 namespace operators {
 
-    SimplePredicate::SimplePredicate(ColumnReference col_ref,
-                                     arrow::compute::CompareOperator comparator,
-                                     arrow::compute::Datum value) {
-        
-        col_ref_ = col_ref;
-        comparator_ = comparator;
-        value_ = value;
+
+    bool Node::is_leaf() {
+        return is_leaf_node_;
     }
 
-    bool SimplePredicate::has_children() {
-        return false;
+    PredicateNode::PredicateNode(Predicate predicate) {
+        predicate_ = std::move(predicate);
     }
 
-    ConnectivePredicate::ConnectivePredicate(
-            std::shared_ptr<Predicate> left_child,
-            std::shared_ptr<Predicate> right_child) {
-
-        left_child_ = left_child;
-        right_child_ = right_child;
+    Predicate PredicateNode::get_predicate() {
+        return Node::get_predicate();
     }
 
-    bool ConnectivePredicate::has_children() {
-        return true;
+
+    ConnectiveNode::ConnectiveNode(std::shared_ptr<ConnectiveNode> left_child,
+                                   std::shared_ptr<ConnectiveNode> right_child,
+                                   FilterOperator connective) {
+
+        left_child_ = std::move(left_child);
+        right_child_ = std::move(right_child);
+        connective_ = connective;
+    }
+
+    std::shared_ptr<Node> ConnectiveNode::get_right_child() {
+        return Node::get_right_child();
+    }
+
+    std::shared_ptr<Node> ConnectiveNode::get_left_child() {
+        return Node::get_left_child();
+    }
+
+    std::shared_ptr<Node> ConnectiveNode::get_connective() {
+        return Node::get_connective();
+    }
+
+    PredicateTree::PredicateTree(std::shared_ptr<Node> root) {
+        root_ = root;
     }
 }
 }
