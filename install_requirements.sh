@@ -3,7 +3,7 @@
 if [[ `uname` == "Darwin" ]]; then
                 brew update && brew bundle --file=Brewfile
 elif [[ `uname` == "Linux" ]]; then
-                if [ ! -d "/path/to/dir" ]
+                if [ ! -d "cmake-3.15.5" ]
                 then
                   wget https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz
                   tar -xzvf cmake-3.15.5.tar.gz
