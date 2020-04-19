@@ -11,9 +11,9 @@ elif [[ `uname` == "Linux" ]]; then
                   cd cmake-3.15.5 && ./bootstrap && make -j 6
                   cd cmake-3.15.5 && sudo make install
                 fi
+                sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
                 sudo apt-get update
                 sudo apt-get install software-properties-common --yes
-                sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
                 sudo apt-get install gcc-9 g++-9 --yes
                 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
 fi
