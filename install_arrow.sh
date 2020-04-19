@@ -7,6 +7,7 @@ then
   mkdir release
   cd release
   cmake -DARROW_COMPUTE=ON -DARROW_CSV=ON ..
+  sudo make install -j4
 else
   cd arrow/cpp/release
   sudo make install -j4
