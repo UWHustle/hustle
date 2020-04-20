@@ -28,14 +28,14 @@ protected:
 public:
     bool is_leaf();
 
+    // Should only be access if is_leaf() is false
     FilterOperator connective_;
     std::shared_ptr<Node> left_child_;
     std::shared_ptr<Node> right_child_;
 
+    // Should only be access if is_leaf() is true
     std::shared_ptr<Predicate> predicate_;
 };
-
-
 
 class PredicateNode : public Node {
 public:

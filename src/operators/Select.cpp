@@ -25,7 +25,7 @@ arrow::compute::Datum
 
     if (node->is_leaf()) {
         return get_filter(node->predicate_, block);
-}
+    }
     auto left_child_filter = get_filter(node->left_child_, block);
     auto right_child_filter = get_filter(node->right_child_, block);
 
