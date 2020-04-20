@@ -47,7 +47,7 @@ public:
 protected:
 
     arrow::compute::Datum selection_;
-    std::vector<OperatorResultUnit> join_result_;
+    std::vector<LazyTable> join_result_;
 
     std::vector<ColumnReference> order_bys_;
     std::vector<ColumnReference> group_bys_;
@@ -58,7 +58,7 @@ protected:
     std::shared_ptr<arrow::StructBuilder> group_builder;
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_by_builders_;
 
-    std::vector<AggregateUnit> aggregate_units_;
+    std::vector<AggregateUnit> aggregate_lazy_tables;
 
     arrow::compute::Datum compute_aggregate(AggregateKernels kernel,
                                             std::shared_ptr<arrow::ChunkedArray> aggregate_col,

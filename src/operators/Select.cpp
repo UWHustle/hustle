@@ -71,7 +71,7 @@ std::shared_ptr<OperatorResult> Select::run() {
 
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
     arrow::compute::Datum filter(chunked_filter);
-    OperatorResultUnit result_unit(table_, filter, arrow::compute::Datum());
+    LazyTable result_unit(table_, filter, arrow::compute::Datum());
     OperatorResult result({result_unit});
     return std::make_shared<OperatorResult>(result);
 }

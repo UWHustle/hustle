@@ -9,7 +9,7 @@
 namespace hustle {
 namespace operators {
 
-    OperatorResultUnit::OperatorResultUnit(
+    LazyTable::LazyTable(
         std::shared_ptr<Table> table,
         arrow::compute::Datum filter,
         arrow::compute::Datum selection) {
@@ -20,9 +20,9 @@ namespace operators {
     }
 
     OperatorResult::OperatorResult(
-            std::vector<OperatorResultUnit> units) {
+            std::vector<LazyTable> units) {
 
-        units_ = units;
+        lazy_tables = units;
     }
 
     OperatorResult::OperatorResult(){

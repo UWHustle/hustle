@@ -12,7 +12,7 @@ namespace hustle {
 
         hustle::operators::Projection::Projection(
                 std::vector<ProjectionUnit> projection_units) {
-            projection_units_ = projection_units;
+            projection_lazy_tables = projection_units;
         }
 
         std::shared_ptr<Table> hustle::operators::Projection::project() {
@@ -30,7 +30,7 @@ namespace hustle {
             std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
             // TODO(nicholas): for now, assume that the selections are always arrays
             //  of indices, not filters.
-            for (auto &unit : projection_units_) {
+            for (auto &unit : projection_lazy_tables) {
 
                 auto table = unit.ref.table;
                 auto filter = unit.ref.filter;
@@ -89,7 +89,7 @@ namespace hustle {
         }
 
         std::shared_ptr<OperatorResult> run() {
-            std::vector<OperatorResultUnit> units;
+            std::vector<LazyTable> units;
             OperatorResult result({units});
             return std::make_shared<OperatorResult>(result);
         }

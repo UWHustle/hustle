@@ -22,27 +22,27 @@ Join::Join(ColumnReference left,
     left_table_ = left.table;
     right_table_ = right.table;
 
-    for (int i=0; i<left_prev->units_.size(); i++) {
-        if (left_table_ == left_prev->units_[i].table) {
-            left_filter_ = left_prev->units_[i].filter;
-            left_selection_ = left_prev->units_[i].selection;
-            left_join_result_ = left_prev->units_;
+    for (int i=0; i<left_prev->lazy_tables.size(); i++) {
+        if (left_table_ == left_prev->lazy_tables[i].table) {
+            left_filter_ = left_prev->lazy_tables[i].filter;
+            left_selection_ = left_prev->lazy_tables[i].selection;
+            left_join_result_ = left_prev->lazy_tables;
         }
     }
-    for (int i=0; i<right_prev->units_.size(); i++) {
-        if (right_table_ == right_prev->units_[i].table) {
-            right_filter_ = right_prev->units_[i].filter;
-            right_selection_ = right_prev->units_[i].selection;
-            right_join_result_ = right_prev->units_;
+    for (int i=0; i<right_prev->lazy_tables.size(); i++) {
+        if (right_table_ == right_prev->lazy_tables[i].table) {
+            right_filter_ = right_prev->lazy_tables[i].filter;
+            right_selection_ = right_prev->lazy_tables[i].selection;
+            right_join_result_ = right_prev->lazy_tables;
         }
     }
     
 }
 
 
-std::vector<OperatorResultUnit> Join::hash_join() {
+std::vector<LazyTable> Join::hash_join() {
 
-    std::vector<OperatorResultUnit> out_join_result;
+    std::vector<LazyTable> out_join_result;
 
     if (!left_join_result_.empty()) {
         out_join_result = hash_join(left_join_result_, right_table_);
@@ -55,7 +55,7 @@ std::vector<OperatorResultUnit> Join::hash_join() {
 
 }
 
-std::vector<OperatorResultUnit> Join::hash_join(
+std::vector<LazyTable> Join::hash_join(
         const std::shared_ptr<Table>& left_table,
         const std::shared_ptr<Table>& right_table) {
 
@@ -83,8 +83,8 @@ std::vector<OperatorResultUnit> Join::hash_join(
 }
 
 
-std::vector<OperatorResultUnit> Join::hash_join(
-        std::vector<OperatorResultUnit>& left_join_result,
+std::vector<LazyTable> Join::hash_join(
+        std::vector<LazyTable>& left_join_result,
         const std::shared_ptr<Table>& right_table) {
 
     arrow::Status status;
@@ -160,7 +160,7 @@ std::vector<OperatorResultUnit> Join::hash_join(
 
     arrow::compute::Datum res;
 
-    std::vector<OperatorResultUnit> output;
+    std::vector<LazyTable> output;
     output.push_back(out[0]);
 
     for (int i=0; i<left_join_result_.size(); i++) {
@@ -212,7 +212,7 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
     return hash;
 }
 
-std::vector<OperatorResultUnit> Join::probe_hash_table
+std::vector<LazyTable> Join::probe_hash_table
 (std::shared_ptr<arrow::ChunkedArray> probe_col) {
 
     arrow::Status status;
@@ -271,7 +271,7 @@ std::vector<OperatorResultUnit> Join::probe_hash_table
     left_indices_ = left_indices;
     right_indices_ = right_indices;
 
-    std::vector<OperatorResultUnit> out;
+    std::vector<LazyTable> out;
     out.push_back({left_table_,
                    arrow::compute::Datum(left_filter_),
                    arrow::compute::Datum(left_indices_)});
@@ -328,7 +328,7 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 
     std::shared_ptr<OperatorResult> Join::run() {
 
-        std::vector<OperatorResultUnit> out_join_result_cols;
+        std::vector<LazyTable> out_join_result_cols;
 
         if (!left_join_result_.empty()) {
             out_join_result_cols = hash_join(left_join_result_, right_table_);

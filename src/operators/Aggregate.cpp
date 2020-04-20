@@ -17,13 +17,13 @@ namespace operators {
             std::vector<ColumnReference> group_bys,
             std::vector<ColumnReference> order_bys) {
 
-        join_result_ = join_result->units_;
-        aggregate_units_ = aggregate_units;
+        join_result_ = join_result->lazy_tables;
+        aggregate_lazy_tables = aggregate_units;
 
         group_bys_ = std::move(group_bys);
         order_bys_ = std::move(order_bys);
 
-        aggregate_builder_ = get_aggregate_builder(aggregate_units_[0].kernel);
+        aggregate_builder_ = get_aggregate_builder(aggregate_lazy_tables[0].kernel);
 
         ;
         for(auto &group_by : group_bys_) {
@@ -135,11 +135,11 @@ namespace operators {
         arrow::compute::FilterOptions filter_options;
         arrow::compute::TakeOptions take_options;
 
-        auto out_schema = get_output_schema(aggregate_units_[0].kernel);
+        auto out_schema = get_output_schema(aggregate_lazy_tables[0].kernel);
         auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                                  BLOCK_SIZE);
 
-        auto table = aggregate_units_[0].table; //TODO(nicholas)
+        auto table = aggregate_lazy_tables[0].table; //TODO(nicholas)
         std::vector<std::shared_ptr<arrow::Array>> unique_values;
         // Fetch unique values for all Group By columns
         for (int i=0; i< group_by_fields_.size(); i++) {
@@ -153,7 +153,7 @@ namespace operators {
         //  of indices, not filters.
         // TODO(nicholas): If want to compute multiple aggregates, we'll need to
         // move this inside of the loop but only call it once.
-//    auto table = aggregate_units_[0].table;
+//    auto table = aggregate_lazy_tables[0].table;
 
         arrow::compute::Datum filter;
         arrow::compute::Datum selection;
@@ -168,10 +168,10 @@ namespace operators {
         }
         filter = join_result_[aggregate_index].filter;
         selection = join_result_[aggregate_index].selection;
-        name = aggregate_units_[0].col_name;
+        name = aggregate_lazy_tables[0].col_name;
 
         auto aggregate_col = table->get_column_by_name(
-                aggregate_units_[0].col_name);
+                aggregate_lazy_tables[0].col_name);
 
         auto datum_col = arrow::compute::Datum(aggregate_col);
         // Apply filter
@@ -234,7 +234,7 @@ namespace operators {
             std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
 
             auto group_filter = get_group_filter(unique_values, its);
-            auto aggregate = compute_aggregate(aggregate_units_[0].kernel,
+            auto aggregate = compute_aggregate(aggregate_lazy_tables[0].kernel,
                                                aggregate_col, group_filter);
             insert_group_aggregate(aggregate);
             insert_group(unique_values, its);
@@ -651,7 +651,7 @@ namespace operators {
     }
 
     std::shared_ptr<OperatorResult> Aggregate::run() {
-        std::vector<OperatorResultUnit> units;
+        std::vector<LazyTable> units;
         OperatorResult result({units});
         return std::make_shared<OperatorResult>(result);
     }

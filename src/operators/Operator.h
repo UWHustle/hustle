@@ -24,11 +24,11 @@ enum ResultType {
 };
 
 
-    class OperatorResultUnit {
+    class LazyTable {
 
     public:
 
-        OperatorResultUnit(
+        LazyTable(
                 std::shared_ptr<Table> table,
                 arrow::compute::Datum filter,
                 arrow::compute::Datum selection
@@ -49,9 +49,9 @@ public:
 //    virtual arrow::compute::Datum get_indices() = 0;
 //    OperatorResult() = default;
     OperatorResult();
-    OperatorResult(std::vector<OperatorResultUnit> units);
+    OperatorResult(std::vector<LazyTable> units);
 
-    std::vector<OperatorResultUnit> units_;
+    std::vector<LazyTable> lazy_tables;
     ResultType get_type();
 protected:
     ResultType type_;
