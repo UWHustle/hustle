@@ -2,7 +2,7 @@
 // Created by Nicholas Corrado on 4/12/20.
 //
 
-#include "JoinTree.h"
+#include "JoinGraph.h"
 
 namespace hustle::operators {
 

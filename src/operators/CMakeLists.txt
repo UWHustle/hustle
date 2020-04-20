@@ -5,7 +5,7 @@ add_library(
         Aggregate.h Aggregate.cpp
         Select.h Select.cpp
         Project.cpp Project.h
-        JoinTree.cpp JoinTree.h
+        JoinGraph.cpp JoinGraph.h
         Predicate.cpp Predicate.h
 )
 target_include_directories(operators PUBLIC ${ARROW_INCLUDE_DIR})

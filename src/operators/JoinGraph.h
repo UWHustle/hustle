@@ -2,8 +2,8 @@
 // Created by Nicholas Corrado on 4/12/20.
 //
 
-#ifndef HUSTLE_JOINTREE_H
-#define HUSTLE_JOINTREE_H
+#ifndef HUSTLE_JOINGRAPH_H
+#define HUSTLE_JOINGRAPH_H
 
 #include "table/table.h"
 #include "Predicate.h"
@@ -36,4 +36,4 @@ private:
 
 
 
-#endif //HUSTLE_JOINTREE_H
+#endif //HUSTLE_JOINGRAPH_H
