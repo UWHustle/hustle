@@ -1,50 +1,46 @@
-#include <iostream>
+#include <thread>
+#include <vector>
+#include <scheduler/Block.h>
+#include "scheduler/Channel.h"
 
-#include "api/HustleDB.h"
-#include "catalog/Catalog.h"
-#include "catalog/TableSchema.h"
-#include "catalog/ColumnSchema.h"
-#include "parser/Parser.h"
-#include "resolver/Resolver.h"
+#define NUM_THREADS 1000
 
-int main(int argc, char *argv[]) {
-  std::filesystem::remove_all("db_directory");
-  hustle::HustleDB hustleDB("db_directory");
+template <typename T>
+void send(std::unique_ptr<hustle::scheduler::Sender<T>> sender, int num) {
+  // std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
 
-  // Create table Subscriber
-  hustle::catalog::TableSchema ts("Subscriber");
-  hustle::catalog::ColumnSchema
-      c1("c1", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-  hustle::catalog::ColumnSchema
-      c2("c2", {hustle::catalog::HustleType::CHAR, 10}, false, true);
-  ts.addColumn(c1);
-  ts.addColumn(c2);
-  ts.setPrimaryKey({});
+  std::shared_ptr<T> msg = std::make_shared<T>(num);
+  sender->send(msg);
 
-  hustleDB.createTable(ts);
+  /// wait until receiver has received the msg. (try to comment out)
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+}
 
-  // Create table rAccessInfo
-  hustle::catalog::TableSchema ts1("AccessInfo");
-  hustle::catalog::ColumnSchema
-      c3("c3", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-  hustle::catalog::ColumnSchema
-      c4("c4", {hustle::catalog::HustleType::CHAR, 5}, false, true);
-  ts1.addColumn(c3);
-  ts1.addColumn(c4);
-  ts1.setPrimaryKey({});
+template <typename T>
+void recv(std::unique_ptr<hustle::scheduler::Receiver<T>> receiver) {
+  // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  for (int i = 0; i < NUM_THREADS; i++) {
+    auto block = receiver->receive();
+    printf("RECEIVED: %s\n", block->toString().c_str());
+  }
+}
 
-  hustleDB.createTable(ts1);
+int main() {
+  std::string addr = "inproc://test";
+  std::vector<std::thread> vec;
+  typedef Block T;
+  auto [sender, receiver] = hustle::scheduler::channel<T>(addr);
 
-  // Get Execution Plan
-  std::string query = "EXPLAIN QUERY PLAN select Subscriber.c1 "
-                      "from Subscriber, AccessInfo "
-                      "where Subscriber.c1 = AccessInfo.c3 and Subscriber.c2 > 2 and AccessInfo.c4 < 5;";
+  for (int i = 1; i <= NUM_THREADS - 1; i++) {
+    vec.push_back(std::move(std::thread(send<T>, std::move(sender->clone()), i)));
+  }
+  vec.push_back(std::move(std::thread(send<T>, std::move(sender), NUM_THREADS)));
+  vec.push_back(std::move(std::thread(recv<T>, std::move(receiver))));
 
-  auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
-  parser->parse(query, hustleDB);
-  resolver->resolve(parser->getParseTree());
-  std::cout << resolver->toString(4) << std::endl;
+  for (auto & thread : vec) {
+    thread.join();
+  }
 
   return 0;
 }
+

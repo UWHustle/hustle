@@ -9,6 +9,7 @@ target_link_libraries(hustle_main
         table
         parser
         resolver
+        scheduler
         )
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -23,4 +24,5 @@ add_subdirectory(catalog)
 add_subdirectory(api)
 add_subdirectory(parser)
 add_subdirectory(resolver)
+add_subdirectory(scheduler)
 add_subdirectory(table)
