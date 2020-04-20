@@ -10,7 +10,7 @@ elif [[ `uname` == "Linux" ]]; then
       rm -f cmake-3.15.5.tar.gz
       cd cmake-3.15.5
       ./bootstrap
-      make -j 6
+      make -j 4
       sudo make install
     fi
     sudo apt-get update
