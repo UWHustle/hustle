@@ -9,66 +9,41 @@
 namespace hustle {
 namespace operators {
 
-SelectComposite::SelectComposite(
+Select::Select(
         std::shared_ptr<Table> table,
-        std::shared_ptr<SelectOperator> left_child,
-        std::shared_ptr<SelectOperator> right_child,
-        FilterOperator filter_operator){
+        std::shared_ptr<PredicateTree> tree){
 
     table_ = table;
-    left_child_ = std::move(left_child);
-    right_child_ = std::move(right_child);
-    filter_operator_ = filter_operator;
+    tree_ = tree;
 }
 
-std::shared_ptr<OperatorResult> SelectComposite::run() {
-    auto filter = get_filter(table_);
-    OperatorResultUnit result_unit(table_, filter, arrow::compute::Datum());
-    OperatorResult result({result_unit});
-    return std::make_shared<OperatorResult>(result);
-}
-
-arrow::compute::Datum SelectComposite::get_filter
-    (std::shared_ptr<Table> table) {
-
-    arrow::ArrayVector array_vector;
-    std::vector<arrow::compute::Datum> block_filters;
-
-    for (int i=0; i<table->get_num_blocks(); i++) {
-        auto block = table->get_block(i);
-        auto block_filter = get_filter(block);
-        array_vector.push_back(block_filter.make_array());
-    }
-
-    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
-    arrow::compute::Datum out(chunked_filter);
-    return out;
-}
-
-arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
-        block) {
+arrow::compute::Datum
+        Select::get_filter(std::shared_ptr<Node> node,
+                std::shared_ptr<Block> block) {
 
     arrow::Status status;
 
-    auto left_child_filter = left_child_->get_filter(block);
-    auto right_child_filter = right_child_->get_filter(block);
-    // We should never have to check for null children, since
-    // SelectComposite is only relevant if it has two children. Otherwise,
-    // we would just use Select.
+    if (node->is_leaf()) {
+        return get_filter(node->predicate_, block);
+}
+    auto left_child_filter = get_filter(node->left_child_, block);
+    auto right_child_filter = get_filter(node->right_child_, block);
 
-    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
     arrow::compute::Datum block_filter;
 
-    switch(filter_operator_) {
+    switch (node->connective_) {
         case AND: {
-            status = arrow::compute::And(&function_context, left_child_filter,
+            status = arrow::compute::And(&function_context,
+                                         left_child_filter,
                                          right_child_filter, &block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case OR: {
-            status = arrow::compute::Or(&function_context, left_child_filter,
+            status = arrow::compute::Or(&function_context,
+                                        left_child_filter,
                                         right_child_filter, &block_filter);
 
             evaluate_status(status, __FUNCTION__, __LINE__);
@@ -78,72 +53,56 @@ arrow::compute::Datum SelectComposite::get_filter(std::shared_ptr<Block>
             block_filter = left_child_filter;
         }
     }
-
     return block_filter;
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-Select::Select(
-        std::shared_ptr<Table> table,
-        arrow::compute::CompareOperator compare_operator,
-        std::string column_name,
-        arrow::compute::Datum column_value) {
-
-    table_ = table;
-    compare_operator_ = compare_operator;
-    column_name_ = std::move(column_name);
-    column_value_ = std::move(column_value);
 }
 
 std::shared_ptr<OperatorResult> Select::run() {
-    auto filter = get_filter(table_);
+
+    arrow::ArrayVector array_vector;
+    std::vector<arrow::compute::Datum> block_filters;
+
+    auto root = tree_->root_;
+
+    for (int i=0; i<table_->get_num_blocks(); i++) {
+        auto block = table_->get_block(i);
+        auto block_filter = get_filter(root, block);
+        array_vector.push_back(block_filter.make_array());
+    }
+
+    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
+    arrow::compute::Datum filter(chunked_filter);
     OperatorResultUnit result_unit(table_, filter, arrow::compute::Datum());
     OperatorResult result({result_unit});
     return std::make_shared<OperatorResult>(result);
 }
 
-    arrow::compute::Datum Select::get_filter
-            (std::shared_ptr<Table> table) {
 
-        arrow::ArrayVector array_vector;
-        std::vector<arrow::compute::Datum> block_filters;
-
-        for (int i=0; i<table->get_num_blocks(); i++) {
-            auto block = table->get_block(i);
-            auto block_filter = get_filter(block);
-            array_vector.push_back(block_filter.make_array());
-        }
-
-        auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
-        arrow::compute::Datum out(chunked_filter);
-        return out;
-    }
-
-    arrow::compute::Datum Select::get_filter
-        (std::shared_ptr<Block> block) {
+// Fetch filter for a single block
+arrow::compute::Datum Select::get_filter(
+        std::shared_ptr<Predicate> predicate,
+        std::shared_ptr<Block> block ) {
 
     arrow::Status status;
 
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-    arrow::compute::CompareOptions compare_options(compare_operator_);
+    arrow::compute::CompareOptions compare_options(predicate->comparator_);
     arrow::compute::Datum block_filter;
 
-    auto select_col = block->get_column_by_name(column_name_);
+    auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
+    auto value = predicate->value_;
 
     // NOTE: We must fetch filters one block at a time, since the Compare
     // only accepts Array Datum, not ChunkedArray Datum.
     status = arrow::compute::Compare(&function_context,
                                      select_col,
-                                     column_value_,
+                                     value,
                                      compare_options,
                                      &block_filter);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     return block_filter;
-}
 
+}
 
 } // namespace operators
 } // namespace hustle

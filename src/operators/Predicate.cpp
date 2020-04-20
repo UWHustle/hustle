@@ -6,46 +6,32 @@
 
 #include <utility>
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators {
 
 
     bool Node::is_leaf() {
         return is_leaf_node_;
     }
 
-    PredicateNode::PredicateNode(Predicate predicate) {
+    PredicateNode::PredicateNode(std::shared_ptr<Predicate> predicate) {
+
         predicate_ = std::move(predicate);
-    }
-
-    Predicate PredicateNode::get_predicate() {
-        return Node::get_predicate();
+        is_leaf_node_ = true;
     }
 
 
-    ConnectiveNode::ConnectiveNode(std::shared_ptr<ConnectiveNode> left_child,
-                                   std::shared_ptr<ConnectiveNode> right_child,
+    ConnectiveNode::ConnectiveNode(std::shared_ptr<Node> left_child,
+                                   std::shared_ptr<Node> right_child,
                                    FilterOperator connective) {
 
         left_child_ = std::move(left_child);
         right_child_ = std::move(right_child);
         connective_ = connective;
-    }
 
-    std::shared_ptr<Node> ConnectiveNode::get_right_child() {
-        return Node::get_right_child();
-    }
-
-    std::shared_ptr<Node> ConnectiveNode::get_left_child() {
-        return Node::get_left_child();
-    }
-
-    std::shared_ptr<Node> ConnectiveNode::get_connective() {
-        return Node::get_connective();
+        is_leaf_node_ = false;
     }
 
     PredicateTree::PredicateTree(std::shared_ptr<Node> root) {
-        root_ = root;
+        root_ = std::move(root);
     }
-}
 }
