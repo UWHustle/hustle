@@ -27,14 +27,14 @@ class Sender {
     nng_close(sender_sock_);
   }
 
-  void send(std::shared_ptr<T> msg) {
+  void send(T* msg) {
     int rv;
 
-    if ((rv = nng_send(sender_sock_, &msg, sizeof(msg), 0)) != 0) {
+    if ((rv = nng_send(sender_sock_, msg, sizeof(msg), 0)) != 0) {
       fatal("nng_send", rv);
     }
 
-    printf("SENT: %s\n", msg->toString().c_str());
+    printf("SENT: %p, %s\n", msg, msg->toString().c_str());
 
     // wait for messages to flush before shutting down
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -77,7 +77,8 @@ class Receiver {
     nng_close(receiver_sock_);
   }
 
-  std::shared_ptr<T> receive() {
+
+  T* receive() {
     int rv;
     void *buf = nullptr;
     size_t sz;
@@ -85,10 +86,10 @@ class Receiver {
     if ((rv = nng_recv(receiver_sock_, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
       fatal("nng_recv", rv);
     }
-    auto* msg = (std::shared_ptr<T>*) buf;
+    auto* msg = (T*) buf;
     nng_free(buf, sz);
 
-    return *msg;
+    return msg;
   }
 
   void start() {
