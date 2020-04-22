@@ -14,18 +14,22 @@ namespace operators {
 class JoinGraph {
 
 public:
+
     JoinGraph(std::vector<std::shared_ptr<Table>> tables,
-              std::vector<std::shared_ptr<PredicateTree>> trees);
+              std::vector<std::vector<JoinPredicate>> trees);
+    std::shared_ptr<Table> get_table(int i);
+    std::vector<JoinPredicate>
+        get_predicates(const std::shared_ptr<Table>& table);
 private:
 
 // TODO(nicholas): We could use table id's but then what if the id was,
     //  for example, 37? Would we want to put it at index 37 or the next
     //  available index?
-    std::unordered_map<std::shared_ptr<Table>, int> table_to_int;
-    std::vector<std::shared_ptr<PredicateTree>> adj;
+    std::vector<std::shared_ptr<Table>> tables_;
+    std::vector<std::vector<JoinPredicate>> adj_;
+    void insert(std::shared_ptr<Table> table,
+                           std::vector<JoinPredicate> predicates);
 
-    std::shared_ptr<PredicateTree>
-        get_predicate_tree(const std::shared_ptr<Table>& table);
 
 };
 

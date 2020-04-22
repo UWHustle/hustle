@@ -21,6 +21,11 @@ struct Predicate {
     arrow::compute::Datum value_;
 };
 
+struct JoinPredicate {
+    ColumnReference left_col_ref_;
+    arrow::compute::CompareOperator comparator_;
+    ColumnReference right_col_ref_;
+};
 
 class Node {
 protected:
