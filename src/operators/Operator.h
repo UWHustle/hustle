@@ -53,7 +53,7 @@ public:
     void add_table(std::shared_ptr<Table> table);
     void append(std::shared_ptr<OperatorResult> result);
 //    void append(LazyTable lazy_table);
-        std::vector<LazyTable> lazy_tables;
+        std::vector<LazyTable> lazy_tables_;
     ResultType get_type();
 protected:
     ResultType type_;

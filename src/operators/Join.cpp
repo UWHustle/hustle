@@ -25,33 +25,27 @@ Join::Join(std::shared_ptr<OperatorResult> prev,
     left_table_ = left.table;
     right_table_ = right.table;
 
-    out_ = std::make_shared<OperatorResult>();
-
-    for (int i=0; i<prev->lazy_tables.size(); i++) {
-        if (left_table_ == prev->lazy_tables[i].table) {
-            left_filter_ = prev->lazy_tables[i].filter;
-            left_selection_ = prev->lazy_tables[i].selection;
-            left_join_result_ = prev->lazy_tables;
-        }
-        else if (right_table_ == prev->lazy_tables[i].table) {
-            right_filter_ = prev->lazy_tables[i].filter;
-            right_selection_ = prev->lazy_tables[i].selection;
-            right_join_result_ = prev->lazy_tables;
-        }
-        // Append the unused LazyTables to the output
-//        else {
-//            out_->lazy_tables.push_back(prev->lazy_tables[i]);
-//        }
-    }
+    prev_result_ = prev;
     
+    for (int i=0; i<prev->lazy_tables_.size(); i++) {
+        if (left_table_ == prev->lazy_tables_[i].table) {
+            left_filter_ = prev->lazy_tables_[i].filter;
+            left_indices_ = prev->lazy_tables_[i].selection;
+        }
+        else if (right_table_ == prev->lazy_tables_[i].table) {
+            right_filter_ = prev->lazy_tables_[i].filter;
+            right_indices_ = prev->lazy_tables_[i].selection;
+        }
+    }
+
 }
 
 std::vector<LazyTable> Join::hash_join() {
 
     std::vector<LazyTable> out_join_result;
 
-    if (!left_join_result_.empty()) {
-        out_join_result = hash_join(left_join_result_, right_table_);
+    if (!prev_result_->lazy_tables_.empty()) {
+        out_join_result = hash_join(prev_result_->lazy_tables_, right_table_);
     }
     else {
         out_join_result = hash_join(left_table_, right_table_);
@@ -73,22 +67,22 @@ std::vector<LazyTable> Join::hash_join(
 
     right_join_col = apply_selection(
             right_join_col,
-            right_selection_);
+            right_indices_);
 
     right_join_col_ = right_join_col;
     hash_table_ = build_hash_table(right_join_col);
 
     auto left_join_col = apply_selection(
             left_table_->get_column_by_name(left_join_col_name_),
-            left_selection_);
+            left_indices_);
     left_join_col_ = left_join_col;
     auto out = probe_hash_table(left_join_col);
 
     std::make_shared<OperatorResult>(out);
-    for (int i=0; i<right_join_result_.size(); i++) {
-        if (left_table_ != right_join_result_[i].table &&
-            right_table_ != right_join_result_[i].table) {
-            out.push_back(right_join_result_[i]);
+    for (int i=0; i<prev_result_->lazy_tables_.size(); i++) {
+        if (left_table_ != prev_result_->lazy_tables_[i].table &&
+            right_table_ != prev_result_->lazy_tables_[i].table) {
+            out.push_back(prev_result_->lazy_tables_[i]);
         }
     }
     return out;
@@ -107,7 +101,7 @@ std::vector<LazyTable> Join::hash_join(
 
     right_join_col = apply_selection(
             right_join_col,
-            right_selection_);
+            right_indices_);
 
 
     right_join_col_ = right_join_col;
@@ -120,8 +114,8 @@ std::vector<LazyTable> Join::hash_join(
     // TODO(nicholas): This will find the wrong table if lineorder is not
     //  at index 0, since the left and right join columns usually have the
     //  same name!
-    for (int i=0; i<left_join_result_.size(); i++) {
-        int index = left_join_result_[i].table->get_schema()->GetFieldIndex
+    for (int i=0; i<prev_result_->lazy_tables_.size(); i++) {
+        int index = prev_result_->lazy_tables_[i].table->get_schema()->GetFieldIndex
                 (left_join_col_name_);
         if (index >= 0) {
             left_join_col_index = index;
@@ -132,15 +126,15 @@ std::vector<LazyTable> Join::hash_join(
     //TODO(nicholas): left_table_ must also be filtered! None of the SSB
     // queries with multiple joins perform a selection on Lineorder beforehand,
     // so this part is not yet verified.
-    left_table_ = left_join_result_[selection_reference_index].table;
+    left_table_ = prev_result_->lazy_tables_[selection_reference_index].table;
     auto left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
-            arrow::compute::Datum(left_join_result_[selection_reference_index]
+            arrow::compute::Datum(prev_result_->lazy_tables_[selection_reference_index]
             .filter)
     );
     left_join_col = apply_selection(
             left_table_->get_column(left_join_col_index),
-            left_join_result_[selection_reference_index].selection
+            prev_result_->lazy_tables_[selection_reference_index].selection
     );
 
     left_join_col_ = left_join_col;
@@ -158,12 +152,12 @@ std::vector<LazyTable> Join::hash_join(
     out_indices = arrow::compute::Datum(out[0].selection);
 
     status = arrow::compute::Match(&function_context, out[0].selection,
-            left_join_result_[selection_reference_index].selection,
+            prev_result_->lazy_tables_[selection_reference_index].selection,
             &matched_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     status = arrow::compute::Take(&function_context,
-                                  left_join_result_[selection_reference_index].selection,
+                                  prev_result_->lazy_tables_[selection_reference_index].selection,
                                   matched_indices,
                                   take_options,
                                   &out[0].selection);
@@ -177,22 +171,19 @@ std::vector<LazyTable> Join::hash_join(
 
     // BUG: Should only apply Take on the RIGHT TABLE, not on any of the
     // unused tables.
-    for (int i=0; i<left_join_result_.size(); i++) {
+    for (int i=0; i<prev_result_->lazy_tables_.size(); i++) {
         if (i != selection_reference_index) {
-            if (left_join_result_[i].selection.kind() !=
+            if (prev_result_->lazy_tables_[i].selection.kind() !=
             arrow::compute::Datum::NONE) {
                 status = arrow::compute::Take(&function_context,
-                                              left_join_result_[i].selection,
+                                              prev_result_->lazy_tables_[i].selection,
                                               matched_indices,
                                               take_options,
                                               &res);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                output.push_back({left_join_result_[i].table,
-                                  left_join_result_[i].filter,
+                output.push_back({prev_result_->lazy_tables_[i].table,
+                                  prev_result_->lazy_tables_[i].filter,
                                   res});
-            }
-            else {
-                out_->lazy_tables.push_back(left_join_result_[i]);
             }
         }
     }
@@ -235,23 +226,23 @@ std::vector<LazyTable> Join::probe_hash_table
 
     arrow::Status status;
 
-    arrow::Int64Builder left_indices_builder;
-    arrow::Int64Builder right_indices_builder;
-    std::shared_ptr<arrow::Int64Array> left_indices;
-    std::shared_ptr<arrow::Int64Array> right_indices;
+    arrow::Int64Builder new_left_indices_builder;
+    arrow::Int64Builder new_right_indices_builder;
+    std::shared_ptr<arrow::Int64Array> new_left_indices;
+    std::shared_ptr<arrow::Int64Array> new_right_indices;
 
     std::shared_ptr<arrow::Int64Array> old_indices;
-
+    
     int index = -1;
-    for (int i=0; i<left_join_result_.size(); i++) {
-        if (left_join_result_[i].table == left_table_) {
+    for (int i=0; i<prev_result_->lazy_tables_.size(); i++) {
+        if (prev_result_->lazy_tables_[i].table == left_table_) {
             index = i;
         }
     }
-
-    if (!left_join_result_.empty()){
+    
+    if (left_indices_.kind() != arrow::compute::Datum::NONE){
         old_indices = std::static_pointer_cast<arrow::Int64Array>
-                (left_join_result_[index].selection.make_array());
+                (prev_result_->lazy_tables_[index].selection.make_array());
     }
 
 
@@ -271,16 +262,16 @@ std::vector<LazyTable> Join::probe_hash_table
                 int64_t right_row_index = hash_table_[key];
 
                 int left_row_index = -1;
-                if (!left_join_result_.empty()) {
+                if (left_indices_.kind() != arrow::compute::Datum::NONE) {
                     left_row_index = old_indices->Value(row_offset + row);
                 }
                 else {
                     left_row_index = row_offset + row;
                 }
-                status = left_indices_builder.Append(left_row_index);
+                status = new_left_indices_builder.Append(left_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-                status = right_indices_builder.Append(right_row_index);
+                status = new_right_indices_builder.Append(right_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
@@ -289,21 +280,19 @@ std::vector<LazyTable> Join::probe_hash_table
 
     // Note that ArrayBuilders are automatically reset by default after
     // calling Finish()
-    status = left_indices_builder.Finish(&left_indices);
+    status = new_left_indices_builder.Finish(&new_left_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    status = right_indices_builder.Finish(&right_indices);
+    status = new_right_indices_builder.Finish(&new_right_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    left_indices_ = left_indices;
-    right_indices_ = right_indices;
 
     std::vector<LazyTable> out;
-    out.push_back({left_table_,
+    out.emplace_back(left_table_,
                    arrow::compute::Datum(left_filter_),
-                   arrow::compute::Datum(left_indices_)});
-    out.push_back({right_table_,
+                   arrow::compute::Datum(new_left_indices));
+    out.emplace_back(right_table_,
                    arrow::compute::Datum(right_filter_),
-                   arrow::compute::Datum(right_indices_)});
+                   arrow::compute::Datum(new_right_indices));
 
     return out;
 }
@@ -356,8 +345,8 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 
         std::vector<LazyTable> out_join_result_cols;
 
-        if (!left_join_result_.empty()) {
-            out_join_result_cols = hash_join(left_join_result_, right_table_);
+        if (!prev_result_->lazy_tables_.empty()) {
+            out_join_result_cols = hash_join(prev_result_->lazy_tables_, right_table_);
         }
         else {
             out_join_result_cols = hash_join(left_table_, right_table_);

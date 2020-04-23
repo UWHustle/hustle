@@ -22,7 +22,7 @@ namespace operators {
     OperatorResult::OperatorResult(
             std::vector<LazyTable> units) {
 
-        lazy_tables = units;
+        lazy_tables_ = units;
     }
 
     OperatorResult::OperatorResult(){
@@ -38,12 +38,12 @@ namespace operators {
                 table,
                 arrow::compute::Datum(),
                 arrow::compute::Datum());
-        lazy_tables.insert(lazy_tables.begin(),lazy_table);
+        lazy_tables_.insert(lazy_tables_.begin(),lazy_table);
     }
 
     void OperatorResult::append(std::shared_ptr<OperatorResult> result) {
-        for (auto &lazy_table : result->lazy_tables) {
-            lazy_tables.push_back(lazy_table);
+        for (auto &lazy_table : result->lazy_tables_) {
+            lazy_tables_.push_back(lazy_table);
         }
     }
 

@@ -1499,7 +1499,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     auto result_1 = j_op_1.run();
     result_1->append(c_selection);
 
-    for (auto &t : result_1->lazy_tables) {
+    for (auto &t : result_1->lazy_tables_) {
         std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
                   std::endl;
 
@@ -1510,7 +1510,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     auto result_2 = j_op_2.run();
     result_2->append(s_selection);
 
-    for (auto &t : result_2->lazy_tables) {
+    for (auto &t : result_2->lazy_tables_) {
         std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
                   std::endl;
     }
@@ -1520,7 +1520,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     auto result_3 = j_op_3.run();
     result_3->add_table(date);
 
-    for (auto &t : result_3->lazy_tables) {
+    for (auto &t : result_3->lazy_tables_) {
         std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
                   std::endl;
     }
@@ -1533,13 +1533,13 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
 
 
 
-    for (auto &t : result_3->lazy_tables) {
+    for (auto &t : result_3->lazy_tables_) {
         std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
                   std::endl;
     }
     std::cout << std::endl;
 
-    for (auto &t : result_4->lazy_tables) {
+    for (auto &t : result_4->lazy_tables_) {
         std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
                   std::endl;
 

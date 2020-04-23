@@ -17,7 +17,7 @@ namespace operators {
             std::vector<ColumnReference> group_bys,
             std::vector<ColumnReference> order_bys) {
 
-        join_result_ = join_result->lazy_tables;
+        join_result_ = join_result->lazy_tables_;
         aggregate_lazy_tables = aggregate_units;
 
         group_bys_ = std::move(group_bys);
