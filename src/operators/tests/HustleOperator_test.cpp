@@ -10,21 +10,14 @@
 #include "operators/Join.h"
 #include "operators/Select.h"
 #include "operators/Project.h"
-
+#include "operators/Predicate.h"
 
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
 #include <arrow/compute/kernels/match.h>
 
 using namespace testing;
-using hustle::operators::Aggregate;
-using hustle::operators::Join;
-using hustle::operators::Select;
-using hustle::operators::AggregateUnit;
-using hustle::operators::AggregateKernels ;
-using hustle::operators::Projection ;
-using hustle::operators::ProjectionUnit ;
-using hustle::operators::ColumnReference ;
+using namespace hustle::operators;
 
 
 class SSBTestFixture : public testing::Test {
@@ -1413,44 +1406,64 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     // parameter. You must first create a StringScalar and then pass that in.
     // If you pass in a string to the Datum constructor, it will interpet it
     // as boolean.
-    auto p_select_op_1 = std::make_shared<hustle::operators::Select>(
-            part,
+    auto p_pred_1 = Predicate{
+            {part, "mfgr"},
             arrow::compute::CompareOperator::EQUAL,
-            "mfgr",
             arrow::compute::Datum(
                     std::make_shared<arrow::StringScalar>("MFGR#1"))
-    );
-
-    auto p_select_op_2 = std::make_shared<hustle::operators::Select>(
-            part,
+    };
+    auto p_pred_2 = Predicate {
+            {part, "mfgr"},
             arrow::compute::CompareOperator::EQUAL,
-            "mfgr",
             arrow::compute::Datum(
                     std::make_shared<arrow::StringScalar>("MFGR#2"))
+    };
+
+    auto p_pred_node_1 =
+            std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(p_pred_1));
+
+    auto p_pred_node_2 =
+            std::make_shared<PredicateNode>(
+                    std::make_shared<Predicate>(p_pred_2));
+
+    auto p_connective_node_1 = std::make_shared<ConnectiveNode>(
+            p_pred_node_1,
+                    p_pred_node_2,
+            hustle::operators::FilterOperator::OR
     );
 
-    auto p_select_op_composite_1 =
-            std::make_shared<hustle::operators::SelectComposite>
-                    (part, p_select_op_1, p_select_op_2,
-                     hustle::operators::FilterOperator::OR);
+    auto p_tree = std::make_shared<PredicateTree>(
+            p_connective_node_1);
 
-    auto c_select_op = std::make_shared<hustle::operators::Select>(
-            cust,
+    auto c_pred_1 = Predicate {
+            {cust, "region"},
             arrow::compute::CompareOperator::EQUAL,
-            "region",
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>
-                                          ("AMERICA"))
-    );
+            arrow::compute::Datum(
+                    std::make_shared<arrow::StringScalar>("AMERICA"))};
 
-    auto s_select_op = std::make_shared<hustle::operators::Select>(
-            supp,
+    PredicateNode c_pred_node_1 = PredicateNode(
+            std::make_shared<Predicate>(c_pred_1));
+
+    auto c_tree = std::make_shared<PredicateTree>(
+            std::make_shared<Node>(c_pred_node_1));
+
+    auto s_pred_1 = Predicate {
+            {supp, "region"},
             arrow::compute::CompareOperator::EQUAL,
-            "region",
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>
-                                          ("AMERICA"))
-    );
+            arrow::compute::Datum(
+                    std::make_shared<arrow::StringScalar>("AMERICA"))};
 
-    auto empty_result = std::make_shared<hustle::operators::OperatorResult>();
+    PredicateNode s_pred_node_1 = PredicateNode(
+            std::make_shared<Predicate>(s_pred_1));
+
+    auto s_tree = std::make_shared<PredicateTree>(
+            std::make_shared<Node>(s_pred_node_1));
+
+    auto p_select_op = Select(part, p_tree);
+    auto c_select_op = Select(cust, c_tree);
+    auto s_select_op = Select(supp, s_tree);
+
 
     ColumnReference lo_s_ref = {lineorder, "supp key"};
     ColumnReference lo_c_ref = {lineorder, "cust key"};
@@ -1462,34 +1475,75 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     ColumnReference p_ref = {part, "part key"};
     ColumnReference d_ref = {date, "date key"};
 
-    auto p_selection = p_select_op_composite_1->run();
-    auto s_selection = s_select_op->run();
-    auto c_selection = c_select_op->run();
+    auto p_selection = p_select_op.run();
+    auto c_selection = c_select_op.run();
+    auto s_selection = s_select_op.run();
 
-    auto join_op_1 = std::make_shared<hustle::operators::Join>(
-            lo_s_ref, empty_result,
-            s_ref, s_selection);
+    JoinPredicate p_jpred = {lo_p_ref, arrow::compute::EQUAL, p_ref};
+    JoinPredicate c_jpred = {lo_c_ref, arrow::compute::EQUAL, c_ref};
+    JoinPredicate s_jpred = {lo_s_ref, arrow::compute::EQUAL, s_ref};
+    JoinPredicate d_jpred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
 
-    auto join_result_1 = join_op_1->run();
-    std::cout << join_result_1->units_[1].selection.length() << std::endl;
+//    JoinGraph graph({{p_jpred}, {c_jpred}, {s_jpred}, {d_jpred}});
+    JoinGraph graph1({{p_jpred}});
+    JoinGraph graph2({{c_jpred}});
+    JoinGraph graph3({{s_jpred}});
+    JoinGraph graph4({{d_jpred}});
 
-    auto join_op_2 = std::make_shared<hustle::operators::Join>(
-            lo_c_ref, join_result_1,
-            c_ref, c_selection);
+    auto result_0 = std::make_shared<hustle::operators::OperatorResult>();
 
-    auto join_result_2 = join_op_2->run();
+//    result_0->add_table(lineorder);
+    result_0->append(p_selection);
 
-    auto join_op_3 = std::make_shared<hustle::operators::Join>(
-            lo_p_ref, join_result_2,
-            p_ref, p_selection);
+    Join j_op_1(result_0, graph1);
+    auto result_1 = j_op_1.run();
+    result_1->append(c_selection);
 
-    auto join_result_3 = join_op_3->run();
+    for (auto &t : result_1->lazy_tables) {
+        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+                  std::endl;
 
-    auto join_op_4 = std::make_shared<hustle::operators::Join>(
-            lo_d_ref, join_result_3,
-            d_ref, empty_result);
+    }
+    std::cout << std::endl;
 
-    auto join_result_4 = join_op_4->run();
+    Join j_op_2(result_1, graph2);
+    auto result_2 = j_op_2.run();
+    result_2->append(s_selection);
+
+    for (auto &t : result_2->lazy_tables) {
+        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+                  std::endl;
+    }
+    std::cout << std::endl;
+
+    Join j_op_3(result_2, graph3);
+    auto result_3 = j_op_3.run();
+    result_3->add_table(date);
+
+    for (auto &t : result_3->lazy_tables) {
+        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+                  std::endl;
+    }
+    std::cout << std::endl;
+
+    Join j_op_4(result_3, graph4);
+    auto result_4 = j_op_4.run();
+
+
+
+
+
+    for (auto &t : result_3->lazy_tables) {
+        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+                  std::endl;
+    }
+    std::cout << std::endl;
+
+    for (auto &t : result_4->lazy_tables) {
+        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+                  std::endl;
+
+    }
 
     std::vector<ColumnReference> group_bys = {{date,"year"},
                                               {cust, "nation"}};
@@ -1504,7 +1558,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     std::vector<AggregateUnit> units = {agg_unit};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-            join_result_4,
+            result_4,
             units,
             group_bys,
             order_bys);

@@ -7,6 +7,7 @@
 #include <arrow/compute/api.h>
 
 #include "Operator.h"
+#include "JoinGraph.h"
 
 namespace hustle {
 namespace operators {
@@ -27,10 +28,8 @@ public:
      * @param right_selection the filter returned by an earlier selection on the
      * right table. If no selection was performed, pass in a null Datum.
      */
-    Join(ColumnReference left,
-               std::shared_ptr<OperatorResult> left_selection,
-               ColumnReference right,
-               std::shared_ptr<OperatorResult> right_selection);
+    Join(std::shared_ptr<OperatorResult> prev,
+            JoinGraph graph);
 
     /**
     * Perform a natural join on two tables using hash join.
@@ -42,6 +41,8 @@ public:
 
 
 private:
+
+    std::shared_ptr<OperatorResult> out_;
 
     arrow::compute::Datum left_filter_;
     arrow::compute::Datum right_filter_;

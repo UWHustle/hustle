@@ -33,5 +33,19 @@ namespace operators {
         return type_;
     }
 
+    void OperatorResult::add_table(std::shared_ptr<Table> table) {
+        LazyTable lazy_table(
+                table,
+                arrow::compute::Datum(),
+                arrow::compute::Datum());
+        lazy_tables.insert(lazy_tables.begin(),lazy_table);
+    }
+
+    void OperatorResult::append(std::shared_ptr<OperatorResult> result) {
+        for (auto &lazy_table : result->lazy_tables) {
+            lazy_tables.push_back(lazy_table);
+        }
+    }
+
 }
 }

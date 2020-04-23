@@ -11,10 +11,13 @@
 namespace hustle {
 namespace operators {
 
-Join::Join(ColumnReference left,
-         std::shared_ptr<OperatorResult> left_prev,
-         ColumnReference right,
-         std::shared_ptr<OperatorResult> right_prev){
+Join::Join(std::shared_ptr<OperatorResult> prev,
+               JoinGraph graph) {
+
+    auto jpred = graph.get_predicates(0)[0];
+
+    auto left = jpred.left_col_ref_;
+    auto right = jpred.right_col_ref_;
 
     left_join_col_name_ = left.col_name;
     right_join_col_name_ = right.col_name;
@@ -22,23 +25,26 @@ Join::Join(ColumnReference left,
     left_table_ = left.table;
     right_table_ = right.table;
 
-    for (int i=0; i<left_prev->lazy_tables.size(); i++) {
-        if (left_table_ == left_prev->lazy_tables[i].table) {
-            left_filter_ = left_prev->lazy_tables[i].filter;
-            left_selection_ = left_prev->lazy_tables[i].selection;
-            left_join_result_ = left_prev->lazy_tables;
+    out_ = std::make_shared<OperatorResult>();
+
+    for (int i=0; i<prev->lazy_tables.size(); i++) {
+        if (left_table_ == prev->lazy_tables[i].table) {
+            left_filter_ = prev->lazy_tables[i].filter;
+            left_selection_ = prev->lazy_tables[i].selection;
+            left_join_result_ = prev->lazy_tables;
         }
-    }
-    for (int i=0; i<right_prev->lazy_tables.size(); i++) {
-        if (right_table_ == right_prev->lazy_tables[i].table) {
-            right_filter_ = right_prev->lazy_tables[i].filter;
-            right_selection_ = right_prev->lazy_tables[i].selection;
-            right_join_result_ = right_prev->lazy_tables;
+        else if (right_table_ == prev->lazy_tables[i].table) {
+            right_filter_ = prev->lazy_tables[i].filter;
+            right_selection_ = prev->lazy_tables[i].selection;
+            right_join_result_ = prev->lazy_tables;
         }
+        // Append the unused LazyTables to the output
+//        else {
+//            out_->lazy_tables.push_back(prev->lazy_tables[i]);
+//        }
     }
     
 }
-
 
 std::vector<LazyTable> Join::hash_join() {
 
@@ -79,6 +85,12 @@ std::vector<LazyTable> Join::hash_join(
     auto out = probe_hash_table(left_join_col);
 
     std::make_shared<OperatorResult>(out);
+    for (int i=0; i<right_join_result_.size(); i++) {
+        if (left_table_ != right_join_result_[i].table &&
+            right_table_ != right_join_result_[i].table) {
+            out.push_back(right_join_result_[i]);
+        }
+    }
     return out;
 }
 
@@ -163,19 +175,25 @@ std::vector<LazyTable> Join::hash_join(
     std::vector<LazyTable> output;
     output.push_back(out[0]);
 
+    // BUG: Should only apply Take on the RIGHT TABLE, not on any of the
+    // unused tables.
     for (int i=0; i<left_join_result_.size(); i++) {
         if (i != selection_reference_index) {
-
-            status = arrow::compute::Take(&function_context,
-                                          left_join_result_[i].selection,
-                                          matched_indices,
-                                          take_options,
-                                          &res);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            output.push_back({left_join_result_[i].table,
-                              left_join_result_[i].filter,
-                              res});
-
+            if (left_join_result_[i].selection.kind() !=
+            arrow::compute::Datum::NONE) {
+                status = arrow::compute::Take(&function_context,
+                                              left_join_result_[i].selection,
+                                              matched_indices,
+                                              take_options,
+                                              &res);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                output.push_back({left_join_result_[i].table,
+                                  left_join_result_[i].filter,
+                                  res});
+            }
+            else {
+                out_->lazy_tables.push_back(left_join_result_[i]);
+            }
         }
     }
 
@@ -223,9 +241,17 @@ std::vector<LazyTable> Join::probe_hash_table
     std::shared_ptr<arrow::Int64Array> right_indices;
 
     std::shared_ptr<arrow::Int64Array> old_indices;
+
+    int index = -1;
+    for (int i=0; i<left_join_result_.size(); i++) {
+        if (left_join_result_[i].table == left_table_) {
+            index = i;
+        }
+    }
+
     if (!left_join_result_.empty()){
         old_indices = std::static_pointer_cast<arrow::Int64Array>
-                (left_join_result_[0].selection.make_array());
+                (left_join_result_[index].selection.make_array());
     }
 
 
@@ -337,7 +363,9 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
             out_join_result_cols = hash_join(left_table_, right_table_);
         }
 
-        return std::make_shared<OperatorResult>(out_join_result_cols);
+        auto result = std::make_shared<OperatorResult>(out_join_result_cols);
+//        result->append(out_);
+        return result;
     }
 
 

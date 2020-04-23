@@ -6,11 +6,10 @@
 
 namespace hustle::operators {
 
-    JoinGraph::JoinGraph(std::vector<std::shared_ptr<Table>> tables,
+    JoinGraph::JoinGraph(
             std::vector<std::vector<JoinPredicate>> trees) {
 
-        for (int i=0; i<tables.size(); i++) {
-            tables_.push_back(tables[i]);
+        for (int i=0; i<trees.size(); i++) {
             adj_.push_back(trees[i]);
         }
     }
@@ -41,6 +40,11 @@ namespace hustle::operators {
     JoinGraph::get_predicates(const std::shared_ptr<Table>& table) {
         auto it = std::find(tables_.begin(), tables_.end(), table);
         return adj_[it - tables_.end()];
+    }
+
+    std::vector<JoinPredicate>
+    JoinGraph::get_predicates(int i) {
+        return adj_[i];
     }
 
 

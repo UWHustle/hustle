@@ -15,11 +15,12 @@ class JoinGraph {
 
 public:
 
-    JoinGraph(std::vector<std::shared_ptr<Table>> tables,
+    JoinGraph(
               std::vector<std::vector<JoinPredicate>> trees);
-    std::shared_ptr<Table> get_table(int i);
+    std::shared_ptr<Table> get_table(int index);
     std::vector<JoinPredicate>
         get_predicates(const std::shared_ptr<Table>& table);
+    std::vector<JoinPredicate> get_predicates(int i);
 private:
 
 // TODO(nicholas): We could use table id's but then what if the id was,
@@ -29,6 +30,7 @@ private:
     std::vector<std::vector<JoinPredicate>> adj_;
     void insert(std::shared_ptr<Table> table,
                            std::vector<JoinPredicate> predicates);
+
 
 
 };
