@@ -23,7 +23,9 @@ Join::Join(std::shared_ptr<OperatorResult> prev,
     right_join_col_name_ = right.col_name;
 
     prev_result_ = prev;
-    
+
+    // The previous result prev may contain many LazyTables. Find the
+    // LazyTables that we want to join.
     for (int i=0; i<prev->lazy_tables_.size(); i++) {
         auto lazy_table = prev->get_table(i);
 
@@ -37,20 +39,16 @@ Join::Join(std::shared_ptr<OperatorResult> prev,
 
 }
 
-
-
 std::unordered_map<int64_t, int64_t> Join::build_hash_table
-(std::shared_ptr<arrow::ChunkedArray> col) {
+(const std::shared_ptr<arrow::ChunkedArray>& col) {
 
     arrow::Status status;
-    // TODO(nicholas): size of hash table is too large if selection is not null
-    std::unordered_map<int64_t, int64_t> hash(col->length());
-
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
+    std::unordered_map<int64_t, int64_t> hash(col->length());
 
     int row_offset = 0;
-    // Build phase if there is no selection
+
     for (int i=0; i<col->num_chunks(); i++) {
         // TODO(nicholas): for now, we assume the join column is INT64 type.
         auto chunk = std::static_pointer_cast<arrow::Int64Array>(
@@ -65,8 +63,8 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
     return hash;
 }
 
-std::vector<LazyTable> Join::probe_hash_table
-(std::shared_ptr<arrow::ChunkedArray> probe_col) {
+std::vector<arrow::compute::Datum> Join::probe_hash_table
+(const std::shared_ptr<arrow::ChunkedArray>& probe_col) {
 
     arrow::Status status;
 
@@ -75,14 +73,6 @@ std::vector<LazyTable> Join::probe_hash_table
     std::shared_ptr<arrow::Int64Array> new_left_indices;
     std::shared_ptr<arrow::Int64Array> new_right_indices;
 
-    std::shared_ptr<arrow::Int64Array> old_indices;
-    
-    if (left_.indices.kind() != arrow::compute::Datum::NONE){
-        old_indices = std::static_pointer_cast<arrow::Int64Array>
-                (left_.indices.make_array());
-    }
-
-
     // Probe phase
     int row_offset = 0;
     for (int i = 0; i < probe_col->num_chunks(); i++) {
@@ -90,7 +80,6 @@ std::vector<LazyTable> Join::probe_hash_table
         // TODO(nicholas): for now, we assume the join column is INT64 type.
         auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
                 probe_col->chunk(i));
-
 
         for (int row = 0; row < left_join_chunk->length(); row++) {
             auto key = left_join_chunk->Value(row);
@@ -116,14 +105,9 @@ std::vector<LazyTable> Join::probe_hash_table
     status = new_right_indices_builder.Finish(&new_right_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-
-    std::vector<LazyTable> out;
-    out.emplace_back(left_.table,
-                   arrow::compute::Datum(left_.filter),
-                   arrow::compute::Datum(new_left_indices));
-    out.emplace_back(right_.table,
-                   arrow::compute::Datum(right_.filter),
-                   arrow::compute::Datum(new_right_indices));
+    std::vector<arrow::compute::Datum> out;
+    out.emplace_back(arrow::compute::Datum(new_left_indices));
+    out.emplace_back(arrow::compute::Datum(new_right_indices));
 
     return out;
 }
@@ -141,51 +125,76 @@ std::vector<LazyTable> Join::probe_hash_table
         int left_join_col_index = left_.table->get_schema()->GetFieldIndex
                 (left_join_col_name_);
         auto left_join_col = left_.get_column(left_join_col_index);
-        auto out = probe_hash_table(left_join_col);
-
+        auto probe_result = probe_hash_table(left_join_col);
+        // The indices of the indices that were joined
+        auto left_indices_of_indices = probe_result[0];
+        auto right_indices_of_indices = probe_result[1];
 
         arrow::compute::FunctionContext function_context(
                 arrow::default_memory_pool());
         arrow::compute::TakeOptions take_options;
-        arrow::compute::Datum out_indices;
+        // Where we will store the result of calls to Take. This will be reused.
+        arrow::compute::Datum new_indices;
 
-        out_indices = arrow::compute::Datum(out[0].indices);
+        std::vector<LazyTable> output_lazy_tables;
 
+        // Update the indices of the left LazyTable. If there was no previous
+        // join on the left table, then left_indices_of_indices directly
+        // corresponds to indices in the left table, and we do not need to
+        // call Take.
         if (left_.indices.kind() != arrow::compute::Datum::NONE) {
             status = arrow::compute::Take(&function_context,
                                           left_.indices,
-                                          out_indices,
+                                          left_indices_of_indices,
                                           take_options,
-                                          &out[0].indices);
+                                          &new_indices);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+            output_lazy_tables.emplace_back(left_.table,left_.filter, new_indices);
+        }
+        else {
+            new_indices = left_indices_of_indices;
+        }
+        output_lazy_tables.emplace_back(left_.table,left_.filter, new_indices);
+
+
+        // Update the indices of the right LazyTable. If there was no previous
+        // join on the right table, then right_indices_of_indices directly
+        // corresponds to indices in the right table, and we do not need to
+        // call Take.
+        if (right_.indices.kind() != arrow::compute::Datum::NONE) {
+            status = arrow::compute::Take(&function_context,
+                                          right_.indices,
+                                          right_indices_of_indices,
+                                          take_options,
+                                          &new_indices);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
         }
+        else {
+            new_indices = right_indices_of_indices;
+        }
+        output_lazy_tables.emplace_back(right_.table,right_.filter, new_indices);
 
 
-        arrow::compute::Datum res;
-
-        std::vector<LazyTable> output;
-        output.push_back(out[0]);
-
+        // Propogate the join to the other tables in the previous
+        // OperatorResult.
         for (auto &lazy_table : prev_result_->lazy_tables_) {
-            if (lazy_table.table != left_.table) {
-                if (lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
-                    status = arrow::compute::Take(&function_context,
-                                                  lazy_table.indices,
-                                                  out_indices,
-                                                  take_options,
-                                                  &res);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                    output.push_back({lazy_table.table,
-                                      lazy_table.filter,
-                                      res});
-                }
+            if (lazy_table.table != left_.table &&
+                lazy_table.table != right_.table &&
+                lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
+
+                status = arrow::compute::Take(&function_context,
+                                              lazy_table.indices,
+                                              left_indices_of_indices,
+                                              take_options,
+                                              &new_indices);
+                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                output_lazy_tables.push_back({lazy_table.table,
+                                              lazy_table.filter,
+                                              new_indices});
             }
         }
 
-        output.push_back(out[1]);
-        auto result = std::make_shared<OperatorResult>(output);
-
-        return result;
+        return std::make_shared<OperatorResult>(output_lazy_tables);
     }
 
 

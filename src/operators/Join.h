@@ -51,11 +51,12 @@ private:
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-    std::vector<LazyTable> probe_hash_table
-        (std::shared_ptr<arrow::ChunkedArray> probe_col);
-
     std::unordered_map<int64_t, int64_t> build_hash_table
-            (std::shared_ptr<arrow::ChunkedArray> col);
+            (const std::shared_ptr<arrow::ChunkedArray>& col);
+
+    std::vector<arrow::compute::Datum> probe_hash_table
+        (const std::shared_ptr<arrow::ChunkedArray>& probe_col);
+
 };
 
 } // namespace operators
