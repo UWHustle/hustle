@@ -41,20 +41,7 @@ public:
 
 private:
 
-    arrow::compute::Datum left_filter_;
-    arrow::compute::Datum right_filter_;
-
-    std::shared_ptr<arrow::ChunkedArray> left_join_col_;
-    std::shared_ptr<arrow::ChunkedArray> right_join_col_;
-
-    arrow::compute::Datum left_indices_;
-    arrow::compute::Datum right_indices_;
-
-    //TODO(nicholas): a better name?
     std::shared_ptr<OperatorResult> prev_result_;
-
-    std::shared_ptr<Table> left_table_;
-    std::shared_ptr<Table> right_table_;
 
     LazyTable left_;
     LazyTable right_;
@@ -64,19 +51,11 @@ private:
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
-    std::vector<LazyTable> hash_join(
-            std::vector<LazyTable>&,
-            const std::shared_ptr<Table>& right_table);
-
     std::vector<LazyTable> probe_hash_table
         (std::shared_ptr<arrow::ChunkedArray> probe_col);
 
     std::unordered_map<int64_t, int64_t> build_hash_table
             (std::shared_ptr<arrow::ChunkedArray> col);
-    std::shared_ptr<arrow::ChunkedArray> apply_selection
-            (std::shared_ptr<arrow::ChunkedArray> col, arrow::compute::Datum
-            selection);
-
 };
 
 } // namespace operators
