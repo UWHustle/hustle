@@ -150,15 +150,10 @@ std::vector<LazyTable> Join::hash_join(
     std::shared_ptr<arrow::ChunkedArray> out_ref;
 
     out_indices = arrow::compute::Datum(out[0].selection);
-
-    status = arrow::compute::Match(&function_context, out[0].selection,
-            prev_result_->lazy_tables_[selection_reference_index].selection,
-            &matched_indices);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
+    
     status = arrow::compute::Take(&function_context,
                                   prev_result_->lazy_tables_[selection_reference_index].selection,
-                                  matched_indices,
+                                  out_indices,
                                   take_options,
                                   &out[0].selection);
 
@@ -177,7 +172,7 @@ std::vector<LazyTable> Join::hash_join(
             arrow::compute::Datum::NONE) {
                 status = arrow::compute::Take(&function_context,
                                               prev_result_->lazy_tables_[i].selection,
-                                              matched_indices,
+                                              out_indices,
                                               take_options,
                                               &res);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -260,14 +255,8 @@ std::vector<LazyTable> Join::probe_hash_table
 
             if (hash_table_.count(key)) {
                 int64_t right_row_index = hash_table_[key];
+                int64_t left_row_index = row_offset + row;
 
-                int left_row_index = -1;
-                if (left_indices_.kind() != arrow::compute::Datum::NONE) {
-                    left_row_index = old_indices->Value(row_offset + row);
-                }
-                else {
-                    left_row_index = row_offset + row;
-                }
                 status = new_left_indices_builder.Append(left_row_index);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
@@ -345,7 +334,7 @@ std::shared_ptr<arrow::ChunkedArray> Join::apply_selection
 
         std::vector<LazyTable> out_join_result_cols;
 
-        if (!prev_result_->lazy_tables_.empty()) {
+        if (prev_result_->lazy_tables_.size() > 2) {
             out_join_result_cols = hash_join(prev_result_->lazy_tables_, right_table_);
         }
         else {
