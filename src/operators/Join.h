@@ -36,7 +36,6 @@ public:
     *
     * @return A vector of JoinResult.
     */
-    std::vector<LazyTable> hash_join();
     std::shared_ptr<OperatorResult> run() override;
 
 
@@ -57,6 +56,9 @@ private:
     std::shared_ptr<Table> left_table_;
     std::shared_ptr<Table> right_table_;
 
+    LazyTable left_;
+    LazyTable right_;
+
     std::string left_join_col_name_;
     std::string right_join_col_name_;
 
@@ -64,9 +66,6 @@ private:
 
     std::vector<LazyTable> hash_join(
             std::vector<LazyTable>&,
-            const std::shared_ptr<Table>& right_table);
-    std::vector<LazyTable> hash_join(
-            const std::shared_ptr<Table>& left_table,
             const std::shared_ptr<Table>& right_table);
 
     std::vector<LazyTable> probe_hash_table

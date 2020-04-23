@@ -167,7 +167,7 @@ namespace operators {
             }
         }
         filter = join_result_[aggregate_index].filter;
-        selection = join_result_[aggregate_index].selection;
+        selection = join_result_[aggregate_index].indices;
         name = aggregate_lazy_tables[0].col_name;
 
         auto aggregate_col = table->get_column_by_name(
@@ -462,11 +462,11 @@ namespace operators {
         for (int i=0; i<join_result_.size(); i++) {
             if (join_result_[i].table == group_ref.table) {
                 filter = join_result_[i].filter;
-                selection = join_result_[i].selection;
+                selection = join_result_[i].indices;
             }
         }
 
-//    std::cout << join_result_[0].selection.make_array()->ToString() <<
+//    std::cout << join_result_[0].indices.make_array()->ToString() <<
 //    std::endl;
 
         auto datum_col = arrow::compute::Datum(group_by_col);
@@ -535,7 +535,7 @@ namespace operators {
         for (int i=0; i<join_result_.size(); i++) {
             if (join_result_[i].table == group_ref.table) {
                 filter = join_result_[i].filter;
-                selection = join_result_[i].selection;
+                selection = join_result_[i].indices;
             }
         }
 

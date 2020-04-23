@@ -34,7 +34,7 @@ namespace hustle {
 
                 auto table = unit.ref.table;
                 auto filter = unit.ref.filter;
-                auto selection = unit.ref.selection;
+                auto selection = unit.ref.indices;
                 auto fields = unit.fields;
 
                 status = schema_builder.AddFields(fields);

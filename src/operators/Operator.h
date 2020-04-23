@@ -28,16 +28,21 @@ enum ResultType {
 
     public:
 
+        LazyTable();
         LazyTable(
                 std::shared_ptr<Table> table,
                 arrow::compute::Datum filter,
-                arrow::compute::Datum selection
+                arrow::compute::Datum indices
         );
+        std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+        std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string
+        col_name);
+
 
         // TODO(nicholas): Combine into a ColumnReference?
         std::shared_ptr<Table> table;
         arrow::compute::Datum filter; // filters are ChunkedArrays
-        arrow::compute::Datum selection; // selections are Arrays
+        arrow::compute::Datum indices; // indicess are Arrays
 
     private:
 
@@ -45,18 +50,14 @@ enum ResultType {
 
 class OperatorResult {
 public:
-//    virtual arrow::compute::Datum get_filter() = 0;
-//    virtual arrow::compute::Datum get_indices() = 0;
-//    OperatorResult() = default;
     OperatorResult();
     OperatorResult(std::vector<LazyTable> units);
     void add_table(std::shared_ptr<Table> table);
     void append(std::shared_ptr<OperatorResult> result);
+    LazyTable get_table(int i);
+    LazyTable get_table(std::shared_ptr<Table> table);
 //    void append(LazyTable lazy_table);
         std::vector<LazyTable> lazy_tables_;
-    ResultType get_type();
-protected:
-    ResultType type_;
 };
 
 struct ColumnReference {

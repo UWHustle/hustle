@@ -1492,7 +1492,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
 
     auto result_0 = std::make_shared<hustle::operators::OperatorResult>();
 
-//    result_0->add_table(lineorder);
+    result_0->add_table(lineorder);
     result_0->append(p_selection);
 
     Join j_op_1(result_0, graph1);
@@ -1500,7 +1500,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     result_1->append(c_selection);
 
     for (auto &t : result_1->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
                   std::endl;
 
     }
@@ -1511,7 +1511,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     result_2->append(s_selection);
 
     for (auto &t : result_2->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
                   std::endl;
     }
     std::cout << std::endl;
@@ -1521,7 +1521,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     result_3->add_table(date);
 
     for (auto &t : result_3->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
                   std::endl;
     }
     std::cout << std::endl;
@@ -1534,13 +1534,13 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
 
 
     for (auto &t : result_3->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
                   std::endl;
     }
     std::cout << std::endl;
 
     for (auto &t : result_4->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.selection.length() <<
+        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
                   std::endl;
 
     }
