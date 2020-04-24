@@ -13,21 +13,26 @@ std::string createCreateSql(const TableSchema &ts) {
   std::string sql;
   absl::StrAppend(&sql, "CREATE TABLE ", ts.getName(), "(");
 
-  for (const auto &c : ts.getColumns()) {
+  const std::vector<ColumnSchema>& cols = ts.getColumns();
+  for (int i = 0; i < cols.size(); i++) {
+    auto & c = cols[i];
     absl::StrAppend(&sql, c.getName(), " ", c.getType().toString(), " ");
-    if (c.isUnique()) { absl::StrAppend(&sql, " UNIQUE "); }
-    if (c.isNotNull()) { absl::StrAppend(&sql, " NOT NULL "); }
-    absl::StrAppend(&sql, ", ");
+    if (c.isUnique()) { absl::StrAppend(&sql, " UNIQUE"); }
+    if (c.isNotNull()) { absl::StrAppend(&sql, " NOT NULL"); }
+    if (i < cols.size() - 1) {
+      absl::StrAppend(&sql, ", ");
+    }
   }
 
-  absl::StrAppend(&sql, "PRIMARY KEY(");
   if (ts.getPrimaryKey().size() >= 1) {
+    absl::StrAppend(&sql, ", PRIMARY KEY(");
     absl::StrAppend(&sql, ts.getPrimaryKey()[0]);
     for (int i = 1; i < ts.getPrimaryKey().size(); ++i) {
       absl::StrAppend(&sql, ", ", ts.getPrimaryKey()[i]);
     }
+    absl::StrAppend(&sql, ")");
   }
-  absl::StrAppend(&sql, "));");
+  absl::StrAppend(&sql, ");");
 
   return sql;
 }

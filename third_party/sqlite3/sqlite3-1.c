@@ -19725,6 +19725,8 @@ SQLITE_PRIVATE Expr *sqlite3VectorFieldSubexpr(Expr*, int);
 SQLITE_PRIVATE Expr *sqlite3ExprForVectorField(Parse*,Expr*,int);
 SQLITE_PRIVATE void sqlite3VectorErrorMsg(Parse*, Expr*);
 
+SQLITE_PRIVATE void resolveExpr(Expr*);
+
 #ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
 SQLITE_PRIVATE const char **sqlite3CompileOptions(int *pnOpt);
 #endif

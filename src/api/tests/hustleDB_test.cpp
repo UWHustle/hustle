@@ -15,6 +15,7 @@ using hustle::catalog::ColumnSchema;
 using hustle::catalog::TableSchema;
 using hustle::catalog::Catalog;
 
+
 TEST(HustleDB, Create) {
   std::filesystem::remove_all("db_directory");
 
@@ -64,7 +65,6 @@ TEST(HustleDB, createTable) {
   std::filesystem::remove_all("db_directory");
 }
 
-
 TEST(HustleDB, DropTable) {
   std::filesystem::remove_all("db_directory");
 
@@ -91,7 +91,6 @@ TEST(HustleDB, DropTable) {
 
   std::filesystem::remove_all("db_directory");
 }
-
 
 TEST(HustleDB, getPlan) {
   std::filesystem::remove_all("db_directory");
