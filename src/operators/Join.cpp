@@ -126,9 +126,14 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
                 (left_join_col_name_);
         auto left_join_col = left_.get_column(left_join_col_index);
         auto probe_result = probe_hash_table(left_join_col);
-        // The indices of the indices that were joined
-        auto left_indices_of_indices = probe_result[0];
-        auto right_indices_of_indices = probe_result[1];
+        return propogate_result(probe_result);
+
+    }
+
+    std::shared_ptr<OperatorResult> Join::propogate_result(
+            std::vector<arrow::compute::Datum> probe_result) {
+
+        arrow::Status status;
 
         arrow::compute::FunctionContext function_context(
                 arrow::default_memory_pool());
@@ -137,6 +142,10 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
         arrow::compute::Datum new_indices;
 
         std::vector<LazyTable> output_lazy_tables;
+
+        // The indices of the indices that were joined
+        auto left_indices_of_indices = probe_result[0];
+        auto right_indices_of_indices = probe_result[1];
 
         // Update the indices of the left LazyTable. If there was no previous
         // join on the left table, then left_indices_of_indices directly
@@ -188,16 +197,14 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
                                               take_options,
                                               &new_indices);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                output_lazy_tables.push_back({lazy_table.table,
-                                              lazy_table.filter,
-                                              new_indices});
+                output_lazy_tables.emplace_back(lazy_table.table,
+                                                lazy_table.filter,
+                                                new_indices);
             }
         }
 
         return std::make_shared<OperatorResult>(output_lazy_tables);
     }
-
-
 
 
 } // namespace operators
