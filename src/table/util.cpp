@@ -37,12 +37,13 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
             case arrow::Type::STRING: {
                 std::shared_ptr<arrow::Buffer> offsets;
                 std::shared_ptr<arrow::Buffer> data;
-                status = buffers[1]->Copy(
-                        0, buffers[1]->size(), &offsets);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-                status = buffers[2]->Copy(
-                        0, buffers[2]->size(), &data);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                offsets = result.ValueOrDie();
+
+                result = buffers[2]->CopySlice(0, buffers[2]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
 
                 arraydatas.push_back(
                         arrow::ArrayData::Make(
@@ -53,8 +54,9 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 
             case arrow::Type::BOOL: {
                 std::shared_ptr<arrow::Buffer> data;
-                status = buffers[1]->Copy(0, buffers[1]->size(), &data);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
 
                 arraydatas.push_back(
                         arrow::ArrayData::Make(
@@ -64,9 +66,9 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
             }
             case arrow::Type::INT64: {
                 std::shared_ptr<arrow::Buffer> data;
-                status = buffers[1]->Copy(
-                        0, buffers[1]->size(), &data);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
 
                 arraydatas.push_back(
                         arrow::ArrayData::Make(
@@ -92,29 +94,24 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
 
     arrow::Status status;
-
+    int x = 0;
     std::shared_ptr<arrow::io::ReadableFile> infile;
-    auto result = arrow::io::ReadableFile::Open(path,
-            arrow::default_memory_pool());
-    if (result.ok()) {
-        infile = result.ValueOrDie();
-    }
-    else {
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-    }
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    auto result = arrow::io::ReadableFile::Open(path);
+    evaluate_status(result.status(), __FUNCTION__, __LINE__);
+    infile = result.ValueOrDie();
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> record_batch_reader;
-    status = arrow::ipc::RecordBatchFileReader::Open(
-            infile, &record_batch_reader);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    auto result2 = arrow::ipc::RecordBatchFileReader::Open(infile);
+    evaluate_status(result2.status(), __FUNCTION__, __LINE__);
+    record_batch_reader = result2.ValueOrDie();
 
     std::shared_ptr<arrow::RecordBatch> in_batch;
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
     for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
-        status = record_batch_reader->ReadRecordBatch(i, &in_batch);
-        evaluate_status(status, __FUNCTION__, __LINE__);
+        auto result3 = record_batch_reader->ReadRecordBatch(i);
+        evaluate_status(result3.status(), __FUNCTION__, __LINE__);
+        in_batch = result3.ValueOrDie();
         if (in_batch != nullptr) {
             if (read_only) {
                 record_batches.push_back(in_batch);
@@ -158,14 +155,10 @@ void write_to_file(const char *path, Table &table) {
         evaluate_status(result.status(), __FUNCTION__, __LINE__);
     }
     evaluate_status(status, __FUNCTION__, __LINE__);
-    status = arrow::ipc::RecordBatchFileWriter::Open(
-            &*file, table.get_schema()).status();
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-    if (status.ok()) {
-        record_batch_writer = arrow::ipc::RecordBatchFileWriter::Open(
-                &*file, table.get_schema()).ValueOrDie();
-    }
+    auto result2 = arrow::ipc::NewFileWriter(
+            file.get(), table.get_schema());
+    evaluate_status(result2.status(), __FUNCTION__, __LINE__);
+    record_batch_writer = result2.ValueOrDie();
 
     auto blocks = table.get_blocks();
 
@@ -294,18 +287,6 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
               std::endl;
     fclose(file);
     return test;
-
-    // TODO(nicholas):  Add a Block construct that accepts a vector of
-    //  ArrayData so that you don't need to construct a RecordBatch
-
-    // Finish the final RecordBatch
-    std::shared_ptr<arrow::RecordBatch> record_batch;
-    record_batch_builder->Flush(&record_batch);
-    record_batches.push_back(record_batch);
-
-    fclose(file);
-
-    return std::make_shared<Table>("table", record_batches, block_size);
 }
 
 std::shared_ptr<arrow::Schema> make_schema(
