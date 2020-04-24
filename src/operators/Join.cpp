@@ -14,29 +14,8 @@ namespace operators {
 Join::Join(std::shared_ptr<OperatorResult> prev,
                JoinGraph graph) {
 
-    auto jpred = graph.get_predicates(0)[0];
-
-    auto left = jpred.left_col_ref_;
-    auto right = jpred.right_col_ref_;
-
-    left_join_col_name_ = left.col_name;
-    right_join_col_name_ = right.col_name;
-
     prev_result_ = prev;
     graph_ = graph;
-
-    // The previous result prev may contain many LazyTables. Find the
-    // LazyTables that we want to join.
-    for (int i=0; i<prev->lazy_tables_.size(); i++) {
-        auto lazy_table = prev->get_table(i);
-
-        if (left.table == lazy_table.table) {
-            left_ = lazy_table;
-        }
-        else if (right.table == lazy_table.table) {
-            right_ = lazy_table;
-        }
-    }
 
 }
 
