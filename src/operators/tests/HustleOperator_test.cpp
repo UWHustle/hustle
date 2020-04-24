@@ -1518,12 +1518,12 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
             order_bys);
 
     // Perform aggregate
-    auto aggregate = aggregate_op->aggregate();
-
-    // Print the result. The valid bit will be printed as the first column.
-    if (aggregate != nullptr) aggregate->print();
+    auto aggregate = aggregate_op->run();
 
     auto t2 = std::chrono::high_resolution_clock::now();
+
+    // Print the result. The valid bit will be printed as the first column.
+    if (aggregate != nullptr) aggregate->lazy_tables_[0].table->print();
 
     std::cout << "QUERY EXECUTION TIME = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>

@@ -12,12 +12,12 @@ namespace hustle {
 namespace operators {
 
     Aggregate::Aggregate(
-            std::shared_ptr<OperatorResult> join_result,
+            std::shared_ptr<OperatorResult> prev_result,
             std::vector<AggregateUnit> aggregate_units,
             std::vector<ColumnReference> group_bys,
             std::vector<ColumnReference> order_bys) {
 
-        join_result_ = join_result->lazy_tables_;
+        prev_result_ = prev_result;
         aggregate_lazy_tables = aggregate_units;
 
         group_bys_ = std::move(group_bys);
@@ -25,7 +25,6 @@ namespace operators {
 
         aggregate_builder_ = get_aggregate_builder(aggregate_lazy_tables[0].kernel);
 
-        ;
         for(auto &group_by : group_bys_) {
             group_by_fields_.push_back(group_by.table->get_schema()->GetFieldByName
                     (group_by.col_name));
@@ -35,12 +34,6 @@ namespace operators {
                 group_type, arrow::default_memory_pool(), get_group_builders());
 
     }
-
-    std::shared_ptr<Table> Aggregate::aggregate() {
-
-        return iterate_over_groups();
-    }
-
 
 
     std::vector<std::shared_ptr<arrow::ArrayBuilder>>
@@ -157,21 +150,14 @@ namespace operators {
 
         arrow::compute::Datum filter;
         arrow::compute::Datum selection;
-        std::string name;
+        std::string col_name;
 
-        int aggregate_index = -1;
-        for (int i=0; i<join_result_.size(); i++) {
-            if (table == join_result_[i].table) {
-                aggregate_index = i;
-                break;
-            }
-        }
-        filter = join_result_[aggregate_index].filter;
-        selection = join_result_[aggregate_index].indices;
-        name = aggregate_lazy_tables[0].col_name;
+        auto aggregate_table = prev_result_->get_table(table);
+        filter = aggregate_table.filter;
+        selection = aggregate_table.indices;
+        col_name = aggregate_lazy_tables[0].col_name;
 
-        auto aggregate_col = table->get_column_by_name(
-                aggregate_lazy_tables[0].col_name);
+        auto aggregate_col = table->get_column_by_name(col_name);
 
         auto datum_col = arrow::compute::Datum(aggregate_col);
         // Apply filter
@@ -354,9 +340,7 @@ namespace operators {
 
             for (int j = 0; j < filter->num_chunks(); j++) {
 
-                // Note that Compare does not operate on ChunkedArrays, so we must
-                // compute the filter block by block and combine them into a
-                // ChunkedArray.
+                // Note that Compare cannot operate on ChunkedArrays.
                 status = arrow::compute::And(&function_context, filter->chunk(j),
                                              next_filter->chunk(j), &temp_filter);
                 evaluate_status(status, __FUNCTION__, __LINE__);
@@ -457,14 +441,9 @@ namespace operators {
 
         auto group_by_col = group_ref.table->get_column_by_name(group_ref.col_name);
 
-        arrow::compute::Datum filter;
-        arrow::compute::Datum selection;
-        for (int i=0; i<join_result_.size(); i++) {
-            if (join_result_[i].table == group_ref.table) {
-                filter = join_result_[i].filter;
-                selection = join_result_[i].indices;
-            }
-        }
+        auto group_lazy_table = prev_result_->get_table(group_ref.table);
+        auto filter = group_lazy_table.filter;
+        auto selection = group_lazy_table.indices;
 
 //    std::cout << join_result_[0].indices.make_array()->ToString() <<
 //    std::endl;
@@ -530,14 +509,9 @@ namespace operators {
         arrow::compute::Datum out_filter;
         arrow::ArrayVector filter_vector;
 
-        arrow::compute::Datum filter;
-        arrow::compute::Datum selection;
-        for (int i=0; i<join_result_.size(); i++) {
-            if (join_result_[i].table == group_ref.table) {
-                filter = join_result_[i].filter;
-                selection = join_result_[i].indices;
-            }
-        }
+        auto group_lazy_table = prev_result_->get_table(group_ref.table);
+        auto filter = group_lazy_table.filter;
+        auto selection = group_lazy_table.indices;
 
         std::shared_ptr<arrow::ChunkedArray> group_by_col = group_ref
                 .table->get_column_by_name(group_ref.col_name);
@@ -565,9 +539,7 @@ namespace operators {
         for (int i=0; i<group_by_col->num_chunks(); i++) {
             auto block_col = group_by_col->chunk(i);
 
-            // Note that Compare does not operate on ChunkedArrays, so we must
-            // compute the filter block by block and combine them into a
-            // ChunkedArray.
+            // Note that Compare cannot operate on ChunkedArrays
             status = arrow::compute::Compare(&function_context, block_col, value,
                                              compare_options, &out_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
@@ -651,9 +623,10 @@ namespace operators {
     }
 
     std::shared_ptr<OperatorResult> Aggregate::run() {
-        std::vector<LazyTable> units;
-        OperatorResult result({units});
-        return std::make_shared<OperatorResult>(result);
+        auto out = std::make_shared<OperatorResult>();
+        auto table = iterate_over_groups();
+        out->append(table);
+        return out;
     }
 } // namespace operators
 } // namespace hustle

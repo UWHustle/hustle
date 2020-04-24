@@ -35,19 +35,14 @@ public:
             std::vector<ColumnReference> group_bys,
             std::vector<ColumnReference> order_bys);
 
-    std::shared_ptr<Table> aggregate();
     std::shared_ptr<OperatorResult> run() override;
 
 
-//    std::shared_ptr<arrow::ChunkedArray> get_group_filter(
-//            ColumnReference group_by,
-//            std::vector<std::shared_ptr<arrow::Array>> unique_values,
-//            int* its);
 
 protected:
 
     arrow::compute::Datum selection_;
-    std::vector<LazyTable> join_result_;
+    std::shared_ptr<OperatorResult> prev_result_;
 
     std::vector<ColumnReference> order_bys_;
     std::vector<ColumnReference> group_bys_;
