@@ -24,7 +24,7 @@ namespace hustle::operators {
 
         aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
 
-        // Fetch the fields associated with each groupby column. 
+        // Fetch the fields associated with each groupby column.
         std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
         for(auto &group_by : group_bys_) {
             group_by_fields.push_back(
@@ -37,6 +37,13 @@ namespace hustle::operators {
         group_type = arrow::struct_(group_by_fields);
         group_builder = std::make_shared<arrow::StructBuilder>(
                 group_type, arrow::default_memory_pool(), get_group_builders());
+
+        // Fetch unique values for all Group By columns. You need to do fetch
+        // all of them at once, since you need to know how many unique values
+        // are in each column to initialize the loop variables.
+        for (auto &col_ref : group_bys_) {
+            unique_values_.push_back(get_unique_values(col_ref));
+        }
 
     }
 
@@ -127,94 +134,7 @@ namespace hustle::operators {
         return result.ValueOrDie();
     }
 
-
-    std::shared_ptr<Table> Aggregate::iterate_over_groups() {
-
-        arrow::Status status;
-
-        auto out_schema = get_output_schema(aggregate_refs_[0].kernel);
-        auto out_table = std::make_shared<Table>("aggregate", out_schema,
-                                                 BLOCK_SIZE);
-
-        //TODO(nicholas): For now, we only perform one aggregate.
-        auto table = aggregate_refs_[0].table;
-
-        std::vector<std::shared_ptr<arrow::Array>> unique_values;
-        // Fetch unique values for all Group By columns. You need to do fetch
-        // all of them at once, since you need to know how many unique values
-        // are in each column to initialize the loop variables.
-        for (auto &col_ref : group_bys_) {
-            unique_values.push_back(get_unique_values(col_ref));
-        }
-
-        // TODO(nicholas): If want to compute multiple aggregates, we'll need to
-        //  move this inside of the loop.
-        auto aggregate_table = prev_result_->get_table(table);
-        auto col_name = aggregate_refs_[0].col_name;
-
-        auto aggregate_col = prev_result_->get_table(table).get_column_by_name
-                (col_name);
-        // DYNAMIC DEPTH NESTED FOR LOOP
-        // Initialize the slots to hold the current iteration value for each depth
-        int n = group_type->num_children();
-        int its[n];
-        int maxes[n];
-
-        for (int i = 0; i < n; i++) {
-            its[i] = 0;
-            maxes[i] = unique_values[i]->length();
-        }
-
-        int index = n - 1;
-        bool exit = false;
-        while (!exit){
-
-            // LOOP BODY START
-            std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
-
-            auto group_filter = get_group_filter(unique_values, its);
-            auto aggregate = compute_aggregate(aggregate_refs_[0].kernel,
-                                               aggregate_col, group_filter);
-            insert_group_aggregate(aggregate);
-            insert_group(unique_values, its);
-            // LOOP BODY END
-
-            if (n == 0) break; // edge case
-
-            // INCREMENTED NESTED LOOP
-            its[n-1]++;
-            while (its[index] == maxes[index]){
-                // if n == 0, we have no Group By clause and should exit after one
-                // iteration.
-                if (index ==  0) {
-                    exit = true;
-                    break;
-                }
-                its[index--] = 0;
-                its[index]++;
-            }
-            index = n-1;
-        }
-
-        std::shared_ptr<arrow::StructArray> groups;
-        status = group_builder->Finish(&groups);
-        std::shared_ptr<arrow::Array> aggregates;
-        status = aggregate_builder_->Finish(&aggregates);
-
-        // Build the output table
-        std::vector<std::shared_ptr<arrow::ArrayData>> table_data;
-        for (int i=0; i<group_bys_.size(); i++) {
-            table_data.push_back(groups->field(i)->data());
-        }
-        table_data.push_back(aggregates->data());
-        out_table->insert_records(table_data);
-
-        return out_table;
-    }
-
-    std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(
-            std::vector<std::shared_ptr<arrow::Array>> unique_values,
-            int* its) {
+    std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(int* its) {
 
         arrow::Status status;
         arrow::compute::FunctionContext function_context(
@@ -236,7 +156,8 @@ namespace hustle::operators {
             switch(group_type->child(field_i)->type()->id()) {
                 case arrow::Type::STRING: {
                     auto one_unique_values_casted =
-                            std::static_pointer_cast<arrow::StringArray>(unique_values[field_i]);
+                            std::static_pointer_cast<arrow::StringArray>
+                                    (unique_values_[field_i]);
                     value = arrow::compute::Datum(
                             std::make_shared<arrow::StringScalar>(
                                     one_unique_values_casted->GetString(its[field_i])));
@@ -247,7 +168,7 @@ namespace hustle::operators {
                 case arrow::Type::INT64: {
                     auto one_unique_values_casted =
                             std::static_pointer_cast<arrow::Int64Array>
-                                    (unique_values[field_i]);
+                                    (unique_values_[field_i]);
                     value = arrow::compute::Datum(
                             std::make_shared<arrow::Int64Scalar>(
                                     one_unique_values_casted->Value(its[field_i])));
@@ -287,8 +208,7 @@ namespace hustle::operators {
         return prev_filter;
     }
 
-    void Aggregate::insert_group(
-            std::vector<std::shared_ptr<arrow::Array>> unique_values, int *its) {
+    void Aggregate::insert_group(int *its) {
 
         arrow::Status status;
         for (int i=0; i<group_type->num_children(); i++) {
@@ -298,7 +218,7 @@ namespace hustle::operators {
                             (group_builder->child(i));
                     auto one_unique_values =
                             std::static_pointer_cast<arrow::StringArray>
-                                    (unique_values[i]);
+                                    (unique_values_[i]);
                     status = one_group_builder->Append(one_unique_values->GetString
                             (its[i]));
                     evaluate_status(status, __FUNCTION__, __LINE__);
@@ -309,7 +229,7 @@ namespace hustle::operators {
                             (group_builder->child(i));
                     auto one_unique_values =
                             std::static_pointer_cast<arrow::Int64Array>
-                                    (unique_values[i]);
+                                    (unique_values_[i]);
                     status = one_group_builder->Append
                             (one_unique_values->Value(its[i]));
                     evaluate_status(status, __FUNCTION__, __LINE__);
@@ -520,9 +440,77 @@ namespace hustle::operators {
     std::shared_ptr<OperatorResult> Aggregate::run() {
         auto out = std::make_shared<OperatorResult>();
 
+        arrow::Status status;
+
+        auto out_schema = get_output_schema(aggregate_refs_[0].kernel);
+        auto out_table = std::make_shared<Table>("aggregate", out_schema,
+                                                 BLOCK_SIZE);
+
+        //TODO(nicholas): For now, we only perform one aggregate.
+        auto table = aggregate_refs_[0].table;
+        auto aggregate_table = prev_result_->get_table(table);
+        auto col_name = aggregate_refs_[0].col_name;
+
+        auto aggregate_col = prev_result_->get_table(table).get_column_by_name
+                (col_name);
+
+        // DYNAMIC DEPTH NESTED FOR LOOP
+        // Initialize the slots to hold the current iteration value for each depth
+        int n = group_type->num_children();
+        int its[n];
+        int maxes[n];
+
+        for (int i = 0; i < n; i++) {
+            its[i] = 0;
+            maxes[i] = unique_values_[i]->length();
+        }
+
+        int index = n - 1;
+        bool exit = false;
+        while (!exit){
+
+            // LOOP BODY START
+            std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
+
+            auto group_filter = get_group_filter(its);
+            auto aggregate = compute_aggregate(aggregate_refs_[0].kernel,
+                                               aggregate_col, group_filter);
+            insert_group_aggregate(aggregate);
+            insert_group(its);
+            // LOOP BODY END
+
+            if (n == 0) break; // edge case
+
+            // INCREMENTED NESTED LOOP
+            its[n-1]++;
+            while (its[index] == maxes[index]){
+                // if n == 0, we have no Group By clause and should exit after one
+                // iteration.
+                if (index ==  0) {
+                    exit = true;
+                    break;
+                }
+                its[index--] = 0;
+                its[index]++;
+            }
+            index = n-1;
+        }
+
+        std::shared_ptr<arrow::StructArray> groups;
+        status = group_builder->Finish(&groups);
+        std::shared_ptr<arrow::Array> aggregates;
+        status = aggregate_builder_->Finish(&aggregates);
+
+        // Build the output table
+        std::vector<std::shared_ptr<arrow::ArrayData>> table_data;
+        for (int i=0; i<group_bys_.size(); i++) {
+            table_data.push_back(groups->field(i)->data());
+        }
+        table_data.push_back(aggregates->data());
+        out_table->insert_records(table_data);
+
 //        for (auto aggregate_ref : aggregate_refs_)
-        auto table = iterate_over_groups();
-        out->append(table);
+        out->append(out_table);
         return out;
     }
 } // namespace hustle
