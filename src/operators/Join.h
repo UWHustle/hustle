@@ -60,8 +60,8 @@ private:
 
     std::shared_ptr<OperatorResult> hash_join();
 
-    std::shared_ptr<OperatorResult> propogate_result
-    (std::vector<arrow::compute::Datum> probe_result);
+    std::shared_ptr<OperatorResult> back_propogate_result
+    (std::vector<arrow::compute::Datum> joined_indices);
 
 };
 

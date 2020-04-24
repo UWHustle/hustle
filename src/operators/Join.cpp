@@ -106,15 +106,15 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
     status = new_right_indices_builder.Finish(&new_right_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    std::vector<arrow::compute::Datum> out;
-    out.emplace_back(arrow::compute::Datum(new_left_indices));
-    out.emplace_back(arrow::compute::Datum(new_right_indices));
+    std::vector<arrow::compute::Datum> joined_indices;
+    joined_indices.emplace_back(arrow::compute::Datum(new_left_indices));
+    joined_indices.emplace_back(arrow::compute::Datum(new_right_indices));
 
-    return out;
+    return joined_indices;
 }
 
-std::shared_ptr<OperatorResult> Join::propogate_result(
-        std::vector<arrow::compute::Datum> probe_result) {
+std::shared_ptr<OperatorResult> Join::back_propogate_result(
+        std::vector<arrow::compute::Datum> joined_indices) {
 
     arrow::Status status;
 
@@ -127,8 +127,8 @@ std::shared_ptr<OperatorResult> Join::propogate_result(
     std::vector<LazyTable> output_lazy_tables;
 
     // The indices of the indices that were joined
-    auto left_indices_of_indices = probe_result[0];
-    auto right_indices_of_indices = probe_result[1];
+    auto left_indices_of_indices = joined_indices[0];
+    auto right_indices_of_indices = joined_indices[1];
 
     // Update the indices of the left LazyTable. If there was no previous
     // join on the left table, then left_indices_of_indices directly
@@ -194,15 +194,31 @@ std::shared_ptr<OperatorResult> Join::propogate_result(
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
+std::shared_ptr<OperatorResult> Join::hash_join() {
+    // Build phase
+    auto right_join_col = right_.get_column_by_name(right_join_col_name_);
+    hash_table_ = build_hash_table(right_join_col);
+
+    // Probe phase
+    int left_join_col_index = left_.table->get_schema()->GetFieldIndex
+            (left_join_col_name_);
+    auto left_join_col = left_.get_column(left_join_col_index);
+    auto joined_indices = probe_hash_table(left_join_col);
+
+    // Update indices of other LazyTables in the previous OperatorResult
+    return back_propogate_result(joined_indices);
+}
+
 std::shared_ptr<OperatorResult> Join::run() {
 
     arrow::Status status;
 
+    //TODO(nicholas): For now, we assume joins have simple predicates
+    // without connective operators.
+    // TODO(nicholas): Loop over tables in adj
     auto predicates = graph_.get_predicates(0);
 
     for (auto &jpred : predicates) {
-        //TODO(nicholas): For now, we assume joins have simple predicates
-        // without connective operators.
 
         auto left = jpred.left_col_ref_;
         auto right = jpred.right_col_ref_;
@@ -228,21 +244,5 @@ std::shared_ptr<OperatorResult> Join::run() {
     return prev_result_;
 
 }
-
-    std::shared_ptr<OperatorResult> Join::hash_join() {
-        // Build phase
-        auto right_join_col = right_.get_column_by_name(right_join_col_name_);
-        hash_table_ = build_hash_table(right_join_col);
-
-        // Probe phase
-        int left_join_col_index = left_.table->get_schema()->GetFieldIndex
-                (left_join_col_name_);
-        auto left_join_col = left_.get_column(left_join_col_index);
-        auto probe_result = probe_hash_table(left_join_col);
-
-        // Update indices of other LazyTables in the previous OperatorResult
-        return propogate_result(probe_result);
-    }
-
 } // namespace operators
 } // namespace hustle
