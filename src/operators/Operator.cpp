@@ -55,11 +55,14 @@ namespace operators {
     }
 
     LazyTable OperatorResult::get_table(std::shared_ptr<Table> table) {
-        for (int i=0; i<lazy_tables_.size(); i++) {
-            if (lazy_tables_[i].table == table) {
-                return lazy_tables_[i];
+        LazyTable result;
+        for (auto & lazy_table : lazy_tables_) {
+            if (lazy_table.table == table) {
+                result = lazy_table;
+                break;
             }
         }
+        return result;
     }
 
     std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column_by_name
