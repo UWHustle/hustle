@@ -42,6 +42,7 @@ public:
 private:
 
     std::shared_ptr<OperatorResult> prev_result_;
+    JoinGraph graph_;
 
     LazyTable left_;
     LazyTable right_;
@@ -56,6 +57,8 @@ private:
 
     std::vector<arrow::compute::Datum> probe_hash_table
         (const std::shared_ptr<arrow::ChunkedArray>& probe_col);
+
+    std::shared_ptr<OperatorResult> hash_join();
 
     std::shared_ptr<OperatorResult> propogate_result
     (std::vector<arrow::compute::Datum> probe_result);

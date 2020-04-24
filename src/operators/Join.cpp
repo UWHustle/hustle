@@ -23,6 +23,7 @@ Join::Join(std::shared_ptr<OperatorResult> prev,
     right_join_col_name_ = right.col_name;
 
     prev_result_ = prev;
+    graph_ = graph;
 
     // The previous result prev may contain many LazyTables. Find the
     // LazyTables that we want to join.
@@ -112,84 +113,66 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
     return out;
 }
 
+std::shared_ptr<OperatorResult> Join::propogate_result(
+        std::vector<arrow::compute::Datum> probe_result) {
 
-    std::shared_ptr<OperatorResult> Join::run() {
+    arrow::Status status;
 
-        arrow::Status status;
+    arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+    arrow::compute::TakeOptions take_options;
+    // Where we will store the result of calls to Take. This will be reused.
+    arrow::compute::Datum new_indices;
 
-        // Build phase
-        auto right_join_col = right_.get_column_by_name(right_join_col_name_);
-        hash_table_ = build_hash_table(right_join_col);
+    std::vector<LazyTable> output_lazy_tables;
 
-        // Probe phase
-        int left_join_col_index = left_.table->get_schema()->GetFieldIndex
-                (left_join_col_name_);
-        auto left_join_col = left_.get_column(left_join_col_index);
-        auto probe_result = probe_hash_table(left_join_col);
-        return propogate_result(probe_result);
+    // The indices of the indices that were joined
+    auto left_indices_of_indices = probe_result[0];
+    auto right_indices_of_indices = probe_result[1];
 
-    }
-
-    std::shared_ptr<OperatorResult> Join::propogate_result(
-            std::vector<arrow::compute::Datum> probe_result) {
-
-        arrow::Status status;
-
-        arrow::compute::FunctionContext function_context(
-                arrow::default_memory_pool());
-        arrow::compute::TakeOptions take_options;
-        // Where we will store the result of calls to Take. This will be reused.
-        arrow::compute::Datum new_indices;
-
-        std::vector<LazyTable> output_lazy_tables;
-
-        // The indices of the indices that were joined
-        auto left_indices_of_indices = probe_result[0];
-        auto right_indices_of_indices = probe_result[1];
-
-        // Update the indices of the left LazyTable. If there was no previous
-        // join on the left table, then left_indices_of_indices directly
-        // corresponds to indices in the left table, and we do not need to
-        // call Take.
-        if (left_.indices.kind() != arrow::compute::Datum::NONE) {
-            status = arrow::compute::Take(&function_context,
-                                          left_.indices,
-                                          left_indices_of_indices,
-                                          take_options,
-                                          &new_indices);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            output_lazy_tables.emplace_back(left_.table,left_.filter, new_indices);
-        }
-        else {
-            new_indices = left_indices_of_indices;
-        }
+    // Update the indices of the left LazyTable. If there was no previous
+    // join on the left table, then left_indices_of_indices directly
+    // corresponds to indices in the left table, and we do not need to
+    // call Take.
+    if (left_.indices.kind() != arrow::compute::Datum::NONE) {
+        status = arrow::compute::Take(&function_context,
+                                      left_.indices,
+                                      left_indices_of_indices,
+                                      take_options,
+                                      &new_indices);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
         output_lazy_tables.emplace_back(left_.table,left_.filter, new_indices);
+    }
+    else {
+        new_indices = left_indices_of_indices;
+    }
+    output_lazy_tables.emplace_back(left_.table,left_.filter, new_indices);
 
 
-        // Update the indices of the right LazyTable. If there was no previous
-        // join on the right table, then right_indices_of_indices directly
-        // corresponds to indices in the right table, and we do not need to
-        // call Take.
-        if (right_.indices.kind() != arrow::compute::Datum::NONE) {
-            status = arrow::compute::Take(&function_context,
-                                          right_.indices,
-                                          right_indices_of_indices,
-                                          take_options,
-                                          &new_indices);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        }
-        else {
-            new_indices = right_indices_of_indices;
-        }
-        output_lazy_tables.emplace_back(right_.table,right_.filter, new_indices);
+    // Update the indices of the right LazyTable. If there was no previous
+    // join on the right table, then right_indices_of_indices directly
+    // corresponds to indices in the right table, and we do not need to
+    // call Take.
+    if (right_.indices.kind() != arrow::compute::Datum::NONE) {
+        status = arrow::compute::Take(&function_context,
+                                      right_.indices,
+                                      right_indices_of_indices,
+                                      take_options,
+                                      &new_indices);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    }
+    else {
+        new_indices = right_indices_of_indices;
+    }
+    output_lazy_tables.emplace_back(right_.table,right_.filter, new_indices);
 
 
-        // Propogate the join to the other tables in the previous
-        // OperatorResult.
-        for (auto &lazy_table : prev_result_->lazy_tables_) {
-            if (lazy_table.table != left_.table &&
-                lazy_table.table != right_.table &&
-                lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
+    // Propogate the join to the other tables in the previous
+    // OperatorResult.
+    for (auto &lazy_table : prev_result_->lazy_tables_) {
+        if (lazy_table.table != left_.table &&
+            lazy_table.table != right_.table) {
+            if (lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
 
                 status = arrow::compute::Take(&function_context,
                                               lazy_table.indices,
@@ -201,11 +184,65 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
                                                 lazy_table.filter,
                                                 new_indices);
             }
+            else {
+                output_lazy_tables.emplace_back(lazy_table.table,
+                                                lazy_table.filter,
+                                                lazy_table.indices);
+            }
+        }
+    }
+    return std::make_shared<OperatorResult>(output_lazy_tables);
+}
+
+std::shared_ptr<OperatorResult> Join::run() {
+
+    arrow::Status status;
+
+    auto predicates = graph_.get_predicates(0);
+
+    for (auto &jpred : predicates) {
+        //TODO(nicholas): For now, we assume joins have simple predicates
+        // without connective operators.
+
+        auto left = jpred.left_col_ref_;
+        auto right = jpred.right_col_ref_;
+
+        left_join_col_name_ = left.col_name;
+        right_join_col_name_ = right.col_name;
+
+        // The previous result prev may contain many LazyTables. Find the
+        // LazyTables that we want to join.
+        for (int i=0; i<prev_result_->lazy_tables_.size(); i++) {
+            auto lazy_table = prev_result_->get_table(i);
+
+            if (left.table == lazy_table.table) {
+                left_ = lazy_table;
+            }
+            else if (right.table == lazy_table.table) {
+                right_ = lazy_table;
+            }
         }
 
-        return std::make_shared<OperatorResult>(output_lazy_tables);
+        prev_result_ = hash_join();
     }
+    return prev_result_;
 
+}
+
+    std::shared_ptr<OperatorResult> Join::hash_join() {
+        // Build phase
+        auto right_join_col = right_.get_column_by_name(right_join_col_name_);
+        hash_table_ = build_hash_table(right_join_col);
+
+        // Probe phase
+        int left_join_col_index = left_.table->get_schema()->GetFieldIndex
+                (left_join_col_name_);
+        auto left_join_col = left_.get_column(left_join_col_index);
+        auto probe_result = probe_hash_table(left_join_col);
+
+        // Update indices of other LazyTables in the previous OperatorResult
+        return propogate_result(probe_result);
+    }
 
 } // namespace operators
 } // namespace hustle

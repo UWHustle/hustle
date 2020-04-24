@@ -36,7 +36,7 @@ namespace operators {
 
     }
 
-    void OperatorResult::add_table(std::shared_ptr<Table> table) {
+    void OperatorResult::append(std::shared_ptr<Table> table) {
         LazyTable lazy_table(
                 table,
                 arrow::compute::Datum(),

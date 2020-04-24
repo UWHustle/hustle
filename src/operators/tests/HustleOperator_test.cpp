@@ -1485,65 +1485,19 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     JoinPredicate d_jpred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
 
 //    JoinGraph graph({{p_jpred}, {c_jpred}, {s_jpred}, {d_jpred}});
-    JoinGraph graph1({{p_jpred}});
-    JoinGraph graph2({{c_jpred}});
-    JoinGraph graph3({{s_jpred}});
-    JoinGraph graph4({{d_jpred}});
+    JoinGraph graph1({{p_jpred, c_jpred, s_jpred, d_jpred}});
 
-    auto result_0 = std::make_shared<hustle::operators::OperatorResult>();
+    auto result = std::make_shared<hustle::operators::OperatorResult>();
 
-    result_0->add_table(lineorder);
-    result_0->append(p_selection);
-
-    Join j_op_1(result_0, graph1);
-    auto result_1 = j_op_1.run();
-    result_1->append(c_selection);
-
-    for (auto &t : result_1->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
-                  std::endl;
-
-    }
-    std::cout << std::endl;
-
-    Join j_op_2(result_1, graph2);
-    auto result_2 = j_op_2.run();
-    result_2->append(s_selection);
-
-    for (auto &t : result_2->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
-                  std::endl;
-    }
-    std::cout << std::endl;
-
-    Join j_op_3(result_2, graph3);
-    auto result_3 = j_op_3.run();
-    result_3->add_table(date);
-
-    for (auto &t : result_3->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
-                  std::endl;
-    }
-    std::cout << std::endl;
-
-    Join j_op_4(result_3, graph4);
-    auto result_4 = j_op_4.run();
+    result->append(p_selection);
+    result->append(c_selection);
+    result->append(s_selection);
+    result->append(date);
+    result->append(lineorder);
 
 
-
-
-
-    for (auto &t : result_3->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
-                  std::endl;
-    }
-    std::cout << std::endl;
-
-    for (auto &t : result_4->lazy_tables_) {
-        std::cout << t.table->get_num_rows() << " " << t.indices.length() <<
-                  std::endl;
-
-    }
+    Join j_op(result, graph1);
+    result = j_op.run();
 
     std::vector<ColumnReference> group_bys = {{date,"year"},
                                               {cust, "nation"}};
@@ -1558,7 +1512,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     std::vector<AggregateUnit> units = {agg_unit};
 
     auto aggregate_op = std::make_shared<hustle::operators::Aggregate>(
-            result_4,
+            result,
             units,
             group_bys,
             order_bys);

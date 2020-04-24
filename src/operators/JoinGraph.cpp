@@ -6,11 +6,16 @@
 
 namespace hustle::operators {
 
+    JoinGraph::JoinGraph() {
+
+    }
+
     JoinGraph::JoinGraph(
             std::vector<std::vector<JoinPredicate>> trees) {
 
         for (int i=0; i<trees.size(); i++) {
             adj_.push_back(trees[i]);
+            tables_.push_back(trees[i][0].left_col_ref_.table);
         }
     }
 
@@ -47,5 +52,13 @@ namespace hustle::operators {
         return adj_[i];
     }
 
+    int JoinGraph::get_num_tables() {
+        return adj_.size();
+    }
+
+    int JoinGraph::find_table(std::shared_ptr<Table> table) {
+        auto it = std::find(tables_.begin(), tables_.end(), table);
+        return it != tables_.end();
+    }
 
 }
