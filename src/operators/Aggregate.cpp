@@ -138,7 +138,7 @@ namespace operators {
         for (int i=0; i< group_by_fields_.size(); i++) {
             unique_values.push_back(
                     get_unique_values(group_bys_[i]));
-//        std::cout << unique_values[i]->ToString() << std::endl;
+
         }
 
 
@@ -146,7 +146,6 @@ namespace operators {
         //  of indices, not filters.
         // TODO(nicholas): If want to compute multiple aggregates, we'll need to
         // move this inside of the loop but only call it once.
-//    auto table = aggregate_lazy_tables[0].table;
 
         arrow::compute::Datum filter;
         arrow::compute::Datum selection;
@@ -184,13 +183,7 @@ namespace operators {
             evaluate_status(status, __FUNCTION__, __LINE__);
         }
 
-//    if (filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
-//        status = arrow::compute::Filter(&function_context,
-//                                        *aggregate_col,
-//                                        *filter.chunked_array(),
-//                                        &aggregate_col);
-//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//    }
+
         //////////
 
 
@@ -207,15 +200,7 @@ namespace operators {
         int index = n - 1;
         bool exit = false;
         while (!exit){
-//        for (int k=0; k<n; k++) {
-//            std::cout << its[k] << " ";
-//        }
-//        std::cout << std::endl;
-            // DoSomething() loop
 
-//        std::cout << filter.length() << std::endl;
-//        std::cout << aggregate_col->length() << std::endl;
-//
             //////////
             std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
 
@@ -363,7 +348,6 @@ namespace operators {
                 case arrow::Type::STRING: {
                     auto one_group_builder = (arrow::StringBuilder*)
                             (group_builder->child(i));
-//                one_group_builder->Append()
                     auto one_unique_values =
                             std::static_pointer_cast<arrow::StringArray>
                                     (unique_values[i]);
@@ -375,7 +359,6 @@ namespace operators {
                 case arrow::Type::INT64: {
                     auto one_group_builder = (arrow::Int64Builder *)
                             (group_builder->child(i));
-//                one_group_builder->Append()
                     auto one_unique_values =
                             std::static_pointer_cast<arrow::Int64Array>
                                     (unique_values[i]);
@@ -444,9 +427,6 @@ namespace operators {
         auto group_lazy_table = prev_result_->get_table(group_ref.table);
         auto filter = group_lazy_table.filter;
         auto selection = group_lazy_table.indices;
-
-//    std::cout << join_result_[0].indices.make_array()->ToString() <<
-//    std::endl;
 
         auto datum_col = arrow::compute::Datum(group_by_col);
         if( filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
