@@ -30,9 +30,10 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
                     (fixed_record_width + ESTIMATED_STR_LEN * num_string_cols);
 
     // Initialize valid column separately
-    std::shared_ptr<arrow::ResizableBuffer> valid_buffer;
-    status = arrow::AllocateResizableBuffer(0, &valid_buffer);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    auto result = arrow::AllocateResizableBuffer(0);
+    evaluate_status(result.status(), __FUNCTION__, __LINE__);
+    std::shared_ptr<arrow::ResizableBuffer> valid_buffer =
+            std::move(result.ValueOrDie());
     valid = arrow::ArrayData::Make(arrow::boolean(),0,{nullptr,valid_buffer});
 
     for (const auto &field : schema->fields()) {
@@ -49,12 +50,14 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
 
             case arrow::Type::STRING: {
 
-                std::shared_ptr<arrow::ResizableBuffer> offsets;
+
                 // Although the data buffer is empty, the offsets buffer should
                 // still contain the offset of the first element.
-                status = arrow::AllocateResizableBuffer(
-                        sizeof(int32_t) * init_rows, &offsets);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                result = arrow::AllocateResizableBuffer(
+                        sizeof(int32_t) * init_rows);
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                std::shared_ptr<arrow::ResizableBuffer> offsets =
+                        std::move(result.ValueOrDie());
 
                 // Make sure the first offset value is set to 0
                 int32_t initial_offset = 0;
@@ -62,9 +65,10 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
                 std::memcpy(&offsets_data[0], &initial_offset,
                             sizeof(initial_offset));
 
-                status = arrow::AllocateResizableBuffer(
-                        ESTIMATED_STR_LEN * init_rows, &data);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                result = arrow::AllocateResizableBuffer(
+                        ESTIMATED_STR_LEN * init_rows);
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = std::move(result.ValueOrDie());
                 data->ZeroPadding();
 
                 // Initialize null bitmap buffer to nullptr, since we currently don't use it.
@@ -77,10 +81,10 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
 
-                status = arrow::AllocateResizableBuffer
-                        (sizeof(int64_t) * init_rows,
-                         &data);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                result = arrow::AllocateResizableBuffer
+                        (sizeof(int64_t) * init_rows);
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = std::move(result.ValueOrDie());
                 data->ZeroPadding();
 
                 // Initialize null bitmap buffer to nullptr, since we currently don't use it.
@@ -97,7 +101,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
     }
 }
 
-int Block::compute_num_bytes() {
+void Block::compute_num_bytes() {
 
     // Start at i=1 to skip valid column
     for (int i = 0; i < num_cols; i++) {
@@ -107,12 +111,6 @@ int Block::compute_num_bytes() {
             case arrow::Type::STRING: {
                 auto *offsets = columns[i]->GetValues<int32_t>(1, 0);
                 column_sizes[i] = offsets[num_rows];
-                auto t1 = offsets[0];
-                auto t2 = offsets[1];
-                auto t3 = offsets[2];
-                auto t4 = offsets[num_rows-2];
-                auto t5 = offsets[num_rows-1];
-                auto t6 = offsets[num_rows];
                 num_bytes += offsets[num_rows];
                 break;
             }
@@ -138,7 +136,6 @@ Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int
 capacity) : capacity(capacity), id(id), num_bytes(0) {
 
     arrow::Status status;
-
     num_rows = record_batch->num_rows();
     schema = std::move(record_batch->schema());
     num_cols = schema->num_fields();
@@ -158,8 +155,10 @@ capacity) : capacity(capacity), id(id), num_bytes(0) {
 
     // Initialize valid column separately
     std::shared_ptr<arrow::ResizableBuffer> valid_buffer;
-    status = arrow::AllocateResizableBuffer(num_rows, &valid_buffer);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    auto result = arrow::AllocateResizableBuffer(num_rows);
+    evaluate_status(result.status(), __FUNCTION__, __LINE__);
+    valid_buffer = std::move(result.ValueOrDie());
+
     valid = arrow::ArrayData::Make(arrow::boolean(),num_rows,{nullptr,
                                                               valid_buffer});
 
@@ -656,7 +655,7 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                     // equals the current size of the buffer. To force
                     // resizing in this case, we add +1.
                     status = offsets_buffer->Resize(
-                            (num_rows + 2) * sizeof(int32_t)+1), false;
+                            (num_rows + 2) * sizeof(int32_t)+1, false);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                     // TODO(nicholas): is this necessary?
                     offsets_buffer->ZeroPadding();
@@ -702,7 +701,7 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
 
 
                 int64_t out;
-                absl::SimpleAtoi(record[i], &out);
+                auto result = absl::SimpleAtoi(record[i], &out);
 
                 auto *dest = columns[i]->GetMutableValues<int64_t>(
                         1, num_rows);

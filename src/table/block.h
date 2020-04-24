@@ -242,13 +242,10 @@ private:
      * when a block is initialized from a RecordBatch, i.e. when we read in a
      * block from a file.
      *
-     * @return The number of data bytes stored in the RecordBatch, excluding
-     * the valid column.
-     *
      * TODO(nicholas): Instead of computing num_bytes, we can write num_bytes
      * at the beginning of each Block file and read it in before hand.
      */
-    int compute_num_bytes();
+    void compute_num_bytes();
 
     // Total number of data bytes stored in the block, excluding the valid
     // column data.
