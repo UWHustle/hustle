@@ -8,8 +8,7 @@
 #include <iostream>
 
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators {
 
     Aggregate::Aggregate(
             std::shared_ptr<OperatorResult> prev_result,
@@ -18,17 +17,24 @@ namespace operators {
             std::vector<ColumnReference> order_bys) {
 
         prev_result_ = prev_result;
-        aggregate_lazy_tables = aggregate_units;
+        aggregate_ref_ = aggregate_units;
 
         group_bys_ = std::move(group_bys);
         order_bys_ = std::move(order_bys);
 
-        aggregate_builder_ = get_aggregate_builder(aggregate_lazy_tables[0].kernel);
+        aggregate_builder_ = get_aggregate_builder(aggregate_ref_[0].kernel);
 
+        // Fetch the fields associated with each groupby column. We need this
+        // to initialize individual group builders and to build the output
+        // schema.
         for(auto &group_by : group_bys_) {
-            group_by_fields_.push_back(group_by.table->get_schema()->GetFieldByName
-                    (group_by.col_name));
+            group_by_fields_.push_back(
+                    group_by.table->get_schema()
+                    ->GetFieldByName(group_by.col_name));
         }
+
+        // Initialize a StructBuilder containing one builder for each group
+        // by column.
         group_type = arrow::struct_(group_by_fields_);
         group_builder = std::make_shared<arrow::StructBuilder>(
                 group_type, arrow::default_memory_pool(), get_group_builders());
@@ -54,6 +60,10 @@ namespace operators {
                     group_builders.push_back(
                             std::make_shared<arrow::Int64Builder>());
                     break;
+                }
+                default: {
+                    std::cerr << "Aggregate does not support group bys of type "
+                    + field->type()->ToString() << std::endl;
                 }
             }
         }
@@ -128,65 +138,28 @@ namespace operators {
         arrow::compute::FilterOptions filter_options;
         arrow::compute::TakeOptions take_options;
 
-        auto out_schema = get_output_schema(aggregate_lazy_tables[0].kernel);
+        auto out_schema = get_output_schema(aggregate_ref_[0].kernel);
         auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                                  BLOCK_SIZE);
 
-        auto table = aggregate_lazy_tables[0].table; //TODO(nicholas)
+        //TODO(nicholas): For now, we only perform one aggregate.
+        auto table = aggregate_ref_[0].table;
+
         std::vector<std::shared_ptr<arrow::Array>> unique_values;
         // Fetch unique values for all Group By columns
-        for (int i=0; i< group_by_fields_.size(); i++) {
-            unique_values.push_back(
-                    get_unique_values(group_bys_[i]));
-
+        for (auto &col_ref : group_bys_) {
+            unique_values.push_back(get_unique_values(col_ref));
         }
 
-
-        // TODO(nicholas): for now, assume that the selections are always arrays
-        //  of indices, not filters.
         // TODO(nicholas): If want to compute multiple aggregates, we'll need to
-        // move this inside of the loop but only call it once.
-
-        arrow::compute::Datum filter;
-        arrow::compute::Datum selection;
-        std::string col_name;
+        //  move this inside of the loop but only call it once.
 
         auto aggregate_table = prev_result_->get_table(table);
-        filter = aggregate_table.filter;
-        selection = aggregate_table.indices;
-        col_name = aggregate_lazy_tables[0].col_name;
+        auto col_name = aggregate_ref_[0].col_name;
 
-        auto aggregate_col = table->get_column_by_name(col_name);
-
-        auto datum_col = arrow::compute::Datum(aggregate_col);
-        // Apply filter
-        if (filter.kind() ==
-            arrow::compute::Datum::CHUNKED_ARRAY) {
-            status = arrow::compute::Filter(
-                    &function_context,
-                    aggregate_col,
-                    filter.chunked_array(),
-                    filter_options,
-                    &datum_col);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-            aggregate_col = datum_col.chunked_array();
-        }
-        // Take indices
-        if (selection.kind() ==
-            arrow::compute::Datum::ARRAY) {
-            status = arrow::compute::Take(
-                    &function_context,
-                    *aggregate_col,
-                    *selection.make_array(),
-                    take_options,
-                    &aggregate_col);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-
-
-        //////////
-
-
+        auto aggregate_col = prev_result_->get_table(table).get_column_by_name
+        (col_name);
+        // DYNAMIC DEPTH NESTED FOR LOOP
         // Initialize the slots to hold the current iteration value for each depth
         int n = group_by_fields_.size();
         int its[n];
@@ -201,18 +174,19 @@ namespace operators {
         bool exit = false;
         while (!exit){
 
-            //////////
+            // LOOP BODY START
             std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
 
             auto group_filter = get_group_filter(unique_values, its);
-            auto aggregate = compute_aggregate(aggregate_lazy_tables[0].kernel,
+            auto aggregate = compute_aggregate(aggregate_ref_[0].kernel,
                                                aggregate_col, group_filter);
             insert_group_aggregate(aggregate);
             insert_group(unique_values, its);
+            // LOOP BODY END
 
-            if (n == 0) break;
+            if (n == 0) break; // edge case
 
-            // Increment nested loop
+            // INCREMENTED NESTED LOOP
             its[n-1]++;
             while (its[index] == maxes[index]){
                 // if n == 0, we have no Group By clause and should exit after one
@@ -232,12 +206,14 @@ namespace operators {
         std::shared_ptr<arrow::Array> aggregates;
         status = aggregate_builder_->Finish(&aggregates);
 
+        // Build the output table
         std::vector<std::shared_ptr<arrow::ArrayData>> table_data;
-        for (int i=0; i<group_by_fields_.size(); i++) {
+        for (int i=0; i<group_bys_.size(); i++) {
             table_data.push_back(groups->field(i)->data());
         }
         table_data.push_back(aggregates->data());
         out_table->insert_records(table_data);
+
         return out_table;
     }
 
@@ -254,42 +230,11 @@ namespace operators {
             return nullptr;
         }
 
-        // Fetch the first Group By filter
-        //TODO(nicholas): remove redundant call to get_unique_values()
-        auto one_unique_values =
-                get_unique_values(group_bys_[0]);
-
         arrow::compute::Datum value;
-        std::shared_ptr<arrow::ChunkedArray> filter;
+        std::shared_ptr<arrow::ChunkedArray> prev_filter;
 
-        switch(group_by_fields_[0]->type()->id()) {
-            case arrow::Type::STRING: {
-                auto one_unique_values_casted =
-                        std::static_pointer_cast<arrow::StringArray>(unique_values[0]);
-                value = arrow::compute::Datum(
-                        std::make_shared<arrow::StringScalar>(
-                                one_unique_values_casted->GetString(its[0])));
-                filter = get_filter(group_bys_[0], group_by_fields_[0], value);
-                break;
-            }
-            case arrow::Type::INT64: {
-                auto one_unique_values_casted =
-                        std::static_pointer_cast<arrow::Int64Array>
-                                (unique_values[0]);
-                value = arrow::compute::Datum(
-                        std::make_shared<arrow::Int64Scalar>(
-                                one_unique_values_casted->Value(its[0])));
-                filter = get_filter(group_bys_[0], group_by_fields_[0], value);
-                break;
-            }
-            default: {
-                std::cerr << "invalid type" << std::endl;
-            }
-        }
-
-
-        // Fetch the next Group By filter and AND it with our current filter
-        for (int field_i=1; field_i<group_by_fields_.size(); field_i++) {
+        // Fetch the next Group By filter and AND it with the previous filter
+        for (int field_i=0; field_i<group_by_fields_.size(); field_i++) {
 
             std::shared_ptr<arrow::ChunkedArray> next_filter;
 
@@ -323,20 +268,28 @@ namespace operators {
             arrow::compute::Datum temp_filter;
             arrow::ArrayVector filter_vector;
 
-            for (int j = 0; j < filter->num_chunks(); j++) {
+            if (prev_filter != nullptr) {
+                for (int j = 0; j < prev_filter->num_chunks(); j++) {
 
-                // Note that Compare cannot operate on ChunkedArrays.
-                status = arrow::compute::And(&function_context, filter->chunk(j),
-                                             next_filter->chunk(j), &temp_filter);
-                evaluate_status(status, __FUNCTION__, __LINE__);
+                    // Note that Compare cannot operate on ChunkedArrays.
+                    status = arrow::compute::And(&function_context,
+                                                 prev_filter->chunk(j),
+                                                 next_filter->chunk(j),
+                                                 &temp_filter);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
 
-                filter_vector.push_back(temp_filter.make_array());
+                    filter_vector.push_back(temp_filter.make_array());
+                }
+
+                prev_filter = std::make_shared<arrow::ChunkedArray>
+                        (filter_vector);
             }
-
-            filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
+            else {
+                prev_filter = next_filter;
+            }
         }
 
-        return filter;
+        return prev_filter;
     }
 
     void Aggregate::insert_group(
@@ -367,10 +320,15 @@ namespace operators {
                     evaluate_status(status, __FUNCTION__, __LINE__);
                     break;
                 }
+                default: {
+                    std::cerr << "Cannot insert unsupported aggregate type: "
+                    + group_by_fields_[i]->type()->ToString() << std::endl;
+                }
             }
         }
 
-        group_builder->Append(true);
+        status = group_builder->Append(true);
+        evaluate_status(status, __FUNCTION__, __LINE__);
     }
 
     void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
@@ -407,6 +365,11 @@ namespace operators {
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 break;
             }
+            default: {
+                std::cerr << "Aggregate does not support aggregations of "
+                             "type " + aggregate.type()->ToString() <<
+                             std::endl;
+            }
         }
     }
 
@@ -422,40 +385,16 @@ namespace operators {
         arrow::compute::FilterOptions filter_options;
         std::shared_ptr<arrow::Array> unique_values;
 
-        auto group_by_col = group_ref.table->get_column_by_name(group_ref.col_name);
-
-        auto group_lazy_table = prev_result_->get_table(group_ref.table);
-        auto filter = group_lazy_table.filter;
-        auto selection = group_lazy_table.indices;
-
-        auto datum_col = arrow::compute::Datum(group_by_col);
-        if( filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
-            status = arrow::compute::Filter(&function_context,
-                                            group_by_col,
-                                            filter.chunked_array(),
-                                            filter_options,
-                                            &datum_col);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            group_by_col = datum_col.chunked_array();
-        }
-
-        if( selection.kind() == arrow::compute::Datum::ARRAY) {
-            status = arrow::compute::Take(
-                    &function_context,
-                    *group_by_col,
-                    *selection.make_array(),
-                    take_options,
-                    &group_by_col);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        }
+        auto group_by_col = prev_result_->get_table(group_ref.table)
+                .get_column_by_name(group_ref.col_name);
 
         status = arrow::compute::Unique(&function_context, group_by_col,
                                         &unique_values);
         evaluate_status(status, __FUNCTION__, __LINE__);
 
-        // If this field is in the Order By clause, sort it now.
-        //TODO(nicholas): Unexpected behavior when two group bys have the same
-        // column name.
+        // If this field is in the Order By clause, sort it now. This assumes
+        // that column names are unique within a table, which is a fair
+        // assumption to make.
         for (auto & order_ref : order_bys_) {
             if (order_ref.table == group_ref.table &&
                 order_ref.col_name == group_ref.col_name ) {
@@ -493,28 +432,8 @@ namespace operators {
         auto filter = group_lazy_table.filter;
         auto selection = group_lazy_table.indices;
 
-        std::shared_ptr<arrow::ChunkedArray> group_by_col = group_ref
-                .table->get_column_by_name(group_ref.col_name);
-
-        arrow::compute::Datum datum_col;
-        if( filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY) {
-            status = arrow::compute::Filter(&function_context,
-                                            group_by_col,
-                                            filter.chunked_array(),
-                                            filter_options,
-                                            &datum_col);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-            group_by_col = datum_col.chunked_array();
-        }
-
-        status = arrow::compute::Take(
-                &function_context,
-                *group_by_col,
-                *selection.make_array(),
-                take_options,
-                &group_by_col);
-
-        evaluate_status(status, __FUNCTION__, __LINE__);
+        auto group_by_col = prev_result_->get_table(group_ref.table)
+                .get_column_by_name(group_ref.col_name);
 
         for (int i=0; i<group_by_col->num_chunks(); i++) {
             auto block_col = group_by_col->chunk(i);
@@ -608,5 +527,4 @@ namespace operators {
         out->append(table);
         return out;
     }
-} // namespace operators
 } // namespace hustle
