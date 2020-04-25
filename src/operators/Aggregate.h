@@ -19,10 +19,10 @@ enum AggregateKernels {
 
 struct AggregateUnit {
     AggregateKernels kernel;
+    std::string agg_name;
     // TODO(nicholas): should table and col_name be combined into a
     //  ColumnReference?
-    std::shared_ptr<Table> table;
-    std::string col_name;
+    ColumnReference col_ref;
 };
 
 
@@ -57,7 +57,8 @@ protected:
                                             std::shared_ptr<arrow::ChunkedArray> aggregate_col,
                                             std::shared_ptr<arrow::ChunkedArray> group_filter);
 
-    std::shared_ptr<arrow::Schema> get_output_schema(AggregateKernels kernel);
+    std::shared_ptr<arrow::Schema> get_output_schema(
+            AggregateKernels kernel, std::string agg_col_name);
 
     std::shared_ptr<arrow::ArrayBuilder>
     get_aggregate_builder(AggregateKernels kernel);

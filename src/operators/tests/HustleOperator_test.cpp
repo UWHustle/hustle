@@ -1505,6 +1505,7 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     std::vector<ColumnReference> order_bys = {{date,"year"},
                                               {cust, "nation"}};
     AggregateUnit agg_unit = {AggregateKernels::SUM,
+                              "sum",
                               lineorder,
                               "revenue"};
 

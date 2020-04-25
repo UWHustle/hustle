@@ -100,8 +100,9 @@ namespace hustle::operators {
         return aggreagte_builder;
     }
 
-    std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(AggregateKernels
-                                                                kernel) {
+    std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
+            AggregateKernels kernel,
+            std::string agg_col_name) {
 
         arrow::Status status;
         arrow::SchemaBuilder schema_builder;
@@ -113,13 +114,13 @@ namespace hustle::operators {
             // Returns a Datum of the same type INT64
             case SUM: {
                 status = schema_builder.AddField(
-                        arrow::field("aggregate", arrow::int64()));
+                        arrow::field(agg_col_name, arrow::int64()));
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 break;
             }
             case MEAN: {
                 status = schema_builder.AddField(
-                        arrow::field("aggregate", arrow::float64()));
+                        arrow::field(agg_col_name, arrow::float64()));
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 break;
             }
@@ -442,14 +443,15 @@ namespace hustle::operators {
 
         arrow::Status status;
 
-        auto out_schema = get_output_schema(aggregate_refs_[0].kernel);
+        auto out_schema = get_output_schema(aggregate_refs_[0].kernel,
+                aggregate_refs_[0].agg_name);
         auto out_table = std::make_shared<Table>("aggregate", out_schema,
                                                  BLOCK_SIZE);
 
         //TODO(nicholas): For now, we only perform one aggregate.
-        auto table = aggregate_refs_[0].table;
+        auto table = aggregate_refs_[0].col_ref.table;
         auto aggregate_table = prev_result_->get_table(table);
-        auto col_name = aggregate_refs_[0].col_name;
+        auto col_name = aggregate_refs_[0].col_ref.col_name;
 
         auto aggregate_col = prev_result_->get_table(table).get_column_by_name
                 (col_name);
