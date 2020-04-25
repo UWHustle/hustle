@@ -59,7 +59,9 @@ protected:
 };
 
 /*
- *
+ * SELECT *
+ * FROM R
+ * WHERE R.group >= "R1"
  */
 TEST_F(JoinTestFixture, SingleSelectTest) {
 
@@ -88,7 +90,7 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -107,7 +109,10 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
 }
 
 /*
- *
+ * SELECT *
+ * FROM R
+ * WHERE R.group >= "R1" AND
+ *       R.data <= 30
  */
 TEST_F(JoinTestFixture, AndSelectTest) {
 
@@ -155,7 +160,7 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -173,6 +178,12 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_R_col_3));
 }
 
+/*
+ * SELECT *
+ * FROM R
+ * WHERE R.group >= "R1" OR
+ *       R.data == 0
+ */
 TEST_F(JoinTestFixture, OrSelectTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
@@ -219,7 +230,7 @@ TEST_F(JoinTestFixture, OrSelectTest) {
     result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;

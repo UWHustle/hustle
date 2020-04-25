@@ -133,7 +133,7 @@ TEST_F(JoinTestFixture, SumTest) {
     auto s = agg_table->get_schema()->ToString();
 
     auto out_table = result->materialize({{agg_table, "data_sum"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -182,10 +182,9 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     //  reference to this table exists. What's a good way to provide the user
     //  access to it?
     auto agg_table = result->get_table(0).table;
-    auto s = agg_table->get_schema()->ToString();
 
     auto out_table = result->materialize({{agg_table, "data_sum"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -223,7 +222,7 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
     auto out_table = result->materialize({
         {agg_table, "group"},
         {agg_table,"data_sum"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -266,7 +265,7 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     auto out_table = result->materialize({
                                                  {agg_table, "group"},
                                                  {agg_table,"data_sum"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;

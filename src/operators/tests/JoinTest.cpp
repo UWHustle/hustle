@@ -97,7 +97,7 @@ TEST_F(JoinTestFixture, EquiJoin1) {
     result = join_op.run();
 
     auto out_table = result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -151,12 +151,11 @@ TEST_F(JoinTestFixture, EquiJoin2) {
 
     JoinGraph graph({{join_pred_RS, join_pred_RT}});
     Join join_op(result, graph);
-
     result = join_op.run();
 
     auto out_table = result->materialize(
             {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -218,12 +217,11 @@ TEST_F(JoinTestFixture, EquiJoin3) {
 
     JoinGraph graph({{join_pred_RS}, {join_pred_ST}});
     Join join_op(result, graph);
-
     result = join_op.run();
 
     auto out_table = result->materialize(
             {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
