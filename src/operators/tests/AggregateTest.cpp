@@ -74,6 +74,41 @@ protected:
 };
 
 /*
+ * SELECT avg(R.data) as data_mean
+ * FROM R
+ */
+TEST_F(JoinTestFixture, MeanTest) {
+
+    R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+
+    ColumnReference R_key_ref = {R, "key"};
+    ColumnReference R_group_ref = {R, "data"};
+
+    auto result = std::make_shared<OperatorResult>();
+    result->append(R);
+
+    AggregateUnit agg_ref = {AggregateKernels::MEAN, "data_mean", R, "data"};
+    Aggregate agg_op(result, {agg_ref}, {}, {});
+    result = agg_op.run();
+
+    // TODO(nicholas): Aggregates create a new table internally. No outside
+    //  reference to this table exists. What's a good way to provide the user
+    //  access to it?
+    auto agg_table = result->get_table(0).table;
+    auto s = agg_table->get_schema()->ToString();
+
+    auto out_table = result->materialize({{agg_table, "data_mean"}});
+    out_table->print();
+
+    // Construct expected results
+    arrow::Status status;
+    status = double_builder.Append(((double) 150)/6);
+    status = double_builder.Finish(&expected_agg_col_1);
+
+    EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+}
+
+/*
  * SELECT sum(R.data) as data_sum
  * FROM R
  */
@@ -111,18 +146,35 @@ TEST_F(JoinTestFixture, SumTest) {
 /*
  * SELECT sum(R.data) as data_sum
  * FROM R
+ * WHERE R.group == "R0"
  */
-TEST_F(JoinTestFixture, MeanTest) {
+TEST_F(JoinTestFixture, SumWithSelectTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
     ColumnReference R_key_ref = {R, "key"};
     ColumnReference R_group_ref = {R, "data"};
 
+    auto select_pred = Predicate{
+            {R, "group"},
+            arrow::compute::CompareOperator::EQUAL,
+            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R0"))
+    };
+
+    auto select_pred_node =
+            std::make_shared<PredicateNode>(
+                    std::make_shared<Predicate>(select_pred));
+
+    auto select_pred_tree = std::make_shared<PredicateTree>(select_pred_node);
+
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    AggregateUnit agg_ref = {AggregateKernels::MEAN, "data_mean", R, "data"};
+    Select select_op(result, select_pred_tree);
+
+    result = select_op.run();
+
+    AggregateUnit agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(result, {agg_ref}, {}, {});
     result = agg_op.run();
 
@@ -132,17 +184,22 @@ TEST_F(JoinTestFixture, MeanTest) {
     auto agg_table = result->get_table(0).table;
     auto s = agg_table->get_schema()->ToString();
 
-    auto out_table = result->materialize({{agg_table, "data_mean"}});
+    auto out_table = result->materialize({{agg_table, "data_sum"}});
     out_table->print();
 
     // Construct expected results
     arrow::Status status;
-    status = double_builder.Append(((double) 150)/6);
-    status = double_builder.Finish(&expected_agg_col_1);
+    status = int_builder.Append(90);
+    status = int_builder.Finish(&expected_agg_col_1);
 
     EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
 }
 
+/*
+ * SELECT sum(R.data) as data_sum
+ * FROM R
+ * GROUP BY R.group
+ */
 TEST_F(JoinTestFixture, SumWithGroupByTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
@@ -180,6 +237,12 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
     EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_agg_col_2));
 }
 
+/*
+ * SELECT sum(R.data) as data_sum
+ * FROM R
+ * GROUP BY R.group
+ * ORDER BY R.group
+ */
 TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
