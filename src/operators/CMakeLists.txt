@@ -4,7 +4,7 @@ add_library(
         Join.h Join.cpp
         Aggregate.h Aggregate.cpp
         Select.h Select.cpp
-        Project.cpp Project.h
+        Project.h
         JoinGraph.cpp JoinGraph.h
         Predicate.cpp Predicate.h
 )
@@ -24,16 +24,6 @@ target_link_libraries(hustle_operator_test
         operators
         )
 add_test(HustleOperator_test hustle_operator_test)
-
-add_executable(hustle_projection_test "tests/ProjectionTest.cpp")
-target_link_libraries(hustle_projection_test
-        gtest
-        gtest_main
-        gmock
-        table
-        operators
-        )
-add_test(HustleProjection_test hustle_projection_test)
 
 add_executable(hustle_join_test "tests/JoinTest.cpp")
 target_link_libraries(hustle_join_test
