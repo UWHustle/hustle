@@ -22,12 +22,15 @@ struct ProjectionUnit {
 class Projection : public Operator {
 public:
 
-    Projection(std::vector<ProjectionUnit> projection_units);
+    Projection(std::shared_ptr<OperatorResult> prev_result,
+            std::vector<ColumnReference> col_refs);
     std::shared_ptr<Table> project();
     std::shared_ptr<OperatorResult> run() override;
 
 private:
-    std::vector<ProjectionUnit> projection_lazy_tables;
+
+    std::shared_ptr<OperatorResult> prev_result_;
+    std::vector<ColumnReference> col_refs_;
 };
 
 
