@@ -20,16 +20,16 @@ namespace operators {
 class Select : public Operator{
 public:
 
-    Select(
-            std::shared_ptr<Table> table,
-    std::shared_ptr<PredicateTree> tree
-    );
+    Select(std::shared_ptr<OperatorResult> prev_result,
+            std::shared_ptr<PredicateTree> tree);
+
     std::shared_ptr<OperatorResult> run() override;
     arrow::compute::Datum get_filter(std::shared_ptr<Node> node,
                                 std::shared_ptr<Block> block);
 
 private:
     std::shared_ptr<PredicateTree> tree_;
+    std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<Table> table_;
 
     arrow::compute::Datum get_filter(

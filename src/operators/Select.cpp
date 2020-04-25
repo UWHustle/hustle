@@ -10,11 +10,13 @@ namespace hustle {
 namespace operators {
 
 Select::Select(
-        std::shared_ptr<Table> table,
+        std::shared_ptr<OperatorResult> prev_result,
         std::shared_ptr<PredicateTree> tree){
 
-    table_ = table;
-    tree_ = tree;
+    prev_result_ = std::move(prev_result);
+    tree_ = std::move(tree);
+
+    table_ = tree_->root_->predicate_->col_ref_.table;
 }
 
 arrow::compute::Datum
