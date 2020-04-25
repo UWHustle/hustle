@@ -23,30 +23,35 @@ enum ResultType {
     PROJECT,
 };
 
+struct ColumnReference {
+    std::shared_ptr<Table> table;
+    std::string col_name;
+};
 
-    class LazyTable {
+// TODO(nicholas): put this in its own file
+class LazyTable {
 
-    public:
+public:
 
-        LazyTable();
-        LazyTable(
-                std::shared_ptr<Table> table,
-                arrow::compute::Datum filter,
-                arrow::compute::Datum indices
-        );
-        std::shared_ptr<arrow::ChunkedArray> get_column(int i);
-        std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string
-        col_name);
+    LazyTable();
+    LazyTable(
+            std::shared_ptr<Table> table,
+            arrow::compute::Datum filter,
+            arrow::compute::Datum indices
+    );
+    std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(
+            std::string col_name);
 
+    // TODO(nicholas): Should these be private? Should I have accessors
+    //  for these instead?
+    std::shared_ptr<Table> table;
+    arrow::compute::Datum filter; // filters are ChunkedArrays
+    arrow::compute::Datum indices; // indicess are Arrays
 
-        // TODO(nicholas): Combine into a ColumnReference?
-        std::shared_ptr<Table> table;
-        arrow::compute::Datum filter; // filters are ChunkedArrays
-        arrow::compute::Datum indices; // indicess are Arrays
+private:
 
-    private:
-
-    };
+};
 
 class OperatorResult {
 public:
@@ -56,19 +61,10 @@ public:
     void append(std::shared_ptr<OperatorResult> result);
     LazyTable get_table(int i);
     LazyTable get_table(std::shared_ptr<Table> table);
-//    void append(LazyTable lazy_table);
-        std::vector<LazyTable> lazy_tables_;
-};
 
-struct ColumnReference {
-    std::shared_ptr<Table> table;
-    std::string col_name;
-};
+    std::shared_ptr<Table> materialize(std::vector<ColumnReference> col_refs);
 
-struct GroupReference {
-    std::shared_ptr<Table> table;
-    std::vector<std::string> col_names;
-    std::vector<int> col_indices;
+    std::vector<LazyTable> lazy_tables_;
 };
 
 class Operator {
