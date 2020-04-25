@@ -9,7 +9,6 @@
 #include "operators/Aggregate.h"
 #include "operators/Join.h"
 #include "operators/Select.h"
-#include "operators/Project.h"
 #include "operators/Predicate.h"
 
 #include <arrow/compute/kernels/filter.h>
@@ -1528,38 +1527,5 @@ TEST_F(SSBTestFixture, SSBQ4_1) {
     std::cout << "QUERY EXECUTION TIME = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
                       (t2-t1).count() << " ms" << std::endl;
-
-}
-
-TEST_F(SSBTestFixture, testest){
-
-    date = read_from_file
-            ("/Users/corrado/hustle/src/table/tests/date.hsl");
-
-    arrow::Int64Builder indices_builder;
-    std::shared_ptr<arrow::Int64Array> indices;
-    for(int i=0; i<date->get_num_rows(); i++) {
-        indices_builder.Append(i);
-    }
-    indices_builder.Finish(&indices);
-
-    std::shared_ptr<arrow::Int64Array> indices2;
-    for(int i=0; i<date->get_num_rows(); i+=2) {
-        indices_builder.Append(i);
-    }
-    indices_builder.Finish(&indices2);
-
-    arrow::compute::FunctionContext function_context(
-            arrow::default_memory_pool());
-    arrow::compute::TakeOptions take_options;
-    arrow::compute::Datum out_indices;
-    std::shared_ptr<arrow::ChunkedArray> out_ref;
-
-    arrow::compute::Match(&function_context,
-                          indices2, indices, &out_indices);
-
-        std::cout << out_indices.make_array()->ToString() <<
-    std::endl;
-
 
 }
