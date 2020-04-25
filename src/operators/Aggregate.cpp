@@ -13,20 +13,20 @@ namespace hustle::operators {
     Aggregate::Aggregate(
             std::shared_ptr<OperatorResult> prev_result,
             std::vector<AggregateReference> aggregate_refs,
-            std::vector<ColumnReference> group_bys,
-            std::vector<ColumnReference> order_bys) {
+            std::vector<ColumnReference> group_refs,
+            std::vector<ColumnReference> order_by_refs) {
 
         prev_result_ = prev_result;
         aggregate_refs_ = aggregate_refs;
 
-        group_bys_ = std::move(group_bys);
-        order_bys_ = std::move(order_bys);
+        group_by_refs_ = std::move(group_refs);
+        order_by_refs_ = std::move(order_by_refs);
 
         aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
 
         // Fetch the fields associated with each groupby column.
         std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
-        for(auto &group_by : group_bys_) {
+        for(auto &group_by : group_by_refs_) {
             group_by_fields.push_back(
                     group_by.table->get_schema()
                     ->GetFieldByName(group_by.col_name));
@@ -41,7 +41,7 @@ namespace hustle::operators {
         // Fetch unique values for all Group By columns. You need to do fetch
         // all of them at once, since you need to know how many unique values
         // are in each column to initialize the loop variables.
-        for (auto &col_ref : group_bys_) {
+        for (auto &col_ref : group_by_refs_) {
             unique_values_.push_back(get_unique_values(col_ref));
         }
 
@@ -162,7 +162,7 @@ namespace hustle::operators {
                     value = arrow::compute::Datum(
                             std::make_shared<arrow::StringScalar>(
                                     one_unique_values_casted->GetString(its[field_i])));
-                    next_filter = get_filter(group_bys_[field_i], group_type->child(field_i),
+                    next_filter = get_filter(group_by_refs_[field_i], group_type->child(field_i),
                                              value);
                     break;
                 }
@@ -173,7 +173,7 @@ namespace hustle::operators {
                     value = arrow::compute::Datum(
                             std::make_shared<arrow::Int64Scalar>(
                                     one_unique_values_casted->Value(its[field_i])));
-                    next_filter = get_filter(group_bys_[field_i], group_type->child(field_i),
+                    next_filter = get_filter(group_by_refs_[field_i], group_type->child(field_i),
                                              value);
                     break;
                 }
@@ -311,7 +311,7 @@ namespace hustle::operators {
         // If this field is in the Order By clause, sort it now. This assumes
         // that column names are unique within a table, which is a fair
         // assumption to make.
-        for (auto & order_ref : order_bys_) {
+        for (auto & order_ref : order_by_refs_) {
             if (order_ref.table == group_ref.table &&
                 order_ref.col_name == group_ref.col_name ) {
 
@@ -331,8 +331,7 @@ namespace hustle::operators {
     }
 
     std::shared_ptr<arrow::ChunkedArray> Aggregate::get_filter
-            (ColumnReference group_ref,
-             std::shared_ptr<arrow::Field> field, arrow::compute::Datum value) {
+            (ColumnReference group_ref, arrow::compute::Datum value) {
 
         arrow::Status status;
 
@@ -505,7 +504,7 @@ namespace hustle::operators {
 
         // Build the output table
         std::vector<std::shared_ptr<arrow::ArrayData>> table_data;
-        for (int i=0; i<group_bys_.size(); i++) {
+        for (int i=0; i<group_by_refs_.size(); i++) {
             table_data.push_back(groups->field(i)->data());
         }
         table_data.push_back(aggregates->data());
