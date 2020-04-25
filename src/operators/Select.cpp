@@ -16,7 +16,14 @@ Select::Select(
     prev_result_ = std::move(prev_result);
     tree_ = std::move(tree);
 
-    table_ = tree_->root_->predicate_->col_ref_.table;
+    auto node = tree_->root_;
+
+    // We can figure out which table we are performing the selection on if we
+    // look at the LHS of one of the leaf nodes.
+    while (!node->is_leaf()) {
+        node = node->left_child_;
+    }
+    table_ = node->predicate_->col_ref_.table;
 }
 
 arrow::compute::Datum
