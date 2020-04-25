@@ -56,7 +56,7 @@ private:
 class OperatorResult {
 public:
     OperatorResult();
-    OperatorResult(std::vector<LazyTable> units);
+    explicit OperatorResult(std::vector<LazyTable> units);
     void append(std::shared_ptr<Table> table);
     void append(std::shared_ptr<OperatorResult> result);
     LazyTable get_table(int i);

@@ -64,7 +64,7 @@ namespace operators {
         }
         return result;
     }
-
+    
     std::shared_ptr<Table>
     OperatorResult::materialize(std::vector<ColumnReference> col_refs) {
 
@@ -172,10 +172,6 @@ namespace operators {
 
         return col.chunked_array();
     }
-
-
-    std::shared_ptr<Table> materialize(std::vector<ColumnReference>
-                                       col_refs);
 
 }
 }
