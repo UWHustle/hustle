@@ -17,11 +17,9 @@ enum AggregateKernels {
   MEAN
 };
 
-struct AggregateUnit {
+struct AggregateReference {
     AggregateKernels kernel;
     std::string agg_name;
-    // TODO(nicholas): should table and col_name be combined into a
-    //  ColumnReference?
     ColumnReference col_ref;
 };
 
@@ -29,9 +27,19 @@ struct AggregateUnit {
 class Aggregate : public Operator{
 public:
 
+    /**
+     * Construct an Aggregate operator.
+     *
+     * We currently do not support sorting on the aggregate column.
+     *
+     * @param prev_result OperatorResult form an upstream operator.
+     * @param aggregate_ref
+     * @param group_bys
+     * @param order_bys
+     */
     Aggregate(
-            std::shared_ptr<OperatorResult> join_result,
-            std::vector<AggregateUnit> aggregate_units,
+            std::shared_ptr<OperatorResult> prev_result,
+            std::vector<AggregateReference> aggregate_units,
             std::vector<ColumnReference> group_bys,
             std::vector<ColumnReference> order_bys);
 
@@ -39,11 +47,11 @@ public:
 
 
 
-protected:
+private:
 
     std::shared_ptr<OperatorResult> prev_result_;
 
-    std::vector<AggregateUnit> aggregate_refs_;
+    std::vector<AggregateReference> aggregate_refs_;
     std::vector<ColumnReference> order_bys_;
     std::vector<ColumnReference> group_bys_;
 

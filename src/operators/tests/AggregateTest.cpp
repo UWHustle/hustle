@@ -87,7 +87,7 @@ TEST_F(JoinTestFixture, MeanTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    AggregateUnit agg_ref = {AggregateKernels::MEAN, "data_mean", R, "data"};
+    AggregateReference agg_ref = {AggregateKernels::MEAN, "data_mean", R, "data"};
     Aggregate agg_op(result, {agg_ref}, {}, {});
     result = agg_op.run();
 
@@ -98,7 +98,7 @@ TEST_F(JoinTestFixture, MeanTest) {
     auto s = agg_table->get_schema()->ToString();
 
     auto out_table = result->materialize({{agg_table, "data_mean"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -122,7 +122,7 @@ TEST_F(JoinTestFixture, SumTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    AggregateUnit agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+    AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(result, {agg_ref}, {}, {});
     result = agg_op.run();
 
@@ -174,7 +174,7 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
 
     result = select_op.run();
 
-    AggregateUnit agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+    AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(result, {agg_ref}, {}, {});
     result = agg_op.run();
 
@@ -209,7 +209,7 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    AggregateUnit agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+    AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(result, {agg_ref}, {R_group_ref}, {});
     result = agg_op.run();
 
@@ -252,7 +252,7 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    AggregateUnit agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+    AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(result, {agg_ref}, {R_group_ref}, {R_group_ref});
     result = agg_op.run();
 

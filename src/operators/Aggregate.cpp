@@ -12,12 +12,12 @@ namespace hustle::operators {
 
     Aggregate::Aggregate(
             std::shared_ptr<OperatorResult> prev_result,
-            std::vector<AggregateUnit> aggregate_units,
+            std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_bys,
             std::vector<ColumnReference> order_bys) {
 
         prev_result_ = prev_result;
-        aggregate_refs_ = aggregate_units;
+        aggregate_refs_ = aggregate_refs;
 
         group_bys_ = std::move(group_bys);
         order_bys_ = std::move(order_bys);
