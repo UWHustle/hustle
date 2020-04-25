@@ -19,7 +19,7 @@ public:
      * @param schema Table schema, excluding the valid column
      * @param block_capacity Block size
      */
-    Table(std::string name, std::shared_ptr<arrow::Schema> schema,
+    Table(std::string name, const std::shared_ptr<arrow::Schema>& schema,
           int block_capacity);
 
     /**
@@ -130,7 +130,7 @@ public:
      * @param name Column name
      * @return a ChunkedArray of column "name" over all blocks in the table.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string
+    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(const std::string&
     name);
 
     /**

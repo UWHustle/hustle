@@ -14,8 +14,8 @@ namespace operators {
 Join::Join(std::shared_ptr<OperatorResult> prev,
                JoinGraph graph) {
 
-    prev_result_ = prev;
-    graph_ = graph;
+    prev_result_ = std::move(prev);
+    graph_ = std::move(graph);
 
 }
 

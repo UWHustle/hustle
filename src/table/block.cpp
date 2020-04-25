@@ -146,13 +146,6 @@ capacity) : capacity(capacity), id(id), num_bytes(0) {
     }
     compute_num_bytes();
 
-//    if (id == 1) {
-//        for (int i=0; i<num_rows; i++) {
-//            std::cout << columns[6]->GetValues<int32_t>(1, 0)[i] << std::endl;
-//        }
-//    }
-
-
     // Initialize valid column separately
     std::shared_ptr<arrow::ResizableBuffer> valid_buffer;
     auto result = arrow::AllocateResizableBuffer(num_rows);
@@ -773,7 +766,5 @@ void Block::truncate_buffers() {
                                 "Cannot insert tuple with unsupported type: ") +
                         schema->field(i)->type()->ToString());
         }
-
-
     }
 }

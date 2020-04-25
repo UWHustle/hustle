@@ -24,8 +24,8 @@ public:
             std::shared_ptr<PredicateTree> tree);
 
     std::shared_ptr<OperatorResult> run() override;
-    arrow::compute::Datum get_filter(std::shared_ptr<Node> node,
-                                std::shared_ptr<Block> block);
+    arrow::compute::Datum get_filter(const std::shared_ptr<Node>& node,
+                                const std::shared_ptr<Block>& block);
 
 private:
     std::shared_ptr<PredicateTree> tree_;
@@ -33,8 +33,8 @@ private:
     std::shared_ptr<Table> table_;
 
     arrow::compute::Datum get_filter(
-            std::shared_ptr<Predicate> predicate,
-            std::shared_ptr<Block> block );
+            const std::shared_ptr<Predicate>& predicate,
+            const std::shared_ptr<Block>& block );
 };
 
 } // namespace operators

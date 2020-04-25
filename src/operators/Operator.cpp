@@ -12,7 +12,6 @@ namespace hustle {
 namespace operators {
 
     LazyTable::LazyTable() {
-//        table = std::make_shared<Table>();
         filter = arrow::compute::Datum();
         indices =  arrow::compute::Datum();
     }

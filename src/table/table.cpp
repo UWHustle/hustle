@@ -7,7 +7,7 @@
 #include "util.h"
 
 
-Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
+Table::Table(std::string name, const std::shared_ptr<arrow::Schema>& schema,
              int block_capacity)
         : table_name(std::move(name)), schema(schema), block_counter(0),
           num_rows(0), block_capacity(block_capacity), block_row_offsets({}) {
@@ -30,7 +30,7 @@ Table::Table(
     // Must be called only after schema is set
     fixed_record_width = compute_fixed_record_width(schema);
 
-    for (auto batch : record_batches) {
+    for (const auto& batch : record_batches) {
         auto block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
         blocks.emplace(block_counter, block);
         block_counter++;
@@ -121,7 +121,7 @@ int Table::get_num_blocks() const {
 
 void Table::print() {
 
-    if (blocks.size() == 0) {
+    if (blocks.empty()) {
         std::cout << "Table is empty." << std::endl;
     } else {
         for (int i = 0; i < blocks.size(); i++) {
@@ -291,7 +291,7 @@ std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index)  {
 }
 
 
-std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(std::string
+std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(const std::string&
 name) {
     return get_column(schema->GetFieldIndex(name));
 }

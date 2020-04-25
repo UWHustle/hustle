@@ -27,8 +27,8 @@ Select::Select(
 }
 
 arrow::compute::Datum
-        Select::get_filter(std::shared_ptr<Node> node,
-                std::shared_ptr<Block> block) {
+        Select::get_filter(const std::shared_ptr<Node>& node,
+                const std::shared_ptr<Block>& block) {
 
     arrow::Status status;
 
@@ -88,8 +88,8 @@ std::shared_ptr<OperatorResult> Select::run() {
 
 // Fetch filter for a single block
 arrow::compute::Datum Select::get_filter(
-        std::shared_ptr<Predicate> predicate,
-        std::shared_ptr<Block> block ) {
+        const std::shared_ptr<Predicate>& predicate,
+        const std::shared_ptr<Block>& block ) {
 
     arrow::Status status;
 
