@@ -221,12 +221,6 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
     // We will output a table constructed from these RecordBatches
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
 
-//    std::fstream file;
-//    file.open(path, std::ios::in);
-//    if (!file.is_open()) {
-//        std::__throw_runtime_error("Cannot open file.");
-//    }
-
     FILE * file;
     file = fopen(path, "rb");
     if (file == nullptr) {
@@ -261,9 +255,8 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
 
     std::string line;
 
-    auto test = std::make_shared<Table>("table", schema, block_size);
+    auto out_table = std::make_shared<Table>("table", schema, block_size);
 
-    auto t1 = std::chrono::high_resolution_clock::now();
     while (fgets(buf, 1024, file)) {
 
         // Note that the newline character is still included!
@@ -275,18 +268,9 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
             byte_widths[index] = values[index].length();
         }
 
-        test->insert_record(values, byte_widths);
+        out_table->insert_record(values, byte_widths);
     }
-
-
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "READ TIME = " <<
-    std::chrono::duration_cast<std::chrono::nanoseconds>
-    (t2-t1).count
-            () <<
-              std::endl;
-    fclose(file);
-    return test;
+    return out_table;
 }
 
 std::shared_ptr<arrow::Schema> make_schema(
