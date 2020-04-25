@@ -35,4 +35,14 @@ target_link_libraries(hustle_join_test
         )
 add_test(HustleJoin_test hustle_join_test)
 
+add_executable(hustle_aggregate_test "tests/AggregateTest.cpp")
+target_link_libraries(hustle_aggregate_test
+        gtest
+        gtest_main
+        gmock
+        table
+        operators
+        )
+add_test(HustleAggregate_test hustle_aggregate_test)
+
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
