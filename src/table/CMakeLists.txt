@@ -15,9 +15,9 @@ target_link_libraries(table PUBLIC
         catalog)
 
 
-add_executable(hustle_table_test "tests/table_test.cpp")
-add_executable(hustle_block_test "tests/block_test.cpp")
-add_executable(hustle_util_test "tests/util_test.cpp")
+add_executable(hustle_table_test "tests/TableTest.cpp")
+add_executable(hustle_block_test "tests/BlockTest.cpp")
+add_executable(hustle_util_test "tests/UtilTest.cpp")
 
 target_link_libraries(hustle_table_test
         gtest
