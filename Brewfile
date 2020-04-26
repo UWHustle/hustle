@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 brew "cmake"
 
 # For arrow
@@ -24,3 +25,6 @@ brew "cmake"
 # brew "thrift"
 # brew "wget"
 # brew "zstd
+=======
+brew "cmake"
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c

@@ -246,7 +246,7 @@ class ParserSSBTest : public Test {
 TEST_F(ParserSSBTest, ssb_q1) {
   hustle::HustleDB hustleDB("db_directory");
 
-  std::string query = "EXPLAIN QUERY PLAN select lo_extendedprice, sum(lo_extendedprice * lo_discount) as revenue "
+  std::string query = "EXPLAIN QUERY PLAN select sum(lo_extendedprice * lo_discount) as revenue "
                       "from lineorder, ddate "
                       "where lo_orderdate = d_datekey and d_year = 1993 and lo_discount between 1 and 3 and lo_quantity < 25;";
 
@@ -254,7 +254,7 @@ TEST_F(ParserSSBTest, ssb_q1) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -274,7 +274,7 @@ TEST_F(ParserSSBTest, ssb_q2) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -294,7 +294,7 @@ TEST_F(ParserSSBTest, ssb_q3) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -317,7 +317,7 @@ TEST_F(ParserSSBTest, ssb_q4) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -340,7 +340,7 @@ TEST_F(ParserSSBTest, ssb_q5) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -363,7 +363,7 @@ TEST_F(ParserSSBTest, ssb_q6) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -387,7 +387,7 @@ TEST_F(ParserSSBTest, ssb_q7) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -411,7 +411,7 @@ TEST_F(ParserSSBTest, ssb_q8) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -435,7 +435,7 @@ TEST_F(ParserSSBTest, ssb_q9) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -459,7 +459,7 @@ TEST_F(ParserSSBTest, ssb_q10) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -484,7 +484,7 @@ TEST_F(ParserSSBTest, ssb_q11) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -511,7 +511,7 @@ TEST_F(ParserSSBTest, ssb_q12) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 
@@ -537,7 +537,7 @@ TEST_F(ParserSSBTest, ssb_q13) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  std::cout << parser->to_string(4) << std::endl;
+  std::cout << parser->toString(4) << std::endl;
 
   // TODO(Lichengxi): build validation parse tree
 

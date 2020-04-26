@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 sudo apt update
 sudo apt install -y -V apt-transport-https gnupg lsb-release wget
 sudo wget -O /usr/share/keyrings/apache-arrow-keyring.gpg https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-keyring.gpg
@@ -16,3 +17,19 @@ sudo apt install -y -V libgandiva-glib-dev # For Gandiva GLib (C)
 sudo apt install -y -V libparquet-dev # For Apache Parquet C++
 sudo apt install -y -V libparquet-glib-dev # For Apache Parquet GLib (C)
 
+=======
+if [ ! -d "arrow" ]
+then
+  git clone https://github.com/apache/arrow.git
+  cd arrow
+  git checkout d5dfa0ec083163f5d4b62dd35d9c305bdcb856b2
+  cd cpp
+  mkdir release
+  cd release
+  ../../../cmake-3.15.5/bin/cmake -DARROW_COMPUTE=ON -DARROW_CSV=ON ..
+  sudo make install -j4
+else
+  cd arrow/cpp/release
+  sudo make install -j4
+fi
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c

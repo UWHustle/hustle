@@ -110,7 +110,11 @@ class AggFunc : public Expr {
 
 /**
  * abstract class: QueryOperator
+<<<<<<< HEAD
  * derived class: TableReference, Select, Project, Join, GroupBy, OrderBy
+=======
+ * derived class: TableReference, Select, Project, Join, Aggregate, OrderBy
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
  */
 class QueryOperator {
  public:
@@ -178,6 +182,7 @@ class Join : public QueryOperator {
   std::vector<std::shared_ptr<Comparative>> join_pred;
 };
 
+<<<<<<< HEAD
 class GroupBy : public QueryOperator {
  public:
   GroupBy(std::shared_ptr<QueryOperator> _input,
@@ -187,17 +192,39 @@ class GroupBy : public QueryOperator {
         groupby_cols(std::move(_cols)) {}
 
   std::shared_ptr<QueryOperator> input;
+=======
+class Aggregate : public QueryOperator {
+ public:
+  Aggregate(std::shared_ptr<QueryOperator> _input,
+            std::shared_ptr<AggFunc> _aggregate_func,
+            std::vector<std::shared_ptr<ColumnReference>> _groupby_cols)
+      : QueryOperator(QueryOperatorType::Aggregate),
+        input(std::move(_input)),
+        aggregate_func(std::move(_aggregate_func)),
+        groupby_cols(std::move(_groupby_cols)) {}
+
+  std::shared_ptr<QueryOperator> input;
+  std::shared_ptr<AggFunc> aggregate_func;
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
   std::vector<std::shared_ptr<ColumnReference>> groupby_cols;
 };
 
 class OrderBy : public QueryOperator {
  public:
   OrderBy(std::shared_ptr<QueryOperator> _input,
+<<<<<<< HEAD
           std::vector<std::shared_ptr<Expr>> _cols,
           std::vector<OrderByDirection> _orders)
       : QueryOperator(QueryOperatorType::OrderBy),
         input(std::move(_input)),
         orderby_cols(std::move(_cols)),
+=======
+          std::vector<std::shared_ptr<Expr>> _orderby_cols,
+          std::vector<OrderByDirection> _orders)
+      : QueryOperator(QueryOperatorType::OrderBy),
+        input(std::move(_input)),
+        orderby_cols(std::move(_orderby_cols)),
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
         orders(std::move(_orders)) {}
 
   std::shared_ptr<QueryOperator> input;
@@ -245,7 +272,11 @@ void to_json(json &j, const std::shared_ptr<TableReference> &table_reference);
 void to_json(json &j, const std::shared_ptr<Select> &select);
 void to_json(json &j, const std::shared_ptr<Project> &project);
 void to_json(json &j, const std::shared_ptr<Join> &join);
+<<<<<<< HEAD
 void to_json(json &j, const std::shared_ptr<GroupBy> &groupby);
+=======
+void to_json(json &j, const std::shared_ptr<Aggregate> &aggregate);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 void to_json(json &j, const std::shared_ptr<OrderBy> &orderby);
 
 void to_json(json &j, const std::shared_ptr<Expr> &expr);
@@ -257,6 +288,7 @@ void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive);
 void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic);
 void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc);
 
+<<<<<<< HEAD
 void to_json(json &j, const std::shared_ptr<Plan> &plan) {
   switch (plan->type) {
     case PlanType::Query : j = json(std::dynamic_pointer_cast<Query>(plan));
@@ -438,6 +470,9 @@ void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc) {
           {"expr", aggfunc->expr}
       };
 }
+=======
+
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 }
 }
 

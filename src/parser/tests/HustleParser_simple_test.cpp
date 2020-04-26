@@ -60,7 +60,7 @@ TEST_F(ParserSimpleTest, test1) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  auto out = parser->to_string(4);
+  auto out = parser->toString(4);
 
   /// build validation parse tree
   auto c00 = std::make_shared<ColumnReference>("c1", 0, 0);
@@ -76,6 +76,7 @@ TEST_F(ParserSimpleTest, test1) {
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{},
+      std::vector<std::shared_ptr<AggFunc>>{},
       std::vector<std::shared_ptr<ColumnReference>>{},
       std::vector<std::shared_ptr<OrderBy>>{});
 
@@ -98,7 +99,7 @@ TEST_F(ParserSimpleTest, test2) {
 
   auto parser = std::make_shared<hustle::parser::Parser>();
   parser->parse(query, hustleDB);
-  auto out = parser->to_string(4);
+  auto out = parser->toString(4);
   // std::cout << out << std::endl;
 
   /// build validation parse tree
@@ -122,6 +123,7 @@ TEST_F(ParserSimpleTest, test2) {
       std::vector<std::shared_ptr<Project>>({proj_0}),
       std::vector<std::shared_ptr<LoopPredicate>>({std::move(loop_predicate_0), std::move(loop_predicate_1)}),
       std::vector<std::shared_ptr<Expr>>{std::move(other_pred_0), std::move(other_pred_1)},
+      std::vector<std::shared_ptr<AggFunc>>{},
       std::vector<std::shared_ptr<ColumnReference>>{},
       std::vector<std::shared_ptr<OrderBy>>{});
 

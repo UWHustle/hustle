@@ -29,8 +29,9 @@ BETTER_ENUM (
 BETTER_ENUM (
     AggFuncType,
     int,
-    SUM,
-    AVG
+    AVG,
+    COUNT,
+    SUM
 )
 
 BETTER_ENUM (
@@ -53,7 +54,7 @@ BETTER_ENUM (
     Select,
     Project,
     Join,
-    GroupBy,
+    Aggregate,
     OrderBy
 )
 
