@@ -4,9 +4,9 @@ add_library(
         Join.h Join.cpp
         Aggregate.h Aggregate.cpp
         Select.h Select.cpp
-        Project.h
         JoinGraph.cpp JoinGraph.h
         Predicate.cpp Predicate.h
+        LazyTable.cpp LazyTable.h
 )
 target_include_directories(operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(operators PUBLIC
