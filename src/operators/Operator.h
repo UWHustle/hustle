@@ -5,52 +5,14 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include "LazyTable.h"
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators {
 
 enum FilterOperator {
     AND,
     OR,
     NONE,
-};
-
-
-enum ResultType {
-    SELECT,
-    JOIN,
-    AGGREGATE,
-    PROJECT,
-};
-
-struct ColumnReference {
-    std::shared_ptr<Table> table;
-    std::string col_name;
-};
-
-// TODO(nicholas): put this in its own file
-class LazyTable {
-
-public:
-
-    LazyTable();
-    LazyTable(
-            std::shared_ptr<Table> table,
-            arrow::compute::Datum filter,
-            arrow::compute::Datum indices
-    );
-    std::shared_ptr<arrow::ChunkedArray> get_column(int i);
-    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(
-            std::string col_name);
-
-    // TODO(nicholas): Should these be private? Should I have accessors
-    //  for these instead?
-    std::shared_ptr<Table> table;
-    arrow::compute::Datum filter; // filters are ChunkedArrays
-    arrow::compute::Datum indices; // indicess are Arrays
-
-private:
-
 };
 
 class OperatorResult {
@@ -76,7 +38,6 @@ public:
 
 
 
-} // namespace operators
 } // namespace hustle
 
 #endif //HUSTLE_OPERATOR_H

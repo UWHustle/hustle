@@ -7,9 +7,9 @@
 #include <utility>
 #include <iostream>
 #include "table/util.h"
+#include "LazyTable.h"
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators{
 
     LazyTable::LazyTable() {
         filter = arrow::compute::Datum();
@@ -89,5 +89,4 @@ namespace operators {
         return col.chunked_array();
     }
 
-}
 }

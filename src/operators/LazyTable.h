@@ -1,13 +1,12 @@
-#ifndef HUSTLE_OPERATOR_H
-#define HUSTLE_OPERATOR_H
+#ifndef HUSTLE_LAZYTABLE_H
+#define HUSTLE_LAZYTABLE_H
 
 #include <string>
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators{
 
 struct ColumnReference {
     std::shared_ptr<Table> table;
@@ -34,11 +33,8 @@ public:
     arrow::compute::Datum filter; // filters are ChunkedArrays
     arrow::compute::Datum indices; // indicess are Arrays
 
-private:
-
 };
 
-} // namespace operators
-} // namespace hustle
+}
 
 #endif //HUSTLE_OPERATOR_H
