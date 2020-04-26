@@ -1,5 +1,5 @@
-#ifndef HUSTLE_OPERATOR_H
-#define HUSTLE_OPERATOR_H
+#ifndef HUSTLE_OPERATORRESULT_H
+#define HUSTLE_OPERATORRESULT_H
 
 #include <string>
 #include <table/block.h>
@@ -78,4 +78,4 @@ public:
 
 } // namespace hustle
 
-#endif //HUSTLE_OPERATOR_H
+#endif //HUSTLE_OPERATORRESULT_H

@@ -7,7 +7,7 @@
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
-#include "Operator.h"
+#include "OperatorResult.h"
 
 namespace hustle::operators {
 

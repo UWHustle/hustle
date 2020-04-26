@@ -37,4 +37,4 @@ public:
 
 }
 
-#endif //HUSTLE_OPERATOR_H
+#endif //HUSTLE_OPERATORRESULT_H

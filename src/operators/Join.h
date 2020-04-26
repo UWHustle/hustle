@@ -5,9 +5,9 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
-
-#include "Operator.h"
+#include "OperatorResult.h"
 #include "JoinGraph.h"
+#include "Operator.h"
 
 namespace hustle::operators {
     

@@ -5,12 +5,11 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
-
-#include "Operator.h"
+#include "OperatorResult.h"
 #include "Predicate.h"
+#include "Operator.h"
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators {
 
     //TODO(nicholas): Rename SelectComposite to Select and Select to
     // SelectNode. Select will internally construct the tree, so Jerry
@@ -37,7 +36,6 @@ private:
             const std::shared_ptr<Block>& block );
 };
 
-} // namespace operators
 } // namespace hustle
 
 #endif //HUSTLE_SELECT_H

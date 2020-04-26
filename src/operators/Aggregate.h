@@ -6,6 +6,7 @@
 #include <table/table.h>
 #include <arrow/compute/api.h>
 
+#include "OperatorResult.h"
 #include "Operator.h"
 
 namespace hustle {
