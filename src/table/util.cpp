@@ -248,7 +248,6 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
             default: {
                 // TODO(nicholas) this will not properly handle boolean values!
                 byte_widths[i] = sizeof(int64_t);
-                // TODO(nicholas): something here?
             }
         }
     }

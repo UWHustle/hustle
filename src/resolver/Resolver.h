@@ -14,6 +14,7 @@ namespace resolver {
 
 class Resolver {
  public:
+<<<<<<< HEAD
   /**
    * This function takes as input a parse tree from the parser, builds the plan
    * from bottom to top given the predicates and expressions preserved in the
@@ -29,11 +30,32 @@ class Resolver {
    * input to the GroupBy, Project, and OrderBy.
    *
    * The resolving order is: TableReference, Select, Join, GroupBy, Project
+=======
+
+  Resolver(hustle::catalog::Catalog *catalog) : catalog_(catalog) {}
+
+  /**
+   * This function takes as input a parse tree from the parser, builds the
+   * plan from bottom to top given the predicates and expressions preserved
+   * in the parse tree.
+   *
+   * First of all, a number of TableReference objects are built. On top of
+   * each TableReference, a Select object is built to contain it. By
+   * traversing the parse_tree->other_pred, we match each select predicate as
+   * a filter onto the corresponding Select object. This step is to push all
+   * the select predicates down to the TableReference objects as much as
+   * possible. The Join objects are then built on top of these Select objects
+   * by traversing parse_tree->loop_pred. The topmost Join object is then
+   * captured as an input to the Aggregate, Project, and OrderBy.
+   *
+   * The resolving order is: TableReference, Select, Join, Aggregate, Project
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
    * and OrderBy.
    *
    * @param parse_tree: input parse tree from parser
    * @param hustleDB: input hustle database
    */
+<<<<<<< HEAD
   void resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree,
                hustle::catalog::Catalog *catalog) {
     // initialize the maps given parse_tree->tableList
@@ -126,10 +148,14 @@ class Resolver {
 
     plan_ = std::make_shared<Query>(root);
   }
+=======
+  void resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::Expr
    */
+<<<<<<< HEAD
   std::shared_ptr<Expr> resolve_Expr(
       const std::shared_ptr<hustle::parser::Expr> &expr) {
     switch (expr->type) {
@@ -165,10 +191,15 @@ class Resolver {
         return nullptr;
     }
   }
+=======
+  std::shared_ptr<Expr> resolveExpr(
+      const std::shared_ptr<hustle::parser::Expr> &expr);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::Comparative
    */
+<<<<<<< HEAD
   std::shared_ptr<Comparative> resolve_Comparative(
       const std::shared_ptr<hustle::parser::Comparative> &expr) {
     return std::make_shared<Comparative>(resolve_ColumnReference(
@@ -176,36 +207,56 @@ class Resolver {
                                          expr->op,
                                          resolve_Expr(expr->right));
   }
+=======
+  std::shared_ptr<Comparative> resolveComparative(
+      const std::shared_ptr<hustle::parser::Comparative> &expr);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::ColumnReference
    */
+<<<<<<< HEAD
   std::shared_ptr<ColumnReference> resolve_ColumnReference(
       const std::shared_ptr<hustle::parser::ColumnReference> &expr) {
     return std::make_shared<ColumnReference>(expr->column_name,
                                              map_vir_to_real[expr->i_table],
                                              expr->i_column);
   }
+=======
+  std::shared_ptr<ColumnReference> resolveColumnReference(
+      const std::shared_ptr<hustle::parser::ColumnReference> &expr);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::IntLiteral
    */
+<<<<<<< HEAD
   std::shared_ptr<IntLiteral> resolve_IntLiteral(
       const std::shared_ptr<hustle::parser::IntLiteral> &expr) {
     return std::make_shared<IntLiteral>(expr->value);
   }
+=======
+  static std::shared_ptr<IntLiteral> resolveIntLiteral(
+      const std::shared_ptr<hustle::parser::IntLiteral> &expr);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::StrLiteral
    */
+<<<<<<< HEAD
   std::shared_ptr<StrLiteral> resolve_StrLiteral(
       const std::shared_ptr<hustle::parser::StrLiteral> &expr) {
     return std::make_shared<StrLiteral>(expr->value);
   }
+=======
+  static std::shared_ptr<StrLiteral> resolveStrLiteral(
+      const std::shared_ptr<hustle::parser::StrLiteral> &expr);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::Disjunctive
    */
+<<<<<<< HEAD
   std::shared_ptr<Disjunctive> resolve_Disjunctive(
       const std::shared_ptr<hustle::parser::Disjunctive> &expr) {
     auto left = resolve_Comparative(
@@ -221,35 +272,62 @@ class Resolver {
             std::move(right)
         });
   }
+=======
+  std::shared_ptr<Disjunctive> resolveDisjunctive(
+      const std::shared_ptr<hustle::parser::Disjunctive> &expr);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::Arithmetic
    */
+<<<<<<< HEAD
   std::shared_ptr<Arithmetic> resolve_Arithmetic(
       const std::shared_ptr<hustle::parser::Arithmetic> &expr) {
     return std::make_shared<Arithmetic>(resolve_Expr(expr->left),
                                         expr->op,
                                         resolve_Expr(expr->right));
   }
+=======
+  std::shared_ptr<Arithmetic> resolveArithmetic(
+      const std::shared_ptr<hustle::parser::Arithmetic> &expr);
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to resolve hustle::parser::AggFunc
    */
+<<<<<<< HEAD
   std::shared_ptr<AggFunc> resolve_AggFunc(
       const std::shared_ptr<hustle::parser::AggFunc> &expr) {
     return std::make_shared<AggFunc>(expr->func,
                                      resolve_Expr(expr->expr));
   }
+=======
+  std::shared_ptr<AggFunc> resolveAggFunc(
+      const std::shared_ptr<hustle::parser::AggFunc> &expr);
+
+  /**
+   * Function to return the plan
+   * @return the plan
+   */
+  std::shared_ptr<Plan> getPlan();
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
 
   /**
    * Function to serialize the parse tree
    */
+<<<<<<< HEAD
   std::string to_string(int indent) {
     json j = plan_;
     return j.dump(indent);
   }
 
  private:
+=======
+  std::string toString(int indent);
+
+ private:
+  hustle::catalog::Catalog *catalog_;
+>>>>>>> 250dd5cb40dadb22138c04b1025fa5c26165027c
   std::shared_ptr<Plan> plan_;
   std::map<int, int> map_vir_to_real; // matching from virtual to real table id
   std::map<int, int> map_real_to_vir; // matching from real to virtual table id
