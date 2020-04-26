@@ -6,34 +6,32 @@
 
 namespace hustle::operators {
 
-    JoinGraph::JoinGraph() {
-
-    }
+    JoinGraph::JoinGraph() = default;
 
     JoinGraph::JoinGraph(
-            std::vector<std::vector<JoinPredicate>> trees) {
+            std::vector<std::vector<JoinPredicate>> join_predicates) {
 
-        for (int i=0; i<trees.size(); i++) {
-            adj_.push_back(trees[i]);
-            tables_.push_back(trees[i][0].left_col_ref_.table);
+        for (auto & join_predicate : join_predicates) {
+            adj_.push_back(join_predicate);
+            tables_.push_back(join_predicate[0].left_col_ref_.table);
         }
     }
 
-    void JoinGraph::insert(std::shared_ptr<Table> table,
-            std::vector<JoinPredicate> predicates) {
+    void JoinGraph::insert(std::vector<JoinPredicate> predicate_group) {
 
+        auto table = predicate_group[0].left_col_ref_.table;
         // If table is already in the graph
         auto it = std::find(tables_.begin(), tables_.end(), table);
         if (it != tables_.end()) {
             int i = it - tables_.end();
-            for (auto &predicate : predicates) {
+            for (auto &predicate : predicate_group) {
                 adj_[i].push_back(predicate);
             }
         }
         // If table is not in the graph
         else {
             tables_.push_back(table);
-            adj_.push_back(predicates);
+            adj_.push_back(predicate_group);
         }
     }
 
