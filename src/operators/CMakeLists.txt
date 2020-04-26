@@ -15,15 +15,6 @@ target_link_libraries(operators PUBLIC
 )
 
 
-add_executable(hustle_operator_test "tests/HustleOperator_test.cpp")
-target_link_libraries(hustle_operator_test
-        gtest
-        gtest_main
-        gmock
-        table
-        operators
-        )
-add_test(HustleOperator_test hustle_operator_test)
 
 add_executable(hustle_join_test "tests/JoinTest.cpp")
 target_link_libraries(hustle_join_test
