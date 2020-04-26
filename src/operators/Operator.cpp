@@ -8,42 +8,26 @@
 #include <iostream>
 #include "table/util.h"
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators {
 
-    LazyTable::LazyTable() {
-        filter = arrow::compute::Datum();
-        indices =  arrow::compute::Datum();
-    }
-    LazyTable::LazyTable(
-        std::shared_ptr<Table> table,
-        arrow::compute::Datum filter,
-        arrow::compute::Datum indices) {
-
-        this->table = table;
-        this->filter = filter;
-        this->indices = indices;
-    }
 
     OperatorResult::OperatorResult(
-            std::vector<LazyTable> units) {
+            std::vector<LazyTable> lazy_tables) {
 
-        lazy_tables_ = units;
+        lazy_tables_ = std::move(lazy_tables);
     }
 
-    OperatorResult::OperatorResult(){
-
-    }
+    OperatorResult::OperatorResult() = default;
 
     void OperatorResult::append(std::shared_ptr<Table> table) {
         LazyTable lazy_table(
-                table,
+                std::move(table),
                 arrow::compute::Datum(),
                 arrow::compute::Datum());
         lazy_tables_.insert(lazy_tables_.begin(),lazy_table);
     }
 
-    void OperatorResult::append(std::shared_ptr<OperatorResult> result) {
+    void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
         for (auto &lazy_table : result->lazy_tables_) {
             lazy_tables_.push_back(lazy_table);
         }
@@ -53,7 +37,7 @@ namespace operators {
         return lazy_tables_[i];
     }
 
-    LazyTable OperatorResult::get_table(std::shared_ptr<Table> table) {
+    LazyTable OperatorResult::get_table(const std::shared_ptr<Table>& table) {
         LazyTable result;
         for (auto & lazy_table : lazy_tables_) {
             if (lazy_table.table == table) {
@@ -65,7 +49,7 @@ namespace operators {
     }
     
     std::shared_ptr<Table>
-    OperatorResult::materialize(std::vector<ColumnReference> col_refs) {
+    OperatorResult::materialize(const std::vector<ColumnReference>& col_refs) {
 
         arrow::Status status;
         arrow::SchemaBuilder schema_builder;
@@ -108,69 +92,4 @@ namespace operators {
         return out_table;
     }
 
-    std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column_by_name
-        (std::string col_name) {
-
-        return get_column(table->get_schema()->GetFieldIndex(col_name));
-    }
-
-    std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) {
-
-        arrow::Status status;
-        auto col = arrow::compute::Datum(table->get_column(i));
-
-        arrow::compute::FunctionContext function_context(
-                arrow::default_memory_pool());
-        std::shared_ptr<arrow::ChunkedArray> out;
-
-        // TODO(nicholas): Filters are ChunkedArrays while indices are Arrays.
-        //  If this changes in the future (it will!), then you will ned to
-        //  update these switch blocks.
-        switch(filter.kind()) {
-            case arrow::compute::Datum::NONE: {
-                break;
-            }
-            case arrow::compute::Datum::CHUNKED_ARRAY: {
-                arrow::compute::FilterOptions filter_options;
-                status = arrow::compute::Filter(&function_context,
-                                                col,
-                                                filter.chunked_array(),
-                                                filter_options,
-                                                &col);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                break;
-            }
-            default: {
-                std::cerr << "LazyTable filter is not ChunkedArray" <<
-                          std::endl;
-            }
-        }
-
-        switch(indices.kind()) {
-            case arrow::compute::Datum::NONE: {
-                break;
-            }
-            case arrow::compute::Datum::ARRAY: {
-                arrow::compute::TakeOptions take_options;
-                std::shared_ptr<arrow::ChunkedArray> chunked_col;
-                status = arrow::compute::Take(&function_context,
-                                              *col.chunked_array(),
-                                              *indices.make_array(),
-                                              take_options,
-                                              &chunked_col);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                col = arrow::compute::Datum(chunked_col);
-                break;
-            }
-            default: {
-                std::cerr << "LazyTable indices is not Array" <<
-                          std::endl;
-            }
-        }
-
-
-        return col.chunked_array();
-    }
-
-}
 }

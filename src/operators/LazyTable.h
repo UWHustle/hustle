@@ -9,26 +9,11 @@
 namespace hustle {
 namespace operators {
 
-enum FilterOperator {
-    AND,
-    OR,
-    NONE,
-};
-
-
-enum ResultType {
-    SELECT,
-    JOIN,
-    AGGREGATE,
-    PROJECT,
-};
-
 struct ColumnReference {
     std::shared_ptr<Table> table;
     std::string col_name;
 };
 
-// TODO(nicholas): put this in its own file
 class LazyTable {
 
 public:
@@ -52,29 +37,6 @@ public:
 private:
 
 };
-
-class OperatorResult {
-public:
-    OperatorResult();
-    explicit OperatorResult(std::vector<LazyTable> units);
-    void append(std::shared_ptr<Table> table);
-    void append(const std::shared_ptr<OperatorResult>& result);
-    LazyTable get_table(int i);
-    LazyTable get_table(const std::shared_ptr<Table>& table);
-
-    std::shared_ptr<Table> materialize(const std::vector<ColumnReference>& col_refs);
-
-    std::vector<LazyTable> lazy_tables_;
-};
-
-class Operator {
-    virtual std::shared_ptr<OperatorResult> run() = 0;
-public:
-
-};
-
-
-
 
 } // namespace operators
 } // namespace hustle
