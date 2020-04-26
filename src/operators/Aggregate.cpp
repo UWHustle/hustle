@@ -162,8 +162,7 @@ namespace hustle::operators {
                     value = arrow::compute::Datum(
                             std::make_shared<arrow::StringScalar>(
                                     one_unique_values_casted->GetString(its[field_i])));
-                    next_filter = get_filter(group_by_refs_[field_i], group_type->child(field_i),
-                                             value);
+                    next_filter = get_filter(group_by_refs_[field_i], value);
                     break;
                 }
                 case arrow::Type::INT64: {
@@ -173,8 +172,7 @@ namespace hustle::operators {
                     value = arrow::compute::Datum(
                             std::make_shared<arrow::Int64Scalar>(
                                     one_unique_values_casted->Value(its[field_i])));
-                    next_filter = get_filter(group_by_refs_[field_i], group_type->child(field_i),
-                                             value);
+                    next_filter = get_filter(group_by_refs_[field_i], value);
                     break;
                 }
                 default: {
