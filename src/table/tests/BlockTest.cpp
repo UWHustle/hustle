@@ -74,20 +74,22 @@ protected:
         arrow::StringBuilder col3_builder;
         arrow::Int64Builder col4_builder;
 
-        col1_builder.AppendValues({1, 2, 3});
-        col2_builder.AppendValues({"nicholas", "edward", "corrado"});
-        col3_builder.AppendValues({"a", "b", "c"});
-        col4_builder.AppendValues({11, 22, 33});
+        arrow::Status status;
+
+        status = col1_builder.AppendValues({1, 2, 3});
+        status = col2_builder.AppendValues({"nicholas", "edward", "corrado"});
+        status = col3_builder.AppendValues({"a", "b", "c"});
+        status = col4_builder.AppendValues({11, 22, 33});
 
         std::shared_ptr<arrow::Int64Array> col1;
         std::shared_ptr<arrow::StringArray> col2;
         std::shared_ptr<arrow::StringArray> col3;
         std::shared_ptr<arrow::Int64Array> col4;
 
-        col1_builder.Finish(&col1);
-        col2_builder.Finish(&col2);
-        col3_builder.Finish(&col3);
-        col4_builder.Finish(&col4);
+        status = col1_builder.Finish(&col1);
+        status = col2_builder.Finish(&col2);
+        status = col3_builder.Finish(&col3);
+        status = col4_builder.Finish(&col4);
 
         column_data.push_back(col1->data());
         column_data.push_back(col2->data());

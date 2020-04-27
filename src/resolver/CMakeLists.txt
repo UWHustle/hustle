@@ -8,6 +8,7 @@ target_link_libraries(resolver
         parser
 )
 
+
 add_executable(hustle_resolver_simple_test "tests/HustleResolver_simple_test.cpp")
 target_link_libraries(hustle_resolver_simple_test
         gtest

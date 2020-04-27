@@ -8,12 +8,14 @@ add_library(
 target_include_directories(table PUBLIC ${ARROW_INCLUDE_DIR} )
 target_link_libraries(table PUBLIC
         ${ARROW_SHARED_LIB}
-        absl::strings)
+        absl::strings
+        absl::container
+        absl::hash
+        absl::flat_hash_map
+        catalog)
 
 
-add_executable(hustle_table_test "tests/table_test.cpp")
-add_executable(hustle_block_test "tests/block_test.cpp")
-
+add_executable(hustle_table_test "tests/TableTest.cpp")
 target_link_libraries(hustle_table_test
         gtest
         gtest_main
@@ -21,7 +23,9 @@ target_link_libraries(hustle_table_test
         ${ARROW_SHARED_LIB}
         table
         )
+add_test(HustleTableTest hustle_table_test)
 
+add_executable(hustle_block_test "tests/BlockTest.cpp")
 target_link_libraries(hustle_block_test
         gtest
         gtest_main
@@ -29,9 +33,15 @@ target_link_libraries(hustle_block_test
         ${ARROW_SHARED_LIB}
         table
         )
-
-target_include_directories(hustle_table_test PUBLIC ${ARROW_INCLUDE_DIR})
-add_test(HustleTableTest hustle_table_test)
-
-target_include_directories(hustle_block_test PUBLIC ${ARROW_INCLUDE_DIR})
 add_test(HustleBlockTest hustle_block_test)
+
+
+add_executable(hustle_util_test "tests/UtilTest.cpp")
+target_link_libraries(hustle_util_test
+        gtest
+        gtest_main
+        gmock
+        ${ARROW_SHARED_LIB}
+        table
+        )
+add_test(HustleUtilTest hustle_util_test)

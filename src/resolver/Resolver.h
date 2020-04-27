@@ -44,7 +44,6 @@ class Resolver {
    */
   std::shared_ptr<Expr> resolveExpr(
       const std::shared_ptr<hustle::parser::Expr> &expr);
-
   /**
    * Function to resolve hustle::parser::Comparative
    */
@@ -84,6 +83,7 @@ class Resolver {
   /**
    * Function to resolve hustle::parser::AggFunc
    */
+
   std::shared_ptr<AggFunc> resolveAggFunc(
       const std::shared_ptr<hustle::parser::AggFunc> &expr);
 

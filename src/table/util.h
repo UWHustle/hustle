@@ -6,6 +6,7 @@
 #include <arrow/memory_pool.h>
 #include <arrow/table.h>
 #include "table.h"
+#include <catalog/TableSchema.h>
 
 /**
  * If a status outcome is an error, print its error message and throw an
@@ -37,11 +38,12 @@ void write_to_file(const char *path, Table &table);
  * Construct a table from RecordBatches read from a file.
  *
  * @param path Relative path to the file
+ * @param read_only Flag indicating that data need not be copied into memory
  * @return A Table containing data from all RecordBatches read from the file.
  *
  * TODO: Assuming all blocks are written to separate files, read in one block.
  */
-std::shared_ptr<Table>  read_from_file(const char *path);
+std::shared_ptr<Table>  read_from_file(const char *path, bool read_only=true);
 
 /**
  * Return the columns of a RecordBatch as a vector of Arrays. This is a special
@@ -52,7 +54,7 @@ std::shared_ptr<Table>  read_from_file(const char *path);
  * @return A vector containing all columns of the inputted RecordBatch
  */
 std::vector<std::shared_ptr<arrow::Array>>
-get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch);
+get_columns_from_record_batch(const std::shared_ptr<arrow::RecordBatch>& record_batch);
 
 /**
  * When a RecordBatch is read from a file, the read is zero-copy, and thus we
@@ -63,17 +65,19 @@ get_columns_from_record_batch(std::shared_ptr<arrow::RecordBatch> record_batch);
  * @return An equivalent mutable RecordBatch
  */
 std::shared_ptr<arrow::RecordBatch>
-copy_record_batch(std::shared_ptr<arrow::RecordBatch> batch);
+copy_record_batch(const std::shared_ptr<arrow::RecordBatch>& batch);
 
 /**
  * @param schema A Block's schema
  * @return The minimum number of bytes contained in each record.
  */
-int compute_fixed_record_width(std::shared_ptr<arrow::Schema> schema);
+int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema);
 
 
 std::shared_ptr<Table> read_from_csv_file(const char* path,
         std::shared_ptr<arrow::Schema>
 schema, int block_size);
+
+std::shared_ptr<arrow::Schema> make_schema(const hustle::catalog::TableSchema& schema);
 
 #endif //HUSTLE_OFFLINE_UTIL_H

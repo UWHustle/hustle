@@ -20343,6 +20343,7 @@ SQLITE_PRIVATE void resolveExpr(Expr *pExpr) {
       break;
 
     case TK_COLUMN:
+
     case TK_AGG_COLUMN:
       if (pExpr->iColumn < 0) return;
       currPos += sprintf(currPos,

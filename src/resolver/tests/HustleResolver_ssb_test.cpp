@@ -259,7 +259,6 @@ TEST_F(ResolverSSBTest, ssb_q1) {
   parser->parse(query, hustleDB);
   resolver->resolve(parser->getParseTree());
   std::cout << "Plan:" << resolver->toString(4) << std::endl;
-
   // TODO(Lichengxi): build validation plan
 
 }
@@ -281,7 +280,6 @@ TEST_F(ResolverSSBTest, ssb_q2) {
   parser->parse(query, hustleDB);
   resolver->resolve(parser->getParseTree());
   std::cout << "Plan:" << resolver->toString(4) << std::endl;
-
   // TODO(Lichengxi): build validation plan
 
 }

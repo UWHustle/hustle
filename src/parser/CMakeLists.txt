@@ -8,6 +8,7 @@ target_link_libraries(parser
         catalog
 )
 
+
 add_executable(hustle_parser_simple_test tests/HustleParser_simple_test.cpp)
 target_link_libraries(hustle_parser_simple_test
         gtest

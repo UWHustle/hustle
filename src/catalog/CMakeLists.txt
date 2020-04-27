@@ -16,6 +16,7 @@ target_link_libraries(
         sqlite_utils
 )
 
+
 add_executable(hustle_catalog_test "tests/HustleCatalog_test.cpp")
 target_link_libraries(hustle_catalog_test
         gtest

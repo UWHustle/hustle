@@ -260,7 +260,6 @@ void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive);
 void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic);
 void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc);
 
-
 }
 }
 
