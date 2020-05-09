@@ -8,6 +8,7 @@ add_library(
         Predicate.cpp Predicate.h
         LazyTable.cpp LazyTable.h
         Operator.h)
+
 target_include_directories(operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(operators PUBLIC
         table
