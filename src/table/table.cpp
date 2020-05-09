@@ -7,12 +7,13 @@
 #include "util.h"
 
 
-Table::Table(std::string name, std::shared_ptr<arrow::Schema> schema,
+Table::Table(std::string name, const std::shared_ptr<arrow::Schema>& schema,
              int block_capacity)
         : table_name(std::move(name)), schema(schema), block_counter(0),
-          num_rows(0), block_capacity(block_capacity) {
+          num_rows(0), block_capacity(block_capacity), block_row_offsets({}) {
 
     fixed_record_width = compute_fixed_record_width(schema);
+    num_cols = schema->num_fields();
 }
 
 
@@ -25,10 +26,11 @@ Table::Table(
     // TODO(nicholas): Be consistent with how/when block_row_offsets is
     //  initialized.
     schema = std::move(record_batches[0]->schema());
+    num_cols = schema->num_fields();
     // Must be called only after schema is set
     fixed_record_width = compute_fixed_record_width(schema);
 
-    for (auto batch : record_batches) {
+    for (const auto& batch : record_batches) {
         auto block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
         blocks.emplace(block_counter, block);
         block_counter++;
@@ -83,6 +85,10 @@ int Table::get_num_rows() const{
     return num_rows;
 }
 
+int Table::get_num_cols() const{
+    return num_cols;
+}
+
 std::shared_ptr<Block> Table::get_block(int block_id) const {
 //  std::scoped_lock blocks_lock(blocks_mutex);
     return blocks.at(block_id);
@@ -115,7 +121,7 @@ int Table::get_num_blocks() const {
 
 void Table::print() {
 
-    if (blocks.size() == 0) {
+    if (blocks.empty()) {
         std::cout << "Table is empty." << std::endl;
     } else {
         for (int i = 0; i < blocks.size(); i++) {
@@ -139,17 +145,21 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     int offset = 0;
     int length = l;
 
-    std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
+    // TODO(nicholas): Optimize this. Calls to schema->field(i) is non-
+    //  neglible since we call it once for each column of each record.
+    int column_types [num_cols];
+
+    for (int i=0; i<num_cols; i++) {
+        column_types[i] = schema->field(i)->type()->id();
+    }
 
     for (int row=0; row<l; row++) {
 
         int record_size = 0;
 
-        for (int i = 0; i < schema->num_fields(); i++) {
+        for (int i = 0; i < num_cols; i++) {
 
-            std::shared_ptr<arrow::Field> field = schema->field(i);
-
-            switch (field->type()->id()) {
+            switch (column_types[i]) {
 
                 case arrow::Type::STRING: {
                     // TODO(nicholas) schema offsets!!!!
@@ -160,7 +170,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 case arrow::Type::DOUBLE:
                 case arrow::Type::INT64: {
                     // buffer at index 1 is the data buffer.
-                    int byte_width = field->type()->layout().buffers[1].byte_width;
+                    int byte_width = sizeof(int64_t);
                     record_size += byte_width;
                     break;
                 }
@@ -168,10 +178,12 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                     throw std::logic_error(
                             std::string(
                                     "Cannot compute record width. Unsupported type: ") +
-                            field->type()->ToString());
+                            schema->field(i)->type()->ToString());
                 }
             }
         }
+
+        std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
 
         if (data_size + record_size > block->get_bytes_left()) {
 
@@ -184,7 +196,8 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             }
 
             block->insert_records(sliced_column_data);
-            sliced_column_data.clear();
+//            sliced_column_data.clear(); // no need to clear; a new vector
+//            is declared in each loop.
 
             offset = row;
             data_size = 0;
@@ -195,6 +208,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
         data_size += record_size;
     }
 
+    std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
     // Insert the last of the records
     for (int i=0; i<column_data.size(); i++) {
         // Note that row is equal to the index of the first record we
@@ -204,7 +218,8 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
         sliced_column_data.push_back(sliced_data);
     }
     block->insert_records(sliced_column_data);
-    sliced_column_data.clear();
+//    sliced_column_data.clear();
+// no need to clear. We only use this vector once.
 
     if (block->get_bytes_left() > fixed_record_width) {
         insert_pool[block->get_id()] = block;
@@ -218,7 +233,7 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
     std::shared_ptr<Block> block = get_block_for_insert();
 
     int32_t record_size = 0;
-    for (int i = 0; i < schema->num_fields(); i++) {
+    for (int i = 0; i < num_cols; i++) {
         record_size += byte_widths[i];
     }
 
@@ -236,23 +251,21 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
 }
 
 void Table::insert_record(std::vector<std::string_view> values, int32_t
-*byte_widths, int
-delimiter_size) {
+*byte_widths) {
 
     std::shared_ptr<Block> block = get_block_for_insert();
 
     int32_t record_size = 0;
     // record size is incorrectly computed!
-    for (int i = 0; i < schema->num_fields(); i++) {
+    for (int i = 0; i < num_cols; i++) {
         record_size += byte_widths[i];
     }
 
-    auto test = block->get_bytes_left();
     if (block->get_bytes_left() < record_size) {
         block = create_block();
     }
 
-    block->insert_record(values, byte_widths, delimiter_size);
+    block->insert_record(values, byte_widths);
     num_rows++;
 
     if (block->get_bytes_left() > fixed_record_width) {
@@ -278,7 +291,7 @@ std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index)  {
 }
 
 
-std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(std::string
+std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(const std::string&
 name) {
     return get_column(schema->GetFieldIndex(name));
 }
