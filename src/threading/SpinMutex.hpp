@@ -6,7 +6,7 @@
 #include "threading/Mutex.hpp"
 #include "utility/Macros.hpp"
 
-namespace project {
+namespace hustle {
 
 class SpinMutex {
  public:
@@ -37,6 +37,6 @@ typedef MutexLockImpl<SpinMutex, true> SpinMutexLock;
 template <bool actually_lock> using StaticConditionalSpinMutexLock
     = MutexLockImpl<SpinMutex, actually_lock>;
 
-}  // namespace project
+}  // namespace hustle
 
 #endif  // PROJECT_THREADING_SPIN_MUTEX_HPP_
