@@ -41,5 +41,5 @@ add_subdirectory(operators)
 add_subdirectory(scheduler)
 add_subdirectory(utility)
 add_subdirectory(threading)
-add_subdirectory(optimizer)
+add_subdirectory(execution)
 

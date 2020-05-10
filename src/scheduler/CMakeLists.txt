@@ -94,5 +94,6 @@ target_link_libraries(hustle_scheduler_test
         gmock
         ${ARROW_SHARED_LIB}
         project_scheduler_Scheduler
+        operators
         )
 add_test(HustleSchedulerTest hustle_scheduler_test)

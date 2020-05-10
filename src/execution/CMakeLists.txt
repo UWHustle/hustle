@@ -176,7 +176,6 @@ add_library(project_optimizer_ExecutionPlan ExecutionPlan.cpp ExecutionPlan.hpp)
 #                      project_utility_Macros)
 target_link_libraries(project_optimizer_ExecutionPlan
                       ${GFLAGS_LIB_NAME}
-                      hustle_operators_Operator
                       glog
                       project_scheduler_SchedulerInterface
                       project_scheduler_SchedulerTypedefs

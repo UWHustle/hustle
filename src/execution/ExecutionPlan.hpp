@@ -9,6 +9,10 @@
 
 #include "scheduler/Task.hpp"
 #include "utility/Macros.hpp"
+#include "operators/Operator.h"
+
+// TODO(nicholas): reorganize namespaces so you don't need to do this.
+using hustle::operators::Operator;
 
 namespace hustle {
 
@@ -19,16 +23,16 @@ class ExecutionPlan : public Task {
 
   void execute() override;
 
-//  std::size_t addRelationalOperator(RelationalOperator *relational_operator) {
-//    const std::size_t op_index = relational_operators_.size();
-//    relational_operator->setOperatorIndex(op_index);
-//    relational_operators_.emplace_back(relational_operator);
-//    return op_index;
-//  }
-//
-//  const RelationalOperator& getRelationalOperator(const std::size_t op_index) const {
-//    return *relational_operators_[op_index];
-//  }
+  std::size_t addOperator(Operator *op) {
+    const std::size_t op_index = operators_.size();
+    op->setOperatorIndex(op_index);
+    operators_.emplace_back(op);
+    return op_index;
+  }
+
+  const Operator& getOperator(const std::size_t op_index) const {
+    return *operators_[op_index];
+  }
 
   void createLink(const std::size_t producer_operator_index,
                   const std::size_t consumer_operator_index) {
@@ -41,14 +45,14 @@ class ExecutionPlan : public Task {
     return it == dependents_.end() ? kEmptySet : it->second;
   }
 
-//  std::size_t size() const {
-//    return relational_operators_.size();
-//  }
+  std::size_t size() const {
+    return operators_.size();
+  }
 
  private:
   const std::size_t query_id_;
 
-//  std::vector<std::unique_ptr<RelationalOperator>> relational_operators_;
+  std::vector<std::unique_ptr<Operator>> operators_;
   std::unordered_map<std::size_t, std::unordered_set<std::size_t>> dependents_;
 
   static const std::unordered_set<std::size_t> kEmptySet;
