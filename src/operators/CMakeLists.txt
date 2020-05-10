@@ -9,6 +9,7 @@ add_library(
         LazyTable.cpp LazyTable.h
         Operator.h)
 
+
 target_include_directories(operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(operators PUBLIC
         table
@@ -16,6 +17,10 @@ target_link_libraries(operators PUBLIC
 )
 
 
+add_library(hustle_operators_Operator Operator.h)
+target_link_libraries(hustle_operators_Operator
+        ${ARROW_SHARED_LIB}
+        )
 
 add_executable(hustle_join_test "tests/JoinTest.cpp")
 target_link_libraries(hustle_join_test

@@ -20,7 +20,8 @@ public:
       * @param prev_result OperatorResult form an upstream operator.
       * @param graph A graph specifying all join predicates
       */
-    Join(std::shared_ptr<OperatorResult> prev_result,
+    Join(const std::size_t query_id,
+            std::shared_ptr<OperatorResult> prev_result,
             JoinGraph graph);
 
     /**

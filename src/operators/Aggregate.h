@@ -61,6 +61,7 @@ public:
      * we should order by.
      */
     Aggregate(
+            const std::size_t query_id,
             std::shared_ptr<OperatorResult> prev_result,
             std::vector<AggregateReference> aggregate_units,
             std::vector<ColumnReference> group_by_refs,

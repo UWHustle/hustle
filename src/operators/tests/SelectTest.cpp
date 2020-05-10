@@ -86,7 +86,7 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(result, select_pred_tree);
+    Select select_op(0, result, select_pred_tree);
     result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
@@ -156,7 +156,7 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(result, select_pred_tree);
+    Select select_op(0, result, select_pred_tree);
     result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
@@ -226,7 +226,7 @@ TEST_F(JoinTestFixture, OrSelectTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(result, select_pred_tree);
+    Select select_op(0, result, select_pred_tree);
     result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});

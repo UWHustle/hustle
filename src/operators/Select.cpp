@@ -10,8 +10,9 @@ namespace hustle {
 namespace operators {
 
 Select::Select(
+        const std::size_t query_id,
         std::shared_ptr<OperatorResult> prev_result,
-        std::shared_ptr<PredicateTree> tree){
+        std::shared_ptr<PredicateTree> tree) : Operator(query_id) {
 
     prev_result_ = std::move(prev_result);
     tree_ = std::move(tree);

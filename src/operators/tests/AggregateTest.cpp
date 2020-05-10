@@ -88,7 +88,7 @@ TEST_F(JoinTestFixture, MeanTest) {
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::MEAN, "data_mean", R, "data"};
-    Aggregate agg_op(result, {agg_ref}, {}, {});
+    Aggregate agg_op(0, result, {agg_ref}, {}, {});
     result = agg_op.run();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
@@ -123,7 +123,7 @@ TEST_F(JoinTestFixture, SumTest) {
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(result, {agg_ref}, {}, {});
+    Aggregate agg_op(0, result, {agg_ref}, {}, {});
     result = agg_op.run();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
@@ -170,12 +170,12 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(result, select_pred_tree);
+    Select select_op(0, result, select_pred_tree);
 
     result = select_op.run();
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(result, {agg_ref}, {}, {});
+    Aggregate agg_op(0, result, {agg_ref}, {}, {});
     result = agg_op.run();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
@@ -210,7 +210,7 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(result, {agg_ref}, {R_group_ref}, {});
+    Aggregate agg_op(0, result, {agg_ref}, {R_group_ref}, {});
     result = agg_op.run();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
@@ -253,7 +253,7 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(result, {agg_ref}, {R_group_ref}, {R_group_ref});
+    Aggregate agg_op(0, result, {agg_ref}, {R_group_ref}, {R_group_ref});
     result = agg_op.run();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
