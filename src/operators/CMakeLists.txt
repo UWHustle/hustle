@@ -43,8 +43,11 @@ target_link_libraries(hustle_select_test
         gtest
         gtest_main
         gmock
+        glog
+        ${GFLAGS_LIB_NAME}
         table
         operators
+        project_optimizer_ExecutionPlan
         )
 add_test(HustleSelect_test hustle_select_test)
 
