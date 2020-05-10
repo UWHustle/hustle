@@ -7,7 +7,7 @@ add_subdirectory(meta)
 #add_library(project_utility_ConcurrentBitVector ../empty_src.cpp ConcurrentBitVector.hpp)
 add_library(project_utility_ContainerUtil ../empty_src.cpp ContainerUtil.hpp)
 #add_library(project_utility_DisjointSetForest ../empty_src.cpp DisjointSetForest.hpp)
-#add_library(project_utility_EventProfiler EventProfiler.cpp EventProfiler.hpp)
+add_library(project_utility_EventProfiler EventProfiler.cpp EventProfiler.hpp)
 #add_library(project_utility_ExecutionDAGVisualizer ExecutionDAGVisualizer.cpp ExecutionDAGVisualizer.hpp)
 #add_library(project_utility_HashFilter ../empty_src.cpp HashFilter.hpp)
 #add_library(project_utility_HashPair ../empty_src.cpp HashPair.hpp)
@@ -23,7 +23,7 @@ add_library(project_utility_Macros ../empty_src.cpp Macros.hpp)
 #add_library(project_utility_ScopedArray ../empty_src.cpp ScopedArray.hpp)
 #add_library(project_utility_ScopedBuffer ../empty_src.cpp ScopedBuffer.hpp)
 #add_library(project_utility_StringUtil ../empty_src.cpp StringUtil.hpp)
-#add_library(project_utility_SyncStream ../empty_src.cpp SyncStream.hpp)
+add_library(project_utility_SyncStream ../empty_src.cpp SyncStream.hpp)
 #add_library(project_utility_ThreadSafePool ../empty_src.cpp ThreadSafePool.hpp)
 add_library(project_utility_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hpp)
 #add_library(project_utility_TreeStringSerializable ../empty_src.cpp TreeStringSerializable.hpp)
@@ -40,10 +40,10 @@ add_library(project_utility_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hpp
 #target_link_libraries(project_utility_DisjointSetForest
 #                      glog
 #                      project_utility_Macros)
-#target_link_libraries(project_utility_EventProfiler
-#                      glog
-#                      project_threading_Mutex
-#                      project_utility_Macros)
+target_link_libraries(project_utility_EventProfiler
+                      glog
+                      project_threading_Mutex
+                      project_utility_Macros)
 #target_link_libraries(project_utility_ExecutionDAGVisualizer
 #                      project_operators_AggregateOperator
 #                      project_operators_DropTableOperator
@@ -104,8 +104,8 @@ add_library(project_utility_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hpp
 #target_link_libraries(project_utility_ScopedBuffer
 #                      glog
 #                      project_utility_Macros)
-#target_link_libraries(project_utility_SyncStream
-#                      project_utility_Macros)
+target_link_libraries(project_utility_SyncStream
+                      project_utility_Macros)
 #target_link_libraries(project_utility_ThreadSafePool
 #                      project_utility_Macros)
 target_link_libraries(project_utility_ThreadSafeQueue
