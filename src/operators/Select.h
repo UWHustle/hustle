@@ -31,13 +31,13 @@ public:
      *
      * @return a new OperatorResult with an updated filter.
      */
-    std::shared_ptr<OperatorResult> run() override;
-
+    std::shared_ptr<OperatorResult> run(Task *ctx) override;
 
 private:
     std::shared_ptr<PredicateTree> tree_;
     std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<Table> table_;
+    arrow::ArrayVector filter_vector_;
 
     /**
      * Perform the selection specified by a node in the predicate tree on

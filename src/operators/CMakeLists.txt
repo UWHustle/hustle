@@ -48,6 +48,7 @@ target_link_libraries(hustle_select_test
         table
         operators
         project_optimizer_ExecutionPlan
+        project_scheduler_Scheduler
         )
 add_test(HustleSelect_test hustle_select_test)
 

@@ -9,12 +9,14 @@
 #include "operators/Aggregate.h"
 #include "operators/Join.h"
 #include "operators/Select.h"
-
+#include "execution/ExecutionPlan.hpp"
 
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
+#include <scheduler/Scheduler.hpp>
 
 using namespace testing;
+using namespace hustle;
 using namespace hustle::operators;
 
 class JoinTestFixture : public testing::Test {
@@ -28,6 +30,7 @@ protected:
     std::shared_ptr<arrow::Array> expected_R_col_1;
     std::shared_ptr<arrow::Array> expected_R_col_2;
     std::shared_ptr<arrow::Array> expected_R_col_3;
+    Scheduler &scheduler = Scheduler::GlobalInstance();
 
 
     std::shared_ptr<Table> R, S, T;
@@ -87,7 +90,10 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     result->append(R);
 
     Select select_op(0, result, select_pred_tree);
-    result = select_op.run();
+    ExecutionPlan plan = ExecutionPlan(0);
+    plan.addOperator(&select_op);
+    plan.execute();
+//    result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
@@ -157,7 +163,7 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     result->append(R);
 
     Select select_op(0, result, select_pred_tree);
-    result = select_op.run();
+//    result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
@@ -227,7 +233,7 @@ TEST_F(JoinTestFixture, OrSelectTest) {
     result->append(R);
 
     Select select_op(0, result, select_pred_tree);
-    result = select_op.run();
+//    result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();

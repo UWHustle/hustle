@@ -1,5 +1,3 @@
-#include "optimizer/ExecutionPlan.hpp"
-
 #include <chrono>
 #include <cstddef>
 #include <iostream>
@@ -12,6 +10,7 @@
 #include "scheduler/SchedulerInterface.hpp"
 #include "utility/EventProfiler.hpp"
 #include "utility/SyncStream.hpp"
+#include "execution/ExecutionPlan.hpp"
 
 #include "gflags/gflags.h"
 #include "glog/logging.h"

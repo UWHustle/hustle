@@ -21,7 +21,7 @@
 
 #include "glog/logging.h"
 
-namespace project {
+namespace hustle {
 
 using clock = std::chrono::steady_clock;
 

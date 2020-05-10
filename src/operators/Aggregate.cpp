@@ -437,7 +437,7 @@ namespace hustle::operators {
         return out_aggregate;
     }
 
-    std::shared_ptr<OperatorResult> Aggregate::run() {
+    std::shared_ptr<OperatorResult> Aggregate::run(Task *ctx) {
         auto out = std::make_shared<OperatorResult>();
 
         arrow::Status status;

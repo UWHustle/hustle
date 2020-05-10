@@ -66,20 +66,20 @@ arrow::compute::Datum
     return block_filter;
 }
 
-std::shared_ptr<OperatorResult> Select::run() {
+std::shared_ptr<OperatorResult> Select::run(Task *ctx) {
 
-    arrow::ArrayVector array_vector;
-    std::vector<arrow::compute::Datum> block_filters;
-
-    auto root = tree_->root_;
+    filter_vector_.reserve(table_->get_num_blocks());
 
     for (int i=0; i<table_->get_num_blocks(); i++) {
         auto block = table_->get_block(i);
-        auto block_filter = get_filter(root, block);
-        array_vector.push_back(block_filter.make_array());
+        ctx->spawnLambdaTask([this, block, i]() {
+            auto block_filter = this->get_filter(tree_->root_, block);
+            // block filters must be in block-order.
+            filter_vector_[i] = block_filter.make_array();
+        } );
     }
 
-    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(array_vector);
+    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
     arrow::compute::Datum filter(chunked_filter);
     LazyTable result_unit(table_, filter, arrow::compute::Datum());
     OperatorResult result({result_unit});

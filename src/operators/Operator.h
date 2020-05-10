@@ -7,14 +7,14 @@
 
 #include <cstdlib>
 #include "OperatorResult.h"
-#include "../scheduler/Task.hpp"
+#include "scheduler/Task.hpp"
 
 namespace hustle::operators {
 
     class Operator {
 
     public:
-        virtual std::shared_ptr<OperatorResult> run() = 0;
+        virtual std::shared_ptr<OperatorResult> run(Task *ctx) = 0;
 
         std::size_t getOperatorIndex() const {
             return op_index_;
@@ -28,15 +28,7 @@ namespace hustle::operators {
             return query_id_;
         }
 
-//        virtual void execute(Task *ctx) = 0;
-
-    protected:
-        explicit Operator(const std::size_t query_id)
-                : query_id_(query_id) {}
-
-        const std::size_t query_id_;
-
-    private:
+        //TODO(nicholas): Make private
         Task* createTask() {
             return CreateLambdaTask([this](Task *ctx) {
                 ctx->setTaskType(TaskType::kRelationalOperator);
@@ -47,6 +39,15 @@ namespace hustle::operators {
 //                this->execute(ctx);
             });
         }
+
+    protected:
+        explicit Operator(const std::size_t query_id)
+                : query_id_(query_id) {}
+
+        const std::size_t query_id_;
+
+    private:
+
 
         std::size_t op_index_;
 

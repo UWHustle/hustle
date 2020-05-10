@@ -68,25 +68,6 @@ target_link_libraries(project_scheduler_Worker
 target_link_libraries(project_scheduler_WorkerMessage
                       project_utility_Macros)
 
-macro (set_gflags_lib_name)
-    if (BUILD_SHARED_LIBS)
-        set(GFLAGS_LIB_NAME gflags_nothreads-shared)
-    else()
-        set(GFLAGS_LIB_NAME gflags_nothreads-static)
-    endif()
-endmacro (set_gflags_lib_name)
-
-set_gflags_lib_name ()
-
-set(THIRD_PARTY_SOURCE_DIR "${PROJECT_SOURCE_DIR}/third_party")
-
-add_subdirectory ("${THIRD_PARTY_SOURCE_DIR}/gflags" "${CMAKE_CURRENT_BINARY_DIR}/third_party/gflags")
-include_directories("${CMAKE_CURRENT_BINARY_DIR}/third_party/gflags/include")
-
-add_subdirectory("${THIRD_PARTY_SOURCE_DIR}/glog" "${CMAKE_CURRENT_BINARY_DIR}/third_party/glog")
-include_directories(${THIRD_PARTY_SOURCE_DIR}/glog/src)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party)
-
 add_executable(hustle_scheduler_test "tests/SchedulerTest.cpp")
 target_link_libraries(hustle_scheduler_test
         gtest

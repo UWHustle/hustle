@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace project {
+namespace hustle {
 
 EventProfiler<std::string> simple_profiler;
 

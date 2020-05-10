@@ -20,6 +20,9 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(Arrow REQUIRED)
 
+include_directories(${ARROW_INCLUDE_DIR})
+
+
 add_executable(
         hustle_main
         main.cpp
@@ -36,6 +39,8 @@ target_link_libraries(hustle_main
         parser
         resolver
         project_scheduler_Scheduler
+        project_optimizer_ExecutionPlan
+        ${ARROW_SHARED_LIB}
         ${GFLAGS_LIB_NAME}
         glog
         )
