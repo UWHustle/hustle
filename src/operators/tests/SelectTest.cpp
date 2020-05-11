@@ -331,3 +331,80 @@ TEST_F(JoinTestFixture, SingleSelectManyBlocksTest) {
     EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_R_col_3));
 
 }
+
+/*
+ * SELECT *
+ * FROM R
+ * WHERE R.group >= "R1" AND
+ *       R.data <= 30
+ */
+TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
+
+    R = read_from_csv_file("S.csv", schema, BLOCK_SIZE);
+
+    ColumnReference R_key_ref = {R, "key"};
+    ColumnReference R_group_ref = {R, "group"};
+    ColumnReference R_data_ref = {R, "data"};
+
+    auto select_pred_1 = Predicate{
+            {R, "group"},
+            arrow::compute::CompareOperator::GREATER_EQUAL,
+            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R1"))
+    };
+
+    auto select_pred_node_1 =
+            std::make_shared<PredicateNode>(
+                    std::make_shared<Predicate>(select_pred_1));
+
+    // NOTE: Make sure you cast integer values to int64_t when constructing
+    // an integer Datum.
+    auto select_pred_2 = Predicate{
+            {R, "data"},
+            arrow::compute::CompareOperator::LESS_EQUAL,
+            arrow::compute::Datum((int64_t) 30)
+    };
+
+    auto select_pred_node_2 =
+            std::make_shared<PredicateNode>(
+                    std::make_shared<Predicate>(select_pred_2));
+
+    auto select_connective_node = std::make_shared<ConnectiveNode>(
+            select_pred_node_1,
+            select_pred_node_2,
+            hustle::operators::FilterOperator::AND
+    );
+
+    auto select_pred_tree = std::make_shared<PredicateTree>
+            (select_connective_node);
+
+    auto result = std::make_shared<OperatorResult>();
+    result->append(R);
+
+    Select select_op(0, result, select_pred_tree);
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    scheduler.addTask(select_op.createTask());
+    scheduler.start();
+
+    scheduler.join();
+    result = select_op.finish();
+
+    auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
+//    out_table->print();
+
+    // Construct expected results
+    arrow::Status status;
+    status = int_builder.AppendValues({2,3});
+    status = int_builder.Finish(&expected_R_col_1);
+
+    status = str_builder.AppendValues({"R1", "R1"});
+    status = str_builder.Finish(&expected_R_col_2);
+
+    status = int_builder.AppendValues({20,30});
+    status = int_builder.Finish(&expected_R_col_3);
+
+    EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_R_col_1));
+    EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_R_col_2));
+    EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_R_col_3));
+}
