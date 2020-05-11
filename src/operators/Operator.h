@@ -37,7 +37,7 @@ namespace hustle::operators {
                 ctx->setCascade(true);
                 ctx->setTaskMajorId(query_id_);
 
-                result_ = this->run(ctx);
+                this->run(ctx);
             });
         }
 
