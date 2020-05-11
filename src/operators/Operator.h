@@ -27,6 +27,7 @@ namespace hustle::operators {
         std::size_t getQueryId() const {
             return query_id_;
         }
+        std::shared_ptr<OperatorResult> result_;
 
         //TODO(nicholas): Make private
         Task* createTask() {
@@ -36,7 +37,7 @@ namespace hustle::operators {
                 ctx->setCascade(true);
                 ctx->setTaskMajorId(query_id_);
 
-//                this->execute(ctx);
+                result_ = this->run(ctx);
             });
         }
 
@@ -45,6 +46,7 @@ namespace hustle::operators {
                 : query_id_(query_id) {}
 
         const std::size_t query_id_;
+
 
     private:
 

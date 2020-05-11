@@ -72,11 +72,12 @@ std::shared_ptr<OperatorResult> Select::run(Task *ctx) {
 
     for (int i=0; i<table_->get_num_blocks(); i++) {
         auto block = table_->get_block(i);
-        ctx->spawnLambdaTask([this, block, i]() {
+//        ctx->spawnLambdaTask([this, block, i]() {
             auto block_filter = this->get_filter(tree_->root_, block);
             // block filters must be in block-order.
-            filter_vector_[i] = block_filter.make_array();
-        } );
+//            filter_vector_[i] = block_filter.make_array();
+            filter_vector_.push_back(block_filter.make_array());
+//        } );
     }
 
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
@@ -84,6 +85,7 @@ std::shared_ptr<OperatorResult> Select::run(Task *ctx) {
     LazyTable result_unit(table_, filter, arrow::compute::Datum());
     OperatorResult result({result_unit});
     return std::make_shared<OperatorResult>(result);
+
 }
 
 

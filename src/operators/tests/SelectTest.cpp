@@ -6,7 +6,7 @@
 
 #include <table/block.h>
 #include <table/util.h>
-#include "operators/Aggregate.h"
+//#include "operators/Aggregate.h"
 #include "operators/Join.h"
 #include "operators/Select.h"
 #include "execution/ExecutionPlan.hpp"
@@ -30,7 +30,6 @@ protected:
     std::shared_ptr<arrow::Array> expected_R_col_1;
     std::shared_ptr<arrow::Array> expected_R_col_2;
     std::shared_ptr<arrow::Array> expected_R_col_3;
-    Scheduler &scheduler = Scheduler::GlobalInstance();
 
 
     std::shared_ptr<Table> R, S, T;
@@ -90,9 +89,19 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     result->append(R);
 
     Select select_op(0, result, select_pred_tree);
-    ExecutionPlan plan = ExecutionPlan(0);
-    plan.addOperator(&select_op);
-    plan.execute();
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+//    std::unique_ptr<Scheduler> scheduler =
+//            std::make_unique<Scheduler>(std::thread::hardware_concurrency());
+
+    scheduler.addTask(select_op.createTask());
+    scheduler.start();
+
+    scheduler.join();
+    result = select_op.result_;
+//    ExecutionPlan plan = ExecutionPlan(0);
+//    plan.addOperator(&select_op);
+//    plan.execute();
 //    result = select_op.run();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
