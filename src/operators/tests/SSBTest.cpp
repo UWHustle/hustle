@@ -73,6 +73,10 @@ TEST_F(SSBTestFixture, SSBQ41) {
     for (int num_workers=1; num_workers<= 8; num_workers++) {
 
         Scheduler scheduler = Scheduler(num_workers);
+
+        // Selections are very fast, so I add 10 selections to the scheduler
+        // to make it take longer. Creating a larger table instead file would
+        // take a long time.
         scheduler.addTask(select_op0.createTask());
         scheduler.addTask(select_op1.createTask());
         scheduler.addTask(select_op2.createTask());
