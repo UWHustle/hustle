@@ -190,7 +190,11 @@ std::shared_ptr<OperatorResult> Join::hash_join() {
     return back_propogate_result(joined_indices);
 }
 
-std::shared_ptr<OperatorResult> Join::run(Task *ctx) {
+    std::shared_ptr<OperatorResult> Join::run(Task *ctx) {
+        return std::make_shared<OperatorResult>();
+    }
+
+std::shared_ptr<OperatorResult> Join::run() {
 
     arrow::Status status;
 

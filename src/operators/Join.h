@@ -33,6 +33,7 @@ public:
      * are not included.
     */
     std::shared_ptr<OperatorResult> run(Task *ctx) override;
+    std::shared_ptr<OperatorResult> run();
 
 private:
 
