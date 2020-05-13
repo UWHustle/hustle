@@ -183,7 +183,15 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     result->append(R);
 
     Select select_op(0, result, select_pred_tree);
-//    result = select_op.run();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+//    std::unique_ptr<Scheduler> scheduler =
+//            std::make_unique<Scheduler>(std::thread::hardware_concurrency());
+
+    scheduler.addTask(select_op.createTask());
+    scheduler.start();
+
+    scheduler.join();
+    result = select_op.finish();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
@@ -253,7 +261,15 @@ TEST_F(JoinTestFixture, OrSelectTest) {
     result->append(R);
 
     Select select_op(0, result, select_pred_tree);
-//    result = select_op.run();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+//    std::unique_ptr<Scheduler> scheduler =
+//            std::make_unique<Scheduler>(std::thread::hardware_concurrency());
+
+    scheduler.addTask(select_op.createTask());
+    scheduler.start();
+
+    scheduler.join();
+    result = select_op.finish();
 
     auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();

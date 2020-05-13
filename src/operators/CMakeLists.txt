@@ -23,8 +23,12 @@ target_link_libraries(hustle_join_test
         gtest
         gtest_main
         gmock
+        glog
+        ${GFLAGS_LIB_NAME}
         table
         operators
+        project_optimizer_ExecutionPlan
+        project_scheduler_Scheduler
         )
 add_test(HustleJoin_test hustle_join_test)
 
@@ -33,8 +37,12 @@ target_link_libraries(hustle_aggregate_test
         gtest
         gtest_main
         gmock
+        glog
+        ${GFLAGS_LIB_NAME}
         table
         operators
+        project_optimizer_ExecutionPlan
+        project_scheduler_Scheduler
         )
 add_test(HustleAggregate_test hustle_aggregate_test)
 

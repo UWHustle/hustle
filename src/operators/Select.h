@@ -32,6 +32,8 @@ public:
      * @return a new OperatorResult with an updated filter.
      */
     std::shared_ptr<OperatorResult> run(Task *ctx) override;
+    std::shared_ptr<OperatorResult> run();
+
     std::shared_ptr<OperatorResult>  finish();
 
 private:
