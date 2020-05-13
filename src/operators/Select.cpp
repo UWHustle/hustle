@@ -93,7 +93,7 @@ std::shared_ptr<OperatorResult> Select::run(Task *ctx) {
         ctx->spawnLambdaTask([this, block, i]() {
             auto block_filter = this->get_filter(tree_->root_, block);
             // block filters must be in block-order.
-//            filter_vector_[i] = block_filter.make_array();
+            filter_vector_[i] = block_filter.make_array();
         } );
     }
 
