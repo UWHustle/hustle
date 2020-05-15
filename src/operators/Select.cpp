@@ -6,6 +6,8 @@
 #include <table/util.h>
 #include <iostream>
 
+#include "utility/EventProfiler.hpp"
+
 namespace hustle {
 namespace operators {
 
@@ -88,17 +90,26 @@ std::shared_ptr<OperatorResult> Select::run(Task *ctx) {
 
     filter_vector_.resize(table_->get_num_blocks());
 
-    for (int i=0; i<table_->get_num_blocks(); i++) {
-        auto block = table_->get_block(i);
-        ctx->spawnLambdaTask([this, block, i]() {
-            auto block_filter = this->get_filter(tree_->root_, block);
-            // block filters must be in block-order.
-            filter_vector_[i] = block_filter.make_array();
+    int batch_size = 80;
+
+    for (int i=0; i<table_->get_num_blocks(); i+=batch_size) {
+
+        ctx->spawnLambdaTask([this, batch_size, i]() {
+
+            auto *container = simple_profiler.getContainer();
+            container->startEvent("calc");
+
+            for (int j=0; j<batch_size && i+j<table_->get_num_blocks(); j++) {
+                auto block = table_->get_block(i+j);
+                auto block_filter = this->get_filter(tree_->root_, block);
+                // block filters must be in block-order.
+                filter_vector_[i+j] = block_filter.make_array();
+            }
+            container->endEvent("calc");
         } );
     }
 
     return std::make_shared<OperatorResult>();
-
 }
 
 std::shared_ptr<OperatorResult>  Select::finish() {
