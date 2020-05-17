@@ -232,8 +232,7 @@ TEST_F(HustleBlockTest, ArrayInsert) {
     auto test_schema = arrow::schema({arrow::field("A", arrow::int64()),
                                       arrow::field("B", arrow::int64()),
                                       arrow::field("C", arrow::int64()),
-                                      arrow::field("D", arrow::int64()),
-                                      arrow::field("E", arrow::int64())});
+                                      arrow::field("D", arrow::int64())});
 
 
     auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
@@ -284,8 +283,7 @@ TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
     auto test_schema = arrow::schema({arrow::field("A", arrow::int64()),
                                       arrow::field("B", arrow::int64()),
                                       arrow::field("C", arrow::int64()),
-                                      arrow::field("D", arrow::int64()),
-                                      arrow::field("E", arrow::int64())});
+                                      arrow::field("D", arrow::int64())});
 
 
     auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
