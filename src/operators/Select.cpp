@@ -68,48 +68,19 @@ arrow::compute::Datum
     return block_filter;
 }
 
-    std::shared_ptr<OperatorResult> Select::run() {
-
-        filter_vector_.resize(table_->get_num_blocks());
-
-        for (int i=0; i<table_->get_num_blocks(); i++) {
-            auto block = table_->get_block(i);
-                auto block_filter = this->get_filter(tree_->root_, block);
-                filter_vector_[i] = block_filter.make_array();
-        }
-
-        auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
-        arrow::compute::Datum filter(chunked_filter);
-        LazyTable result_unit(table_, filter, arrow::compute::Datum());
-        OperatorResult result({result_unit});
-        return std::make_shared<OperatorResult>(result);
-
-    }
-
-std::shared_ptr<OperatorResult> Select::run(Task *ctx) {
+void Select::execute(Task *ctx) {
 
     filter_vector_.resize(table_->get_num_blocks());
 
-    int batch_size = 80;
+    for (int i=0; i<table_->get_num_blocks(); i++) {
 
-    for (int i=0; i<table_->get_num_blocks(); i+=batch_size) {
-
-        ctx->spawnLambdaTask([this, batch_size, i]() {
-
-            auto *container = simple_profiler.getContainer();
-            container->startEvent("calc");
-
-            for (int j=0; j<batch_size && i+j<table_->get_num_blocks(); j++) {
-                auto block = table_->get_block(i+j);
-                auto block_filter = this->get_filter(tree_->root_, block);
-                // block filters must be in block-order.
-                filter_vector_[i+j] = block_filter.make_array();
-            }
-            container->endEvent("calc");
-        } );
+        ctx->spawnLambdaTask([this, i]() {
+            auto block = table_->get_block(i);
+            auto block_filter = this->get_filter(tree_->root_, block);
+            // block filters must be in block-order.
+            filter_vector_[i] = block_filter.make_array();
+        });
     }
-
-    return std::make_shared<OperatorResult>();
 }
 
 std::shared_ptr<OperatorResult>  Select::finish() {
