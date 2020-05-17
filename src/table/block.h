@@ -3,7 +3,7 @@
 
 #include <arrow/api.h>
 
-#define BLOCK_SIZE 1 << 20
+#define BLOCK_SIZE (1 << 20)
 
 /**
  * A Hustle Block is a wrapper for an Arrow RecordBatch. An Arrow RecordBatch
