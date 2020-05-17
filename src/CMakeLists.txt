@@ -20,9 +20,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(Arrow REQUIRED)
 
-include_directories(${ARROW_INCLUDE_DIR})
-
-
 add_executable(
         hustle_main
         main.cpp
@@ -34,12 +31,13 @@ set_target_properties(hustle_main
 
 target_link_libraries(hustle_main
         hustleDB
-        catalog
-        table
-        parser
-        resolver
-        project_scheduler_Scheduler
-        project_optimizer_ExecutionPlan
+        hustle_src_catalog
+        hustle_src_table
+        hustle_src_parser
+        hustle_src_resolver
+        hustle_src_operators
+        hustle_src_scheduler_Scheduler
+        hustle_src_optimizer_ExecutionPlan
         ${ARROW_SHARED_LIB}
         ${GFLAGS_LIB_NAME}
         glog
@@ -54,7 +52,7 @@ add_subdirectory(resolver)
 add_subdirectory(table)
 add_subdirectory(operators)
 add_subdirectory(scheduler)
-add_subdirectory(utility)
+add_subdirectory(utility2)
 add_subdirectory(threading)
 add_subdirectory(execution)
 
