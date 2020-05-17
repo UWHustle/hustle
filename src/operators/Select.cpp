@@ -6,7 +6,6 @@
 #include <table/util.h>
 #include <iostream>
 
-#include "utility/EventProfiler.hpp"
 
 namespace hustle {
 namespace operators {

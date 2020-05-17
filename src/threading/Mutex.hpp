@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#include "utility/Macros.hpp"
+#include "utility2/Macros.hpp"
 
 template <typename MutexT, bool actually_lock>
 class MutexLockImpl {

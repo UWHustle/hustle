@@ -1,12 +1,16 @@
+add_library(hustle_src_optimizer_ExecutionPlan
+        ExecutionPlan.cpp ExecutionPlan.hpp)
 
-add_library(project_optimizer_ExecutionPlan ExecutionPlan.cpp ExecutionPlan.hpp)
+target_include_directories(hustle_src_optimizer_ExecutionPlan PUBLIC
+        ${ARROW_INCLUDE_DIR})
 
-target_link_libraries(project_optimizer_ExecutionPlan
+target_link_libraries(hustle_src_optimizer_ExecutionPlan PUBLIC
                       ${GFLAGS_LIB_NAME}
+                      ${ARROW_SHARED_LIB}
                       glog
-                      project_scheduler_SchedulerInterface
-                      project_scheduler_SchedulerTypedefs
-                      project_scheduler_Task
-                      project_utility_EventProfiler
-                      project_utility_Macros
-                      project_utility_SyncStream)
+                      hustle_src_scheduler_SchedulerInterface
+                      hustle_src_scheduler_SchedulerTypedefs
+                      hustle_src_scheduler_Task
+                      hustle_src_utility_EventProfiler
+                      hustle_src_utility_Macros
+                      hustle_src_utility_SyncStream)

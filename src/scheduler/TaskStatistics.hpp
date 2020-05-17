@@ -4,7 +4,7 @@
 #include <ostream>
 
 #include "scheduler/Scheduler.hpp"
-#include "utility/Macros.hpp"
+#include "utility2/Macros.hpp"
 
 namespace hustle {
 

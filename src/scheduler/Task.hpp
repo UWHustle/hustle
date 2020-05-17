@@ -9,8 +9,8 @@
 #include "../scheduler/SchedulerInterface.hpp"
 #include "../scheduler/SchedulerTypedefs.hpp"
 #include "../scheduler/TaskDescription.hpp"
-#include "../utility/Macros.hpp"
-#include "../utility/meta/FunctionTraits.hpp"
+#include "../utility2/Macros.hpp"
+#include "../utility2/meta/FunctionTraits.hpp"
 
 #include "glog/logging.h"
 
