@@ -9,13 +9,15 @@
 #include "operators/Aggregate.h"
 #include "operators/Join.h"
 #include "operators/Select.h"
-
+#include "scheduler/Scheduler.hpp"
 
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
 
 using namespace testing;
 using namespace hustle::operators;
+using namespace hustle;
+
 
 class JoinTestFixture : public testing::Test {
 protected:
@@ -172,7 +174,13 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
 
     Select select_op(0, result, select_pred_tree);
 
-    result = select_op.run();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    scheduler.addTask(select_op.createTask());
+    scheduler.start();
+
+    scheduler.join();
+    result = select_op.finish();
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(0, result, {agg_ref}, {}, {});
