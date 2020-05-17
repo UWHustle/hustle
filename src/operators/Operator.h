@@ -8,13 +8,14 @@
 #include <cstdlib>
 #include "OperatorResult.h"
 #include "scheduler/Task.hpp"
+#include "utility/EventProfiler.hpp"
 
 namespace hustle::operators {
 
     class Operator {
 
     public:
-        virtual std::shared_ptr<OperatorResult> run(Task *ctx) = 0;
+        virtual void execute(Task *ctx) = 0;
 
         std::size_t getOperatorIndex() const {
             return op_index_;
@@ -37,7 +38,7 @@ namespace hustle::operators {
                 ctx->setCascade(true);
                 ctx->setTaskMajorId(query_id_);
 
-                this->run(ctx);
+                this->execute(ctx);
             });
         }
 

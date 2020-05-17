@@ -32,7 +32,8 @@ public:
      * that did not satisfy all join predicates specificed in the join graph
      * are not included.
     */
-    std::shared_ptr<OperatorResult> run(Task *ctx) override;
+    void execute(Task *ctx) override;
+
     std::shared_ptr<OperatorResult> run();
 
 private:

@@ -437,8 +437,7 @@ namespace hustle::operators {
         return out_aggregate;
     }
 
-    std::shared_ptr<OperatorResult> Aggregate::run(Task *ctx) {
-        return std::make_shared<OperatorResult>();
+    void Aggregate::execute(Task *ctx) {
     }
 
         std::shared_ptr<OperatorResult> Aggregate::run() {
