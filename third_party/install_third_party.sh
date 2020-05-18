@@ -15,7 +15,7 @@ third_party_lib_urls=("https://github.com/gflags/gflags/archive/v2.1.2.tar.gz"
 )
 
 downloaded_archive_names=("v2.1.2.tar.gz"
-"v3.4.5.tar.gz"
+"v0.3.5.tar.gz"
 )
 
 tar_options=("-xzf"
@@ -58,14 +58,14 @@ do
   if [ "${third_party_dir_names[lib_index]}" == "gflags" ]
   then
     # Apply gflags patch.
-    patch ${THIRD_PARTY_SRC_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
-    patch ${THIRD_PARTY_SRC_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
+    patch ${THIRD_PARTY_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
+    patch ${THIRD_PARTY_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
   fi
 
-  if [ "${third_party_dir_names[lib_index]}" == "gflags" ]
+  if [ "${third_party_dir_names[lib_index]}" == "glog" ]
   then
     # Apply glog patches.
-    patch ${THIRD_PARTY_SRC_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
-    patch ${THIRD_PARTY_SRC_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
+    patch ${THIRD_PARTY_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
+    patch ${THIRD_PARTY_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
   fi
 done
