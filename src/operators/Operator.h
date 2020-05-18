@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include "OperatorResult.h"
 #include "scheduler/Task.hpp"
-#include "utility2/EventProfiler.hpp"
+#include "utils/EventProfiler.hpp"
 
 namespace hustle::operators {
 

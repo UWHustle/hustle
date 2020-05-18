@@ -3,8 +3,8 @@
 
 #include <type_traits>
 
-#include "utility/meta/Common.hpp"
-#include "utility/meta/TypeList.hpp"
+#include "utils/meta/Common.hpp"
+#include "utils/meta/TypeList.hpp"
 
 #include "glog/logging.h"
 

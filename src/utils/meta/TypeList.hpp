@@ -3,8 +3,8 @@
 
 #include <cstddef>
 
-#include "utility/meta/Common.hpp"
-#include "utility/meta/TypeListMetaFunctions.hpp"
+#include "utils/meta/Common.hpp"
+#include "utils/meta/TypeListMetaFunctions.hpp"
 
 namespace meta {
 
