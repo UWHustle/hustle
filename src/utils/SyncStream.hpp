@@ -5,7 +5,7 @@
 #include <ostream>
 #include <unordered_map>
 
-#include "utility2/Macros.hpp"
+#include "utils/Macros.hpp"
 
 class SyncStream {
  public:

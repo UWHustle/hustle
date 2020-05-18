@@ -8,7 +8,7 @@
 #include <unordered_set>
 
 #include "scheduler/Task.hpp"
-#include "utility2/Macros.hpp"
+#include "utils/Macros.hpp"
 #include "operators/Operator.h"
 
 // TODO(nicholas): reorganize namespaces so you don't need to do this.

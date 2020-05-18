@@ -15,7 +15,7 @@
 #include "../scheduler/SchedulerTypedefs.hpp"
 #include "../scheduler/Task.hpp"
 #include "../scheduler/Worker.hpp"
-#include "../utility2/ContainerUtil.hpp"
+#include "../utils/ContainerUtil.hpp"
 
 namespace hustle {
 

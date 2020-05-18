@@ -1,7 +1,7 @@
 #ifndef PROJECT_SCHEDULER_SCHEDULER_MESSAGE_HPP_
 #define PROJECT_SCHEDULER_SCHEDULER_MESSAGE_HPP_
 
-#include "../utility2/Macros.hpp"
+#include "../utils/Macros.hpp"
 
 namespace hustle {
 

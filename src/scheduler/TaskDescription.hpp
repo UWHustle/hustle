@@ -6,7 +6,7 @@
 #include <string>
 
 #include "../scheduler/TaskName.hpp"
-#include "../utility2/Macros.hpp"
+#include "../utils/Macros.hpp"
 
 #include "glog/logging.h"
 

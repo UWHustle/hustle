@@ -8,8 +8,8 @@
 
 #include "scheduler/SchedulerTypedefs.hpp"
 #include "scheduler/SchedulerInterface.hpp"
-#include "utility2/EventProfiler.hpp"
-#include "utility2/SyncStream.hpp"
+#include "utils/EventProfiler.hpp"
+#include "utils/SyncStream.hpp"
 #include "execution/ExecutionPlan.hpp"
 
 #include "gflags/gflags.h"

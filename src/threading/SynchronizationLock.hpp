@@ -6,7 +6,7 @@
 #include <memory>
 #include <mutex>
 
-#include "utility2/Macros.hpp"
+#include "utils/Macros.hpp"
 
 class SynchronizationLock {
  public:

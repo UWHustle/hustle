@@ -12,8 +12,8 @@
 #include "../scheduler/Task.hpp"
 #include "../scheduler/WorkerMessage.hpp"
 #include "../threading/ThreadUtil.hpp"
-#include "../utility2/Macros.hpp"
-#include "../utility2/ThreadSafeQueue.hpp"
+#include "../utils/Macros.hpp"
+#include "../utils/ThreadSafeQueue.hpp"
 
 #include "gflags/gflags.h"
 #include "glog/logging.h"

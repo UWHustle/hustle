@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "../utility2/Macros.hpp"
+#include "../utils/Macros.hpp"
 
 namespace hustle {
 

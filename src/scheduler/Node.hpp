@@ -5,8 +5,8 @@
 #include <utility>
 
 #include "../scheduler/SchedulerTypedefs.hpp"
-#include "../utility2/ContainerUtil.hpp"
-#include "../utility2/Macros.hpp"
+#include "../utils/ContainerUtil.hpp"
+#include "../utils/Macros.hpp"
 
 #include "glog/logging.h"
 

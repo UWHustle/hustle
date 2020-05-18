@@ -52,7 +52,6 @@ add_subdirectory(resolver)
 add_subdirectory(table)
 add_subdirectory(operators)
 add_subdirectory(scheduler)
-add_subdirectory(utility2)
 add_subdirectory(threading)
 add_subdirectory(execution)
 

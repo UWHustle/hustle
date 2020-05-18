@@ -17,8 +17,8 @@
 #include "../scheduler/Task.hpp"
 #include "../scheduler/Worker.hpp"
 #include "../scheduler/WorkerMessage.hpp"
-#include "../utility2/Macros.hpp"
-#include "../utility2/ThreadSafeQueue.hpp"
+#include "../utils/Macros.hpp"
+#include "../utils/ThreadSafeQueue.hpp"
 
 #include "glog/logging.h"
 
