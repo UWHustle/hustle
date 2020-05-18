@@ -263,7 +263,7 @@ TEST_F(ResolverSSBTest, ssb_q1) {
   std::cout << "Debug7 " << std::endl;
     resolver->resolve(parser->getParseTree());
   std::cout << "Debug 8 " << std::endl;
-   //  std::cout << "Plan:" << resolver->toString(4) << std::endl;
+  std::cout << "Plan:" << resolver->toString(4) << std::endl;
     // TODO(Lichengxi): build validation plan
 
 }
