@@ -52,20 +52,20 @@ do
   else
     echo "Error downloading file ${downloaded_archive_names[lib_index]} from ${third_party_lib_urls[lib_index]}"
   fi
+  # Back to the third_party directory.
+  cd ${THIRD_PARTY_DIR}
+
+  if [ "${third_party_dir_names[lib_index]}" == "gflags" ]
+  then
+    # Apply gflags patch.
+    patch ${THIRD_PARTY_SRC_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
+    patch ${THIRD_PARTY_SRC_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
+  fi
+
+  if [ "${third_party_dir_names[lib_index]}" == "gflags" ]
+  then
+    # Apply glog patches.
+    patch ${THIRD_PARTY_SRC_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
+    patch ${THIRD_PARTY_SRC_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
+  fi
 done
-#Backtothethird_partydirectory.
-cd ${THIRD_PARTY_DIR}
-
-if [ ! -d "gflags" ]
-then
-  # Apply gflags patch.
-  patch ${THIRD_PARTY_SRC_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
-  patch ${THIRD_PARTY_SRC_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
-fi
-
-if [ ! -d "glog" ]
-then
-  # Apply glog patches.
-  patch ${THIRD_PARTY_SRC_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
-  patch ${THIRD_PARTY_SRC_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
-fi
