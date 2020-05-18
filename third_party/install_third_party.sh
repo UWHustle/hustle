@@ -1,12 +1,10 @@
 THIRD_PARTY_DIR=`pwd`
-if["${PWD##*/}"!="third_party"];then
-echo"ERROR:Thisscriptcanberunonlyfromthethirdpartydirectory"
-exit1
+if [ "${PWD##*/}" != "third_party" ]; then
+  echo "ERROR: This script can be run only from the third party directory"
+  exit 1
 fi
 
 PATCH_DIR=${THIRD_PARTY_DIR}/patches
-
-cdthird_party
 
 third_party_dir_names=("gflags"
 "glog"
@@ -24,43 +22,44 @@ tar_options=("-xzf"
 "-xzf"
 )
 
-for((lib_index=0;lib_index<${#third_party_dir_names[*]};lib_index++))
+for ((lib_index=0; lib_index < ${#third_party_dir_names[*]}; lib_index++))
 do
-#Ifthethirdpartydirectoryisnotpresent,createit.
-if[!-d${third_party_dir_names[lib_index]}];then
-mkdir${third_party_dir_names[lib_index]}
-fi
+  # If the third party directory is not present, create it.
+  if [ ! -d ${third_party_dir_names[lib_index]} ]; then
+    mkdir ${third_party_dir_names[lib_index]}
+  else
+    exit 0
+  fi
 
-#Downaloadthecompressedarchiveforthethirdpartylibrary.
-curl_cmd="curl-L-O${third_party_lib_urls[lib_index]}"
-echo"Downloadingfrom${third_party_lib_urls[lib_index]}..."
-echo${curl_cmd}
-eval${curl_cmd}
-if[-f${downloaded_archive_names[lib_index]}];then
-echo"File${downloaded_archive_names[lib_index]}downloadedsuccessfully"
+  # Downaload the compressed archive for the third party library.
+  curl_cmd="curl -L -O ${third_party_lib_urls[lib_index]}"
+  echo "Downloading from ${third_party_lib_urls[lib_index]} ..."
+  echo ${curl_cmd}
+  eval ${curl_cmd}
+  if [ -f ${downloaded_archive_names[lib_index]} ]; then
+    echo "File ${downloaded_archive_names[lib_index]} downloaded successfully"
 
-#Uncompressthearchivetoitsdesignateddirectory.
-#Thestrip-componentsoptionwillensurethatallthefilesdirectlyendup
-#inthedesireddirectory,withoutanyintermediatehierarchylevel.
-tar_cmd="tar${tar_options[lib_index]}${downloaded_archive_names[lib_index]}-C${third_party_dir_names[lib_index]}--strip-components=1"
-echo${tar_cmd}
-echo"Extractingfrom${downloaded_archive_names[lib_index]}..."
-eval${tar_cmd}
+    # Uncompress the archive to its designated directory.
+    # The strip-components option will ensure that all the files directly end up
+    # in the desired directory, without any intermediate hierarchy level.
+    tar_cmd="tar ${tar_options[lib_index]} ${downloaded_archive_names[lib_index]} -C ${third_party_dir_names[lib_index]} --strip-components=1"
+    echo ${tar_cmd}
+    echo "Extracting from ${downloaded_archive_names[lib_index]} ..."
+    eval ${tar_cmd}
 
-#Deletethecompressedarchive.
-rm-rf${downloaded_archive_names[lib_index]}
-else
-echo"Errordownloadingfile${downloaded_archive_names[lib_index]}from${third_party_lib_urls[lib_index]}"
-fi
+    # Delete the compressed archive.
+    rm -rf ${downloaded_archive_names[lib_index]}
+  else
+    echo "Error downloading file ${downloaded_archive_names[lib_index]} from ${third_party_lib_urls[lib_index]}"
+  fi
 done
-
 #Backtothethird_partydirectory.
-cd${THIRD_PARTY_DIR}
+cd ${THIRD_PARTY_DIR}
 
-#Applygflagspatch.
-patchgflags/CMakeLists.txt${PATCH_DIR}/gflags/CMakeLists.patch
-patchgflags/src/gflags_reporting.cc${PATCH_DIR}/gflags/gflags_reporting.cc.patch
+# Apply gflags patch.
+patch ${THIRD_PARTY_SRC_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
+patch ${THIRD_PARTY_SRC_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
 
-#Applyglogpatches.
-patchglog/CMakeLists.txt${PATCH_DIR}/glog/glogCMakeLists.txt.patch
-patchglog/src/utilities.cc${PATCH_DIR}/glog/utilities.cc.patch
+# Apply glog patches.
+patch ${THIRD_PARTY_SRC_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
+patch ${THIRD_PARTY_SRC_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
