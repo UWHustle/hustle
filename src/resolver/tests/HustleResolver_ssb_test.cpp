@@ -305,7 +305,7 @@ TEST_F(ResolverSSBTest, ssb_q3) {
     auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
     parser->parse(query, hustleDB);
     resolver->resolve(parser->getParseTree());
-   //  std::cout << "Plan:" << resolver->toString(4) << std::endl;
+     std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
     // TODO(Lichengxi): build validation plan
 }
@@ -330,7 +330,7 @@ TEST_F(ResolverSSBTest, ssb_q4) {
     parser->parse(query, hustleDB);
    //  std::cout << "Plan:" << parser->toString(4) << std::endl;
     resolver->resolve(parser->getParseTree());
-   //  std::cout << "Plan:" << resolver->toString(4) << std::endl;
+     std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
     // TODO(Lichengxi): build validation plan
 }
