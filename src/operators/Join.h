@@ -20,7 +20,8 @@ public:
       * @param prev_result OperatorResult form an upstream operator.
       * @param graph A graph specifying all join predicates
       */
-    Join(std::shared_ptr<OperatorResult> prev_result,
+    Join(const std::size_t query_id,
+            std::shared_ptr<OperatorResult> prev_result,
             JoinGraph graph);
 
     /**
@@ -31,8 +32,9 @@ public:
      * that did not satisfy all join predicates specificed in the join graph
      * are not included.
     */
-    std::shared_ptr<OperatorResult> run() override;
+    void execute(Task *ctx) override;
 
+    std::shared_ptr<OperatorResult> run();
 
 private:
 

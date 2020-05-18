@@ -161,6 +161,7 @@ TEST_F(HustleTableTest, TableIO) {
                         byte_widths);
 
     write_to_file("table.hsl", table);
+
     auto table_from_file = read_from_file("table.hsl");
 
     EXPECT_TRUE(table_from_file->get_block(0)->get_valid_column()->Equals

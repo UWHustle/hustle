@@ -248,6 +248,7 @@ void to_json(json &j, const std::shared_ptr<TableReference> &table_reference);
 void to_json(json &j, const std::shared_ptr<Select> &select);
 void to_json(json &j, const std::shared_ptr<Project> &project);
 void to_json(json &j, const std::shared_ptr<Join> &join);
+
 void to_json(json &j, const std::shared_ptr<Aggregate> &aggregate);
 void to_json(json &j, const std::shared_ptr<OrderBy> &orderby);
 
@@ -259,7 +260,6 @@ void to_json(json &j, const std::shared_ptr<Comparative> &comparative);
 void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive);
 void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic);
 void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc);
-
 }
 }
 

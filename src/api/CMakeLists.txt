@@ -3,14 +3,14 @@ add_library(
         HustleDB.h HustleDB.cpp
 )
 
-target_link_libraries(hustleDB sqlite_utils catalog)
+target_link_libraries(hustleDB sqlite_utils hustle_src_catalog)
 
 add_executable(hustle_hustleDB_test "tests/hustleDB_test.cpp")
 target_link_libraries(hustle_hustleDB_test
         gtest
         gtest_main
         gmock
-        catalog
+        hustle_src_catalog
         sqlite3
         absl::container absl::hash
         absl::flat_hash_map

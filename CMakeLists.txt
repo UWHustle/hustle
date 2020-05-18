@@ -10,7 +10,6 @@ find_package(Threads REQUIRED)
 include_directories(third_party)
 include_directories(src)
 
-add_subdirectory(third_party)
-
 enable_testing()
+add_subdirectory(third_party)
 add_subdirectory(src)

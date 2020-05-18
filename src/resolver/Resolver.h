@@ -37,6 +37,7 @@ class Resolver {
    * @param parse_tree: input parse tree from parser
    * @param hustleDB: input hustle database
    */
+
   void resolve(const std::shared_ptr<hustle::parser::ParseTree> &parse_tree);
 
   /**

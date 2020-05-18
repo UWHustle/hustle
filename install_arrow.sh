@@ -6,7 +6,11 @@ then
   cd cpp
   mkdir release
   cd release
-  ../../../cmake-3.15.5/bin/cmake -DARROW_COMPUTE=ON -DARROW_CSV=ON ..
+  if [[ `uname` == "Darwin" ]]; then
+    cmake -DARROW_COMPUTE=ON -DARROW_CSV=ON ..
+  elif [[ `uname` == "Linux" ]]; then
+    ../../../cmake-3.15.5/bin/cmake -DARROW_COMPUTE=ON -DARROW_CSV=ON ..
+  fi
   sudo make install -j4
 else
   cd arrow/cpp/release
