@@ -16,8 +16,8 @@ add_library(hustle_src_scheduler_WorkerMessage ../empty_src.cpp WorkerMessage.hp
 target_link_libraries(hustle_src_scheduler_Node
                       glog
                       hustle_src_scheduler_SchedulerTypedefs
-                      hustle_src_utility_ContainerUtil
-                      hustle_src_utility_Macros)
+                      hustle_src_utils_ContainerUtil
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_scheduler_Scheduler
                       glog
                       hustle_src_scheduler_Node
@@ -28,33 +28,33 @@ target_link_libraries(hustle_src_scheduler_Scheduler
                       hustle_src_scheduler_Task
                       hustle_src_scheduler_Worker
                       hustle_src_scheduler_WorkerMessage
-                      hustle_src_utility_ContainerUtil
-                      hustle_src_utility_Macros
-                      hustle_src_utility_ThreadSafeQueue)
+                      hustle_src_utils_ContainerUtil
+                      hustle_src_utils_Macros
+                      hustle_src_utils_ThreadSafeQueue)
 target_link_libraries(hustle_src_scheduler_SchedulerFlags
                       ${GFLAGS_LIB_NAME})
 target_link_libraries(hustle_src_scheduler_SchedulerInterface
                       hustle_src_scheduler_SchedulerTypedefs
-                      hustle_src_utility_Macros)
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_scheduler_SchedulerMessage
-                      hustle_src_utility_Macros)
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_scheduler_Task
                       glog
                       hustle_src_scheduler_SchedulerInterface
                       hustle_src_scheduler_SchedulerTypedefs
                       hustle_src_scheduler_TaskDescription
-                      hustle_src_utility_Macros
-                      hustle_src_utility_meta_FunctionTraits)
+                      hustle_src_utils_Macros
+                      hustle_src_utils_meta_FunctionTraits)
 target_link_libraries(hustle_src_scheduler_TaskDescription
                       glog
                       hustle_src_scheduler_TaskName
-                      hustle_src_utility_Macros)
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_scheduler_TaskName
-                      hustle_src_utility_Macros)
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_scheduler_TaskStatistics
                       hustle_src_scheduler_Scheduler
                       hustle_src_scheduler_TaskDescription
-                      hustle_src_utility_Macros)
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_scheduler_Worker
                       ${GFLAGS_LIB_NAME}
                       glog
@@ -63,10 +63,10 @@ target_link_libraries(hustle_src_scheduler_Worker
                       hustle_src_scheduler_Task
                       hustle_src_scheduler_WorkerMessage
                       hustle_src_threading_ThreadUtil
-                      hustle_src_utility_Macros
-                      hustle_src_utility_ThreadSafeQueue)
+                      hustle_src_utils_Macros
+                      hustle_src_utils_ThreadSafeQueue)
 target_link_libraries(hustle_src_scheduler_WorkerMessage
-                      hustle_src_utility_Macros)
+                      hustle_src_utils_Macros)
 
 add_executable(hustle_scheduler_test "tests/SchedulerTest.cpp")
 target_link_libraries(hustle_scheduler_test

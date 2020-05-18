@@ -11,6 +11,6 @@ target_link_libraries(hustle_src_optimizer_ExecutionPlan PUBLIC
                       hustle_src_scheduler_SchedulerInterface
                       hustle_src_scheduler_SchedulerTypedefs
                       hustle_src_scheduler_Task
-                      hustle_src_utility_EventProfiler
-                      hustle_src_utility_Macros
-                      hustle_src_utility_SyncStream)
+                      hustle_src_utils_EventProfiler
+                      hustle_src_utils_Macros
+                      hustle_src_utils_SyncStream)
