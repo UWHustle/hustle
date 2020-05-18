@@ -198,8 +198,15 @@ std::shared_ptr<Plan> Resolver::getPlan() {
 }
 
 std::string Resolver::toString(int indent) {
+  if (plan_) {
+    std::cout << "toStringResolver TRUE" << std::endl;
+  } else {
+    std::cout << "toStringResolver FALSE" << std::endl;
+  }
   json j = plan_;
-  return j.dump(indent);
+  auto jj = j.dump(indent);
+  std::cout << "toStringResolver 2222" << std::endl;
+  return jj;
 }
 
 }
