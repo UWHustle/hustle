@@ -28,7 +28,7 @@ do
   if [ ! -d ${third_party_dir_names[lib_index]} ]; then
     mkdir ${third_party_dir_names[lib_index]}
   else
-    exit 0
+    continue
   fi
 
   # Downaload the compressed archive for the third party library.
@@ -56,10 +56,16 @@ done
 #Backtothethird_partydirectory.
 cd ${THIRD_PARTY_DIR}
 
-# Apply gflags patch.
-patch ${THIRD_PARTY_SRC_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
-patch ${THIRD_PARTY_SRC_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
+if [ ! -d "gflags" ]
+then
+  # Apply gflags patch.
+  patch ${THIRD_PARTY_SRC_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
+  patch ${THIRD_PARTY_SRC_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
+fi
 
-# Apply glog patches.
-patch ${THIRD_PARTY_SRC_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
-patch ${THIRD_PARTY_SRC_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
+if [ ! -d "glog" ]
+then
+  # Apply glog patches.
+  patch ${THIRD_PARTY_SRC_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
+  patch ${THIRD_PARTY_SRC_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
+fi
