@@ -53,28 +53,33 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
     arrow::Int64Builder new_right_indices_builder;
     std::shared_ptr<arrow::Int64Array> new_left_indices;
     std::shared_ptr<arrow::Int64Array> new_right_indices;
+    std::vector<std::vector<int64_t>> new_left_indices_vector(probe_col->num_chunks());
+    std::vector<std::vector<int64_t>> new_right_indices_vector(probe_col->num_chunks());
 
     // precompute row offsets
     std::vector<int64_t> chunk_row_offsets(probe_col->num_chunks());
     chunk_row_offsets[0] = 0;
     for (int i = 1; i < probe_col->num_chunks(); i++) {
-        chunk_row_offsets[i] = chunk_row_offsets[i-1] + probe_col->chunk(i)->length();
+        chunk_row_offsets[i] = chunk_row_offsets[i-1] + probe_col->chunk(i-1)->length();
     }
 
         // Probe phase
-//    int row_offset = 0;
+//        int row_offset = 0;
     for (int i = 0; i < probe_col->num_chunks(); i++) {
 
-//        ctx->spawnLambdaTask([this, i, probe_col,
-//                              &new_left_indices_builder,
-//                              &new_right_indices_builder]() {
-//
+//        ctx->spawnLambdaTask([this, i, probe_col, chunk_row_offsets,
+//                              &new_left_indices_vector,
+//                              &new_right_indices_vector] {
+
             arrow::Status status;
 
             int64_t row_offset = chunk_row_offsets[i];
             // TODO(nicholas): for now, we assume the join column is INT64 type.
             auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
                     probe_col->chunk(i));
+
+            std::vector<int64_t> joined_left_indices;
+            std::vector<int64_t> joined_right_indices;
 
             for (int row = 0; row < left_join_chunk->length(); row++) {
                 auto key = left_join_chunk->Value(row);
@@ -83,16 +88,36 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
                     int64_t right_row_index = hash_table_[key];
                     int64_t left_row_index = row_offset + row;
 
+//                    joined_left_indices.push_back(left_row_index);
+//                    joined_right_indices.push_back(right_row_index);
+
                     status = new_left_indices_builder.Append(left_row_index);
                     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-                status = new_right_indices_builder.Append(right_row_index);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                    status = new_right_indices_builder.Append(right_row_index);
+                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                }
             }
-        }
-    }
+//            row_offset += left_join_chunk->length();
+//            new_left_indices_vector[i] = joined_left_indices;
+//            new_right_indices_vector[i] = joined_right_indices;
 
+//            status = new_left_indices_builder.AppendValues(joined_left_indices);
+//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//
+//            status = new_right_indices_builder.AppendValues(joined_right_indices);
+//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//        });
+    }
     arrow::Status status;
+
+//    for (int i=0; i<probe_col->num_chunks(); i++) {
+//        status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
+//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//
+//        status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
+//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//    }
 
     // Note that ArrayBuilders are automatically reset by default after
     // calling Finish()
