@@ -79,10 +79,13 @@ public:
      */
     void execute(Task *ctx) override;
 
-    std::shared_ptr<OperatorResult> run();
+    std::shared_ptr<OperatorResult> finish();
 
 
 private:
+
+    std::shared_ptr<arrow::Schema> out_schema_;
+    std::shared_ptr<Table> out_table_;
 
     // Operator result from an upstream operator
     std::shared_ptr<OperatorResult> prev_result_;

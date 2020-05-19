@@ -26,6 +26,11 @@ namespace hustle::operators {
 
         aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
 
+        out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
+                                            aggregate_refs_[0].agg_name);
+        out_table_ = std::make_shared<Table>("aggregate", out_schema_,
+                                                 BLOCK_SIZE);
+
         // Fetch the fields associated with each groupby column.
         std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
         for(auto &group_by : group_by_refs_) {
@@ -109,9 +114,10 @@ namespace hustle::operators {
         arrow::Status status;
         arrow::SchemaBuilder schema_builder;
 
-        status = schema_builder.AddFields(group_type->children());
-        evaluate_status(status, __FUNCTION__, __LINE__);
-
+        if (group_type != nullptr) {
+            status = schema_builder.AddFields(group_type->children());
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
         switch (kernel) {
             // Returns a Datum of the same type INT64
             case SUM: {
@@ -261,6 +267,7 @@ namespace hustle::operators {
                         std::static_pointer_cast<arrow::Int64Scalar>
                                 (aggregate.scalar());
                 // If aggregate is 0, don't include it in the output table.
+                std::cout << aggregate_casted->value << std::endl;
                 if (aggregate_casted->value == 0) {
                     return;
                 }
@@ -366,6 +373,33 @@ namespace hustle::operators {
     }
 
 
+    std::shared_ptr<OperatorResult> Aggregate::finish() {
+
+        auto out = std::make_shared<OperatorResult>();
+
+        arrow::Status status;
+
+        std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
+
+
+        std::shared_ptr<arrow::StructArray> groups;
+        status = group_builder->Finish(&groups);
+        std::shared_ptr<arrow::Array> aggregates;
+        status = aggregate_builder_->Finish(&aggregates);
+
+        // Build the output table
+        std::vector<std::shared_ptr<arrow::ArrayData>> table_data;
+        for (int i=0; i<group_by_refs_.size(); i++) {
+            table_data.push_back(groups->field(i)->data());
+        }
+        table_data.push_back(aggregates->data());
+        out_table_->insert_records(table_data);
+
+//        for (auto aggregate_ref : aggregate_refs_)
+        out->append(out_table_);
+        return out;
+    }
+
     arrow::compute::Datum Aggregate::compute_aggregate(
             AggregateKernels kernel,
             std::shared_ptr<arrow::ChunkedArray> aggregate_col,
@@ -438,17 +472,6 @@ namespace hustle::operators {
     }
 
     void Aggregate::execute(Task *ctx) {
-    }
-
-        std::shared_ptr<OperatorResult> Aggregate::run() {
-        auto out = std::make_shared<OperatorResult>();
-
-        arrow::Status status;
-
-        auto out_schema = get_output_schema(aggregate_refs_[0].kernel,
-                aggregate_refs_[0].agg_name);
-        auto out_table = std::make_shared<Table>("aggregate", out_schema,
-                                                 BLOCK_SIZE);
 
         //TODO(nicholas): For now, we only perform one aggregate.
         auto table = aggregate_refs_[0].col_ref.table;
@@ -474,13 +497,14 @@ namespace hustle::operators {
         while (!exit){
 
             // LOOP BODY START
-            std::vector<std::shared_ptr<arrow::ChunkedArray>> out_table_data;
+            ctx->spawnLambdaTask([&, aggregate_col]{
+                auto group_filter = get_group_filter(its);
+                auto aggregate = compute_aggregate(aggregate_refs_[0].kernel,
+                                                   aggregate_col, group_filter);
+                insert_group_aggregate(aggregate);
+                insert_group(its);
+            });
 
-            auto group_filter = get_group_filter(its);
-            auto aggregate = compute_aggregate(aggregate_refs_[0].kernel,
-                                               aggregate_col, group_filter);
-            insert_group_aggregate(aggregate);
-            insert_group(its);
             // LOOP BODY END
 
             if (n == 0) break; // edge case
@@ -499,22 +523,5 @@ namespace hustle::operators {
             }
             index = n-1;
         }
-
-        std::shared_ptr<arrow::StructArray> groups;
-        status = group_builder->Finish(&groups);
-        std::shared_ptr<arrow::Array> aggregates;
-        status = aggregate_builder_->Finish(&aggregates);
-
-        // Build the output table
-        std::vector<std::shared_ptr<arrow::ArrayData>> table_data;
-        for (int i=0; i<group_by_refs_.size(); i++) {
-            table_data.push_back(groups->field(i)->data());
-        }
-        table_data.push_back(aggregates->data());
-        out_table->insert_records(table_data);
-
-//        for (auto aggregate_ref : aggregate_refs_)
-        out->append(out_table);
-        return out;
     }
 } // namespace hustle

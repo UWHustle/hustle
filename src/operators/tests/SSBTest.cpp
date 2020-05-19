@@ -309,23 +309,24 @@ TEST_F(SSBTestFixture, SSBQ1_1){
                   std::chrono::duration_cast<std::chrono::milliseconds>
                           (t3 - t2).count() << std::endl;
 
-        arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+        AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
+        Aggregate agg_op(0, join_result, {agg_ref}, {}, {});
 
-        std::shared_ptr<arrow::ChunkedArray> revenue = out_table->get_column(0); //REVENUE
-        arrow::compute::Datum sum_result;
-        arrow::Status status = arrow::compute::Sum(
-                &function_context,
-                revenue,
-                &sum_result
-        );
-        evaluate_status(status, __FUNCTION__, __LINE__);
+        scheduler.addTask(agg_op.createTask());
+
+        scheduler.start();
+        scheduler.join();
+
+        auto agg_result = agg_op.finish();
+        out_table = agg_result->materialize({{nullptr, "revenue"}});
 
         auto t4 = std::chrono::high_resolution_clock::now();
         std::cout << "Query execution time = " <<
                   std::chrono::duration_cast<std::chrono::milliseconds>
                           (t4 - t_start).count() << std::endl;
+        out_table->print();
 
-        std::cout << sum_result.scalar()->ToString() << "\n" << std::endl;
+//        std::cout << sum_result.scalar()->ToString() << "\n" << std::endl;
     }
 }
 
