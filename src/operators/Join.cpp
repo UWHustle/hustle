@@ -54,8 +54,15 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
     std::shared_ptr<arrow::Int64Array> new_left_indices;
     std::shared_ptr<arrow::Int64Array> new_right_indices;
 
-    // Probe phase
-    int row_offset = 0;
+    // precompute row offsets
+    std::vector<int64_t> chunk_row_offsets(probe_col->num_chunks());
+    chunk_row_offsets[0] = 0;
+    for (int i = 1; i < probe_col->num_chunks(); i++) {
+        chunk_row_offsets[i] = chunk_row_offsets[i-1] + probe_col->chunk(i)->length();
+    }
+
+        // Probe phase
+//    int row_offset = 0;
     for (int i = 0; i < probe_col->num_chunks(); i++) {
 
 //        ctx->spawnLambdaTask([this, i, probe_col,
@@ -64,7 +71,7 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
 //
             arrow::Status status;
 
-//            int64_t row_offset = left_.table->get_block_row_offset(i);
+            int64_t row_offset = chunk_row_offsets[i];
             // TODO(nicholas): for now, we assume the join column is INT64 type.
             auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
                     probe_col->chunk(i));
@@ -83,7 +90,6 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
             }
         }
-        row_offset += left_join_chunk->length();
     }
 
     arrow::Status status;
