@@ -56,6 +56,8 @@ private:
     std::vector<std::vector<int64_t>> new_left_indices_vector;
     std::vector<std::vector<int64_t>> new_right_indices_vector;
 
+    std::mutex hash_table_mutex_;
+
     /**
      * Build a hash table on a column. It is assumed that the column will be
      * of INT64 type.

@@ -43,6 +43,7 @@ void Join::build_hash_table
                     col->chunk(i));
 
             for (int row = 0; row < chunk->length(); row++) {
+                std::scoped_lock<std::mutex> lock(hash_table_mutex_);
                 hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
             }
         });
