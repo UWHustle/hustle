@@ -47,38 +47,38 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
 
 std::vector<arrow::compute::Datum> Join::probe_hash_table
 (const std::shared_ptr<arrow::ChunkedArray>& probe_col, Task *ctx) {
+    // It would make much more sense to use an ArrayVector instead of a vector of vectors, since we can make a
+    // ChunkedArray out from an ArrayVector. But Arrow's Take function is very inefficient when the indices are in a
+    // ChunkedArray. So, we instead use a vector of vectors to store the indices, and then construct an Array from the
+    // vector of vectors.
 
+    // The indices of rows joined in chunk i are stored in new_left_indices_vector[i] and new_right_indices_vector[i]
+    new_left_indices_vector.resize(probe_col->num_chunks());
+    new_right_indices_vector.resize(probe_col->num_chunks());
 
-    arrow::Int64Builder new_left_indices_builder;
-    arrow::Int64Builder new_right_indices_builder;
-    std::shared_ptr<arrow::Int64Array> new_left_indices;
-    std::shared_ptr<arrow::Int64Array> new_right_indices;
-    std::vector<std::vector<int64_t>> new_left_indices_vector(probe_col->num_chunks());
-    std::vector<std::vector<int64_t>> new_right_indices_vector(probe_col->num_chunks());
-
-    // precompute row offsets
+    // Precompute row offsets.
+    // Before, we computed the ith offset before we probed the ith chunk, but a multithreaded probe phase requires
+    // that we know all offsets beforehand.
     std::vector<int64_t> chunk_row_offsets(probe_col->num_chunks());
     chunk_row_offsets[0] = 0;
     for (int i = 1; i < probe_col->num_chunks(); i++) {
         chunk_row_offsets[i] = chunk_row_offsets[i-1] + probe_col->chunk(i-1)->length();
     }
 
-        // Probe phase
+    // Probe phase
     for (int i = 0; i < probe_col->num_chunks(); i++) {
 
-        ctx->spawnLambdaTask([this, i, probe_col, chunk_row_offsets,
-                              &new_left_indices_vector,
-                              &new_right_indices_vector] {
-
+        // Probe one chunk
+        ctx->spawnLambdaTask([this, i, probe_col, chunk_row_offsets] {
             arrow::Status status;
-
-            int64_t row_offset = chunk_row_offsets[i];
-            // TODO(nicholas): for now, we assume the join column is INT64 type.
-            auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                    probe_col->chunk(i));
-
+            // The indices of the rows joined in chunk i
             std::vector<int64_t> joined_left_indices;
             std::vector<int64_t> joined_right_indices;
+
+            // TODO(nicholas): for now, we assume the join column is INT64 type.
+            auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(probe_col->chunk(i));
+
+            int64_t row_offset = chunk_row_offsets[i];
 
             for (int row = 0; row < left_join_chunk->length(); row++) {
                 auto key = left_join_chunk->Value(row);
@@ -91,12 +91,22 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
                     joined_right_indices.push_back(right_row_index);
                 }
             }
+
+            // The only time the threads write to a shared data structure. They write to a unique index, though, so
+            // they should not overwrite each other.
             new_left_indices_vector[i] = joined_left_indices;
             new_right_indices_vector[i] = joined_right_indices;
         });
     }
-    arrow::Status status;
 
+
+    arrow::Status status;
+    arrow::Int64Builder new_left_indices_builder;
+    arrow::Int64Builder new_right_indices_builder;
+    std::shared_ptr<arrow::Int64Array> new_left_indices;
+    std::shared_ptr<arrow::Int64Array> new_right_indices;
+
+    // Append all of the indices to an ArrayBuilder.
     for (int i=0; i<probe_col->num_chunks(); i++) {
         status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -104,13 +114,14 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
         status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     }
+    // Now our indices are in a single, contiguouts Arrow Array (and not a ChunkedArray).
 
-    // Note that ArrayBuilders are automatically reset by default after
-    // calling Finish()
     status = new_left_indices_builder.Finish(&new_left_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     status = new_right_indices_builder.Finish(&new_right_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+//    std::cout << new_left_indices->length() << " " << new_right_indices->length() << std::endl;
 
     std::vector<arrow::compute::Datum> joined_indices;
     joined_indices.emplace_back(arrow::compute::Datum(new_left_indices));

@@ -251,78 +251,82 @@ TEST_F(SSBTestFixture, SSBQ1_1){
                     std::make_shared<Predicate>(year_pred_1));
     auto d_pred_tree = std::make_shared<PredicateTree>(year_pred_node_1);
 
+    for (int l=0; l<100; l++) {
+        auto lo_select_result = std::make_shared<OperatorResult>();
+        lo_select_result->append(lo);
 
-    auto lo_select_result = std::make_shared<OperatorResult>();
-    lo_select_result->append(lo);
+        auto d_select_result = std::make_shared<OperatorResult>();
+        d_select_result->append(d);
 
-    auto d_select_result = std::make_shared<OperatorResult>();
-    d_select_result->append(d);
+        Select lo_select_op(0, lo_select_result, lo_pred_tree);
+        Select d_select_op(0, d_select_result, d_pred_tree);
 
-    Select lo_select_op(0, lo_select_result, lo_pred_tree);
-    Select d_select_op(0, d_select_result, d_pred_tree);
+        Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+        scheduler.addTask(lo_select_op.createTask());
+        scheduler.addTask(d_select_op.createTask());
 
-    scheduler.addTask(lo_select_op.createTask());
-    scheduler.addTask(d_select_op.createTask());
+        auto t1 = std::chrono::high_resolution_clock::now();
 
-    auto t1 = std::chrono::high_resolution_clock::now();
+        scheduler.start();
+        scheduler.join();
 
-    scheduler.start();
-    scheduler.join();
+        auto result = std::make_shared<OperatorResult>();
+        result->append(lo_select_op.finish());
+        result->append(d_select_op.finish());
 
-    auto result = std::make_shared<OperatorResult>();
-    result->append(lo_select_op.finish());
-    result->append(d_select_op.finish());
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::cout << "Predicate execution time = " <<
+                  std::chrono::duration_cast<std::chrono::milliseconds>
+                          (t2 - t1).count() << std::endl;
 
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Predicate execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2-t1).count() <<std::endl;
+        // Join date and lineorder tables
+        ColumnReference lo_d_ref = {lo, "order date"};
+        ColumnReference d_ref = {d, "date key"};
+        ColumnReference revenue_ref = {lo, "revenue"};
 
-    // Join date and lineorder tables
-    ColumnReference lo_d_ref = {lo, "order date"};
-    ColumnReference d_ref = {d, "date key"};
-    ColumnReference revenue_ref = {lo, "revenue"};
+        auto join_result = std::make_shared<OperatorResult>();
+        join_result->append(result);
 
-    auto join_result = std::make_shared<OperatorResult>();
-    join_result->append(result);
+        JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
+        JoinGraph graph({{join_pred}});
+        Join join_op(0, join_result, graph);
 
-    JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
-    JoinGraph graph({{join_pred}});
-    Join join_op(0, join_result, graph);
+        scheduler.addTask(join_op.createTask());
 
-    scheduler.addTask(join_op.createTask());
+        scheduler.start();
+        scheduler.join();
 
-    scheduler.start();
-    scheduler.join();
+        join_result = join_op.finish();
 
-    join_result = join_op.finish();
+        out_table = join_result->materialize({revenue_ref});
 
-    out_table = join_result->materialize({lo_d_ref, d_ref, revenue_ref});
+        std::cout << "Total selected rows " << out_table->get_num_rows() << std::endl;
+        ASSERT_EQ(out_table->get_num_rows(), 118598);
 
-    std::cout << "Total selected rows " << out_table->get_num_rows() << std::endl;
+        auto t3 = std::chrono::high_resolution_clock::now();
+        std::cout << "Join execution time = " <<
+                  std::chrono::duration_cast<std::chrono::milliseconds>
+                          (t3 - t2).count() << std::endl;
 
-    auto t3 = std::chrono::high_resolution_clock::now();
-    std::cout << "Join execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t3 - t2).count() << std::endl;
+        arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
-    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+        std::shared_ptr<arrow::ChunkedArray> revenue = out_table->get_column(0); //REVENUE
+        arrow::compute::Datum sum_result;
+        arrow::Status status = arrow::compute::Sum(
+                &function_context,
+                revenue,
+                &sum_result
+        );
+        evaluate_status(status, __FUNCTION__, __LINE__);
 
-    std::shared_ptr<arrow::ChunkedArray> revenue = out_table->get_column(2); //REVENUE
-    arrow::compute::Datum sum_result;
-    arrow::Status status = arrow::compute::Sum(
-            &function_context,
-            revenue,
-            &sum_result
-    );
-    evaluate_status(status, __FUNCTION__, __LINE__);
+        auto t4 = std::chrono::high_resolution_clock::now();
+        std::cout << "Query execution time = " <<
+                  std::chrono::duration_cast<std::chrono::milliseconds>
+                          (t4 - t_start).count() << std::endl;
 
-    auto t4 = std::chrono::high_resolution_clock::now();
-    std::cout << "Query execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t4-t_start).count() <<std::endl;
+        std::cout << sum_result.scalar()->ToString() << "\n" << std::endl;
+    }
 }
 
 TEST_F(SSBTestFixture, SSBQ1_2) {

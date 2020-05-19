@@ -54,6 +54,9 @@ private:
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
+    std::vector<std::vector<int64_t>> new_left_indices_vector;
+    std::vector<std::vector<int64_t>> new_right_indices_vector;
+
     /**
      * Build a hash table on a column. It is assumed that the column will be
      * of INT64 type.
