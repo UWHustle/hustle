@@ -455,7 +455,7 @@ TEST_F(SSBTestFixture, SSBQ1_2) {
     JoinGraph graph({{join_pred}});
     Join join_op(0, join_result, graph);
 
-    join_result = join_op.run();
+//    join_result = join_op.run();
 
     out_table = join_result->materialize({lo_d_ref, d_ref, revenue_ref});
 
@@ -626,7 +626,7 @@ TEST_F(SSBTestFixture, SSBQ1_3) {
     JoinGraph graph({{join_pred}});
     Join join_op(0, join_result, graph);
 
-    join_result = join_op.run();
+//    join_result = join_op.run();
 
     out_table = join_result->materialize({lo_d_ref, d_ref, revenue_ref});
 

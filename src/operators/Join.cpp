@@ -45,7 +45,7 @@ std::unordered_map<int64_t, int64_t> Join::build_hash_table
     return hash;
 }
 
-std::vector<arrow::compute::Datum> Join::probe_hash_table
+void Join::probe_hash_table
 (const std::shared_ptr<arrow::ChunkedArray>& probe_col, Task *ctx) {
     // It would make much more sense to use an ArrayVector instead of a vector of vectors, since we can make a
     // ChunkedArray out from an ArrayVector. But Arrow's Take function is very inefficient when the indices are in a
@@ -99,35 +99,6 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
         });
     }
 
-
-    arrow::Status status;
-    arrow::Int64Builder new_left_indices_builder;
-    arrow::Int64Builder new_right_indices_builder;
-    std::shared_ptr<arrow::Int64Array> new_left_indices;
-    std::shared_ptr<arrow::Int64Array> new_right_indices;
-
-    // Append all of the indices to an ArrayBuilder.
-    for (int i=0; i<probe_col->num_chunks(); i++) {
-        status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-        status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    }
-    // Now our indices are in a single, contiguouts Arrow Array (and not a ChunkedArray).
-
-    status = new_left_indices_builder.Finish(&new_left_indices);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    status = new_right_indices_builder.Finish(&new_right_indices);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-//    std::cout << new_left_indices->length() << " " << new_right_indices->length() << std::endl;
-
-    std::vector<arrow::compute::Datum> joined_indices;
-    joined_indices.emplace_back(arrow::compute::Datum(new_left_indices));
-    joined_indices.emplace_back(arrow::compute::Datum(new_right_indices));
-
-    return joined_indices;
 }
 
 std::shared_ptr<OperatorResult> Join::back_propogate_result(
@@ -211,7 +182,7 @@ std::shared_ptr<OperatorResult> Join::back_propogate_result(
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
-std::shared_ptr<OperatorResult> Join::hash_join(Task *ctx) {
+void Join::hash_join(Task *ctx) {
     // Build phase
     auto right_join_col = right_.get_column_by_name(right_join_col_name_);
     hash_table_ = build_hash_table(right_join_col);
@@ -220,10 +191,9 @@ std::shared_ptr<OperatorResult> Join::hash_join(Task *ctx) {
     int left_join_col_index = left_.table->get_schema()->GetFieldIndex
             (left_join_col_name_);
     auto left_join_col = left_.get_column(left_join_col_index);
-    auto joined_indices = probe_hash_table(left_join_col, ctx);
-
+    probe_hash_table(left_join_col, ctx);
     // Update indices of other LazyTables in the previous OperatorResult
-    return back_propogate_result(joined_indices);
+//    return back_propogate_result(joined_indices);
 }
 
     void Join::execute(Task *ctx) {
@@ -256,51 +226,41 @@ std::shared_ptr<OperatorResult> Join::hash_join(Task *ctx) {
                 }
             }
 
-            prev_result_ = hash_join(ctx);
+            hash_join(ctx);
         }
 
 }
     std::shared_ptr<OperatorResult> Join::finish() {
 
-    return prev_result_;
-}
-
-
-
-std::shared_ptr<OperatorResult> Join::run() {
-
     arrow::Status status;
+    arrow::Int64Builder new_left_indices_builder;
+    arrow::Int64Builder new_right_indices_builder;
+    std::shared_ptr<arrow::Int64Array> new_left_indices;
+    std::shared_ptr<arrow::Int64Array> new_right_indices;
 
-    //TODO(nicholas): For now, we assume joins have simple predicates
-    // without connective operators.
-    // TODO(nicholas): Loop over tables in adj
-    auto predicates = graph_.get_predicates(0);
+    // Append all of the indices to an ArrayBuilder.
+    for (int i=0; i<new_left_indices_vector.size(); i++) {
+        status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    for (auto &jpred : predicates) {
-
-        auto left = jpred.left_col_ref_;
-        auto right = jpred.right_col_ref_;
-
-        left_join_col_name_ = left.col_name;
-        right_join_col_name_ = right.col_name;
-
-        // The previous result prev may contain many LazyTables. Find the
-        // LazyTables that we want to join.
-        for (int i=0; i<prev_result_->lazy_tables_.size(); i++) {
-            auto lazy_table = prev_result_->get_table(i);
-
-            if (left.table == lazy_table.table) {
-                left_ = lazy_table;
-            }
-            else if (right.table == lazy_table.table) {
-                right_ = lazy_table;
-            }
-        }
-
-//        prev_result_ = hash_join();
+        status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     }
-    return prev_result_;
+    // Now our indices are in a single, contiguouts Arrow Array (and not a ChunkedArray).
 
+    status = new_left_indices_builder.Finish(&new_left_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    status = new_right_indices_builder.Finish(&new_right_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+//    std::cout << new_left_indices->length() << " " << new_right_indices->length() << std::endl;
+
+    std::vector<arrow::compute::Datum> joined_indices;
+    joined_indices.emplace_back(arrow::compute::Datum(new_left_indices));
+    joined_indices.emplace_back(arrow::compute::Datum(new_right_indices));
+
+    return back_propogate_result(joined_indices);
 }
+
 } // namespace operators
 } // namespace hustle
