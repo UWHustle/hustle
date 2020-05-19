@@ -64,12 +64,11 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
     }
 
         // Probe phase
-//        int row_offset = 0;
     for (int i = 0; i < probe_col->num_chunks(); i++) {
 
-//        ctx->spawnLambdaTask([this, i, probe_col, chunk_row_offsets,
-//                              &new_left_indices_vector,
-//                              &new_right_indices_vector] {
+        ctx->spawnLambdaTask([this, i, probe_col, chunk_row_offsets,
+                              &new_left_indices_vector,
+                              &new_right_indices_vector] {
 
             arrow::Status status;
 
@@ -88,36 +87,23 @@ std::vector<arrow::compute::Datum> Join::probe_hash_table
                     int64_t right_row_index = hash_table_[key];
                     int64_t left_row_index = row_offset + row;
 
-//                    joined_left_indices.push_back(left_row_index);
-//                    joined_right_indices.push_back(right_row_index);
-
-                    status = new_left_indices_builder.Append(left_row_index);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-                    status = new_right_indices_builder.Append(right_row_index);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                    joined_left_indices.push_back(left_row_index);
+                    joined_right_indices.push_back(right_row_index);
                 }
             }
-//            row_offset += left_join_chunk->length();
-//            new_left_indices_vector[i] = joined_left_indices;
-//            new_right_indices_vector[i] = joined_right_indices;
-
-//            status = new_left_indices_builder.AppendValues(joined_left_indices);
-//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//
-//            status = new_right_indices_builder.AppendValues(joined_right_indices);
-//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//        });
+            new_left_indices_vector[i] = joined_left_indices;
+            new_right_indices_vector[i] = joined_right_indices;
+        });
     }
     arrow::Status status;
 
-//    for (int i=0; i<probe_col->num_chunks(); i++) {
-//        status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
-//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//
-//        status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
-//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//    }
+    for (int i=0; i<probe_col->num_chunks(); i++) {
+        status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    }
 
     // Note that ArrayBuilders are automatically reset by default after
     // calling Finish()
