@@ -35,6 +35,7 @@ public:
     void execute(Task *ctx) override;
 
     std::shared_ptr<OperatorResult> run();
+    std::shared_ptr<OperatorResult> finish();
 
 private:
 
@@ -72,7 +73,7 @@ private:
      * that join with rows of the right table.
      */
     std::vector<arrow::compute::Datum> probe_hash_table
-        (const std::shared_ptr<arrow::ChunkedArray>& probe_col);
+        (const std::shared_ptr<arrow::ChunkedArray>& probe_col, Task *ctx);
 
     /**
      * Perform a single hash join.
@@ -81,7 +82,7 @@ private:
      * prev_result, but now their index arrays are updated, i.e. all indices
      * that did not satisfy the join predicate are not included.
      */
-    std::shared_ptr<OperatorResult> hash_join();
+    std::shared_ptr<OperatorResult> hash_join(Task *ctx);
 
     /**
      * After performing a single join, we must eliminate rows from other
