@@ -64,8 +64,8 @@ private:
      * @return a hash table mapping key values to their index location in the
      * table.
      */
-    std::unordered_map<int64_t, int64_t> build_hash_table
-            (const std::shared_ptr<arrow::ChunkedArray>& col);
+    void build_hash_table
+            (const std::shared_ptr<arrow::ChunkedArray>& col, Task * ctx);
 
     /**
      * Perform the probe phase of hash join.

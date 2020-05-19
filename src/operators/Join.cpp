@@ -21,28 +21,32 @@ Join::Join(
 
 }
 
-std::unordered_map<int64_t, int64_t> Join::build_hash_table
-(const std::shared_ptr<arrow::ChunkedArray>& col) {
+void Join::build_hash_table
+(const std::shared_ptr<arrow::ChunkedArray>& col, Task *ctx) {
 
     arrow::Status status;
     arrow::compute::FunctionContext function_context(
             arrow::default_memory_pool());
-    std::unordered_map<int64_t, int64_t> hash(col->length());
+    hash_table_.reserve(col->length());
 
-    int row_offset = 0;
-
-    for (int i=0; i<col->num_chunks(); i++) {
-        // TODO(nicholas): for now, we assume the join column is INT64 type.
-        auto chunk = std::static_pointer_cast<arrow::Int64Array>(
-                col->chunk(i));
-
-        for (int row=0; row<chunk->length(); row++) {
-            hash[chunk->Value(row)] = row_offset + row;
-        }
-        row_offset += chunk->length();
+    std::vector<int64_t> chunk_row_offsets(col->num_chunks());
+    chunk_row_offsets[0] = 0;
+    for (int i = 1; i < col->num_chunks(); i++) {
+        chunk_row_offsets[i] = chunk_row_offsets[i-1] + col->chunk(i-1)->length();
     }
 
-    return hash;
+    for (int i=0; i<col->num_chunks(); i++) {
+
+        ctx->spawnLambdaTask([this, i, col, chunk_row_offsets] {
+            // TODO(nicholas): for now, we assume the join column is INT64 type.
+            auto chunk = std::static_pointer_cast<arrow::Int64Array>(
+                    col->chunk(i));
+
+            for (int row = 0; row < chunk->length(); row++) {
+                hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
+            }
+        });
+    }
 }
 
 void Join::probe_hash_table
@@ -183,15 +187,22 @@ std::shared_ptr<OperatorResult> Join::back_propogate_result(
 }
 
 void Join::hash_join(Task *ctx) {
-    // Build phase
-    auto right_join_col = right_.get_column_by_name(right_join_col_name_);
-    hash_table_ = build_hash_table(right_join_col);
+    ctx->spawnTask(CreateTaskChain(
+            CreateLambdaTask([&](Task *internal) {
+                // Build phase
+                auto right_join_col = right_.get_column_by_name(right_join_col_name_);
+                build_hash_table(right_join_col, internal);
+            }),
+            CreateLambdaTask([&](Task *internal) {
+                // Probe phase
+                int left_join_col_index = left_.table->get_schema()->GetFieldIndex
+                        (left_join_col_name_);
+                auto left_join_col = left_.get_column(left_join_col_index);
+                probe_hash_table(left_join_col, internal);
+            })
+            ));
 
-    // Probe phase
-    int left_join_col_index = left_.table->get_schema()->GetFieldIndex
-            (left_join_col_name_);
-    auto left_join_col = left_.get_column(left_join_col_index);
-    probe_hash_table(left_join_col, ctx);
+
     // Update indices of other LazyTables in the previous OperatorResult
 //    return back_propogate_result(joined_indices);
 }
