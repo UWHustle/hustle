@@ -91,7 +91,14 @@ TEST_F(JoinTestFixture, MeanTest) {
 
     AggregateReference agg_ref = {AggregateKernels::MEAN, "data_mean", R, "data"};
     Aggregate agg_op(0, result, {agg_ref}, {}, {});
-    result = agg_op.run();
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(agg_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    result = agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -126,7 +133,13 @@ TEST_F(JoinTestFixture, SumTest) {
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(0, result, {agg_ref}, {}, {});
-    result = agg_op.run();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(agg_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    result = agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -174,17 +187,19 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
 
     Select select_op(0, result, select_pred_tree);
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
-
-    scheduler.addTask(select_op.createTask());
-    scheduler.start();
-
-    scheduler.join();
-    result = select_op.finish();
-
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(0, result, {agg_ref}, {}, {});
-    result = agg_op.run();
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    scheduler.addTask(CreateTaskChain(
+            select_op.createTask(),
+            agg_op.createTask()));
+
+    scheduler.start();
+    scheduler.join();
+
+    result = agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -219,7 +234,13 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(0, result, {agg_ref}, {R_group_ref}, {});
-    result = agg_op.run();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(agg_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    result = agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -262,7 +283,13 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(0, result, {agg_ref}, {R_group_ref}, {R_group_ref});
-    result = agg_op.run();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(agg_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    result = agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
