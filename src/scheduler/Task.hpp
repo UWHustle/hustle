@@ -161,7 +161,7 @@ inline Task* CreateTaskChain(TaskTs *...taskchain) {
 
 template <typename ...TaskTs>
 inline Task* CreateTaskChain(std::vector<Task*> tasks) {
-    return CreateLambdaTask([&](Task *ctx) {
+    return CreateLambdaTask([=](Task *ctx) {
         const std::size_t num_tasks = tasks.size();
         SchedulerInterface *scheduler = ctx->getScheduler();
         Continuation c_dependent = ctx->getContinuation();
