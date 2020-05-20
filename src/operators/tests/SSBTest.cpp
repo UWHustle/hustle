@@ -251,7 +251,7 @@ TEST_F(SSBTestFixture, SSBQ1_1){
                     std::make_shared<Predicate>(year_pred_1));
     auto d_pred_tree = std::make_shared<PredicateTree>(year_pred_node_1);
 
-    for (int l=0; l<100; l++) {
+    for (int l=0; l<1; l++) {
         auto lo_select_result = std::make_shared<OperatorResult>();
         lo_select_result->append(lo);
 

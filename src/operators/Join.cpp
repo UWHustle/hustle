@@ -18,6 +18,7 @@ Join::Join(
 
     prev_result_ = std::move(prev);
     graph_ = std::move(graph);
+    joined_indices_.resize(2);
 
 }
 
@@ -89,6 +90,7 @@ void Join::probe_hash_table
                 auto key = left_join_chunk->Value(row);
 
                 if (hash_table_.count(key)) {
+                    std::cout << key << "\t" << hash_table_[key] << std::endl;
                     int64_t right_row_index = hash_table_[key];
                     int64_t left_row_index = row_offset + row;
 
@@ -103,10 +105,40 @@ void Join::probe_hash_table
             new_right_indices_vector[i] = joined_right_indices;
         });
     }
+}
+
+void Join::finish_probe() {
+    arrow::Status status;
+    arrow::Int64Builder new_left_indices_builder;
+    arrow::Int64Builder new_right_indices_builder;
+    std::shared_ptr<arrow::Int64Array> new_left_indices;
+    std::shared_ptr<arrow::Int64Array> new_right_indices;
+
+    // Append all of the indices to an ArrayBuilder.
+    for (int i=0; i<new_left_indices_vector.size(); i++) {
+        status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    }
+    // Now our indices are in a single, contiguouts Arrow Array (and not a ChunkedArray).
+
+    status = new_left_indices_builder.Finish(&new_left_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    status = new_right_indices_builder.Finish(&new_right_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    std::cout << new_left_indices->ToString() << " " << new_right_indices->ToString() << std::endl;
+
+    joined_indices_[0] = (arrow::compute::Datum(new_left_indices));
+    joined_indices_[1] = (arrow::compute::Datum(new_right_indices));
+
+//    std::cout << joined_indices_[0].make_array()->ToString() << std::endl;
 
 }
 
-std::shared_ptr<OperatorResult> Join::back_propogate_result(
+std::shared_ptr<OperatorResult> Join::back_propogate_result(LazyTable left, LazyTable right,
         std::vector<arrow::compute::Datum> joined_indices) {
 
     arrow::Status status;
@@ -120,35 +152,36 @@ std::shared_ptr<OperatorResult> Join::back_propogate_result(
     std::vector<LazyTable> output_lazy_tables;
 
     // The indices of the indices that were joined
-    auto left_indices_of_indices = joined_indices[0];
-    auto right_indices_of_indices = joined_indices[1];
+    auto left_indices_of_indices = joined_indices_[0];
+    auto right_indices_of_indices = joined_indices_[1];
+
 
     // Update the indices of the left LazyTable. If there was no previous
     // join on the left table, then left_indices_of_indices directly
     // corresponds to indices in the left table, and we do not need to
     // call Take.
-    if (left_.indices.kind() != arrow::compute::Datum::NONE) {
+    if (left.indices.kind() != arrow::compute::Datum::NONE) {
         status = arrow::compute::Take(&function_context,
-                                      left_.indices,
+                                      left.indices,
                                       left_indices_of_indices,
                                       take_options,
                                       &new_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        output_lazy_tables.emplace_back(left_.table,left_.filter, new_indices);
+        output_lazy_tables.emplace_back(left.table,left.filter, new_indices);
     }
     else {
         new_indices = left_indices_of_indices;
     }
-    output_lazy_tables.emplace_back(left_.table,left_.filter, new_indices);
+    output_lazy_tables.emplace_back(left.table,left.filter, new_indices);
 
 
     // Update the indices of the right LazyTable. If there was no previous
     // join on the right table, then right_indices_of_indices directly
     // corresponds to indices in the right table, and we do not need to
     // call Take.
-    if (right_.indices.kind() != arrow::compute::Datum::NONE) {
+    if (right.indices.kind() != arrow::compute::Datum::NONE) {
         status = arrow::compute::Take(&function_context,
-                                      right_.indices,
+                                      right.indices,
                                       right_indices_of_indices,
                                       take_options,
                                       &new_indices);
@@ -157,14 +190,15 @@ std::shared_ptr<OperatorResult> Join::back_propogate_result(
     else {
         new_indices = right_indices_of_indices;
     }
-    output_lazy_tables.emplace_back(right_.table,right_.filter, new_indices);
+//    std::cout << new_indices.chunked_array()->ToString() << std::endl;
+    output_lazy_tables.emplace_back(right.table,right.filter, new_indices);
 
 
     // Propogate the join to the other tables in the previous
     // OperatorResult.
     for (auto &lazy_table : prev_result_->lazy_tables_) {
-        if (lazy_table.table != left_.table &&
-            lazy_table.table != right_.table) {
+        if (lazy_table.table != left.table &&
+            lazy_table.table != right.table) {
             if (lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
 
                 status = arrow::compute::Take(&function_context,
@@ -187,19 +221,22 @@ std::shared_ptr<OperatorResult> Join::back_propogate_result(
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
-void Join::hash_join(Task *ctx) {
+void Join::hash_join(LazyTable left, std::string left_col, LazyTable right, std::string right_col, Task *ctx) {
     ctx->spawnTask(CreateTaskChain(
-            CreateLambdaTask([&](Task *internal) {
+            CreateLambdaTask([this, right, right_col](Task *internal) {
                 // Build phase
-                auto right_join_col = right_.get_column_by_name(right_join_col_name_);
+                auto right_join_col = right.get_column_by_name(right_col);
                 build_hash_table(right_join_col, internal);
             }),
-            CreateLambdaTask([&](Task *internal) {
+            CreateLambdaTask([this, left, left_col](Task *internal) {
                 // Probe phase
-                int left_join_col_index = left_.table->get_schema()->GetFieldIndex
-                        (left_join_col_name_);
-                auto left_join_col = left_.get_column(left_join_col_index);
+                int left_join_col_index = left.table->get_schema()->GetFieldIndex(left_col);
+                auto left_join_col = left.get_column(left_join_col_index);
                 probe_hash_table(left_join_col, internal);
+            }),
+            CreateLambdaTask([this, left, right](Task *internal) {
+                finish_probe();
+                prev_result_ = back_propogate_result(left, right, joined_indices_);
             })
             ));
 
@@ -212,66 +249,76 @@ void Join::hash_join(Task *ctx) {
 
         arrow::Status status;
 
+
+        std::vector<Task*> tasks;
         // TODO(nicholas): For now, we assume joins have simple predicates
         //   without connective operators.
         // TODO(nicholas): Loop over tables in adj
         auto predicates = graph_.get_predicates(0);
 
+        std::vector<LazyTable> lefts;
+        std::vector<LazyTable> rights;
+        std::vector<std::string> left_names;
+        std::vector<std::string> right_names;
+
         for (auto &jpred : predicates) {
 
-            auto left = jpred.left_col_ref_;
-            auto right = jpred.right_col_ref_;
+            auto left_ref = jpred.left_col_ref_;
+            auto right_ref = jpred.right_col_ref_;
 
-            left_join_col_name_ = left.col_name;
-            right_join_col_name_ = right.col_name;
+            auto left_col_name = left_ref.col_name;
+            auto right_col_name = right_ref.col_name;
 
+            left_names.push_back(left_col_name);
+            right_names.push_back(right_col_name);
+
+            LazyTable left, right;
             // The previous result prev may contain many LazyTables. Find the
             // LazyTables that we want to join.
             for (int i=0; i<prev_result_->lazy_tables_.size(); i++) {
                 auto lazy_table = prev_result_->get_table(i);
 
-                if (left.table == lazy_table.table) {
-                    left_ = lazy_table;
+                if (left_ref.table == lazy_table.table) {
+                    left = lazy_table;
+                    lefts.push_back(left);
                 }
-                else if (right.table == lazy_table.table) {
-                    right_ = lazy_table;
+                else if (right_ref.table == lazy_table.table) {
+                    right = lazy_table;
+                    rights.push_back(right);
                 }
             }
 
-            hash_join(ctx);
+
+//            ctx->spawnLambdaTask(
+
+//                    });
         }
+        for (int i=0; i<lefts.size(); i++) {
+            tasks.push_back(CreateLambdaTask(
+                    [=](Task *internal) {
+                            hash_join(lefts[i],left_names[i], rights[i], right_names[i],internal);
+                    }));
+        }
+        ctx->spawnTask(CreateTaskChain(tasks));
+//        ctx->spawnTask(CreateTaskChain(
+//                CreateLambdaTask(
+//                        [=](Task *internal){
+//                            hash_join(lefts[0],left_names[0], rights[0], right_names[0],internal);
+//                }),
+//                CreateLambdaTask(
+//                        [=](Task *internal){
+//                            hash_join(lefts[1],left_names[1], rights[1], right_names[1],internal);
+//                        })
+//                ));
+
+
+        std::cout << "done" << std::endl;
+
+//            hash_join(left,left_col_name,right,right_col_name,ctx);
 
 }
     std::shared_ptr<OperatorResult> Join::finish() {
-
-    arrow::Status status;
-    arrow::Int64Builder new_left_indices_builder;
-    arrow::Int64Builder new_right_indices_builder;
-    std::shared_ptr<arrow::Int64Array> new_left_indices;
-    std::shared_ptr<arrow::Int64Array> new_right_indices;
-
-    // Append all of the indices to an ArrayBuilder.
-    for (int i=0; i<new_left_indices_vector.size(); i++) {
-        status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-        status = new_right_indices_builder.AppendValues(new_right_indices_vector[i]);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    }
-    // Now our indices are in a single, contiguouts Arrow Array (and not a ChunkedArray).
-
-    status = new_left_indices_builder.Finish(&new_left_indices);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    status = new_right_indices_builder.Finish(&new_right_indices);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-//    std::cout << new_left_indices->length() << " " << new_right_indices->length() << std::endl;
-
-    std::vector<arrow::compute::Datum> joined_indices;
-    joined_indices.emplace_back(arrow::compute::Datum(new_left_indices));
-    joined_indices.emplace_back(arrow::compute::Datum(new_right_indices));
-
-    return back_propogate_result(joined_indices);
+    return prev_result_;
 }
 
 } // namespace operators

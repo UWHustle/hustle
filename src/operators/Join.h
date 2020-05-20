@@ -43,20 +43,17 @@ private:
     // A graph specifying all join predicates
     JoinGraph graph_;
 
-    // Left (outer) table
-    LazyTable left_;
-    // Right (inner) table
-    LazyTable right_;
-
-    std::string left_join_col_name_;
-    std::string right_join_col_name_;
 
     std::unordered_map<int64_t, int64_t> hash_table_;
 
     std::vector<std::vector<int64_t>> new_left_indices_vector;
     std::vector<std::vector<int64_t>> new_right_indices_vector;
 
+    std::vector<arrow::compute::Datum> joined_indices_;
+
     std::mutex hash_table_mutex_;
+    std::mutex join_mutex_;
+
 
     /**
      * Build a hash table on a column. It is assumed that the column will be
@@ -86,7 +83,7 @@ private:
      * prev_result, but now their index arrays are updated, i.e. all indices
      * that did not satisfy the join predicate are not included.
      */
-    void hash_join(Task *ctx);
+    void hash_join(LazyTable left, std::string left_col, LazyTable right, std::string right_col, Task *ctx);
 
     /**
      * After performing a single join, we must eliminate rows from other
@@ -100,8 +97,9 @@ private:
      * that did not satisfy the join predicate are not included.
      */
     std::shared_ptr<OperatorResult> back_propogate_result
-    (std::vector<arrow::compute::Datum> joined_indices);
+    (LazyTable left, LazyTable right, std::vector<arrow::compute::Datum> joined_indices);
 
+    void finish_probe();
 };
 
 } // namespace hustle
