@@ -24,13 +24,6 @@ namespace hustle::operators {
         group_by_refs_ = std::move(group_refs);
         order_by_refs_ = std::move(order_by_refs);
 
-        aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
-
-        out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
-                                            aggregate_refs_[0].agg_name);
-        out_table_ = std::make_shared<Table>("aggregate", out_schema_,
-                                                 BLOCK_SIZE);
-
         // Fetch the fields associated with each groupby column.
         std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
         for(auto &group_by : group_by_refs_) {
@@ -51,6 +44,14 @@ namespace hustle::operators {
         for (auto &col_ref : group_by_refs_) {
             unique_values_.push_back(get_unique_values(col_ref));
         }
+
+        aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
+
+        // Must be called only after group_type_ is initialized
+        out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
+                                        aggregate_refs_[0].agg_name);
+        out_table_ = std::make_shared<Table>("aggregate", out_schema_,
+                                             BLOCK_SIZE);
 
     }
 
@@ -143,7 +144,7 @@ namespace hustle::operators {
         return result.ValueOrDie();
     }
 
-    std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(int* its) {
+    std::shared_ptr<arrow::ChunkedArray> Aggregate::get_group_filter(std::vector<int> its) {
 
         arrow::Status status;
         arrow::compute::FunctionContext function_context(
@@ -215,7 +216,7 @@ namespace hustle::operators {
         return prev_filter;
     }
 
-    void Aggregate::insert_group(int *its) {
+    void Aggregate::insert_group(std::vector<int> its, int group_id) {
 
         arrow::Status status;
         for (int i=0; i<group_type->num_children(); i++) {
@@ -248,7 +249,6 @@ namespace hustle::operators {
                 }
             }
         }
-
         status = group_builder->Append(true);
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
@@ -484,42 +484,48 @@ namespace hustle::operators {
         // DYNAMIC DEPTH NESTED FOR LOOP
         // Initialize the slots to hold the current iteration value for each depth
         int n = group_type->num_children();
-        int its[n];
+//        int its[n];
         int maxes[n];
+        std::vector<int> its_vec(n);
+        its_vec.resize(n);
 
         for (int i = 0; i < n; i++) {
-            its[i] = 0;
+            its_vec[i] = 0;
             maxes[i] = unique_values_[i]->length();
         }
 
+        int group_id = 0;
         int index = n - 1;
         bool exit = false;
         while (!exit){
 
             // LOOP BODY START
-            ctx->spawnLambdaTask([&, aggregate_col]{
-                auto group_filter = get_group_filter(its);
+
+            ctx->spawnLambdaTask([this, group_id, its_vec, aggregate_col]{
+                auto group_filter = get_group_filter(its_vec);
                 auto aggregate = compute_aggregate(aggregate_refs_[0].kernel,
                                                    aggregate_col, group_filter);
+                std::unique_lock<std::mutex> lock(builder_mutex_);
                 insert_group_aggregate(aggregate);
-                insert_group(its);
+                insert_group(its_vec, group_id);
             });
+            group_id++;
 
             // LOOP BODY END
 
             if (n == 0) break; // edge case
 
             // INCREMENTED NESTED LOOP
-            its[n-1]++;
-            while (its[index] == maxes[index]){
+            its_vec[n-1]++;
+            while (its_vec[index] == maxes[index]){
                 // if n == 0, we have no Group By clause and should exit after one
                 // iteration.
                 if (index ==  0) {
                     exit = true;
                     break;
                 }
-                its[index--] = 0;
-                its[index]++;
+                its_vec[index--] = 0;
+                its_vec[index]++;
             }
             index = n-1;
         }

@@ -84,6 +84,10 @@ public:
 
 private:
 
+    std::mutex agg_builder_mutex_;
+    std::mutex group_builder_mutex_;
+    std::mutex builder_mutex_;
+
     std::shared_ptr<arrow::Schema> out_schema_;
     std::shared_ptr<Table> out_table_;
 
@@ -155,7 +159,7 @@ private:
      * passing in its = [0, 3, 7] would insert unique_values_[0],
      * unique_values_[3], and unique_values_[7], into group_builder_.
      */
-    void insert_group(int *its);
+    void insert_group(std::vector<int> its, int group_id);
 
     /**
      * Insert the aggregate of a single group into aggregate_builder_.
@@ -174,7 +178,7 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_group_filter(int* its);
+    std::shared_ptr<arrow::ChunkedArray> get_group_filter(std::vector<int> its);
 
     std::shared_ptr<arrow::Array> get_unique_values(
             ColumnReference group_ref);
