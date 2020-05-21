@@ -71,6 +71,6 @@ target_link_libraries(hustle_SSB_test
         hustle_src_optimizer_ExecutionPlan
         hustle_src_scheduler_Scheduler
         )
-add_test(HustleSSB_test hustle_SSB_test)
+#add_test(HustleSSB_test hustle_SSB_test)
 
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
