@@ -420,6 +420,10 @@ TEST_F(ResolverSSBTest, ssb_q8) {
     auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
     parser->parse(query, hustleDB);
     resolver->resolve(parser->getParseTree());
+<<<<<<< HEAD
+=======
+    std::cout << "Plan:" << resolver->toString(4) << std::endl;
+>>>>>>> master
    //  std::cout << "Plan:" << resolver->toString(4) << std::endl;
 
     // TODO(Lichengxi): build validation plan

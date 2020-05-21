@@ -242,6 +242,7 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
 
     result = agg_op.finish();
 
+
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
     //  access to it?

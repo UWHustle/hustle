@@ -170,6 +170,7 @@ TEST_F(JoinTestFixture, EquiJoin2) {
 
     result = join_op.finish();
 
+
     auto out_table = result->materialize(
             {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});
 //    out_table->print();

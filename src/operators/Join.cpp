@@ -246,6 +246,7 @@ void Join::hash_join(LazyTable left, std::string left_col, LazyTable right, std:
 
     void Join::execute(Task *ctx) {
 
+
         arrow::Status status;
 
 

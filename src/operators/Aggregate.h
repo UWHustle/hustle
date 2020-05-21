@@ -82,6 +82,7 @@ public:
     std::shared_ptr<OperatorResult> finish();
 
 
+
 private:
 
     std::mutex agg_builder_mutex_;
