@@ -13,37 +13,38 @@ namespace hustle {
 namespace catalog {
 
 class TableSchema {
-public:
+ public:
   TableSchema(std::string name) : name_(name) {};
 
   // TODO(chronis) Make private
-  TableSchema() {};
+  TableSchema()  {};
 
   void setPrimaryKey(std::vector<std::string> pk);
 
-  const std::vector<std::string> &getPrimaryKey() const {
+  const std::vector<std::string>& getPrimaryKey() const {
     return primary_key_;
   }
 
   bool addColumn(ColumnSchema c);
 
-  std::optional<ColumnSchema *> ColumnExists(std::string name);
+  std::optional<ColumnSchema*> ColumnExists(std::string name) ;
 
-  const std::vector<ColumnSchema> &getColumns() const {
+  const std::vector<ColumnSchema>& getColumns() const {
     return columns_;
   }
 
-  const std::string &getName() const { return name_; }
+  const std::string& getName() const {return name_;}
 
   void print() const;
 
   template<class Archive>
-  void serialize(Archive &archive) {
+  void serialize(Archive & archive)
+  {
     archive(CEREAL_NVP(name_), CEREAL_NVP(columns_),
-            CEREAL_NVP(primary_key_), CEREAL_NVP(name_to_id_));
+        CEREAL_NVP(primary_key_), CEREAL_NVP(name_to_id_));
   }
 
-private:
+ private:
   std::string name_;
   std::vector<std::string> primary_key_;
   std::vector<ColumnSchema> columns_;

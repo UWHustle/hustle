@@ -6,7 +6,7 @@ add_library(
 
 target_link_libraries(hustle_src_parser
         hustle_src_catalog
-        )
+)
 
 
 add_executable(hustle_parser_simple_test tests/HustleParser_simple_test.cpp)

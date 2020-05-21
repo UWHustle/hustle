@@ -14,7 +14,7 @@ enum class SchedulerMessageType {
 };
 
 class SchedulerMessage {
-public:
+ public:
   explicit SchedulerMessage(const SchedulerMessageType msg_type)
       : msg_type_(msg_type) {}
 
@@ -22,28 +22,28 @@ public:
     return msg_type_;
   }
 
-protected:
+ protected:
   const SchedulerMessageType msg_type_;
 
-private:
+ private:
   DISALLOW_COPY_AND_ASSIGN(SchedulerMessage);
 };
 
-template<SchedulerMessageType msg_type>
+template <SchedulerMessageType msg_type>
 class SimpleSchedulerMessage : public SchedulerMessage {
-public:
+ public:
   SimpleSchedulerMessage()
       : SchedulerMessage(msg_type) {}
 };
 
 using SchedulerJoinMessage =
-SimpleSchedulerMessage<SchedulerMessageType::kJoin>;
+    SimpleSchedulerMessage<SchedulerMessageType::kJoin>;
 
 using SchedulerNewTaskMessage =
-SimpleSchedulerMessage<SchedulerMessageType::kNewTask>;
+    SimpleSchedulerMessage<SchedulerMessageType::kNewTask>;
 
 class SchedulerTaskCompletionMessage : public SchedulerMessage {
-public:
+ public:
   SchedulerTaskCompletionMessage(const WorkerID worker_id,
                                  const TaskID task_id)
       : SchedulerMessage(SchedulerMessageType::kTaskCompletion),
@@ -58,7 +58,7 @@ public:
     return task_id_;
   }
 
-private:
+ private:
   const WorkerID worker_id_;
   const TaskID task_id_;
 

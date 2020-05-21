@@ -40,225 +40,225 @@
  */
 class Block {
 public:
-  //
-  /**
-   * Initialize an empty block.
-   *
-   * @param id Block ID
-   * @param schema Block schema, excluding the valid column
-   * @param capacity Maximum number of date bytes to be stored in the Block
-   */
-  Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity);
+    //
+    /**
+     * Initialize an empty block.
+     *
+     * @param id Block ID
+     * @param schema Block schema, excluding the valid column
+     * @param capacity Maximum number of date bytes to be stored in the Block
+     */
+    Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity);
 
-  /**
-   * Initialize a Block from a RecordBatch read in from a file. This will
-   * eventually be removed. The constructor that uses a vector of ArrayData
-   * should be used instead.
-   *
-   * @param id Block ID
-   * @param record_batch RecordBatch read from a file
-   * @param capacity Maximum number of date bytes to be stored in the Block
-   */
-  Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int
-  capacity);
+    /**
+     * Initialize a Block from a RecordBatch read in from a file. This will
+     * eventually be removed. The constructor that uses a vector of ArrayData
+     * should be used instead.
+     *
+     * @param id Block ID
+     * @param record_batch RecordBatch read from a file
+     * @param capacity Maximum number of date bytes to be stored in the Block
+     */
+    Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int
+    capacity);
 
-  /**
-   * Initialize a Block from a vector of ArrayData
-   *
-   * @param id Block ID
-   * @param schema Block schema, excluding the valid column
-   * @param column_data ArrayData for each column
-   * @param capacity Maximum number of date bytes to be stored in the Block
-   */
-  Block(int id, const std::shared_ptr<arrow::Schema> &schema,
-        std::vector<std::shared_ptr<arrow::ArrayData>> column_data,
-        int capacity);
+    /**
+     * Initialize a Block from a vector of ArrayData
+     *
+     * @param id Block ID
+     * @param schema Block schema, excluding the valid column
+     * @param column_data ArrayData for each column
+     * @param capacity Maximum number of date bytes to be stored in the Block
+     */
+    Block(int id, const std::shared_ptr<arrow::Schema> &schema,
+          std::vector<std::shared_ptr<arrow::ArrayData>> column_data,
+          int capacity);
 
-  /**
-   * Get the Block's ID
-   *
-   * @return The Block's ID
-   */
-  int get_id() const;
+    /**
+     * Get the Block's ID
+     *
+     * @return The Block's ID
+     */
+    int get_id() const;
 
-  /**
-   * Return the block's schema, including the valid column.
-   * @return the block's schema
-   */
-  std::shared_ptr<arrow::Schema> get_schema();
+    /**
+     * Return the block's schema, including the valid column.
+     * @return the block's schema
+     */
+    std::shared_ptr<arrow::Schema> get_schema();
 
-  /**
-   * Get a column from the Block by index. The indexing of columns is defined
-   * by the schema definition.
-   *
-   * @param column_index Index of the column to be returned.
-   * @return A read-only pointer to the column.
-   */
-  std::shared_ptr<arrow::Array> get_column(int column_index) const;
+    /**
+     * Get a column from the Block by index. The indexing of columns is defined
+     * by the schema definition.
+     *
+     * @param column_index Index of the column to be returned.
+     * @return A read-only pointer to the column.
+     */
+    std::shared_ptr<arrow::Array> get_column(int column_index) const;
 
-  /**
-   *
-   *
-   * @return
-   */
-  std::shared_ptr<arrow::Array> get_valid_column() const;
+    /**
+     *
+     *
+     * @return
+     */
+    std::shared_ptr<arrow::Array> get_valid_column() const;
 
-  /**
-   * Get a column from the Block by name. Column names are defined by the
-   * schema definition.
-   *
-   * @param name Name of the column
-   * @return A read-only pointer to the column.
-   */
-  std::shared_ptr<arrow::Array>
-  get_column_by_name(const std::string &name) const;
+    /**
+     * Get a column from the Block by name. Column names are defined by the
+     * schema definition.
+     *
+     * @param name Name of the column
+     * @return A read-only pointer to the column.
+     */
+    std::shared_ptr<arrow::Array>
+    get_column_by_name(const std::string &name) const;
 
-  /**
-   * Determine the first available row that can be used to store the data.
-   * This function is not used right now, since memory is allocated upon
-   * insertion as necessary.
-   *
-   * @return If a free row exists, return it's index. Otherwise, return -1.
-   */
-  int get_free_row_index() const;
+    /**
+     * Determine the first available row that can be used to store the data.
+     * This function is not used right now, since memory is allocated upon
+     * insertion as necessary.
+     *
+     * @return If a free row exists, return it's index. Otherwise, return -1.
+     */
+    int get_free_row_index() const;
 
-  /**
-   *  Return the valid bit of a particular row.
-   *
-   * @param row_index Row index
-   * @return True is a the row at row_index contains valid data, false
-   * otherwise.
-   */
-  bool get_valid(unsigned int row_index) const;
+    /**
+     *  Return the valid bit of a particular row.
+     *
+     * @param row_index Row index
+     * @return True is a the row at row_index contains valid data, false
+     * otherwise.
+     */
+    bool get_valid(unsigned int row_index) const;
 
-  //
-  /**
-   * Set the valid bit to val at row_index
-   *
-   * @param row_index Row index
-   * @param val Value to set the valid bit at row_index
-   */
-  void set_valid(unsigned int row_index, bool val);
+    //
+    /**
+     * Set the valid bit to val at row_index
+     *
+     * @param row_index Row index
+     * @param val Value to set the valid bit at row_index
+     */
+    void set_valid(unsigned int row_index, bool val);
 
-  /**
-   * Increment the number of rows stored in the Block. Note that this does NOT
-   * increment the number of rows in the RecordBatch nor the length of its
-   * Arrays.
-   */
-  void increment_num_rows();
+    /**
+     * Increment the number of rows stored in the Block. Note that this does NOT
+     * increment the number of rows in the RecordBatch nor the length of its
+     * Arrays.
+     */
+    void increment_num_rows();
 
-  /**
-   * Decrement the number of rows stored in the Block. Note that this does NOT
-   * decrement the number of rows in the RecordBatch now the length of its
-   * Arrays.
-   */
-  void decrement_num_rows();
+    /**
+     * Decrement the number of rows stored in the Block. Note that this does NOT
+     * decrement the number of rows in the RecordBatch now the length of its
+     * Arrays.
+     */
+    void decrement_num_rows();
 
-  /**
-   * Increment the number of bytes stored in the Block by bytes.
-   *
-   * @param bytes Number of bytes added to the Block.
-   */
-  void increment_num_bytes(unsigned int bytes);
+    /**
+     * Increment the number of bytes stored in the Block by bytes.
+     *
+     * @param bytes Number of bytes added to the Block.
+     */
+    void increment_num_bytes(unsigned int bytes);
 
-  /**
-   * Get the Block's RecordBatch
-   *
-   * @return A pointer to the Block's RecordBatch
-   */
-  std::shared_ptr<arrow::RecordBatch> get_records();
+    /**
+     * Get the Block's RecordBatch
+     *
+     * @return A pointer to the Block's RecordBatch
+     */
+    std::shared_ptr<arrow::RecordBatch> get_records();
 
-  /**
-   * Get the number of bytes that can still be added to the Block without
-   * exceeding its capacity.
-   *
-   * @return Number of bytes that can still be added to the Block
-   */
-  int get_bytes_left();
+    /**
+     * Get the number of bytes that can still be added to the Block without
+     * exceeding its capacity.
+     *
+     * @return Number of bytes that can still be added to the Block
+     */
+    int get_bytes_left();
 
-  /**
-   * Print the contents of the block delimited by tabs, including the valid
-   * column.
-   */
-  void print();
+    /**
+     * Print the contents of the block delimited by tabs, including the valid
+     * column.
+     */
+    void print();
 
-  /**
-   * Get the number of rows in the Block.
-   *
-   * @return Number of rows in the Block
-   */
-  int get_num_rows() const;
+    /**
+     * Get the number of rows in the Block.
+     *
+     * @return Number of rows in the Block
+     */
+    int get_num_rows() const;
 
-  int get_num_cols() const;
+    int get_num_cols() const;
 
-  /**
-   * Insert a record into the Block.
-   *
-   * @param record Values to be inserted into each column. Values should be
-   * listed in the same order as they appear in the Block's schema. Values
-   * should not be separated by e.g. null characters.
-   * @param byte_widths Byte width of each value to be inserted. Byte widths
-   * should be listed in the same order as they appear in the Block's schema.
-   * @return True if insertion was successful, false otherwise.
-   */
-  bool insert_record(uint8_t *record, int32_t *byte_widths);
+    /**
+     * Insert a record into the Block.
+     *
+     * @param record Values to be inserted into each column. Values should be
+     * listed in the same order as they appear in the Block's schema. Values
+     * should not be separated by e.g. null characters.
+     * @param byte_widths Byte width of each value to be inserted. Byte widths
+     * should be listed in the same order as they appear in the Block's schema.
+     * @return True if insertion was successful, false otherwise.
+     */
+    bool insert_record(uint8_t *record, int32_t *byte_widths);
 
-  /**
-   * Insert one or more records into the Block as a vector of ArrayData.
-   * This insertion method would be used to insert the results of a query,
-   * since query results are returned as Arrays.
-   *
-   * @param column_data Values to be inserted into each column, including
-   * the valid column. Columns should be listed in the same order as they
-   * appear in the Block's schema. The length of column_data must match the
-   * length of the Block's schema. All ArrayData must contain the same
-   * number of elements.
-   * @return True if insertion was successful, false otherwise.
-   */
-  bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
-                      column_data);
+    /**
+     * Insert one or more records into the Block as a vector of ArrayData.
+     * This insertion method would be used to insert the results of a query,
+     * since query results are returned as Arrays.
+     *
+     * @param column_data Values to be inserted into each column, including
+     * the valid column. Columns should be listed in the same order as they
+     * appear in the Block's schema. The length of column_data must match the
+     * length of the Block's schema. All ArrayData must contain the same
+     * number of elements.
+     * @return True if insertion was successful, false otherwise.
+     */
+    bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
+                        column_data);
 
-  bool
-  insert_record(std::vector<std::string_view> record, int32_t *byte_widths);
+    bool
+    insert_record(std::vector<std::string_view> record, int32_t *byte_widths);
 
-  bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
-                      column_data,
-                      int32_t offset, int64_t length);
+    bool insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
+            column_data,
+            int32_t offset, int64_t length);
 
-  void truncate_buffers();
+    void truncate_buffers();
 
 private:
 
-  // Block ID
-  int id;
+    // Block ID
+    int id;
 
-  std::shared_ptr<arrow::Schema> schema;
-  std::shared_ptr<arrow::ArrayData> valid;
-  std::vector<std::shared_ptr<arrow::ArrayData>> columns;
-  std::vector<int> column_sizes;
+    std::shared_ptr<arrow::Schema> schema;
+    std::shared_ptr<arrow::ArrayData> valid;
+    std::vector<std::shared_ptr<arrow::ArrayData>> columns;
+    std::vector<int> column_sizes;
 
-  /**
-   * Compute the number of bytes in the block. This function is only called
-   * when a block is initialized from a RecordBatch, i.e. when we read in a
-   * block from a file.
-   *
-   * TODO(nicholas): Instead of computing num_bytes, we can write num_bytes
-   * at the beginning of each Block file and read it in before hand.
-   */
-  void compute_num_bytes();
+    /**
+     * Compute the number of bytes in the block. This function is only called
+     * when a block is initialized from a RecordBatch, i.e. when we read in a
+     * block from a file.
+     *
+     * TODO(nicholas): Instead of computing num_bytes, we can write num_bytes
+     * at the beginning of each Block file and read it in before hand.
+     */
+    void compute_num_bytes();
 
-  // Total number of data bytes stored in the block, excluding the valid
-  // column data.
-  int num_bytes;
+    // Total number of data bytes stored in the block, excluding the valid
+    // column data.
+    int num_bytes;
 
-  // Initialized to BLOCK_SIZE
-  int capacity;
+    // Initialized to BLOCK_SIZE
+    int capacity;
 
-  // Number of rows in the Block, including valid and invalid rows.
-  int num_rows;
+    // Number of rows in the Block, including valid and invalid rows.
+    int num_rows;
 
-  // Number of columns in the Block, excluding the valid column.
-  int num_cols;
+    // Number of columns in the Block, excluding the valid column.
+    int num_cols;
 
 };
 

@@ -23,10 +23,10 @@ namespace hustle {
 DECLARE_uint64(task_event_capacity);
 
 class Worker {
-public:
+ public:
   using clock = std::chrono::steady_clock;
   using TaskEvent = std::tuple<TaskDescription, WorkerID,
-      clock::duration, clock::duration>;
+                               clock::duration, clock::duration>;
 
   explicit Worker(const WorkerID worker_id,
                   const int cpu_id,
@@ -50,8 +50,8 @@ public:
     DCHECK(thread_ == nullptr);
     thread_ = std::make_unique<std::thread>(
         [&]() -> void {
-          this->execute();
-        });
+      this->execute();
+    });
   }
 
   void join() {
@@ -76,7 +76,7 @@ public:
           break;
         }
         case WorkerMessageType::kTask: {
-          Task *task = static_cast<WorkerTaskMessage *>(msg.get())->getTask();
+          Task *task = static_cast<WorkerTaskMessage*>(msg.get())->getTask();
           DCHECK(task != nullptr);
 
           const clock::time_point start = clock::now();
@@ -99,11 +99,11 @@ public:
     }
   }
 
-  const std::vector<TaskEvent> &getTaskEvents() const {
+  const std::vector<TaskEvent>& getTaskEvents() const {
     return task_events_;
   }
 
-private:
+ private:
   const WorkerID worker_id_;
   const int cpu_id_;
 

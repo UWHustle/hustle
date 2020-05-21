@@ -23,9 +23,9 @@ std::string createCreateSql(const TableSchema &ts) {
   std::string sql;
   absl::StrAppend(&sql, "CREATE TABLE ", ts.getName(), "(");
 
-  const std::vector<ColumnSchema> &cols = ts.getColumns();
+  const std::vector<ColumnSchema>& cols = ts.getColumns();
   for (int i = 0; i < cols.size(); i++) {
-    auto &c = cols[i];
+    auto & c = cols[i];
     absl::StrAppend(&sql, c.getName(), " ", c.getType().toString(), " ");
     if (c.isUnique()) { absl::StrAppend(&sql, " UNIQUE"); }
     if (c.isNotNull()) { absl::StrAppend(&sql, " NOT NULL"); }

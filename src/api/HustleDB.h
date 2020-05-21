@@ -13,7 +13,7 @@ using hustle::catalog::Catalog;
 namespace hustle {
 
 class HustleDB {
-public:
+ public:
   HustleDB(std::string path);
 
   bool createTable(const TableSchema ts);
@@ -30,7 +30,7 @@ public:
 
   Catalog *getCatalog() { return &catalog_; }
 
-private:
+ private:
   const std::string DBPath_;
   const std::string CatalogPath_;
   const std::string SqliteDBPath_;

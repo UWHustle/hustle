@@ -6,11 +6,11 @@ add_library(hustle_src_threading_ThreadUtil ../empty_src.cpp ThreadUtil.hpp)
 
 # Link dependencies:
 target_link_libraries(hustle_src_threading_Mutex
-        hustle_src_utils_Macros)
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_threading_SpinMutex
-        hustle_src_threading_Mutex
-        hustle_src_utils_Macros)
+                      hustle_src_threading_Mutex
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_threading_SynchronizationLock
-        hustle_src_utils_Macros)
+                      hustle_src_utils_Macros)
 target_link_libraries(hustle_src_threading_ThreadUtil
-        glog)
+                      glog)

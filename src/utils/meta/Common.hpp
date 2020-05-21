@@ -7,167 +7,152 @@
 
 namespace meta {
 
-template<typename T, T v>
+template <typename T, T v>
 using Value = std::integral_constant<T, v>;
 
-template<typename T1, typename T2>
+template <typename T1, typename T2>
 struct Pair {
   using first = T1;
   using second = T2;
 };
 
-template<typename T, T ...s>
+template <typename T, T ...s>
 struct Sequence {
   using value_type = T;
   static constexpr std::size_t length = sizeof...(s);
 
-  template<template<typename ...> class Host>
+  template <template <typename ...> class Host>
   using bind_to = Host<std::integral_constant<T, s>...>;
 
-  template<template<T ...> class Host>
+  template <template <T ...> class Host>
   using bind_values_to = Host<s...>;
 
-  template<typename U>
+  template <typename U>
   using cast_to = Sequence<U, static_cast<U>(s)...>;
 
-  template<typename CollectionT>
+  template <typename CollectionT>
   inline static CollectionT Instantiate() {
-    return {s...};
+    return { s... };
   }
 };
 
-template<std::size_t ...s>
+template <std::size_t ...s>
 using IntegerSequence = Sequence<std::size_t, s...>;
 
-template<std::size_t n, std::size_t ...s>
-struct MakeSequence_0 : MakeSequence_0<n - 1, n - 1, s...> {
-};
-template<std::size_t ...s>
+template <std::size_t n, std::size_t ...s>
+struct MakeSequence_0 : MakeSequence_0<n-1, n-1, s...> {};
+template <std::size_t ...s>
 struct MakeSequence_0<0, s...> {
   using type = IntegerSequence<s...>;
 };
-template<std::size_t n>
+template <std::size_t n>
 using MakeSequence = typename MakeSequence_0<n>::type;
 
 
-template<typename ...>
-struct Conjunction : std::true_type {
-};
-template<typename B>
-struct Conjunction<B> : B {
-};
-template<typename B, typename ...Bs>
+template <typename ...> struct Conjunction : std::true_type {};
+template <typename B> struct Conjunction<B> : B {};
+template <typename B, typename ...Bs>
 struct Conjunction<B, Bs...>
-    : std::conditional_t<B::value, Conjunction<Bs...>, B> {
-};
+    : std::conditional_t<B::value, Conjunction<Bs...>, B> {};
 
-template<typename ...>
-struct Disjunction : std::false_type {
-};
-template<typename B>
-struct Disjunction<B> : B {
-};
-template<typename B, typename ...Bs>
+template <typename ...> struct Disjunction : std::false_type {};
+template <typename B> struct Disjunction<B> : B {};
+template <typename B, typename ...Bs>
 struct Disjunction<B, Bs...>
-    : std::conditional_t<B::value, B, Disjunction<Bs...>> {
-};
+    : std::conditional_t<B::value, B, Disjunction<Bs...>> {};
 
-template<typename check, typename ...cases>
+template <typename check, typename ...cases>
 struct EqualsAny {
   static constexpr bool value =
-      Disjunction<std::is_same<check, cases>...>::value;
+     Disjunction<std::is_same<check, cases>...>::value;
 };
 
-template<typename T, T check, T ...cases>
+template <typename T, T check, T ...cases>
 struct EqualsAnyValue {
   static constexpr bool value =
-      Disjunction<std::is_same<std::integral_constant<T, check>,
-          std::integral_constant<T, cases>>...>::value;
+     Disjunction<std::is_same<std::integral_constant<T, check>,
+                              std::integral_constant<T, cases>>...>::value;
 };
 
 
-template<typename T, typename Enable = void>
+template <typename T, typename Enable = void>
 struct IsTrait {
   static constexpr bool value = false;
 };
 
-template<typename T>
+template <typename T>
 struct IsTrait<T, std::enable_if_t<
     std::is_same<typename T::type, typename T::type>::value>> {
   static constexpr bool value = true;
 };
 
-template<typename T, template<typename> class Op, typename Enable = void>
+template <typename T, template <typename> class Op, typename Enable = void>
 struct IsWellFormed {
   static constexpr bool value = false;
 };
 
-template<typename T, template<typename> class Op>
+template <typename T, template <typename> class Op>
 struct IsWellFormed<T, Op, std::enable_if_t<std::is_same<Op<T>, Op<T>>::value>> {
   static constexpr bool value = true;
 };
 
 
-template<typename LeftT, typename RightT>
+template <typename LeftT, typename RightT>
 struct PairSelectorLeft {
   typedef LeftT type;
 };
 
-template<typename LeftT, typename RightT>
+template <typename LeftT, typename RightT>
 struct PairSelectorRight {
   typedef RightT type;
 };
 
 
-template<char ...c>
+template <char ...c>
 struct StringLiteral {
   inline static std::string ToString() {
     return std::string({c...});
   }
 };
 
-template<template<typename ...> class Op>
+template <template <typename ...> class Op>
 class TraitWrapper {
-private:
-  template<typename ...ArgTypes>
+ private:
+  template <typename ...ArgTypes>
   struct Implemenation {
     using type = Op<ArgTypes...>;
   };
 
-public:
-  template<typename ...ArgTypes>
+ public:
+  template <typename ...ArgTypes>
   using type = Implemenation<ArgTypes...>;
 };
 
-template<template<typename ...> class Op>
+template <template <typename ...> class Op>
 struct TraitUnwrapper {
-  template<typename ...ArgTypes>
+  template <typename ...ArgTypes>
   using type = typename Op<ArgTypes...>::type;
 };
 
-template<typename Lhs, typename Rhs>
+template <typename Lhs, typename Rhs>
 struct Add {
   using type = std::integral_constant<
       typename Lhs::value_type, Lhs::value + Rhs::value>;
 };
 
-template<std::size_t size>
+template <std::size_t size>
 struct UnsignedInteger;
 
-template<>
-struct UnsignedInteger<1u> {
+template <> struct UnsignedInteger<1u> {
   using type = std::uint8_t;
 };
-template<>
-struct UnsignedInteger<2u> {
+template <> struct UnsignedInteger<2u> {
   using type = std::uint16_t;
 };
-template<>
-struct UnsignedInteger<4u> {
+template <> struct UnsignedInteger<4u> {
   using type = std::uint32_t;
 };
-template<>
-struct UnsignedInteger<8u> {
+template <> struct UnsignedInteger<8u> {
   using type = std::uint64_t;
 };
 

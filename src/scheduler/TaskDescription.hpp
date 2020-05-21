@@ -19,7 +19,7 @@ enum class TaskType : std::uint16_t {
 };
 
 class TaskDescription {
-public:
+ public:
   TaskDescription() : task_name_(nullptr) {
     std::memset(&task_info_, 0, sizeof(TaskInfo));
   }
@@ -29,10 +29,10 @@ public:
                   const TaskType task_type,
                   const std::uint32_t task_major_id,
                   const TaskName *task_name)
-      : task_info_({profiling,
-                    cascade,
-                    static_cast<std::uint16_t>(task_type),
-                    task_major_id}),
+      : task_info_({ profiling,
+                     cascade,
+                     static_cast<std::uint16_t>(task_type),
+                     task_major_id }),
         task_name_(task_name) {}
 
   inline bool enabledProfiling() const {
@@ -51,7 +51,7 @@ public:
     return task_info_.task_major_id;
   }
 
-  inline const TaskName *getTaskName() const {
+  inline const TaskName* getTaskName() const {
     return task_name_;
   }
 
@@ -83,12 +83,12 @@ public:
                            getTaskName());
   }
 
-private:
+ private:
   struct TaskInfo {
     std::uint64_t profiling : 1,
-        cascade : 1,
-        task_type : 30,
-        task_major_id : 32;
+                  cascade : 1,
+                  task_type : 30,
+                  task_major_id : 32;
   };
 
   TaskInfo task_info_;

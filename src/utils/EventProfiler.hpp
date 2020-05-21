@@ -25,9 +25,9 @@ namespace hustle {
 
 using clock = std::chrono::steady_clock;
 
-template<typename TagT, typename ...PayloadT>
+template <typename TagT, typename ...PayloadT>
 class EventProfiler {
-public:
+ public:
   EventProfiler()
       : zero_time_(clock::now()) {
     global_containers_.reserve(0x1000);
@@ -79,12 +79,12 @@ public:
     std::map<TagT, std::vector<EventInfo>> events;
   };
 
-  EventContainer *getContainer() {
+  EventContainer* getContainer() {
     MutexLock lock(thread_mutex_);
     return &thread_map_[std::this_thread::get_id()];
   }
 
-  EventContainer *getGlobalContainer() {
+  EventContainer* getGlobalContainer() {
     MutexLock lock(global_mutex_);
     global_containers_.emplace_back(std::make_unique<EventContainer>());
     return global_containers_.back().get();
@@ -94,16 +94,15 @@ public:
     time_t rawtime;
     time(&rawtime);
     char event_id[32];
-    strftime(event_id, sizeof event_id, "%Y-%m-%d %H:%M:%S",
-             localtime(&rawtime));
+    strftime(event_id, sizeof event_id, "%Y-%m-%d %H:%M:%S", localtime(&rawtime));
 
     int thread_id = 0;
     for (const auto &thread_ctx : thread_map_) {
       for (const auto &event_group : thread_ctx.second.events) {
         for (const auto &event_info : event_group.second) {
           CHECK(event_info.is_finished)
-          << "Unfinished profiling event at thread " << thread_id
-          << ": " << event_group.first;
+              << "Unfinished profiling event at thread " << thread_id
+              << ": " << event_group.first;
 
           os << std::setprecision(12)
              << event_id << ","
@@ -111,11 +110,9 @@ public:
 
           PrintTuple(os, event_info.payload, ",");
 
-          os << std::chrono::duration<double>(
-              event_info.start_time - zero_time_).count()
+          os << std::chrono::duration<double>(event_info.start_time - zero_time_).count()
              << ","
-             << std::chrono::duration<double>(
-                 event_info.end_time - zero_time_).count()
+             << std::chrono::duration<double>(event_info.end_time - zero_time_).count()
              << "\n";
         }
       }
@@ -158,28 +155,26 @@ public:
     thread_map_.clear();
   }
 
-  const std::map<std::thread::id, EventContainer> &containers() {
+  const std::map<std::thread::id, EventContainer>& containers() {
     return thread_map_;
   }
 
-  const clock::time_point &zero_time() {
+  const clock::time_point& zero_time() {
     return zero_time_;
   }
 
-private:
+ private:
   template<class Tuple, std::size_t N>
   struct TuplePrinter {
-    static void
-    Print(std::ostream &os, const Tuple &t, const std::string &sep) {
-      TuplePrinter<Tuple, N - 1>::Print(os, t, sep);
-      os << std::get<N - 1>(t) << sep;
+    static void Print(std::ostream &os, const Tuple &t, const std::string &sep) {
+      TuplePrinter<Tuple, N-1>::Print(os, t, sep);
+      os << std::get<N-1>(t) << sep;
     }
   };
 
   template<class Tuple>
   struct TuplePrinter<Tuple, 0> {
-    static void
-    Print(std::ostream &os, const Tuple &t, const std::string &sep) {
+    static void Print(std::ostream &os, const Tuple &t, const std::string &sep) {
     }
   };
 

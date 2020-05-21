@@ -2,10 +2,10 @@ add_library(
         hustle_src_table
         table.h table.cpp
         block.h block.cpp
-        util.h util.cpp
+        util.h  util.cpp
 )
 
-target_include_directories(hustle_src_table PUBLIC ${ARROW_INCLUDE_DIR})
+target_include_directories(hustle_src_table PUBLIC ${ARROW_INCLUDE_DIR} )
 target_link_libraries(hustle_src_table PUBLIC
         ${ARROW_SHARED_LIB}
         absl::strings

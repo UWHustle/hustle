@@ -27,18 +27,18 @@ namespace hustle {
 namespace catalog {
 
 class Catalog {
-public:
+ public:
   static Catalog CreateCatalog(std::string CatalogPath, std::string SqlitePath);
 
   bool addTable(TableSchema t);
 
   bool dropTable(std::string name);
 
-  std::optional<TableSchema *> TableExists(std::string name);
+  std::optional<TableSchema*> TableExists(std::string name);
 
   void print() const;
 
-  int getTableIdbyName(const std::string &name) {
+  int getTableIdbyName(const std::string& name) {
     return name_to_id_[name];
   }
 
@@ -46,19 +46,18 @@ public:
   template<class Archive>
   void serialize(Archive &archive) {
     archive(
-        CEREAL_NVP(CatalogPath_),
-        CEREAL_NVP(SqlitePath_),
-        CEREAL_NVP(name_to_id_),
-        CEREAL_NVP(tables_));
+            CEREAL_NVP(CatalogPath_),
+            CEREAL_NVP(SqlitePath_),
+            CEREAL_NVP(name_to_id_),
+            CEREAL_NVP(tables_));
   }
 
-private:
+ private:
   // Serializes and writes the catalog to a file in json format.
   void SaveToFile();
 
   // TODO(chronis) make private
   Catalog() {};
-
   Catalog(std::string CatalogPath, std::string SqlitePath) :
       CatalogPath_(CatalogPath), SqlitePath_(SqlitePath) {};
 

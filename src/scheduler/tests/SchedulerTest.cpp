@@ -15,9 +15,9 @@ using namespace hustle;
 class HustleSchedulerTest : public testing::Test {
 protected:
 
-  void SetUp() override {
+    void SetUp() override {
 
-  }
+    }
 
 };
 
@@ -28,23 +28,23 @@ TEST_F(HustleSchedulerTest, test1) {
 //    auto *container = simple_profiler.getContainer();
 //    container->startEvent("overall");
 
-  Scheduler &scheduler = Scheduler::GlobalInstance();
-  scheduler.start();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.start();
 
-  int x = 0;
+    int x = 0;
 
-  for (int i = 0; i < 10; ++i) {
-    auto task = [&x, i](Task *ctx) {
-      for (int j = 0; j < 1000; j++) {
-        x++;
-      }
-    };
-    auto task_chain = CreateTaskChain(CreateLambdaTask(task));
-    scheduler.addTask(task_chain);
-  }
+    for (int i = 0; i < 10; ++i) {
+         auto task = [&x, i](Task *ctx) {
+             for (int j=0; j<1000; j++) {
+                 x++;
+             }
+        };
+        auto task_chain = CreateTaskChain(CreateLambdaTask(task));
+        scheduler.addTask(task_chain);
+    }
 
-  scheduler.join();
-  std::cout << x << std::endl;
+    scheduler.join();
+    std::cout << x << std::endl;
 //    container->endEvent("overall");
 //    simple_profiler.summarizeToStream(std::cout);
 }

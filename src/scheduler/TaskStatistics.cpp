@@ -75,8 +75,7 @@ void TaskStatistics::printPerQueryToStream(std::ostream &os) const {
   }
 }
 
-void TaskStatistics::summarizePerColumnPreprocessingToStream(
-    std::ostream &os) const {
+void TaskStatistics::summarizePerColumnPreprocessingToStream(std::ostream &os) const {
   std::map<std::string, double> time_slots;
   scheduler_.forEachTaskEvent([&](const auto &task_event) {
     const TaskDescription &description = std::get<0>(task_event);
@@ -101,8 +100,7 @@ void TaskStatistics::summarizePerColumnPreprocessingToStream(
   os << "Column preprocessing time sum: " << total << "\n";
 }
 
-void
-TaskStatistics::printPerColumnPreprocessingToStream(std::ostream &os) const {
+void TaskStatistics::printPerColumnPreprocessingToStream(std::ostream &os) const {
   using TimeRecord = std::tuple<std::size_t, double, double, std::string, std::string>;
   std::vector<TimeRecord> time_records;
 

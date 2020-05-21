@@ -20,16 +20,15 @@ using namespace hustle::types;
  *                Disjunctive, Arithmetic, AggFunc
  */
 class Expr {
-public:
+ public:
   explicit Expr(ExprType _type) : type(_type) {}
-
   virtual ~Expr() = default;
 
   ExprType type;
 };
 
 class ColumnReference : public Expr {
-public:
+ public:
   ColumnReference(std::string _column_name,
                   int _i_table,
                   int _i_column) : Expr(ExprType::ColumnReference),
@@ -43,14 +42,14 @@ public:
 };
 
 class IntLiteral : public Expr {
-public:
+ public:
   IntLiteral(int _value) : Expr(ExprType::IntLiteral), value(_value) {}
 
   int value;
 };
 
 class StrLiteral : public Expr {
-public:
+ public:
   StrLiteral(std::string _value) : Expr(ExprType::StrLiteral),
                                    value(std::move(_value)) {}
 
@@ -58,7 +57,7 @@ public:
 };
 
 class Comparative : public Expr {
-public:
+ public:
   Comparative(std::shared_ptr<ColumnReference> _left,
               ComparativeType _op,
               std::shared_ptr<Expr> _right) : Expr(ExprType::Comparative),
@@ -72,7 +71,7 @@ public:
 };
 
 class Disjunctive : public Expr {
-public:
+ public:
   Disjunctive(int _i_table,
               std::vector<std::shared_ptr<Comparative>> _exprs)
       : Expr(ExprType::Disjunctive),
@@ -84,7 +83,7 @@ public:
 };
 
 class Arithmetic : public Expr {
-public:
+ public:
   Arithmetic(
       std::shared_ptr<Expr> _left,
       ArithmeticType _op,
@@ -99,7 +98,7 @@ public:
 };
 
 class AggFunc : public Expr {
-public:
+ public:
   AggFunc(AggFuncType _func,
           std::shared_ptr<Expr> _expr) : Expr(ExprType::AggFunc),
                                          func(_func),
@@ -114,16 +113,15 @@ public:
  * derived class: TableReference, Select, Project, Join, Aggregate, OrderBy
  */
 class QueryOperator {
-public:
+ public:
   QueryOperator(QueryOperatorType _type) : type(_type) {}
-
   virtual ~QueryOperator() = default;
 
   QueryOperatorType type;
 };
 
 class TableReference : public QueryOperator {
-public:
+ public:
   TableReference(int i, std::string _table_name)
       : QueryOperator(QueryOperatorType::TableReference),
         i_table(i),
@@ -134,7 +132,7 @@ public:
 };
 
 class Select : public QueryOperator {
-public:
+ public:
 
   Select(std::shared_ptr<QueryOperator> _input)
       : QueryOperator(QueryOperatorType::Select),
@@ -151,7 +149,7 @@ public:
 };
 
 class Project : public QueryOperator {
-public:
+ public:
   Project(std::shared_ptr<QueryOperator> _input,
           std::vector<std::shared_ptr<Expr>> _proj_exprs,
           std::vector<std::string> _proj_names)
@@ -166,7 +164,7 @@ public:
 };
 
 class Join : public QueryOperator {
-public:
+ public:
   Join(std::shared_ptr<QueryOperator> _left,
        std::shared_ptr<QueryOperator> _right,
        std::vector<std::shared_ptr<Comparative>> _pred)
@@ -181,7 +179,7 @@ public:
 };
 
 class Aggregate : public QueryOperator {
-public:
+ public:
   Aggregate(std::shared_ptr<QueryOperator> _input,
             std::shared_ptr<AggFunc> _aggregate_func,
             std::vector<std::shared_ptr<ColumnReference>> _groupby_cols)
@@ -196,7 +194,7 @@ public:
 };
 
 class OrderBy : public QueryOperator {
-public:
+ public:
   OrderBy(std::shared_ptr<QueryOperator> _input,
           std::vector<std::shared_ptr<Expr>> _orderby_cols,
           std::vector<OrderByDirection> _orders)
@@ -215,16 +213,15 @@ public:
  * derived class: Query, Create ...
  */
 class Plan {
-public:
+ public:
   Plan(PlanType _type) : type(_type) {}
-
   virtual ~Plan() = default;
 
   PlanType type;
 };
 
 class Query : public Plan {
-public:
+ public:
   Query(std::shared_ptr<QueryOperator> _query_operator)
       : Plan(PlanType::Query),
         query_operator(std::move(_query_operator)) {}
@@ -233,7 +230,7 @@ public:
 };
 
 class Create : public Plan {
-public:
+ public:
   Create() : Plan(PlanType::Create) {}
 
   /// TODO(Lichengxi): add Create class
@@ -243,39 +240,25 @@ public:
 /// TODO(Lichengxi): add more classes derived from Plan
 
 void to_json(json &j, const std::shared_ptr<Plan> &plan);
-
 void to_json(json &j, const std::shared_ptr<Query> &query);
-
 void to_json(json &j, const std::shared_ptr<Create> &create);
 
 void to_json(json &j, const std::shared_ptr<QueryOperator> &query_operator);
-
 void to_json(json &j, const std::shared_ptr<TableReference> &table_reference);
-
 void to_json(json &j, const std::shared_ptr<Select> &select);
-
 void to_json(json &j, const std::shared_ptr<Project> &project);
-
 void to_json(json &j, const std::shared_ptr<Join> &join);
 
 void to_json(json &j, const std::shared_ptr<Aggregate> &aggregate);
-
 void to_json(json &j, const std::shared_ptr<OrderBy> &orderby);
 
 void to_json(json &j, const std::shared_ptr<Expr> &expr);
-
 void to_json(json &j, const std::shared_ptr<ColumnReference> &column_reference);
-
 void to_json(json &j, const std::shared_ptr<IntLiteral> &int_literal);
-
 void to_json(json &j, const std::shared_ptr<StrLiteral> &str_literal);
-
 void to_json(json &j, const std::shared_ptr<Comparative> &comparative);
-
 void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive);
-
 void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic);
-
 void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc);
 }
 }

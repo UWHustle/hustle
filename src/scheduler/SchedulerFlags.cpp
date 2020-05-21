@@ -1,7 +1,6 @@
 #include "../scheduler/SchedulerFlags.hpp"
 
 #include "gflags/gflags.h"
-
 namespace hustle {
 
 DEFINE_uint64(num_threads, 0, "Number of worker threads.");

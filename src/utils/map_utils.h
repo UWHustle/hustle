@@ -6,11 +6,11 @@ namespace hustle {
 namespace utils {
 
 template<class KeyType, class MapType>
-bool contains(const KeyType &key, const MapType &map) {
+bool contains( const KeyType& key, const MapType& map ) {
 
   auto search = map.find(key);
   if (search != map.end()) {
-    return true;
+   return true;
   } else {
     return false;
   }

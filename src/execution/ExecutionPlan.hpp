@@ -17,7 +17,7 @@ using hustle::operators::Operator;
 namespace hustle {
 
 class ExecutionPlan : public Task {
-public:
+ public:
   explicit ExecutionPlan(const std::size_t query_id)
       : query_id_(query_id) {}
 
@@ -30,7 +30,7 @@ public:
     return op_index;
   }
 
-  const Operator &getOperator(const std::size_t op_index) const {
+  const Operator& getOperator(const std::size_t op_index) const {
     return *operators_[op_index];
   }
 
@@ -39,7 +39,7 @@ public:
     dependents_[producer_operator_index].emplace(consumer_operator_index);
   }
 
-  const std::unordered_set<std::size_t> &getDependents(
+  const std::unordered_set<std::size_t>& getDependents(
       const std::size_t producer_operator_index) const {
     const auto it = dependents_.find(producer_operator_index);
     return it == dependents_.end() ? kEmptySet : it->second;
@@ -49,7 +49,7 @@ public:
     return operators_.size();
   }
 
-private:
+ private:
   const std::size_t query_id_;
 
   std::vector<std::unique_ptr<Operator>> operators_;

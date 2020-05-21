@@ -18,16 +18,15 @@ using namespace hustle::types;
  *                Disjunctive, Arithmetic, AggFunc
  */
 class Expr {
-public:
+ public:
   virtual ~Expr() = default;
-
   Expr(ExprType _type) : type(_type) {}
 
   ExprType type;
 };
 
 class ColumnReference : public Expr {
-public:
+ public:
   ColumnReference(std::string _column_name,
                   int _i_table,
                   int _i_column) : Expr(ExprType::ColumnReference),
@@ -41,7 +40,7 @@ public:
 };
 
 class IntLiteral : public Expr {
-public:
+ public:
   explicit IntLiteral(int _value) : Expr(ExprType::IntLiteral),
                                     value(_value) {}
 
@@ -49,7 +48,7 @@ public:
 };
 
 class StrLiteral : public Expr {
-public:
+ public:
   explicit StrLiteral(std::string _value) : Expr(ExprType::StrLiteral),
                                             value(std::move(_value)) {}
 
@@ -57,7 +56,7 @@ public:
 };
 
 class Comparative : public Expr {
-public:
+ public:
   Comparative(std::shared_ptr<Expr> _left,
               ComparativeType _op,
               std::shared_ptr<Expr> _right) : Expr(ExprType::Comparative),
@@ -71,13 +70,14 @@ public:
   std::shared_ptr<Expr> right;
   std::string plan_type;
 
-private:
+ private:
   std::string get_plan_type();
 };
 
 
+
 class Disjunctive : public Expr {
-public:
+ public:
   Disjunctive(std::shared_ptr<Expr> _left,
               std::shared_ptr<Expr> _right) : Expr(ExprType::Disjunctive),
                                               left(std::move(_left)),
@@ -88,7 +88,7 @@ public:
 };
 
 class Conjunctive : public Expr {
-public:
+ public:
   Conjunctive(std::shared_ptr<Expr> _left,
               std::shared_ptr<Expr> _right) : Expr(ExprType::Conjunctive),
                                               left(std::move(_left)),
@@ -99,7 +99,7 @@ public:
 };
 
 class Arithmetic : public Expr {
-public:
+ public:
   Arithmetic(std::shared_ptr<Expr> _left,
              ArithmeticType _op,
              std::shared_ptr<Expr> _right) : Expr(ExprType::Arithmetic),
@@ -113,7 +113,7 @@ public:
 };
 
 class AggFunc : public Expr {
-public:
+ public:
   AggFunc(AggFuncType _func,
           std::shared_ptr<Expr> _expr) : Expr(ExprType::AggFunc),
                                          func(_func),
@@ -127,7 +127,7 @@ public:
  * LoopPredicate
  */
 class LoopPredicate {
-public:
+ public:
   LoopPredicate(int _fromtable,
                 std::vector<std::shared_ptr<Comparative>> _predicates
   ) : fromtable(_fromtable),
@@ -141,7 +141,7 @@ public:
  * Project
  */
 class Project {
-public:
+ public:
   Project(std::string _proj_name,
           std::shared_ptr<Expr> _expr) : proj_name(std::move(_proj_name)),
                                          expr(std::move(_expr)) {}
@@ -154,7 +154,7 @@ public:
  * OrderBy
  */
 class OrderBy {
-public:
+ public:
   OrderBy(OrderByDirection _order,
           std::shared_ptr<Expr> _expr)
       : order(_order),
@@ -168,7 +168,7 @@ public:
  * ParseTree
  */
 class ParseTree {
-public:
+ public:
   ParseTree(std::vector<std::string> _tableList,
             std::vector<std::shared_ptr<Project>> _project,
             std::vector<std::shared_ptr<LoopPredicate>> _loop_pred,
@@ -194,55 +194,34 @@ public:
 };
 
 void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree);
-
 void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree);
 
 void from_json(const json &j, std::shared_ptr<LoopPredicate> &loop_pred);
-
 void to_json(json &j, const std::shared_ptr<LoopPredicate> &loop_pred);
 
 void from_json(const json &j, std::shared_ptr<Project> &proj);
-
 void to_json(json &j, const std::shared_ptr<Project> &proj);
 
 void from_json(const json &j, std::shared_ptr<OrderBy> &order_by);
-
 void to_json(json &j, const std::shared_ptr<OrderBy> &order_by);
 
 void from_json(const json &j, std::shared_ptr<Expr> &expr);
-
 void from_json(const json &j, std::shared_ptr<ColumnReference> &c);
-
 void from_json(const json &j, std::shared_ptr<IntLiteral> &i);
-
 void from_json(const json &j, std::shared_ptr<StrLiteral> &s);
-
 void from_json(const json &j, std::shared_ptr<Comparative> &pred);
-
 void from_json(const json &j, std::shared_ptr<Disjunctive> &pred);
-
 void from_json(const json &j, std::shared_ptr<Conjunctive> &pred);
-
 void from_json(const json &j, std::shared_ptr<Arithmetic> &pred);
-
 void from_json(const json &j, std::shared_ptr<AggFunc> &agg);
-
 void to_json(json &j, const std::shared_ptr<Expr> &expr);
-
 void to_json(json &j, const std::shared_ptr<ColumnReference> &c);
-
 void to_json(json &j, const std::shared_ptr<IntLiteral> &i);
-
 void to_json(json &j, const std::shared_ptr<StrLiteral> &s);
-
 void to_json(json &j, const std::shared_ptr<Comparative> &pred);
-
 void to_json(json &j, const std::shared_ptr<Disjunctive> &pred);
-
 void to_json(json &j, const std::shared_ptr<Conjunctive> &pred);
-
 void to_json(json &j, const std::shared_ptr<Arithmetic> &pred);
-
 void to_json(json &j, const std::shared_ptr<AggFunc> &agg);
 
 }

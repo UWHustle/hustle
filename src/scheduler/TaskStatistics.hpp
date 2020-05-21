@@ -9,19 +9,17 @@
 namespace hustle {
 
 class TaskStatistics {
-public:
+ public:
   explicit TaskStatistics(const Scheduler &scheduler)
       : scheduler_(scheduler) {}
 
   void summarizePerQueryToStream(std::ostream &os) const;
-
   void printPerQueryToStream(std::ostream &os) const;
 
   void printPerColumnPreprocessingToStream(std::ostream &os) const;
-
   void summarizePerColumnPreprocessingToStream(std::ostream &os) const;
 
-private:
+ private:
   // We might want to construct some indexing data structures ...
   const Scheduler &scheduler_;
 

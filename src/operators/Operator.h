@@ -12,53 +12,54 @@
 
 namespace hustle::operators {
 
-class Operator {
+    class Operator {
 
-public:
-  virtual void execute(Task *ctx) = 0;
+    public:
+        virtual void execute(Task *ctx) = 0;
 
-  std::size_t getOperatorIndex() const {
-    return op_index_;
-  }
+        std::size_t getOperatorIndex() const {
+            return op_index_;
+        }
 
-  void setOperatorIndex(const std::size_t op_index) {
-    op_index_ = op_index;
-  }
+        void setOperatorIndex(const std::size_t op_index) {
+            op_index_ = op_index;
+        }
 
-  std::size_t getQueryId() const {
-    return query_id_;
-  }
+        std::size_t getQueryId() const {
+            return query_id_;
+        }
+        std::shared_ptr<OperatorResult> result_;
 
-  std::shared_ptr<OperatorResult> result_;
+        //TODO(nicholas): Make private
+        Task* createTask() {
+            return CreateLambdaTask([this](Task *ctx) {
+                ctx->setTaskType(TaskType::kRelationalOperator);
+                ctx->setProfiling(true);
+                ctx->setCascade(true);
+                ctx->setTaskMajorId(query_id_);
 
-  //TODO(nicholas): Make private
-  Task *createTask() {
-    return CreateLambdaTask([this](Task *ctx) {
-      ctx->setTaskType(TaskType::kRelationalOperator);
-      ctx->setProfiling(true);
-      ctx->setCascade(true);
-      ctx->setTaskMajorId(query_id_);
+                this->execute(ctx);
+            });
+        }
 
-      this->execute(ctx);
-    });
-  }
+    protected:
+        explicit Operator(const std::size_t query_id)
+                : query_id_(query_id) {}
 
-protected:
-  explicit Operator(const std::size_t query_id)
-      : query_id_(query_id) {}
-
-  const std::size_t query_id_;
-
-
-private:
+        const std::size_t query_id_;
 
 
-  std::size_t op_index_;
+    private:
 
-  DISALLOW_COPY_AND_ASSIGN(Operator);
 
+        std::size_t op_index_;
+
+        DISALLOW_COPY_AND_ASSIGN(Operator);
+
+    };
 };
-};
+
+
 
 
 #endif //HUSTLE_OPERATOR_H

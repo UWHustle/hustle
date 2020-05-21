@@ -13,15 +13,15 @@ namespace hustle::operators {
 
 
 struct Predicate {
-  ColumnReference col_ref_;
-  arrow::compute::CompareOperator comparator_;
-  arrow::compute::Datum value_;
+    ColumnReference col_ref_;
+    arrow::compute::CompareOperator comparator_;
+    arrow::compute::Datum value_;
 };
 
 struct JoinPredicate {
-  ColumnReference left_col_ref_;
-  arrow::compute::CompareOperator comparator_;
-  ColumnReference right_col_ref_;
+    ColumnReference left_col_ref_;
+    arrow::compute::CompareOperator comparator_;
+    ColumnReference right_col_ref_;
 };
 
 /**
@@ -33,17 +33,17 @@ struct JoinPredicate {
  */
 class Node {
 protected:
-  bool is_leaf_node_;
+    bool is_leaf_node_;
 public:
-  bool is_leaf();
+    bool is_leaf();
 
-  // Should only be access if is_leaf() is false
-  FilterOperator connective_;
-  std::shared_ptr<Node> left_child_;
-  std::shared_ptr<Node> right_child_;
+    // Should only be access if is_leaf() is false
+    FilterOperator connective_;
+    std::shared_ptr<Node> left_child_;
+    std::shared_ptr<Node> right_child_;
 
-  // Should only be access if is_leaf() is true
-  std::shared_ptr<Predicate> predicate_;
+    // Should only be access if is_leaf() is true
+    std::shared_ptr<Predicate> predicate_;
 };
 
 /**
@@ -51,8 +51,7 @@ public:
  */
 class PredicateNode : public Node {
 public:
-  explicit PredicateNode(std::shared_ptr<Predicate> predicate);
-
+    explicit PredicateNode(std::shared_ptr<Predicate> predicate);
 private:
 };
 
@@ -64,9 +63,9 @@ private:
  */
 class ConnectiveNode : public Node {
 public:
-  ConnectiveNode(std::shared_ptr<Node> left_child,
-                 std::shared_ptr<Node> right_child,
-                 FilterOperator connective);
+    ConnectiveNode(std::shared_ptr<Node> left_child,
+                   std::shared_ptr<Node> right_child,
+                   FilterOperator connective);
 };
 
 /**
@@ -75,12 +74,17 @@ public:
  */
 class PredicateTree {
 public:
-  explicit PredicateTree(std::shared_ptr<Node> root);
-
-  std::shared_ptr<Node> root_;
+    explicit PredicateTree(std::shared_ptr<Node> root);
+    std::shared_ptr<Node> root_;
 };
 
 }
+
+
+
+
+
+
 
 
 #endif //HUSTLE_PREDICATE_H

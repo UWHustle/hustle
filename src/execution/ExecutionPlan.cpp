@@ -31,7 +31,7 @@ void ExecutionPlan::execute() {
   std::vector<Continuation> c_operators(operators_.size());
 
   for (std::unique_ptr<Operator> &op : operators_) {
-        DCHECK(op != nullptr);
+    DCHECK(op != nullptr);
     const std::size_t op_index = op->getOperatorIndex();
     const Continuation op_cont = scheduler->allocateContinuation();
 
@@ -59,7 +59,7 @@ void ExecutionPlan::execute() {
   auto start_time = std::make_shared<clock::time_point>(clock::now());
 
   scheduler->addTask(
-      CreateLambdaTask([qid = query_id_, operators, start_time] {
+      CreateLambdaTask([qid = query_id_, operators, start_time]{
         if (FLAGS_print_per_query_span) {
           const auto &zero_time = simple_profiler.zero_time();
           const double start = std::chrono::duration<double>(

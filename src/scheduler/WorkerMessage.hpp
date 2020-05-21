@@ -15,24 +15,24 @@ enum class WorkerMessageType {
 };
 
 class WorkerMessage {
-public:
+ public:
   inline WorkerMessageType getMessageType() const {
     return msg_type_;
   }
 
-protected:
+ protected:
   explicit WorkerMessage(const WorkerMessageType msg_type)
       : msg_type_(msg_type) {}
 
   const WorkerMessageType msg_type_;
 
-private:
+ private:
   DISALLOW_COPY_AND_ASSIGN(WorkerMessage);
 };
 
-template<WorkerMessageType msg_type>
+template <WorkerMessageType msg_type>
 class SimpleWorkerMessage : public WorkerMessage {
-public:
+ public:
   SimpleWorkerMessage()
       : WorkerMessage(msg_type) {}
 };
@@ -40,16 +40,16 @@ public:
 using WorkerJoinMessage = SimpleWorkerMessage<WorkerMessageType::kJoin>;
 
 class WorkerTaskMessage : public WorkerMessage {
-public:
+ public:
   explicit WorkerTaskMessage(Task *task)
       : WorkerMessage(WorkerMessageType::kTask),
         task_(task) {}
 
-  inline Task *getTask() const {
+  inline Task* getTask() const {
     return task_.get();
   }
 
-private:
+ private:
   std::unique_ptr<Task> task_;
 
   DISALLOW_COPY_AND_ASSIGN(WorkerTaskMessage);
