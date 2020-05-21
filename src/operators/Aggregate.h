@@ -84,13 +84,19 @@ public:
 
 private:
 
-  std::mutex agg_builder_mutex_;
-  std::mutex group_builder_mutex_;
+  // If a thread wants to insert a group and its aggregate into group_builder_ 
+  // and aggregate_builder_, then it must grab this mutex. Otherwise, another 
+  // thread may insert a different aggregate, associating the group with an 
+  // incorrect aggregate.
   std::mutex builder_mutex_;
 
+  // The output table's schema
   std::shared_ptr<arrow::Schema> out_schema_;
-  std::shared_ptr<Table> out_table_;
+  // The output table's data.
   std::vector<std::shared_ptr<arrow::ArrayData>> out_table_data_;
+  // The new output table containing the group columns and aggregate columns.
+  std::shared_ptr<Table> out_table_;
+
 
   // Operator result from an upstream operator
   std::shared_ptr<OperatorResult> prev_result_;
@@ -107,16 +113,13 @@ private:
   std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
 
   // A StructType containing the types of all group by columns
-  std::shared_ptr<arrow::DataType> group_type;
+  std::shared_ptr<arrow::DataType> groupt_type_;
   // We append each group to this after we compute the aggregate for that
   // group.
-  std::shared_ptr<arrow::StructBuilder> group_builder;
-
-  std::shared_ptr<arrow::StructBuilder> builder;
-
+  std::shared_ptr<arrow::StructBuilder> group_builder_;
   // A vector of Arrays containing the unique values of each of the group
   // by columns.
-  std::vector<std::shared_ptr<arrow::Array>> unique_values_;
+  std::vector<std::shared_ptr<arrow::Array>> all_unique_values_;
 
   void sort();
 
@@ -139,8 +142,8 @@ private:
    * @return An ArrayBuilder of the correct type for the aggregate we want
    * to compute.
    */
-  std::shared_ptr<arrow::ArrayBuilder>
-  get_aggregate_builder(AggregateKernels kernel);
+  std::shared_ptr<arrow::ArrayBuilder>get_aggregate_builder(
+      AggregateKernels kernel);
 
   /**
    * Compute the aggregate for a single group.
@@ -153,9 +156,10 @@ private:
    *
    * @return A Scalar Datum containing the aggregate
    */
-  arrow::compute::Datum compute_aggregate(AggregateKernels kernel,
-                                          std::shared_ptr<arrow::ChunkedArray> aggregate_col,
-                                          std::shared_ptr<arrow::ChunkedArray> group_filter);
+  arrow::compute::Datum compute_aggregate(
+      AggregateKernels kernel,
+      std::shared_ptr<arrow::ChunkedArray> aggregate_col,
+      std::shared_ptr<arrow::ChunkedArray> group_filter);
 
 
   /**
@@ -165,7 +169,7 @@ private:
    * passing in its = [0, 3, 7] would insert unique_values_[0],
    * unique_values_[3], and unique_values_[7], into group_builder_.
    */
-  void insert_group(std::vector<int> its, int group_id);
+  void insert_group(std::vector<int> its);
 
   /**
    * Insert the aggregate of a single group into aggregate_builder_.
