@@ -40,23 +40,19 @@ Select::get_filter(const std::shared_ptr<Node> &node,
   auto left_child_filter = get_filter(node->left_child_, block);
   auto right_child_filter = get_filter(node->right_child_, block);
 
-  arrow::compute::FunctionContext function_context(
-      arrow::default_memory_pool());
+  arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
   arrow::compute::Datum block_filter;
 
   switch (node->connective_) {
     case AND: {
-      status = arrow::compute::And(&function_context,
-                                   left_child_filter,
-                                   right_child_filter, &block_filter);
+      status = arrow::compute::And(
+          &function_context, left_child_filter, right_child_filter, &block_filter);
       evaluate_status(status, __FUNCTION__, __LINE__);
       break;
     }
     case OR: {
-      status = arrow::compute::Or(&function_context,
-                                  left_child_filter,
-                                  right_child_filter, &block_filter);
-
+      status = arrow::compute::Or(
+          &function_context, left_child_filter, right_child_filter, &block_filter);
       evaluate_status(status, __FUNCTION__, __LINE__);
       break;
     }
@@ -73,12 +69,11 @@ void Select::execute(Task *ctx) {
 
   for (int i = 0; i < table_->get_num_blocks(); i++) {
 
-    // Task = get the filter for one block and store it in filter_vector
+    // Each task gets the filter for one block and stores it in filter_vector
     ctx->spawnLambdaTask([this, i]() {
 
       auto block = table_->get_block(i);
       auto block_filter = this->get_filter(tree_->root_, block);
-      // block filters must be in block-order.
       filter_vector_[i] = block_filter.make_array();
 
     });
@@ -100,19 +95,15 @@ arrow::compute::Datum Select::get_filter(
 
   arrow::Status status;
 
-  arrow::compute::FunctionContext function_context(
-      arrow::default_memory_pool());
+  arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
   arrow::compute::CompareOptions compare_options(predicate->comparator_);
   arrow::compute::Datum block_filter;
 
   auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
   auto value = predicate->value_;
 
-  status = arrow::compute::Compare(&function_context,
-                                   select_col,
-                                   value,
-                                   compare_options,
-                                   &block_filter);
+  status = arrow::compute::Compare(
+      &function_context, select_col, value, compare_options, &block_filter);
   evaluate_status(status, __FUNCTION__, __LINE__);
 
   return block_filter;
