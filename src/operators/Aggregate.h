@@ -14,9 +14,9 @@ namespace operators {
 
 // Types of aggregates we can perform. COUNT is currently not supported.
 enum AggregateKernels {
-  SUM,
-  COUNT,
-  MEAN
+    SUM,
+    COUNT,
+    MEAN
 };
 
 /**
@@ -35,7 +35,7 @@ struct AggregateReference {
 };
 
 
-class Aggregate : public Operator{
+class Aggregate : public Operator {
 public:
 
     /**
@@ -61,11 +61,11 @@ public:
      * we should order by.
      */
     Aggregate(
-            const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            std::vector<AggregateReference> aggregate_units,
-            std::vector<ColumnReference> group_by_refs,
-            std::vector<ColumnReference> order_by_refs);
+        const std::size_t query_id,
+        std::shared_ptr<OperatorResult> prev_result,
+        std::vector<AggregateReference> aggregate_units,
+        std::vector<ColumnReference> group_by_refs,
+        std::vector<ColumnReference> order_by_refs);
 
     /**
      * Compute the aggregate(s) specified by the parameters passed into the
@@ -79,10 +79,24 @@ public:
      */
     void execute(Task *ctx) override;
 
-    std::shared_ptr<OperatorResult> run();
+    std::shared_ptr<OperatorResult> finish();
 
 
 private:
+
+    // If a thread wants to insert a group and its aggregate into group_builder_
+    // and aggregate_builder_, then it must grab this mutex. Otherwise, another
+    // thread may insert a different aggregate, associating the group with an
+    // incorrect aggregate.
+    std::mutex builder_mutex_;
+
+    // The output table's schema
+    std::shared_ptr<arrow::Schema> out_schema_;
+    // The output table's data.
+    std::vector<std::shared_ptr<arrow::ArrayData>> out_table_data_;
+    // The new output table containing the group columns and aggregate columns.
+    std::shared_ptr<Table> out_table_;
+
 
     // Operator result from an upstream operator
     std::shared_ptr<OperatorResult> prev_result_;
@@ -99,14 +113,37 @@ private:
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
 
     // A StructType containing the types of all group by columns
-    std::shared_ptr<arrow::DataType> group_type;
+    std::shared_ptr<arrow::DataType> groupt_type_;
     // We append each group to this after we compute the aggregate for that
     // group.
-    std::shared_ptr<arrow::StructBuilder> group_builder;
-
+    std::shared_ptr<arrow::StructBuilder> group_builder_;
     // A vector of Arrays containing the unique values of each of the group
     // by columns.
-    std::vector<std::shared_ptr<arrow::Array>> unique_values_;
+    std::vector<std::shared_ptr<arrow::Array>> all_unique_values_;
+
+    void sort();
+
+    /**
+     * Construct the schema for the output table.
+     *
+     * @param kernel The type of aggregate we want to compute
+     * @param agg_col_name The column over which we want to compute the
+     * aggregate.
+     *
+     * @return The schema for the output table.
+     */
+    std::shared_ptr<arrow::Schema> get_output_schema(
+        AggregateKernels kernel, std::string agg_col_name);
+
+    /**
+     * Construct an ArrayBuilder for the aggregate values.
+     *
+     * @param kernel The type of aggregate we want to compute
+     * @return An ArrayBuilder of the correct type for the aggregate we want
+     * to compute.
+     */
+    std::shared_ptr<arrow::ArrayBuilder> get_aggregate_builder(
+        AggregateKernels kernel);
 
     /**
      * Compute the aggregate for a single group.
@@ -119,31 +156,11 @@ private:
      *
      * @return A Scalar Datum containing the aggregate
      */
-    arrow::compute::Datum compute_aggregate(AggregateKernels kernel,
-                                            std::shared_ptr<arrow::ChunkedArray> aggregate_col,
-                                            std::shared_ptr<arrow::ChunkedArray> group_filter);
+    arrow::compute::Datum compute_aggregate(
+        AggregateKernels kernel,
+        std::shared_ptr<arrow::ChunkedArray> aggregate_col,
+        std::shared_ptr<arrow::ChunkedArray> group_filter);
 
-    /**
-     * Construct the schema for the output table.
-     *
-     * @param kernel The type of aggregate we want to compute
-     * @param agg_col_name The column over which we want to compute the
-     * aggregate.
-     *
-     * @return The schema for the output table.
-     */
-    std::shared_ptr<arrow::Schema> get_output_schema(
-            AggregateKernels kernel, std::string agg_col_name);
-
-    /**
-     * Construct an ArrayBuilder for the aggregate values.
-     *
-     * @param kernel The type of aggregate we want to compute
-     * @return An ArrayBuilder of the correct type for the aggregate we want
-     * to compute.
-     */
-    std::shared_ptr<arrow::ArrayBuilder>
-    get_aggregate_builder(AggregateKernels kernel);
 
     /**
      * Insert a particular group into the group_builder_
@@ -152,7 +169,7 @@ private:
      * passing in its = [0, 3, 7] would insert unique_values_[0],
      * unique_values_[3], and unique_values_[7], into group_builder_.
      */
-    void insert_group(int *its);
+    void insert_group(std::vector<int> its);
 
     /**
      * Insert the aggregate of a single group into aggregate_builder_.
@@ -171,10 +188,9 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_group_filter(int* its);
+    std::shared_ptr<arrow::ChunkedArray> get_group_filter(std::vector<int> its);
 
-    std::shared_ptr<arrow::Array> get_unique_values(
-            ColumnReference group_ref);
+    std::shared_ptr<arrow::Array> get_unique_values(ColumnReference group_ref);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -186,15 +202,17 @@ private:
      * @return A filter corresponding to all rows of col_ref equal to value,
      * i.e. the filter corresponding to a single group of col_ref.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_filter(
-            ColumnReference col_ref,
-            arrow::compute::Datum value);
+    std::shared_ptr<arrow::ChunkedArray> get_unique_value_filter(
+        ColumnReference col_ref,
+        arrow::compute::Datum value);
 
     /**
      * @return A vector of ArrayBuilders corresponding to each of the group
      * by columns.
      */
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_group_builders();
+
+    void compute_aggregates(Task *ctx);
 };
 
 } // namespace operators

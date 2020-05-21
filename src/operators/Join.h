@@ -10,19 +10,19 @@
 #include "Operator.h"
 
 namespace hustle::operators {
-    
-class Join : public Operator{
+
+class Join : public Operator {
 public:
 
-     /**
-      * Construct an Join operator to perform joins on two or more tables.
-      *
-      * @param prev_result OperatorResult form an upstream operator.
-      * @param graph A graph specifying all join predicates
-      */
+    /**
+     * Construct an Join operator to perform joins on two or more tables.
+     *
+     * @param prev_result OperatorResult form an upstream operator.
+     * @param graph A graph specifying all join predicates
+     */
     Join(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            JoinGraph graph);
+         std::shared_ptr<OperatorResult> prev_result,
+         JoinGraph graph);
 
     /**
     * Perform a natural join on two tables using hash join.
@@ -34,7 +34,7 @@ public:
     */
     void execute(Task *ctx) override;
 
-    std::shared_ptr<OperatorResult> run();
+    std::shared_ptr<OperatorResult> finish();
 
 private:
 
@@ -43,15 +43,17 @@ private:
     // A graph specifying all join predicates
     JoinGraph graph_;
 
-    // Left (outer) table
-    LazyTable left_;
-    // Right (inner) table
-    LazyTable right_;
-
-    std::string left_join_col_name_;
-    std::string right_join_col_name_;
 
     std::unordered_map<int64_t, int64_t> hash_table_;
+
+    std::vector<std::vector<int64_t>> new_left_indices_vector;
+    std::vector<std::vector<int64_t>> new_right_indices_vector;
+
+    std::vector<arrow::compute::Datum> joined_indices_;
+
+    std::mutex hash_table_mutex_;
+    std::mutex join_mutex_;
+
 
     /**
      * Build a hash table on a column. It is assumed that the column will be
@@ -61,8 +63,8 @@ private:
      * @return a hash table mapping key values to their index location in the
      * table.
      */
-    std::unordered_map<int64_t, int64_t> build_hash_table
-            (const std::shared_ptr<arrow::ChunkedArray>& col);
+    void build_hash_table
+        (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx);
 
     /**
      * Perform the probe phase of hash join.
@@ -71,8 +73,8 @@ private:
      * @return A pair of index arrays corresponding to rows of the left table
      * that join with rows of the right table.
      */
-    std::vector<arrow::compute::Datum> probe_hash_table
-        (const std::shared_ptr<arrow::ChunkedArray>& probe_col);
+    void probe_hash_table
+        (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx);
 
     /**
      * Perform a single hash join.
@@ -81,7 +83,8 @@ private:
      * prev_result, but now their index arrays are updated, i.e. all indices
      * that did not satisfy the join predicate are not included.
      */
-    std::shared_ptr<OperatorResult> hash_join();
+    void hash_join(LazyTable left, std::string left_col, LazyTable right,
+                   std::string right_col, Task *ctx);
 
     /**
      * After performing a single join, we must eliminate rows from other
@@ -95,8 +98,10 @@ private:
      * that did not satisfy the join predicate are not included.
      */
     std::shared_ptr<OperatorResult> back_propogate_result
-    (std::vector<arrow::compute::Datum> joined_indices);
+        (LazyTable left, LazyTable right,
+         std::vector<arrow::compute::Datum> joined_indices);
 
+    void finish_probe();
 };
 
 } // namespace hustle
