@@ -8,19 +8,20 @@
 namespace hustle {
 
 class TaskName {
- public:
+public:
   virtual ~TaskName() {}
+
   virtual std::string getName() const = 0;
 
- protected:
+protected:
   TaskName() {}
 
- private:
+private:
   DISALLOW_COPY_AND_ASSIGN(TaskName);
 };
 
 class SimpleTaskName : public TaskName {
- public:
+public:
   explicit SimpleTaskName(const std::string &name)
       : name_(name) {}
 
@@ -28,7 +29,7 @@ class SimpleTaskName : public TaskName {
     return name_;
   }
 
- private:
+private:
   const std::string name_;
 
   DISALLOW_COPY_AND_ASSIGN(SimpleTaskName);

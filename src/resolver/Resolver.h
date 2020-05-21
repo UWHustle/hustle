@@ -13,7 +13,7 @@ namespace hustle {
 namespace resolver {
 
 class Resolver {
- public:
+public:
 
   Resolver(hustle::catalog::Catalog *catalog) : catalog_(catalog) {}
 
@@ -45,6 +45,7 @@ class Resolver {
    */
   std::shared_ptr<Expr> resolveExpr(
       const std::shared_ptr<hustle::parser::Expr> &expr);
+
   /**
    * Function to resolve hustle::parser::Comparative
    */
@@ -99,7 +100,7 @@ class Resolver {
    */
   std::string toString(int indent);
 
- private:
+private:
   hustle::catalog::Catalog *catalog_;
   std::shared_ptr<Plan> plan_;
   std::map<int, int> map_vir_to_real; // matching from virtual to real table id

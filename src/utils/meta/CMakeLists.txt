@@ -8,15 +8,15 @@ add_library(hustle_src_utils_meta_TypeListMetaFunctions ../../empty_src.cpp Type
 
 # Link dependencies:
 target_link_libraries(hustle_src_utils_meta_MultipleDispatcher
-                      glog
-                      hustle_src_utils_meta_Common
-                      hustle_src_utils_meta_TypeList)
+        glog
+        hustle_src_utils_meta_Common
+        hustle_src_utils_meta_TypeList)
 target_link_libraries(hustle_src_utils_meta_TMP
-                      hustle_src_utils_meta_Common
-                      hustle_src_utils_meta_FunctionTraits
-                      hustle_src_utils_meta_TypeList)
+        hustle_src_utils_meta_Common
+        hustle_src_utils_meta_FunctionTraits
+        hustle_src_utils_meta_TypeList)
 target_link_libraries(hustle_src_utils_meta_TypeList
-                      hustle_src_utils_meta_Common
-                      hustle_src_utils_meta_TypeListMetaFunctions)
+        hustle_src_utils_meta_Common
+        hustle_src_utils_meta_TypeListMetaFunctions)
 target_link_libraries(hustle_src_utils_meta_TypeListMetaFunctions
-                      hustle_src_utils_meta_Common)
+        hustle_src_utils_meta_Common)

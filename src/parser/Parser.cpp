@@ -20,13 +20,13 @@ void Parser::parse(const std::string &sql, hustle::HustleDB &hustleDB) {
 
   std::string text =
       "{\"tableList\": [" + std::string(tableList) +
-          "], \"project\": [" + std::string(project) +
-          "], \"loop_pred\": [" + std::string(loopPred) +
-          "], \"other_pred\": [" + std::string(otherPred) +
-          "], \"aggregate\": [" + std::string(aggregate) +
-          "], \"group_by\": [" + std::string(groupBy) +
-          "], \"order_by\": [" + std::string(orderBy) +
-          "]}";
+      "], \"project\": [" + std::string(project) +
+      "], \"loop_pred\": [" + std::string(loopPred) +
+      "], \"other_pred\": [" + std::string(otherPred) +
+      "], \"aggregate\": [" + std::string(aggregate) +
+      "], \"group_by\": [" + std::string(groupBy) +
+      "], \"order_by\": [" + std::string(orderBy) +
+      "]}";
 
   json j = json::parse(text);
   parse_tree_ = j;

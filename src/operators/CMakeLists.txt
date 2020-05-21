@@ -14,8 +14,7 @@ target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
         ${ARROW_SHARED_LIB}
-)
-
+        )
 
 
 add_executable(hustle_join_test "tests/JoinTest.cpp")
@@ -23,7 +22,7 @@ target_link_libraries(hustle_join_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_table
         hustle_src_operators
@@ -37,7 +36,7 @@ target_link_libraries(hustle_aggregate_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_table
         hustle_src_operators
@@ -51,7 +50,7 @@ target_link_libraries(hustle_select_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_table
         hustle_src_operators
@@ -65,7 +64,7 @@ target_link_libraries(hustle_SSB_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_table
         hustle_src_operators

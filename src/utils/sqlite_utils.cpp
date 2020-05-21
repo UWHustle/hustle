@@ -9,7 +9,8 @@ namespace utils {
 namespace {
 
 // The callback function used by sqlite
-static int callback_print_plan(void *result, int argc, char **argv, char **azColName) {
+static int
+callback_print_plan(void *result, int argc, char **argv, char **azColName) {
   int i;
   for (i = 0; i < argc; i++) {
     if (std::strcmp(azColName[i], "detail") == 0) {
@@ -24,7 +25,8 @@ static int callback_print_plan(void *result, int argc, char **argv, char **azCol
 
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // Returns
-std::string executeSqliteReturnOutputString(const std::string &sqlitePath, const std::string &sql) {
+std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
+                                            const std::string &sql) {
 
   sqlite3 *db;
   char *zErrMsg = 0;
@@ -34,7 +36,8 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath, const
   rc = sqlite3_open(sqlitePath.c_str(), &db);
 
   if (rc) {
-    fprintf(stderr, "Can't open sqlite catalog database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "Can't open sqlite catalog database: %s\n",
+            sqlite3_errmsg(db));
     exit(-1);
   } else {
 //    fprintf(stdout, "Opened database successfully\n");
@@ -56,7 +59,8 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath, const
 
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // No output is returned
-bool executeSqliteNoOutput(const std::string &sqlitePath, const std::string &sql) {
+bool
+executeSqliteNoOutput(const std::string &sqlitePath, const std::string &sql) {
 
   sqlite3 *db;
   char *zErrMsg = 0;
@@ -65,7 +69,8 @@ bool executeSqliteNoOutput(const std::string &sqlitePath, const std::string &sql
   rc = sqlite3_open(sqlitePath.c_str(), &db);
 
   if (rc) {
-    fprintf(stderr, "Can't open sqlite catalog database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "Can't open sqlite catalog database: %s\n",
+            sqlite3_errmsg(db));
     return false;
   } else {
 //    fprintf(stdout, "Opened database successfully\n");

@@ -6,7 +6,7 @@ add_library(
 
 target_link_libraries(hustle_src_resolver
         hustle_src_parser
-)
+        )
 
 
 add_executable(hustle_resolver_simple_test "tests/HustleResolver_simple_test.cpp")

@@ -25,8 +25,12 @@ class ResolverSimpleTest : public Test {
 
     // Create table Subscriber
     hustle::catalog::TableSchema ts("Subscriber");
-    hustle::catalog::ColumnSchema c1("c1", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema c2("c2", {hustle::catalog::HustleType::INTEGER, 0}, false, true);
+    hustle::catalog::ColumnSchema c1("c1",
+                                     {hustle::catalog::HustleType::INTEGER, 0},
+                                     true, false);
+    hustle::catalog::ColumnSchema c2("c2",
+                                     {hustle::catalog::HustleType::INTEGER, 0},
+                                     false, true);
     ts.addColumn(c1);
     ts.addColumn(c2);
     ts.setPrimaryKey({});
@@ -35,8 +39,12 @@ class ResolverSimpleTest : public Test {
 
     // Create table AccessInfo
     hustle::catalog::TableSchema ts1("AccessInfo");
-    hustle::catalog::ColumnSchema c3("c3", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema c4("c4", {hustle::catalog::HustleType::INTEGER, 0}, false, true);
+    hustle::catalog::ColumnSchema c3("c3",
+                                     {hustle::catalog::HustleType::INTEGER, 0},
+                                     true, false);
+    hustle::catalog::ColumnSchema c4("c4",
+                                     {hustle::catalog::HustleType::INTEGER, 0},
+                                     false, true);
     ts1.addColumn(c3);
     ts1.addColumn(c4);
     ts1.setPrimaryKey({});
@@ -55,7 +63,8 @@ TEST_F(ResolverSimpleTest, test1) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(
+      hustleDB.getCatalog());
   parser->parse(query, hustleDB);
   resolver->resolve(parser->getParseTree());
   std::cout << "Plan:" << resolver->toString(4) << std::endl;
@@ -74,7 +83,8 @@ TEST_F(ResolverSimpleTest, test2) {
   hustleDB.getPlan(query);
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(
+      hustleDB.getCatalog());
   parser->parse(query, hustleDB);
   resolver->resolve(parser->getParseTree());
   std::cout << "Plan:" << resolver->toString(4) << std::endl;

@@ -1,16 +1,16 @@
-macro (set_gflags_lib_name)
+macro(set_gflags_lib_name)
     if (BUILD_SHARED_LIBS)
         set(GFLAGS_LIB_NAME gflags_nothreads-shared)
-    else()
+    else ()
         set(GFLAGS_LIB_NAME gflags_nothreads-static)
-    endif()
-endmacro (set_gflags_lib_name)
+    endif ()
+endmacro(set_gflags_lib_name)
 
-set_gflags_lib_name ()
+set_gflags_lib_name()
 
 set(THIRD_PARTY_SOURCE_DIR "${PROJECT_SOURCE_DIR}/third_party")
 
-add_subdirectory ("${THIRD_PARTY_SOURCE_DIR}/gflags" "${CMAKE_CURRENT_BINARY_DIR}/third_party/gflags")
+add_subdirectory("${THIRD_PARTY_SOURCE_DIR}/gflags" "${CMAKE_CURRENT_BINARY_DIR}/third_party/gflags")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/third_party/gflags/include")
 
 add_subdirectory("${THIRD_PARTY_SOURCE_DIR}/glog" "${CMAKE_CURRENT_BINARY_DIR}/third_party/glog")

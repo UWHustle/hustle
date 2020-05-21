@@ -53,7 +53,7 @@ Scheduler::Scheduler(const std::size_t num_workers,
   clear();
 }
 
-Scheduler& Scheduler::GlobalInstance() {
+Scheduler &Scheduler::GlobalInstance() {
   static Scheduler instance(FLAGS_num_threads, true);
   return instance;
 }
@@ -83,7 +83,7 @@ std::size_t Scheduler::getNumWorkers() const {
 Continuation Scheduler::allocateContinuation() {
   Continuation value = continuation_counter_.load(std::memory_order_relaxed);
   while (!continuation_counter_.compare_exchange_weak(
-              value, value + 1, std::memory_order_relaxed)) {}
+      value, value + 1, std::memory_order_relaxed)) {}
   return value;
 }
 
@@ -158,7 +158,7 @@ void Scheduler::start() {
   for (auto &worker : workers_) {
     worker->start();
   }
-  thread_ = std::make_unique<std::thread>([&]{ this->execute(); });
+  thread_ = std::make_unique<std::thread>([&] { this->execute(); });
 }
 
 void Scheduler::join() {
@@ -169,7 +169,7 @@ void Scheduler::join() {
   clear();
 }
 
-inline Task* Scheduler::releaseTaskByID(const TaskID task_id) {
+inline Task *Scheduler::releaseTaskByID(const TaskID task_id) {
   DCHECK(IsTaskID(task_id));
   std::lock_guard<std::mutex> tasks_lock(tasks_mutex_);
   const auto it = tasks_.find(task_id);
@@ -264,7 +264,7 @@ void Scheduler::execute() {
       }
       case SchedulerMessageType::kTaskCompletion: {
         SchedulerTaskCompletionMessage *task_completion =
-            static_cast<SchedulerTaskCompletionMessage*>(msg.get());
+            static_cast<SchedulerTaskCompletionMessage *>(msg.get());
 
         processDependents(task_completion->getTaskID());
 

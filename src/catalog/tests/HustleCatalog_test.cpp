@@ -64,7 +64,8 @@ TEST(CatalogTest, AddTable) {
 
   std::filesystem::remove("catalog.json");
   std::filesystem::remove("hustle_sqlite.db");
-  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json", "hustle_sqlite.db");
+  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json",
+                                                            "hustle_sqlite.db");
 
   EXPECT_FALSE(catalog.TableExists("Subscriber"));
 
@@ -96,7 +97,8 @@ TEST(CatalogTest, DropTable) {
 
   std::filesystem::remove("catalog.json");
   std::filesystem::remove("hustle_sqlite.db");
-  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json", "hustle_sqlite.db");
+  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json",
+                                                            "hustle_sqlite.db");
 
   TableSchema ts1("AccessInfo");
   ColumnSchema c3("c3", {HustleType::INTEGER, 0}, true, false);
@@ -243,7 +245,8 @@ namespace catalog {
 TEST(CatalogTest, Serialization) {
   std::filesystem::remove("catalog.json");
   std::filesystem::remove("hustle_sqlite.db");
-  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json", "hustle_sqlite.db");
+  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json",
+                                                            "hustle_sqlite.db");
 
   EXPECT_FALSE(catalog.TableExists("Subscriber"));
 
@@ -306,9 +309,11 @@ TEST(CatalogTest, Serialization) {
       "c4"));
   EXPECT_FALSE(catalog_cereal.TableExists("AccessInfo").value()->ColumnExists(
       "c6"));
-  EXPECT_EQ(catalog_cereal.TableExists("AccessInfo").value()->ColumnExists("c3").value()->getName(),
+  EXPECT_EQ(catalog_cereal.TableExists("AccessInfo").value()->ColumnExists(
+      "c3").value()->getName(),
             "c3");
-  EXPECT_EQ(catalog_cereal.TableExists("AccessInfo").value()->ColumnExists("c4").value()->getName(),
+  EXPECT_EQ(catalog_cereal.TableExists("AccessInfo").value()->ColumnExists(
+      "c4").value()->getName(),
             "c4");
   EXPECT_THAT(catalog_cereal.TableExists("AccessInfo").value()->getPrimaryKey(),
               ElementsAre("c3"));
@@ -338,7 +343,8 @@ TEST(CatalogSerialization, LoadFromFile) {
   ts1.setPrimaryKey({"c3"});
 
   {
-    Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json", "hustle_sqlite.db");
+    Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json",
+                                                              "hustle_sqlite.db");
     EXPECT_TRUE(catalog.addTable(ts));
     EXPECT_TRUE(catalog.TableExists("Subscriber"));
 
@@ -346,7 +352,8 @@ TEST(CatalogSerialization, LoadFromFile) {
     EXPECT_FALSE(catalog.addTable(ts1));
   }
 
-  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json", "hustle_sqlite.db");
+  Catalog catalog = hustle::catalog::Catalog::CreateCatalog("catalog.json",
+                                                            "hustle_sqlite.db");
 
   EXPECT_TRUE(catalog.TableExists("Subscriber"));
   EXPECT_TRUE(catalog.TableExists("AccessInfo"));

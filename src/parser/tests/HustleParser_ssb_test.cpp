@@ -97,15 +97,33 @@ class ParserSSBTest : public Test {
 
     // Create table part
     hustle::catalog::TableSchema part("part");
-    hustle::catalog::ColumnSchema p_partkey("p_partkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema p_name("p_name", {hustle::catalog::HustleType::CHAR, 22}, true, false);
-    hustle::catalog::ColumnSchema p_mfgr("p_mfgr", {hustle::catalog::HustleType::CHAR, 6}, true, false);
-    hustle::catalog::ColumnSchema p_category("p_category", {hustle::catalog::HustleType::CHAR, 7}, true, false);
-    hustle::catalog::ColumnSchema p_brand1("p_brand1", {hustle::catalog::HustleType::CHAR, 9}, true, false);
-    hustle::catalog::ColumnSchema p_color("p_color", {hustle::catalog::HustleType::CHAR, 11}, true, false);
-    hustle::catalog::ColumnSchema p_type("p_type", {hustle::catalog::HustleType::CHAR, 25}, true, false);
-    hustle::catalog::ColumnSchema p_size("p_size", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema p_container("p_container", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+    hustle::catalog::ColumnSchema p_partkey("p_partkey",
+                                            {hustle::catalog::HustleType::INTEGER,
+                                             0}, true, false);
+    hustle::catalog::ColumnSchema p_name("p_name",
+                                         {hustle::catalog::HustleType::CHAR,
+                                          22}, true, false);
+    hustle::catalog::ColumnSchema p_mfgr("p_mfgr",
+                                         {hustle::catalog::HustleType::CHAR, 6},
+                                         true, false);
+    hustle::catalog::ColumnSchema p_category("p_category",
+                                             {hustle::catalog::HustleType::CHAR,
+                                              7}, true, false);
+    hustle::catalog::ColumnSchema p_brand1("p_brand1",
+                                           {hustle::catalog::HustleType::CHAR,
+                                            9}, true, false);
+    hustle::catalog::ColumnSchema p_color("p_color",
+                                          {hustle::catalog::HustleType::CHAR,
+                                           11}, true, false);
+    hustle::catalog::ColumnSchema p_type("p_type",
+                                         {hustle::catalog::HustleType::CHAR,
+                                          25}, true, false);
+    hustle::catalog::ColumnSchema p_size("p_size",
+                                         {hustle::catalog::HustleType::INTEGER,
+                                          0}, true, false);
+    hustle::catalog::ColumnSchema p_container("p_container",
+                                              {hustle::catalog::HustleType::CHAR,
+                                               10}, true, false);
     part.addColumn(p_partkey);
     part.addColumn(p_name);
     part.addColumn(p_mfgr);
@@ -121,13 +139,27 @@ class ParserSSBTest : public Test {
 
     // Create table supplier
     hustle::catalog::TableSchema supplier("supplier");
-    hustle::catalog::ColumnSchema s_suppkey("s_suppkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema s_name("s_name", {hustle::catalog::HustleType::CHAR, 25}, true, false);
-    hustle::catalog::ColumnSchema s_address("s_address", {hustle::catalog::HustleType::CHAR, 25}, true, false);
-    hustle::catalog::ColumnSchema s_city("s_city", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-    hustle::catalog::ColumnSchema s_nation("s_nation", {hustle::catalog::HustleType::CHAR, 15}, true, false);
-    hustle::catalog::ColumnSchema s_region("s_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
-    hustle::catalog::ColumnSchema s_phone("s_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
+    hustle::catalog::ColumnSchema s_suppkey("s_suppkey",
+                                            {hustle::catalog::HustleType::INTEGER,
+                                             0}, true, false);
+    hustle::catalog::ColumnSchema s_name("s_name",
+                                         {hustle::catalog::HustleType::CHAR,
+                                          25}, true, false);
+    hustle::catalog::ColumnSchema s_address("s_address",
+                                            {hustle::catalog::HustleType::CHAR,
+                                             25}, true, false);
+    hustle::catalog::ColumnSchema s_city("s_city",
+                                         {hustle::catalog::HustleType::CHAR,
+                                          10}, true, false);
+    hustle::catalog::ColumnSchema s_nation("s_nation",
+                                           {hustle::catalog::HustleType::CHAR,
+                                            15}, true, false);
+    hustle::catalog::ColumnSchema s_region("s_region",
+                                           {hustle::catalog::HustleType::CHAR,
+                                            12}, true, false);
+    hustle::catalog::ColumnSchema s_phone("s_phone",
+                                          {hustle::catalog::HustleType::CHAR,
+                                           15}, true, false);
     supplier.addColumn(s_suppkey);
     supplier.addColumn(s_name);
     supplier.addColumn(s_address);
@@ -141,14 +173,30 @@ class ParserSSBTest : public Test {
 
     // Create table customer
     hustle::catalog::TableSchema customer("customer");
-    hustle::catalog::ColumnSchema c_suppkey("c_custkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema c_name("c_name", {hustle::catalog::HustleType::CHAR, 25}, true, false);
-    hustle::catalog::ColumnSchema c_address("c_address", {hustle::catalog::HustleType::CHAR, 25}, true, false);
-    hustle::catalog::ColumnSchema c_city("c_city", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-    hustle::catalog::ColumnSchema c_nation("c_nation", {hustle::catalog::HustleType::CHAR, 15}, true, false);
-    hustle::catalog::ColumnSchema c_region("c_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
-    hustle::catalog::ColumnSchema c_phone("c_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
-    hustle::catalog::ColumnSchema c_mktsegment("c_mktsegment", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+    hustle::catalog::ColumnSchema c_suppkey("c_custkey",
+                                            {hustle::catalog::HustleType::INTEGER,
+                                             0}, true, false);
+    hustle::catalog::ColumnSchema c_name("c_name",
+                                         {hustle::catalog::HustleType::CHAR,
+                                          25}, true, false);
+    hustle::catalog::ColumnSchema c_address("c_address",
+                                            {hustle::catalog::HustleType::CHAR,
+                                             25}, true, false);
+    hustle::catalog::ColumnSchema c_city("c_city",
+                                         {hustle::catalog::HustleType::CHAR,
+                                          10}, true, false);
+    hustle::catalog::ColumnSchema c_nation("c_nation",
+                                           {hustle::catalog::HustleType::CHAR,
+                                            15}, true, false);
+    hustle::catalog::ColumnSchema c_region("c_region",
+                                           {hustle::catalog::HustleType::CHAR,
+                                            12}, true, false);
+    hustle::catalog::ColumnSchema c_phone("c_phone",
+                                          {hustle::catalog::HustleType::CHAR,
+                                           15}, true, false);
+    hustle::catalog::ColumnSchema c_mktsegment("c_mktsegment",
+                                               {hustle::catalog::HustleType::CHAR,
+                                                10}, true, false);
     customer.addColumn(c_suppkey);
     customer.addColumn(c_name);
     customer.addColumn(c_address);
@@ -163,23 +211,57 @@ class ParserSSBTest : public Test {
 
     // Create table ddate
     hustle::catalog::TableSchema ddate("ddate");
-    hustle::catalog::ColumnSchema d_datekey("d_datekey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_date("d_date", {hustle::catalog::HustleType::CHAR, 19}, true, false);
-    hustle::catalog::ColumnSchema d_dayofweek("d_dayofweek", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-    hustle::catalog::ColumnSchema d_month("d_month", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-    hustle::catalog::ColumnSchema d_year("d_year", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_yearmonthnum("d_yearmonthnum", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_yearmonth("d_yearmonth", {hustle::catalog::HustleType::CHAR, 8}, true, false);
-    hustle::catalog::ColumnSchema d_daynuminweek("d_daynuminweek", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_daynuminmonth("d_daynuminmonth", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_daynuminyear("d_daynuminyear", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_monthnuminyear("d_monthnuminyear", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_weeknuminyear("d_weeknuminyear", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema d_sellingseason("d_sellingseason", {hustle::catalog::HustleType::CHAR, 13}, true, false);
-    hustle::catalog::ColumnSchema d_lastdayinweekfl("d_lastdayinweekfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
-    hustle::catalog::ColumnSchema d_lastdayinmonthfl("d_lastdayinmonthfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
-    hustle::catalog::ColumnSchema d_holidayfl("d_holidayfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
-    hustle::catalog::ColumnSchema d_weekdayfl("d_weekdayfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
+    hustle::catalog::ColumnSchema d_datekey("d_datekey",
+                                            {hustle::catalog::HustleType::INTEGER,
+                                             0}, true, false);
+    hustle::catalog::ColumnSchema d_date("d_date",
+                                         {hustle::catalog::HustleType::CHAR,
+                                          19}, true, false);
+    hustle::catalog::ColumnSchema d_dayofweek("d_dayofweek",
+                                              {hustle::catalog::HustleType::CHAR,
+                                               10}, true, false);
+    hustle::catalog::ColumnSchema d_month("d_month",
+                                          {hustle::catalog::HustleType::CHAR,
+                                           10}, true, false);
+    hustle::catalog::ColumnSchema d_year("d_year",
+                                         {hustle::catalog::HustleType::INTEGER,
+                                          0}, true, false);
+    hustle::catalog::ColumnSchema d_yearmonthnum("d_yearmonthnum",
+                                                 {hustle::catalog::HustleType::INTEGER,
+                                                  0}, true, false);
+    hustle::catalog::ColumnSchema d_yearmonth("d_yearmonth",
+                                              {hustle::catalog::HustleType::CHAR,
+                                               8}, true, false);
+    hustle::catalog::ColumnSchema d_daynuminweek("d_daynuminweek",
+                                                 {hustle::catalog::HustleType::INTEGER,
+                                                  0}, true, false);
+    hustle::catalog::ColumnSchema d_daynuminmonth("d_daynuminmonth",
+                                                  {hustle::catalog::HustleType::INTEGER,
+                                                   0}, true, false);
+    hustle::catalog::ColumnSchema d_daynuminyear("d_daynuminyear",
+                                                 {hustle::catalog::HustleType::INTEGER,
+                                                  0}, true, false);
+    hustle::catalog::ColumnSchema d_monthnuminyear("d_monthnuminyear",
+                                                   {hustle::catalog::HustleType::INTEGER,
+                                                    0}, true, false);
+    hustle::catalog::ColumnSchema d_weeknuminyear("d_weeknuminyear",
+                                                  {hustle::catalog::HustleType::INTEGER,
+                                                   0}, true, false);
+    hustle::catalog::ColumnSchema d_sellingseason("d_sellingseason",
+                                                  {hustle::catalog::HustleType::CHAR,
+                                                   13}, true, false);
+    hustle::catalog::ColumnSchema d_lastdayinweekfl("d_lastdayinweekfl",
+                                                    {hustle::catalog::HustleType::CHAR,
+                                                     1}, true, false);
+    hustle::catalog::ColumnSchema d_lastdayinmonthfl("d_lastdayinmonthfl",
+                                                     {hustle::catalog::HustleType::CHAR,
+                                                      1}, true, false);
+    hustle::catalog::ColumnSchema d_holidayfl("d_holidayfl",
+                                              {hustle::catalog::HustleType::CHAR,
+                                               1}, true, false);
+    hustle::catalog::ColumnSchema d_weekdayfl("d_weekdayfl",
+                                              {hustle::catalog::HustleType::CHAR,
+                                               1}, true, false);
     ddate.addColumn(d_datekey);
     ddate.addColumn(d_date);
     ddate.addColumn(d_dayofweek);
@@ -203,23 +285,57 @@ class ParserSSBTest : public Test {
 
     // Create table lineorder
     hustle::catalog::TableSchema lineorder("lineorder");
-    hustle::catalog::ColumnSchema lo_orderkey("lo_orderkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_linenumber("lo_linenumber", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_custkey("lo_custkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_partkey("lo_partkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_suppkey("lo_suppkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_orderdate("lo_orderdate", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_orderpriority("lo_orderpriority", {hustle::catalog::HustleType::CHAR, 15}, true, false);
-    hustle::catalog::ColumnSchema lo_shippriority("lo_shippriority", {hustle::catalog::HustleType::CHAR, 1}, true, false);
-    hustle::catalog::ColumnSchema lo_quantity("lo_quantity", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_extendedprice("lo_extendedprice", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_ordertotalprice("lo_ordertotalprice", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_discount("lo_discount", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_revenue("lo_revenue", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_supplycost("lo_supplycost", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_tax("lo_tax", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_commitdate("lo_commitdate", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-    hustle::catalog::ColumnSchema lo_shipmode("lo_shipmode", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+    hustle::catalog::ColumnSchema lo_orderkey("lo_orderkey",
+                                              {hustle::catalog::HustleType::INTEGER,
+                                               0}, true, false);
+    hustle::catalog::ColumnSchema lo_linenumber("lo_linenumber",
+                                                {hustle::catalog::HustleType::INTEGER,
+                                                 0}, true, false);
+    hustle::catalog::ColumnSchema lo_custkey("lo_custkey",
+                                             {hustle::catalog::HustleType::INTEGER,
+                                              0}, true, false);
+    hustle::catalog::ColumnSchema lo_partkey("lo_partkey",
+                                             {hustle::catalog::HustleType::INTEGER,
+                                              0}, true, false);
+    hustle::catalog::ColumnSchema lo_suppkey("lo_suppkey",
+                                             {hustle::catalog::HustleType::INTEGER,
+                                              0}, true, false);
+    hustle::catalog::ColumnSchema lo_orderdate("lo_orderdate",
+                                               {hustle::catalog::HustleType::INTEGER,
+                                                0}, true, false);
+    hustle::catalog::ColumnSchema lo_orderpriority("lo_orderpriority",
+                                                   {hustle::catalog::HustleType::CHAR,
+                                                    15}, true, false);
+    hustle::catalog::ColumnSchema lo_shippriority("lo_shippriority",
+                                                  {hustle::catalog::HustleType::CHAR,
+                                                   1}, true, false);
+    hustle::catalog::ColumnSchema lo_quantity("lo_quantity",
+                                              {hustle::catalog::HustleType::INTEGER,
+                                               0}, true, false);
+    hustle::catalog::ColumnSchema lo_extendedprice("lo_extendedprice",
+                                                   {hustle::catalog::HustleType::INTEGER,
+                                                    0}, true, false);
+    hustle::catalog::ColumnSchema lo_ordertotalprice("lo_ordertotalprice",
+                                                     {hustle::catalog::HustleType::INTEGER,
+                                                      0}, true, false);
+    hustle::catalog::ColumnSchema lo_discount("lo_discount",
+                                              {hustle::catalog::HustleType::INTEGER,
+                                               0}, true, false);
+    hustle::catalog::ColumnSchema lo_revenue("lo_revenue",
+                                             {hustle::catalog::HustleType::INTEGER,
+                                              0}, true, false);
+    hustle::catalog::ColumnSchema lo_supplycost("lo_supplycost",
+                                                {hustle::catalog::HustleType::INTEGER,
+                                                 0}, true, false);
+    hustle::catalog::ColumnSchema lo_tax("lo_tax",
+                                         {hustle::catalog::HustleType::INTEGER,
+                                          0}, true, false);
+    hustle::catalog::ColumnSchema lo_commitdate("lo_commitdate",
+                                                {hustle::catalog::HustleType::INTEGER,
+                                                 0}, true, false);
+    hustle::catalog::ColumnSchema lo_shipmode("lo_shipmode",
+                                              {hustle::catalog::HustleType::CHAR,
+                                               10}, true, false);
     lineorder.addColumn(lo_orderkey);
     lineorder.addColumn(lo_linenumber);
     lineorder.addColumn(lo_custkey);

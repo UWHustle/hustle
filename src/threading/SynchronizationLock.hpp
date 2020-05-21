@@ -9,12 +9,12 @@
 #include "utils/Macros.hpp"
 
 class SynchronizationLock {
- public:
+public:
   SynchronizationLock() : ready_(false) {}
 
   void wait() {
     std::unique_lock<std::mutex> lock(m_);
-    cv_.wait(lock, [this]{ return this->ready_; });
+    cv_.wait(lock, [this] { return this->ready_; });
   }
 
   void release() {
@@ -27,7 +27,7 @@ class SynchronizationLock {
     return std::make_shared<SynchronizationLock>();
   }
 
- private:
+private:
   std::condition_variable cv_;
   std::mutex m_;
   bool ready_;

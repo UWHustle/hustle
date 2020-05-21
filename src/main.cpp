@@ -41,7 +41,8 @@ int main(int argc, char *argv[]) {
                       "where Subscriber.c1 = AccessInfo.c3 and Subscriber.c2 > 2 and AccessInfo.c4 < 5;";
 
   auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver = std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
+  auto resolver = std::make_shared<hustle::resolver::Resolver>(
+      hustleDB.getCatalog());
   parser->parse(query, hustleDB);
   resolver->resolve(parser->getParseTree());
   std::cout << resolver->toString(4) << std::endl;

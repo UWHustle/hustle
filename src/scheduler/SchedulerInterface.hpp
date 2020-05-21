@@ -9,10 +9,11 @@
 namespace hustle {
 
 class SchedulerMessage;
+
 class Task;
 
 class SchedulerInterface {
- public:
+public:
   SchedulerInterface() {}
 
   virtual std::size_t getNumWorkers() const = 0;
@@ -21,7 +22,8 @@ class SchedulerInterface {
 
   virtual TaskID addTask(Task *task) = 0;
 
-  virtual TaskID addTask(Task *task, const NodeID dependency, const NodeID dependent) = 0;
+  virtual TaskID
+  addTask(Task *task, const NodeID dependency, const NodeID dependent) = 0;
 
   virtual TaskID addTaskWithDependent(Task *task, const NodeID dependent) = 0;
 
@@ -33,7 +35,7 @@ class SchedulerInterface {
 
   virtual void fire(const Continuation entry) = 0;
 
- private:
+private:
   DISALLOW_COPY_AND_ASSIGN(SchedulerInterface);
 };
 

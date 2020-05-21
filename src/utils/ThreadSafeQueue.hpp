@@ -10,9 +10,9 @@
 
 #include "../utils/Macros.hpp"
 
-template <typename T>
+template<typename T>
 class ThreadSafeQueue {
- public:
+public:
   ThreadSafeQueue()
       : num_waiters_(0) {}
 
@@ -31,7 +31,7 @@ class ThreadSafeQueue {
     internal_queue_ = std::queue<T>();
   }
 
-  void push(const T& element) {
+  void push(const T &element) {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     internal_queue_.push(element);
     queue_nonempty_condition_.notify_one();
@@ -48,7 +48,7 @@ class ThreadSafeQueue {
     if (internal_queue_.empty()) {
       num_waiters_.fetch_add(1, std::memory_order_relaxed);
       queue_nonempty_condition_.wait(
-          lock, [&]{ return !internal_queue_.empty(); });
+          lock, [&] { return !internal_queue_.empty(); });
       num_waiters_.fetch_sub(1, std::memory_order_relaxed);
     }
     T popped_value(std::move(internal_queue_.front()));
@@ -72,7 +72,7 @@ class ThreadSafeQueue {
     return num_waiters_.load(std::memory_order_relaxed);
   }
 
- private:
+private:
   std::queue<T> internal_queue_;
   mutable std::mutex queue_mutex_;
   std::condition_variable queue_nonempty_condition_;

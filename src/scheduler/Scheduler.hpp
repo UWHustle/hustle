@@ -25,11 +25,11 @@
 namespace hustle {
 
 class Scheduler final : public SchedulerInterface {
- public:
+public:
   explicit Scheduler(const std::size_t num_workers,
                      const bool thread_pinning = false);
 
-  static Scheduler& GlobalInstance();
+  static Scheduler &GlobalInstance();
 
   std::size_t getNumWorkers() const override;
 
@@ -37,7 +37,8 @@ class Scheduler final : public SchedulerInterface {
 
   TaskID addTask(Task *task) override;
 
-  TaskID addTask(Task *task, const NodeID dependency, const NodeID dependent) override;
+  TaskID
+  addTask(Task *task, const NodeID dependency, const NodeID dependent) override;
 
   TaskID addTaskWithDependent(Task *task, const NodeID dependent) override;
 
@@ -59,24 +60,28 @@ class Scheduler final : public SchedulerInterface {
 
   std::size_t getTotalNumTaskEvents() const;
 
-  template <typename Functor>
+  template<typename Functor>
   void forEachTaskEvent(const Functor &functor) const;
 
- private:
+private:
   inline TaskID allocateTaskID() {
     TaskID value = task_counter_.load(std::memory_order_relaxed);
     while (!task_counter_.compare_exchange_weak(
-                value, value + 1, std::memory_order_relaxed)) {}
+        value, value + 1, std::memory_order_relaxed)) {}
     return value;
   }
 
-  inline Task* releaseTaskByID(const TaskID task_id);
+  inline Task *releaseTaskByID(const TaskID task_id);
+
   inline void addTaskIntoQueue(Task *task);
+
   inline void processTaskQueue();
 
   inline void addLinkUnsafe(const NodeID dependency, const NodeID dependent);
+
   inline void processDependentsUnsafe(
       const std::unordered_map<NodeID, Node>::iterator &node_it);
+
   inline void processDependents(const NodeID node_id);
 
   // Unsafe to use, but we might need it later.
@@ -109,7 +114,7 @@ class Scheduler final : public SchedulerInterface {
 // ----------------------------------------------------------------------------
 // Implementations of template methods follow.
 
-template <typename Functor>
+template<typename Functor>
 void Scheduler::forEachTaskEvent(const Functor &functor) const {
   for (const auto &worker : workers_) {
     for (const auto &task_event : worker->getTaskEvents()) {

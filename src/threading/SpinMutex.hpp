@@ -9,7 +9,7 @@
 namespace hustle {
 
 class SpinMutex {
- public:
+public:
   SpinMutex() : locked_(false) {
   }
 
@@ -27,15 +27,15 @@ class SpinMutex {
     locked_.store(false, std::memory_order_release);
   }
 
- private:
+private:
   std::atomic<bool> locked_;
 
   DISALLOW_COPY_AND_ASSIGN(SpinMutex);
 };
 
 typedef MutexLockImpl<SpinMutex, true> SpinMutexLock;
-template <bool actually_lock> using StaticConditionalSpinMutexLock
-    = MutexLockImpl<SpinMutex, actually_lock>;
+template<bool actually_lock> using StaticConditionalSpinMutexLock
+= MutexLockImpl<SpinMutex, actually_lock>;
 
 }  // namespace hustle
 

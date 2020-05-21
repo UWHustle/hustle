@@ -11,7 +11,7 @@ namespace hustle {
 namespace parser {
 
 class Parser {
- public:
+public:
   /**
    * This function takes as input an "EXPLAIN" sql query as well as the
    * hustleDB, calls the SQLite3's library function through sqlite3_exec,
@@ -42,7 +42,7 @@ class Parser {
    */
   std::string toString(int indent);
 
- private:
+private:
   /**
    * check if the sql query starts with an "EXPLAIN"
    * @param sql: input sql query string

@@ -13,7 +13,7 @@
 namespace hustle {
 
 class Node {
- public:
+public:
   Node() : dependency_count_(0) {}
 
   inline void setChild(const NodeID child_id, Node &child) {
@@ -22,7 +22,7 @@ class Node {
 
     child.dependents_ = std::move(dependents_);
     child.dependency_count_ = 1;
-    dependents_ = { child_id };
+    dependents_ = {child_id};
   }
 
   inline bool hasDependent(const NodeID dependent) {
@@ -46,11 +46,11 @@ class Node {
     return dependency_count_;
   }
 
-  inline const std::unordered_set<NodeID>& getDependents() const {
+  inline const std::unordered_set<NodeID> &getDependents() const {
     return dependents_;
   }
 
- private:
+private:
   std::unordered_set<NodeID> dependents_;
   std::size_t dependency_count_;
 
