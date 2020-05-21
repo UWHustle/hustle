@@ -9,12 +9,14 @@
 #include "operators/Aggregate.h"
 #include "operators/Join.h"
 #include "operators/Select.h"
+#include "scheduler/Scheduler.hpp"
 
 
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
 
 using namespace testing;
+using namespace hustle;
 using namespace hustle::operators;
 
 class JoinTestFixture : public testing::Test {
@@ -94,10 +96,17 @@ TEST_F(JoinTestFixture, EquiJoin1) {
     JoinGraph graph({{join_pred}});
     Join join_op(0, result, graph);
 
-    result = join_op.run();
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    scheduler.addTask(join_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    result = join_op.finish();
 
     auto out_table = result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
-//    out_table->print();
+    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -151,7 +160,16 @@ TEST_F(JoinTestFixture, EquiJoin2) {
 
     JoinGraph graph({{join_pred_RS, join_pred_RT}});
     Join join_op(0, result, graph);
-    result = join_op.run();
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    scheduler.addTask(join_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    result = join_op.finish();
+
 
     auto out_table = result->materialize(
             {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});
@@ -217,7 +235,14 @@ TEST_F(JoinTestFixture, EquiJoin3) {
 
     JoinGraph graph({{join_pred_RS}, {join_pred_ST}});
     Join join_op(0, result, graph);
-    result = join_op.run();
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(join_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    result = join_op.finish();
 
     auto out_table = result->materialize(
             {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});

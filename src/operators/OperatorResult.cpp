@@ -60,6 +60,10 @@ namespace hustle::operators {
             auto table = col_ref.table;
             auto col_name = col_ref.col_name;
 
+            // When we want to materialize a new aggregate table.
+            if (table == nullptr) {
+                table = get_table(0).table;
+            }
             status = schema_builder.AddField(
                     table->get_schema()->GetFieldByName(col_name));
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);

@@ -49,7 +49,7 @@ public:
      * @return A new ChunkedArray column containing only active rows of the
      * column.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+    std::shared_ptr<arrow::ChunkedArray> get_column(int i) const;
 
     /**
      * Materialize the active rows of one column of the LazyTable. This is
@@ -61,7 +61,7 @@ public:
      * column.
      */
     std::shared_ptr<arrow::ChunkedArray> get_column_by_name(
-            std::string col_name);
+            std::string col_name) const;
 
     // TODO(nicholas): Should these be private? Should I have accessors
     //  for these instead?

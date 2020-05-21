@@ -60,18 +60,18 @@ target_link_libraries(hustle_select_test
         )
 add_test(HustleSelect_test hustle_select_test)
 
-#add_executable(hustle_SSB_test "tests/SSBTest.cpp")
-#target_link_libraries(hustle_SSB_test
-#        gtest
-#        gtest_main
-#        gmock
-##        glog
-#        ${GFLAGS_LIB_NAME}
-#        hustle_src_table
-#        hustle_src_operators
-#        hustle_src_optimizer_ExecutionPlan
-#        hustle_src_scheduler_Scheduler
-#        )
+add_executable(hustle_SSB_test "tests/SSBTest.cpp")
+target_link_libraries(hustle_SSB_test
+        gtest
+        gtest_main
+        gmock
+#        glog
+        ${GFLAGS_LIB_NAME}
+        hustle_src_table
+        hustle_src_operators
+        hustle_src_optimizer_ExecutionPlan
+        hustle_src_scheduler_Scheduler
+        )
 #add_test(HustleSSB_test hustle_SSB_test)
 
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")

@@ -26,12 +26,12 @@ namespace hustle::operators{
     }
 
     std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column_by_name
-        (std::string col_name) {
+        (std::string col_name) const {
 
         return get_column(table->get_schema()->GetFieldIndex(col_name));
     }
 
-    std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) {
+    std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) const {
 
         arrow::Status status;
         auto col = arrow::compute::Datum(table->get_column(i));
