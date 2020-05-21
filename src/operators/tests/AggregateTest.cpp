@@ -43,7 +43,7 @@ protected:
         auto field_1 = arrow::field("key",arrow::int64());
         auto field_2 = arrow::field("group",arrow::utf8());
         auto field_3 = arrow::field("data", arrow::int64());
-        
+
         schema = arrow::schema({field_1, field_2, field_3});
 
         std::ofstream R_csv;
@@ -52,14 +52,14 @@ protected:
         R_csv.open("R.csv");
         S_csv.open("S.csv");
         T_csv.open("T.csv");
-        
+
         for (int i = 0; i < 6; i++) {
             R_csv << std::to_string(i) << "|";
             R_csv << "R" << std::to_string((5-i)/2) << "|";
             R_csv << std::to_string(i*10) << std::endl;
         }
         R_csv.close();
-        
+
         for (int i = 0; i < 4; i++) {
             S_csv << std::to_string(3-i) << "|";
             S_csv << "S" << std::to_string(3-i) <<  std::endl;
@@ -185,21 +185,24 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     auto result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(0, result, select_pred_tree);
+	Select select_op(0, result, select_pred_tree);
 
-    AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(0, result, {agg_ref}, {}, {});
+	Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+	scheduler.start();
+	scheduler.addTask(select_op.createTask());
+	scheduler.join();
 
-    scheduler.addTask(CreateTaskChain(
-            select_op.createTask(),
-            agg_op.createTask()));
+	result = select_op.finish();
 
-    scheduler.start();
-    scheduler.join();
+	AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+	Aggregate agg_op(0, result, {agg_ref}, {}, {});
 
-    result = agg_op.finish();
+	scheduler.start();
+	scheduler.addTask(agg_op.createTask());
+	scheduler.join();
+
+	result = agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -301,7 +304,7 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     auto out_table = result->materialize({
                                                  {agg_table, "group"},
                                                  {agg_table,"data_sum"}});
-//    out_table->print();
+    out_table->print();
 
     // Construct expected results
     arrow::Status status;

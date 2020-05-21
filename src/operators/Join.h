@@ -10,19 +10,19 @@
 #include "Operator.h"
 
 namespace hustle::operators {
-    
-class Join : public Operator{
+
+class Join : public Operator {
 public:
 
-     /**
-      * Construct an Join operator to perform joins on two or more tables.
-      *
-      * @param prev_result OperatorResult form an upstream operator.
-      * @param graph A graph specifying all join predicates
-      */
+    /**
+     * Construct an Join operator to perform joins on two or more tables.
+     *
+     * @param prev_result OperatorResult form an upstream operator.
+     * @param graph A graph specifying all join predicates
+     */
     Join(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            JoinGraph graph);
+         std::shared_ptr<OperatorResult> prev_result,
+         JoinGraph graph);
 
     /**
     * Perform a natural join on two tables using hash join.
@@ -64,7 +64,7 @@ private:
      * table.
      */
     void build_hash_table
-            (const std::shared_ptr<arrow::ChunkedArray>& col, Task * ctx);
+        (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx);
 
     /**
      * Perform the probe phase of hash join.
@@ -74,7 +74,7 @@ private:
      * that join with rows of the right table.
      */
     void probe_hash_table
-        (const std::shared_ptr<arrow::ChunkedArray>& probe_col, Task *ctx);
+        (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx);
 
     /**
      * Perform a single hash join.
@@ -83,7 +83,8 @@ private:
      * prev_result, but now their index arrays are updated, i.e. all indices
      * that did not satisfy the join predicate are not included.
      */
-    void hash_join(LazyTable left, std::string left_col, LazyTable right, std::string right_col, Task *ctx);
+    void hash_join(LazyTable left, std::string left_col, LazyTable right,
+                   std::string right_col, Task *ctx);
 
     /**
      * After performing a single join, we must eliminate rows from other
@@ -97,7 +98,8 @@ private:
      * that did not satisfy the join predicate are not included.
      */
     std::shared_ptr<OperatorResult> back_propogate_result
-    (LazyTable left, LazyTable right, std::vector<arrow::compute::Datum> joined_indices);
+        (LazyTable left, LazyTable right,
+         std::vector<arrow::compute::Datum> joined_indices);
 
     void finish_probe();
 };
