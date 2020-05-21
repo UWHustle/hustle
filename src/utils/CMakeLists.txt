@@ -21,10 +21,13 @@ add_subdirectory(meta)
 
 # Declare micro-libs:
 add_library(hustle_src_utils_ContainerUtil ../empty_src.cpp ContainerUtil.hpp)
-add_library(hustle_src_utils_EventProfiler EventProfiler.cpp EventProfiler.hpp)
+add_library(hustle_src_utils_EventProfiler EventProfiler.cpp EventProfiler.hpp BloomFilter.cpp BloomFilter.h)
 add_library(hustle_src_utils_Macros ../empty_src.cpp Macros.hpp)
 add_library(hustle_src_utils_SyncStream ../empty_src.cpp SyncStream.hpp)
 add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hpp)
+add_library(hustle_src_utils_BloomFilter BloomFilter.cpp BloomFilter.h)
+add_library(hustle_src_utils_MurmurHash3 MurmurHash3.cpp MurmurHash3.h)
+
 
 # Link dependencies:
 target_link_libraries(hustle_src_utils_EventProfiler
@@ -35,3 +38,5 @@ target_link_libraries(hustle_src_utils_SyncStream
         hustle_src_utils_Macros)
 target_link_libraries(hustle_src_utils_ThreadSafeQueue
         hustle_src_utils_Macros)
+target_link_libraries(hustle_src_utils_BloomFilter
+        hustle_src_utils_MurmurHash3)

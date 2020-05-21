@@ -7,7 +7,8 @@ add_library(
         JoinGraph.cpp JoinGraph.h
         Predicate.cpp Predicate.h
         LazyTable.cpp LazyTable.h
-        Operator.h)
+        Operator.h
+        LIP.cpp LIP.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
