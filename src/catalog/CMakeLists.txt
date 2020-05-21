@@ -1,12 +1,12 @@
 add_library(
-        catalog
+        hustle_src_catalog
         Catalog.h Catalog.cpp
         ColumnSchema.h
         TableSchema.h TableSchema.cpp
 )
 
 target_link_libraries(
-        catalog
+        hustle_src_catalog
         gtest
         absl::container
         absl::hash
@@ -22,7 +22,7 @@ target_link_libraries(hustle_catalog_test
         gtest
         gtest_main
         gmock
-        catalog
+        hustle_src_catalog
         sqlite3
         absl::container absl::hash
         absl::flat_hash_map

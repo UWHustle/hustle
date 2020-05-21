@@ -11,8 +11,10 @@
 namespace hustle {
 namespace operators {
 
-Join::Join(std::shared_ptr<OperatorResult> prev,
-               JoinGraph graph) {
+Join::Join(
+        const std::size_t query_id,
+        std::shared_ptr<OperatorResult> prev,
+               JoinGraph graph) : Operator(query_id) {
 
     prev_result_ = std::move(prev);
     graph_ = std::move(graph);
@@ -187,6 +189,11 @@ std::shared_ptr<OperatorResult> Join::hash_join() {
     // Update indices of other LazyTables in the previous OperatorResult
     return back_propogate_result(joined_indices);
 }
+
+    void Join::execute(Task *ctx) {
+
+}
+
 
 std::shared_ptr<OperatorResult> Join::run() {
 

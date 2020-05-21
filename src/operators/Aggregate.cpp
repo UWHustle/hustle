@@ -11,10 +11,12 @@
 namespace hustle::operators {
 
     Aggregate::Aggregate(
+            const std::size_t query_id,
             std::shared_ptr<OperatorResult> prev_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_refs,
-            std::vector<ColumnReference> order_by_refs) {
+            std::vector<ColumnReference> order_by_refs) :
+            Operator(query_id) {
 
         prev_result_ = prev_result;
         aggregate_refs_ = aggregate_refs;
@@ -435,7 +437,10 @@ namespace hustle::operators {
         return out_aggregate;
     }
 
-    std::shared_ptr<OperatorResult> Aggregate::run() {
+    void Aggregate::execute(Task *ctx) {
+    }
+
+        std::shared_ptr<OperatorResult> Aggregate::run() {
         auto out = std::make_shared<OperatorResult>();
 
         arrow::Status status;

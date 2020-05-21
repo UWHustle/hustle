@@ -216,7 +216,7 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
     status = arrow::RecordBatchBuilder::Make(schema,
             arrow::default_memory_pool(), &record_batch_builder);
     evaluate_status(status, __FUNCTION__, __LINE__);
-    record_batch_builder->SetInitialCapacity(8192);
+    record_batch_builder->SetInitialCapacity(BLOCK_SIZE);
 
     // We will output a table constructed from these RecordBatches
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;

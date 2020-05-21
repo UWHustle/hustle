@@ -1,11 +1,11 @@
 add_library(
-        resolver
+        hustle_src_resolver
         Plan.h Plan.cpp
         Resolver.h Resolver.cpp
 )
 
-target_link_libraries(resolver
-        parser
+target_link_libraries(hustle_src_resolver
+        hustle_src_parser
 )
 
 
@@ -14,11 +14,11 @@ target_link_libraries(hustle_resolver_simple_test
         gtest
         gtest_main
         gmock
-        catalog
+        hustle_src_catalog
         sqlite3
         hustleDB
-        table
-        resolver
+        hustle_src_table
+        hustle_src_resolver
         )
 add_test(HustleResolver_test hustle_resolver_simple_test)
 
@@ -28,10 +28,10 @@ target_link_libraries(hustle_resolver_ssb_test
         gtest
         gtest_main
         gmock
-        catalog
+        hustle_src_catalog
         sqlite3
         hustleDB
-        table
-        resolver
+        hustle_src_table
+        hustle_src_resolver
         )
 add_test(HustleResolver_test hustle_resolver_ssb_test)

@@ -61,6 +61,7 @@ public:
      * we should order by.
      */
     Aggregate(
+            const std::size_t query_id,
             std::shared_ptr<OperatorResult> prev_result,
             std::vector<AggregateReference> aggregate_units,
             std::vector<ColumnReference> group_by_refs,
@@ -76,7 +77,10 @@ public:
      * OperatorResult does not contain any of the LazyTables contained in the
      * prev_result paramter.
      */
-    std::shared_ptr<OperatorResult> run() override;
+    void execute(Task *ctx) override;
+
+    std::shared_ptr<OperatorResult> run();
+
 
 private:
 

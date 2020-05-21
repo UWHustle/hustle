@@ -20,7 +20,9 @@ public:
      * @param prev_result OperatorResult from an upstream operator
      * @param tree predicate tree
      */
-    Select(std::shared_ptr<OperatorResult> prev_result,
+    Select(
+            const std::size_t query_id,
+            std::shared_ptr<OperatorResult> prev_result,
             std::shared_ptr<PredicateTree> tree);
 
     /**
@@ -29,13 +31,14 @@ public:
      *
      * @return a new OperatorResult with an updated filter.
      */
-    std::shared_ptr<OperatorResult> run() override;
-
+    void execute(Task *ctx) override;
+    std::shared_ptr<OperatorResult>  finish();
 
 private:
     std::shared_ptr<PredicateTree> tree_;
     std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<Table> table_;
+    arrow::ArrayVector filter_vector_;
 
     /**
      * Perform the selection specified by a node in the predicate tree on

@@ -92,7 +92,7 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 
     JoinPredicate join_pred = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
     JoinGraph graph({{join_pred}});
-    Join join_op(result, graph);
+    Join join_op(0, result, graph);
 
     result = join_op.run();
 
@@ -150,7 +150,7 @@ TEST_F(JoinTestFixture, EquiJoin2) {
     JoinPredicate join_pred_RT = {R_ref_1, arrow::compute::EQUAL, T_ref_1};
 
     JoinGraph graph({{join_pred_RS, join_pred_RT}});
-    Join join_op(result, graph);
+    Join join_op(0, result, graph);
     result = join_op.run();
 
     auto out_table = result->materialize(
@@ -216,7 +216,7 @@ TEST_F(JoinTestFixture, EquiJoin3) {
     JoinPredicate join_pred_ST = {S_ref_1, arrow::compute::EQUAL, T_ref_1};
 
     JoinGraph graph({{join_pred_RS}, {join_pred_ST}});
-    Join join_op(result, graph);
+    Join join_op(0, result, graph);
     result = join_op.run();
 
     auto out_table = result->materialize(
