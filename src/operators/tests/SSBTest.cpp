@@ -14,6 +14,8 @@
 
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
+#include "execution/ExecutionPlan.hpp"
+#include "EventProfiler.hpp"
 
 using namespace testing;
 using namespace hustle::operators;
@@ -275,18 +277,31 @@ TEST_F(SSBTestFixture, SSBQ1_1){
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    scheduler.addTask(CreateTaskChain(
-        lo_select_op.createTask(),
-        d_select_op.createTask(),
-        join_op.createTask(),
-        agg_op.createTask()));
+    ExecutionPlan plan(0);
+    auto lo_select_id = plan.addOperator(&lo_select_op);
+    auto d_select_id = plan.addOperator(&d_select_op);
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
 
+    // Declare join dependency on select operators
+    plan.createLink(lo_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
+
+    scheduler.addTask(&plan);
+
+    auto container = hustle::simple_profiler.getContainer();
+    container->startEvent("query execution");
     scheduler.start();
     scheduler.join();
+    container->endEvent("query execution");
 
+    std::cout << std::endl;
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
     out_table->print();
-
+    hustle::simple_profiler.summarizeToStream(std::cout);
 
 
 }
