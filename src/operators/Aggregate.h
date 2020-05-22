@@ -63,6 +63,7 @@ public:
     Aggregate(
         const std::size_t query_id,
         std::shared_ptr<OperatorResult> prev_result,
+        std::shared_ptr<OperatorResult> output_result,
         std::vector<AggregateReference> aggregate_units,
         std::vector<ColumnReference> group_by_refs,
         std::vector<ColumnReference> order_by_refs);
@@ -79,7 +80,6 @@ public:
      */
     void execute(Task *ctx) override;
 
-    std::shared_ptr<OperatorResult> finish();
 
 
 private:
@@ -100,6 +100,7 @@ private:
 
     // Operator result from an upstream operator
     std::shared_ptr<OperatorResult> prev_result_;
+    std::shared_ptr<OperatorResult> output_result_;
 
     // References denoting which columns we want to perform an aggregate on
     // and which aggregate to perform.
@@ -213,6 +214,9 @@ private:
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_group_builders();
 
     void compute_aggregates(Task *ctx);
+
+    void finish();
+
 };
 
 } // namespace operators

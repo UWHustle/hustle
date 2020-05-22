@@ -22,6 +22,7 @@ public:
      */
     Join(const std::size_t query_id,
          std::shared_ptr<OperatorResult> prev_result,
+         std::shared_ptr<OperatorResult> output_result,
          JoinGraph graph);
 
     /**
@@ -34,12 +35,12 @@ public:
     */
     void execute(Task *ctx) override;
 
-    std::shared_ptr<OperatorResult> finish();
-
 private:
 
     // Operator result from an upstream operator
     std::shared_ptr<OperatorResult> prev_result_;
+    std::shared_ptr<OperatorResult> output_result_;
+
     // A graph specifying all join predicates
     JoinGraph graph_;
 
@@ -102,6 +103,8 @@ private:
          std::vector<arrow::compute::Datum> joined_indices);
 
     void finish_probe();
+    void finish();
+
 };
 
 } // namespace hustle
