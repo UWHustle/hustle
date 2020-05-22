@@ -13,9 +13,11 @@ namespace operators {
 Select::Select(
     const std::size_t query_id,
     std::shared_ptr<OperatorResult> prev_result,
+    std::shared_ptr<OperatorResult> output_result,
     std::shared_ptr<PredicateTree> tree) : Operator(query_id) {
 
     prev_result_ = std::move(prev_result);
+    output_result_ = std::move(output_result);
     tree_ = std::move(tree);
 
     auto node = tree_->root_;
@@ -68,28 +70,36 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 
 void Select::execute(Task *ctx) {
 
-    filter_vector_.resize(table_->get_num_blocks());
+    ctx->spawnTask(CreateTaskChain(
+        // Task 1: perform selection on all blocks
+        CreateLambdaTask([this](Task *internal){
+            filter_vector_.resize(table_->get_num_blocks());
 
-    for (int i = 0; i < table_->get_num_blocks(); i++) {
+            for (int i = 0; i < table_->get_num_blocks(); i++) {
 
-        // Each task gets the filter for one block and stores it in filter_vector
-        ctx->spawnLambdaTask([this, i]() {
+                // Each task gets the filter for one block and stores it in filter_vector
+                internal->spawnLambdaTask([this, i]() {
+                    auto block = table_->get_block(i);
+                    auto block_filter = this->get_filter(tree_->root_, block);
+                    filter_vector_[i] = block_filter.make_array();
+                });
+            }
+        }),
+        // Task 2: create the output result
+        CreateLambdaTask([this]() {
+            finish();
+        })
+        ));
 
-            auto block = table_->get_block(i);
-            auto block_filter = this->get_filter(tree_->root_, block);
-            filter_vector_[i] = block_filter.make_array();
-
-        });
-    }
 }
 
-std::shared_ptr<OperatorResult> Select::finish() {
+void Select::finish() {
 
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
     arrow::compute::Datum filter(chunked_filter);
     LazyTable result_unit(table_, filter, arrow::compute::Datum());
     OperatorResult result({result_unit});
-    return std::make_shared<OperatorResult>(result);
+    output_result_->append(std::make_shared<OperatorResult>(result));
 }
 
 arrow::compute::Datum Select::get_filter(
