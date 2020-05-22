@@ -104,7 +104,7 @@ TEST_F(JoinTestFixture, EquiJoin1) {
     scheduler.start();
     scheduler.join();
 
-    join_op.finish();
+
 
     auto out_table = out_result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
 //    out_table->print();
@@ -170,7 +170,7 @@ TEST_F(JoinTestFixture, EquiJoin2) {
     scheduler.start();
     scheduler.join();
 
-    join_op.finish();
+
 
 
     auto out_table = out_result->materialize(
@@ -245,7 +245,7 @@ TEST_F(JoinTestFixture, EquiJoin3) {
     scheduler.start();
     scheduler.join();
 
-    join_op.finish();
+
 
     auto out_table = out_result->materialize(
             {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});

@@ -35,8 +35,6 @@ public:
     */
     void execute(Task *ctx) override;
 
-    void finish();
-
 private:
 
     // Operator result from an upstream operator
@@ -105,6 +103,8 @@ private:
          std::vector<arrow::compute::Datum> joined_indices);
 
     void finish_probe();
+    void finish();
+
 };
 
 } // namespace hustle

@@ -289,6 +289,11 @@ void Join::execute(Task *ctx) {
             }));
     }
 
+    tasks.push_back(
+        CreateLambdaTask([this]() {
+            finish();
+        }));
+
     // The (j+1)st task in tasks is not executed until the jth task finishes.
     ctx->spawnTask(CreateTaskChain(tasks));
 }
