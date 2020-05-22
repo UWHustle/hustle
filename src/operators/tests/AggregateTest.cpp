@@ -100,15 +100,7 @@ TEST_F(JoinTestFixture, MeanTest) {
     scheduler.start();
     scheduler.join();
 
-
-
-    // TODO(nicholas): Aggregates create a new table internally. No outside
-    //  reference to this table exists. What's a good way to provide the user
-    //  access to it?
-    auto agg_table = result->get_table(0).table;
-    auto s = agg_table->get_schema()->ToString();
-
-    auto out_table = out_result->materialize({{agg_table, "data_mean"}});
+    auto out_table = out_result->materialize({{nullptr, "data_mean"}});
 //    out_table->print();
 
     // Construct expected results
@@ -142,15 +134,7 @@ TEST_F(JoinTestFixture, SumTest) {
     scheduler.start();
     scheduler.join();
 
-
-
-    // TODO(nicholas): Aggregates create a new table internally. No outside
-    //  reference to this table exists. What's a good way to provide the user
-    //  access to it?
-    auto agg_table = result->get_table(0).table;
-    auto s = agg_table->get_schema()->ToString();
-
-    auto out_table = out_result->materialize({{agg_table, "data_sum"}});
+    auto out_table = out_result->materialize({{nullptr, "data_sum"}});
 //    out_table->print();
 
     // Construct expected results
@@ -205,14 +189,7 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     scheduler.addTask(agg_op.createTask());
     scheduler.join();
 
-
-
-    // TODO(nicholas): Aggregates create a new table internally. No outside
-    //  reference to this table exists. What's a good way to provide the user
-    //  access to it?
-    auto agg_table = result->get_table(0).table;
-
-    auto out_table = out_result_agg->materialize({{agg_table, "data_sum"}});
+    auto out_table = out_result_agg->materialize({{nullptr, "data_sum"}});
     out_table->print();
 
     // Construct expected results
@@ -246,8 +223,6 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
 
     scheduler.start();
     scheduler.join();
-
-
 
     auto out_table = out_result->materialize({
                                              {nullptr, "group"},
@@ -306,17 +281,9 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     scheduler.start();
     scheduler.join();
 
-
-
-    // TODO(nicholas): Aggregates create a new table internally. No outside
-    //  reference to this table exists. What's a good way to provide the user
-    //  access to it?
-    auto agg_table = result->get_table(0).table;
-    auto s = agg_table->get_schema()->ToString();
-
     auto out_table = out_result->materialize({
-                                             {agg_table, "group"},
-                                             {agg_table, "data_sum"}});
+                                             {nullptr, "group"},
+                                             {nullptr, "data_sum"}});
     out_table->print();
 
     // Construct expected results
