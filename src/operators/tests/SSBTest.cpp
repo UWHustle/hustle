@@ -190,7 +190,6 @@ TEST_F(SSBTestFixture, SSBQ1_1){
     ColumnReference discount_ref = {lo, "discount"};
     ColumnReference quantity_ref = {lo, "quantity"};
 
-    auto t_start = std::chrono::high_resolution_clock::now();
     //discount >= 1
     auto discount_pred_1 = Predicate{
             {lo,
@@ -250,77 +249,45 @@ TEST_F(SSBTestFixture, SSBQ1_1){
             std::make_shared<PredicateNode>(
                     std::make_shared<Predicate>(year_pred_1));
     auto d_pred_tree = std::make_shared<PredicateTree>(year_pred_node_1);
-    
+
     auto lo_select_result = std::make_shared<OperatorResult>();
-
-    lo_select_result->append(lo);
-
     auto d_select_result = std::make_shared<OperatorResult>();
+    lo_select_result->append(lo);
     d_select_result->append(d);
-
     auto select_result_out = std::make_shared<OperatorResult>();
 
     Select lo_select_op(0, lo_select_result, select_result_out, lo_pred_tree);
     Select d_select_op(0, d_select_result, select_result_out, d_pred_tree);
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
-
-    scheduler.addTask(lo_select_op.createTask());
-    scheduler.addTask(d_select_op.createTask());
-
-    auto t1 = std::chrono::high_resolution_clock::now();
-
-    scheduler.start();
-    scheduler.join();
-
-    auto join_result_out = std::make_shared<OperatorResult>();
-
-
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Predicate execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2 - t1).count() << std::endl;
-
     // Join date and lineorder tables
     ColumnReference lo_d_ref = {lo, "order date"};
     ColumnReference d_ref = {d, "date key"};
     ColumnReference revenue_ref = {lo, "revenue"};
-    
+
+    auto join_result_out = std::make_shared<OperatorResult>();
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
     Join join_op(0, select_result_out, join_result_out, graph);
-
-    scheduler.addTask(join_op.createTask());
-
-    scheduler.start();
-    scheduler.join();
-
-    out_table = join_result_out->materialize({revenue_ref});
-
-    std::cout << "Total selected rows " << out_table->get_num_rows() << std::endl;
-    ASSERT_EQ(out_table->get_num_rows(), 118598);
-
-    auto t3 = std::chrono::high_resolution_clock::now();
-    std::cout << "Join execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t3 - t2).count() << std::endl;
 
     auto agg_result_out = std::make_shared<OperatorResult>();
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
     Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
-    scheduler.addTask(agg_op.createTask());
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    scheduler.addTask(CreateTaskChain(
+        lo_select_op.createTask(),
+        d_select_op.createTask(),
+        join_op.createTask(),
+        agg_op.createTask()));
 
     scheduler.start();
     scheduler.join();
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-
-    auto t4 = std::chrono::high_resolution_clock::now();
-    std::cout << "Query execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t4 - t_start).count() << std::endl;
     out_table->print();
+
+
 
 }
 /*
