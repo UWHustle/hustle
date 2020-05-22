@@ -14,12 +14,14 @@ namespace hustle::operators {
 Aggregate::Aggregate(
     const std::size_t query_id,
     std::shared_ptr<OperatorResult> prev_result,
+    std::shared_ptr<OperatorResult> output_result,
     std::vector<AggregateReference> aggregate_refs,
     std::vector<ColumnReference> group_refs,
     std::vector<ColumnReference> order_by_refs) :
     Operator(query_id) {
 
     prev_result_ = prev_result;
+    output_result_ = output_result;
     aggregate_refs_ = aggregate_refs;
 
     group_by_refs_ = std::move(group_refs);
@@ -413,14 +415,11 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
 }
 
 
-std::shared_ptr<OperatorResult> Aggregate::finish() {
-
-    auto out = std::make_shared<OperatorResult>();
+void Aggregate::finish() {
 
     out_table_->insert_records(out_table_data_);
 
-    out->append(out_table_);
-    return out;
+    output_result_->append(out_table_);
 }
 
 arrow::compute::Datum Aggregate::compute_aggregate(

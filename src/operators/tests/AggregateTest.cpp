@@ -87,11 +87,12 @@ TEST_F(JoinTestFixture, MeanTest) {
     ColumnReference R_group_ref = {R, "data"};
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::MEAN, "data_mean", R,
                                   "data"};
-    Aggregate agg_op(0, result, {agg_ref}, {}, {});
+    Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(agg_op.createTask());
@@ -99,7 +100,7 @@ TEST_F(JoinTestFixture, MeanTest) {
     scheduler.start();
     scheduler.join();
 
-    result = agg_op.finish();
+    agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -107,7 +108,7 @@ TEST_F(JoinTestFixture, MeanTest) {
     auto agg_table = result->get_table(0).table;
     auto s = agg_table->get_schema()->ToString();
 
-    auto out_table = result->materialize({{agg_table, "data_mean"}});
+    auto out_table = out_result->materialize({{agg_table, "data_mean"}});
 //    out_table->print();
 
     // Construct expected results
@@ -130,17 +131,18 @@ TEST_F(JoinTestFixture, SumTest) {
     ColumnReference R_group_ref = {R, "data"};
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(0, result, {agg_ref}, {}, {});
+    Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(agg_op.createTask());
 
     scheduler.start();
     scheduler.join();
 
-    result = agg_op.finish();
+    agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -148,7 +150,7 @@ TEST_F(JoinTestFixture, SumTest) {
     auto agg_table = result->get_table(0).table;
     auto s = agg_table->get_schema()->ToString();
 
-    auto out_table = result->materialize({{agg_table, "data_sum"}});
+    auto out_table = out_result->materialize({{agg_table, "data_sum"}});
 //    out_table->print();
 
     // Construct expected results
@@ -184,9 +186,11 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     auto select_pred_tree = std::make_shared<PredicateTree>(select_pred_node);
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result_select = std::make_shared<OperatorResult>();
+    auto out_result_agg = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(0, result, select_pred_tree);
+    Select select_op(0, result, out_result_select, select_pred_tree);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -194,23 +198,23 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     scheduler.addTask(select_op.createTask());
     scheduler.join();
 
-    result = select_op.finish();
+    select_op.finish();
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(0, result, {agg_ref}, {}, {});
+    Aggregate agg_op(0, out_result_select, out_result_agg, {agg_ref}, {}, {});
 
     scheduler.start();
     scheduler.addTask(agg_op.createTask());
     scheduler.join();
 
-    result = agg_op.finish();
+    agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
     //  access to it?
     auto agg_table = result->get_table(0).table;
 
-    auto out_table = result->materialize({{agg_table, "data_sum"}});
+    auto out_table = out_result_agg->materialize({{agg_table, "data_sum"}});
     out_table->print();
 
     // Construct expected results
@@ -234,19 +238,20 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
     ColumnReference R_group_ref = {R, "group"};
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(0, result, {agg_ref}, {R_group_ref}, {R_group_ref});
+    Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref}, {R_group_ref});
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(agg_op.createTask());
 
     scheduler.start();
     scheduler.join();
 
-    result = agg_op.finish();
+    agg_op.finish();
 
-    auto out_table = result->materialize({
+    auto out_table = out_result->materialize({
                                              {nullptr, "group"},
                                              {nullptr, "data_sum"}});
     out_table->print();
@@ -292,17 +297,18 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     ColumnReference R_group_ref = {R, "group"};
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
-    Aggregate agg_op(0, result, {agg_ref}, {R_group_ref}, {R_group_ref});
+    Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref}, {R_group_ref});
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(agg_op.createTask());
 
     scheduler.start();
     scheduler.join();
 
-    result = agg_op.finish();
+    agg_op.finish();
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -310,7 +316,7 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     auto agg_table = result->get_table(0).table;
     auto s = agg_table->get_schema()->ToString();
 
-    auto out_table = result->materialize({
+    auto out_table = out_result->materialize({
                                              {agg_table, "group"},
                                              {agg_table, "data_sum"}});
     out_table->print();
