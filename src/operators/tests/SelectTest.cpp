@@ -108,7 +108,6 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     scheduler.start();
 
     scheduler.join();
-    select_op.finish();
 
     auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
@@ -185,7 +184,6 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     scheduler.start();
 
     scheduler.join();
-    select_op.finish();
 
     auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
@@ -262,7 +260,6 @@ TEST_F(JoinTestFixture, OrSelectTest) {
     scheduler.start();
 
     scheduler.join();
-    select_op.finish();
 
     auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
@@ -320,7 +317,6 @@ TEST_F(JoinTestFixture, SingleSelectManyBlocksTest) {
     scheduler.start();
 
     scheduler.join();
-    select_op.finish();
 
     auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
@@ -399,7 +395,6 @@ TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
     scheduler.start();
 
     scheduler.join();
-    select_op.finish();
 
     auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();

@@ -35,8 +35,6 @@ public:
      */
     void execute(Task *ctx) override;
 
-    void finish();
-
 private:
     std::shared_ptr<PredicateTree> tree_;
     std::shared_ptr<OperatorResult> prev_result_;
@@ -74,6 +72,8 @@ private:
     arrow::compute::Datum get_filter(
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
+
+    void finish();
 };
 
 } // namespace hustle

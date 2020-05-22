@@ -70,19 +70,27 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 
 void Select::execute(Task *ctx) {
 
-    filter_vector_.resize(table_->get_num_blocks());
+    ctx->spawnTask(CreateTaskChain(
+        // Task 1: perform selection on all blocks
+        CreateLambdaTask([this](Task *internal){
+            filter_vector_.resize(table_->get_num_blocks());
 
-    for (int i = 0; i < table_->get_num_blocks(); i++) {
+            for (int i = 0; i < table_->get_num_blocks(); i++) {
 
-        // Each task gets the filter for one block and stores it in filter_vector
-        ctx->spawnLambdaTask([this, i]() {
+                // Each task gets the filter for one block and stores it in filter_vector
+                internal->spawnLambdaTask([this, i]() {
+                    auto block = table_->get_block(i);
+                    auto block_filter = this->get_filter(tree_->root_, block);
+                    filter_vector_[i] = block_filter.make_array();
+                });
+            }
+        }),
+        // Task 2: create the output result
+        CreateLambdaTask([this]() {
+            finish();
+        })
+        ));
 
-            auto block = table_->get_block(i);
-            auto block_filter = this->get_filter(tree_->root_, block);
-            filter_vector_[i] = block_filter.make_array();
-
-        });
-    }
 }
 
 void Select::finish() {
