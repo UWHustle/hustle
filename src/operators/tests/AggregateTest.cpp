@@ -190,7 +190,7 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     scheduler.join();
 
     auto out_table = out_result_agg->materialize({{nullptr, "data_sum"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -227,7 +227,7 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
     auto out_table = out_result->materialize({
                                              {nullptr, "group"},
                                              {nullptr, "data_sum"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
@@ -284,7 +284,7 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     auto out_table = out_result->materialize({
                                              {nullptr, "group"},
                                              {nullptr, "data_sum"}});
-    out_table->print();
+//    out_table->print();
 
     // Construct expected results
     arrow::Status status;
