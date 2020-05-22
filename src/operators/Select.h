@@ -24,6 +24,7 @@ public:
     Select(
         const std::size_t query_id,
         std::shared_ptr<OperatorResult> prev_result,
+        std::shared_ptr<OperatorResult> output_result,
         std::shared_ptr<PredicateTree> tree);
 
     /**
@@ -34,11 +35,12 @@ public:
      */
     void execute(Task *ctx) override;
 
-    std::shared_ptr<OperatorResult> finish();
+    void finish();
 
 private:
     std::shared_ptr<PredicateTree> tree_;
     std::shared_ptr<OperatorResult> prev_result_;
+    std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
     arrow::ArrayVector filter_vector_;
 
