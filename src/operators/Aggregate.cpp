@@ -546,6 +546,10 @@ void Aggregate::execute(Task *ctx) {
             // Sort the output table. Sorting must be done only after all aggregates
             // are computed.
             sort();
+        }),
+        CreateLambdaTask([this](Task *internal) {
+            // Create the output result
+            finish();
         })
     ));
 }

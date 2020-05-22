@@ -100,7 +100,7 @@ TEST_F(JoinTestFixture, MeanTest) {
     scheduler.start();
     scheduler.join();
 
-    agg_op.finish();
+
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -142,7 +142,7 @@ TEST_F(JoinTestFixture, SumTest) {
     scheduler.start();
     scheduler.join();
 
-    agg_op.finish();
+
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -198,8 +198,6 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     scheduler.addTask(select_op.createTask());
     scheduler.join();
 
-    select_op.finish();
-
     AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
     Aggregate agg_op(0, out_result_select, out_result_agg, {agg_ref}, {}, {});
 
@@ -207,7 +205,7 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     scheduler.addTask(agg_op.createTask());
     scheduler.join();
 
-    agg_op.finish();
+
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user
@@ -249,7 +247,7 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
     scheduler.start();
     scheduler.join();
 
-    agg_op.finish();
+
 
     auto out_table = out_result->materialize({
                                              {nullptr, "group"},
@@ -308,7 +306,7 @@ TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
     scheduler.start();
     scheduler.join();
 
-    agg_op.finish();
+
 
     // TODO(nicholas): Aggregates create a new table internally. No outside
     //  reference to this table exists. What's a good way to provide the user

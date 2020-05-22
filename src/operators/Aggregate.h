@@ -80,7 +80,6 @@ public:
      */
     void execute(Task *ctx) override;
 
-    void finish();
 
 
 private:
@@ -215,6 +214,9 @@ private:
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_group_builders();
 
     void compute_aggregates(Task *ctx);
+
+    void finish();
+
 };
 
 } // namespace operators
