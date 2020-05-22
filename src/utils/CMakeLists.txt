@@ -40,3 +40,17 @@ target_link_libraries(hustle_src_utils_ThreadSafeQueue
         hustle_src_utils_Macros)
 target_link_libraries(hustle_src_utils_BloomFilter
         hustle_src_utils_MurmurHash3)
+
+# Tests
+
+add_executable(hustle_src_utils_tests_BloomFilterTest "tests/BloomFilterTest.cpp")
+target_link_libraries(hustle_src_utils_tests_BloomFilterTest
+        gtest
+        gtest_main
+        gmock
+        #        glog
+        ${GFLAGS_LIB_NAME}
+        hustle_src_utils_MurmurHash3
+        hustle_src_utils_BloomFilter
+        )
+add_test(HustleBloomFilter_test hustle_src_utils_tests_BloomFilterTest)
