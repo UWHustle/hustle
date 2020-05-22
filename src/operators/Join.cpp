@@ -13,10 +13,12 @@ namespace operators {
 
 Join::Join(
     const std::size_t query_id,
-    std::shared_ptr<OperatorResult> prev,
+    std::shared_ptr<OperatorResult> prev_result,
+    std::shared_ptr<OperatorResult> output_result,
     JoinGraph graph) : Operator(query_id) {
 
-    prev_result_ = std::move(prev);
+    prev_result_ = std::move(prev_result);
+    output_result_ = std::move(output_result);
     graph_ = std::move(graph);
     joined_indices_.resize(2);
 
@@ -291,8 +293,8 @@ void Join::execute(Task *ctx) {
     ctx->spawnTask(CreateTaskChain(tasks));
 }
 
-std::shared_ptr<OperatorResult> Join::finish() {
-    return prev_result_;
+void Join::finish() {
+    output_result_->append(prev_result_);
 }
 
 } // namespace operators
