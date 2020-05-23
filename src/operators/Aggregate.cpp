@@ -265,7 +265,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
+bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
 
     arrow::Status status;
     // Append a group's aggregate to its builder.
@@ -281,7 +281,7 @@ void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
                     (aggregate.scalar());
             // If aggregate == 0, don't include it in the output table.
             if (aggregate_casted->value == 0) {
-                return;
+                return false;
             }
             // Append the group's aggregate to its builder.
             status = aggregate_builder_casted->Append(aggregate_casted->value);
@@ -308,6 +308,7 @@ void Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
                       std::endl;
         }
     }
+    return true;
 }
 
 
@@ -492,8 +493,8 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 // Acquire builder_mutex_ so that groups are correctly associated with
                 // thier corresponding aggregates.
                 std::unique_lock<std::mutex> lock(builder_mutex_);
-                insert_group_aggregate(aggregate);
-                insert_group(group_id);
+                auto is_nonzero_agg = insert_group_aggregate(aggregate);
+                if (is_nonzero_agg) insert_group(group_id);
             });
         // LOOP BODY END
 

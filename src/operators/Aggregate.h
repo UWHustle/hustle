@@ -178,7 +178,7 @@ private:
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    void insert_group_aggregate(arrow::compute::Datum aggregate);
+    bool insert_group_aggregate(arrow::compute::Datum aggregate);
 
     /**
      * Get the filter corresponding to a single group across all group by
