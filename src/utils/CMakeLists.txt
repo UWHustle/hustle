@@ -41,8 +41,7 @@ target_link_libraries(hustle_src_utils_SyncStream
 target_link_libraries(hustle_src_utils_ThreadSafeQueue
         hustle_src_utils_Macros)
 target_link_libraries(hustle_src_utils_BloomFilter
-        hustle_src_utils_MurmurHash3
-        ${ARROW_SHARED_LIB})
+        hustle_src_utils_MurmurHash3)
 
 # Tests
 
