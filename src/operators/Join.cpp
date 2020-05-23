@@ -222,14 +222,19 @@ void Join::hash_join(LazyTable left, std::string left_col, LazyTable right,
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, right, right_col](Task *internal) {
             // Build phase
-            auto right_join_col = right.get_column_by_name(right_col);
+            // TODO(nicholas): left and right should not be passed by value, since
+            //   their indices will not be updated when a later join needs them!
+            //   You'll crash when you propogate results.
+            auto right2 = prev_result_->get_table(right.table);
+            auto right_join_col = right2.get_column_by_name(right_col);
             build_hash_table(right_join_col, internal);
         }),
         CreateLambdaTask([this, left, left_col](Task *internal) {
             // Probe phase
             int left_join_col_index = left.table->get_schema()->GetFieldIndex(
                 left_col);
-            auto left_join_col = left.get_column(left_join_col_index);
+            auto left2 = prev_result_->get_table(left.table);
+            auto left_join_col = left2.get_column(left_join_col_index);
             probe_hash_table(left_join_col, internal);
         }),
         CreateLambdaTask([this, left, right](Task *internal) {
@@ -299,6 +304,7 @@ void Join::execute(Task *ctx) {
 }
 
 void Join::finish() {
+    prev_result_->append(prev_result_);
     output_result_->append(prev_result_);
 }
 
