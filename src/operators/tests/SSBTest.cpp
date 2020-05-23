@@ -14,8 +14,10 @@
 
 #include <arrow/compute/kernels/filter.h>
 #include <fstream>
+#include <operators/LIP.h>
 #include "execution/ExecutionPlan.hpp"
 #include "EventProfiler.hpp"
+#include "scheduler/SchedulerFlags.hpp"
 
 using namespace testing;
 using namespace hustle::operators;
@@ -29,7 +31,49 @@ protected:
 
     void SetUp() override {
 
-        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder_small.hsl");
+        std::shared_ptr<arrow::Field>field1=arrow::field("order key",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field2=arrow::field("line number",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field3=arrow::field("cust key",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field4=arrow::field("part key",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field5=arrow::field("supp key",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field6=arrow::field("order date",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field7=arrow::field("ord priority",
+                                                         arrow::utf8());
+        std::shared_ptr<arrow::Field>field8=arrow::field("ship priority",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field9=arrow::field("quantity",
+                                                         arrow::int64());
+        std::shared_ptr<arrow::Field>field10=arrow::field("extended price",
+                                                          arrow::int64());
+        std::shared_ptr<arrow::Field>field11=arrow::field("ord total price",
+                                                          arrow::int64());
+        std::shared_ptr<arrow::Field>field12=arrow::field("discount",
+                                                          arrow::int64());
+        std::shared_ptr<arrow::Field>field13=arrow::field("revenue",
+                                                          arrow::int64());
+        std::shared_ptr<arrow::Field>field14=arrow::field("supply cost",
+                                                          arrow::int64());
+        std::shared_ptr<arrow::Field>field15=arrow::field("tax",
+                                                          arrow::int64());
+        std::shared_ptr<arrow::Field>field16=arrow::field("commit date",
+                                                          arrow::int64());
+        std::shared_ptr<arrow::Field>field17=arrow::field("ship mode",
+                                                          arrow::utf8());
+        lo_schema=arrow::schema({field1,field2,field3,field4,
+                                 field5,
+                                 field6,field7,field8,field9,field10,
+                                 field11,field12,field13,field14,field15,
+                                 field16,field17});
+//        auto t = read_from_csv_file("/Users/corrado/hustle/data/ssb-1/lineorder_smallish.tbl", lo_schema, BLOCK_SIZE);
+//        write_to_file("/Users/corrado/hustle/data/ssb-1/lineorder_smallish.hsl", *t);
+
+        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder_smallish.hsl");
         d  = read_from_file("/Users/corrado/hustle/data/ssb-1/date.hsl");
         p  = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
         c  = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
@@ -584,7 +628,11 @@ TEST_F(SSBTestFixture, SSBQ2_1){
     container->endEvent("query execution");
 
     std::cout << std::endl;
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table = agg_result_out->materialize({
+        {nullptr, "revenue"},
+        {nullptr, "year"},
+        {nullptr, "brand1"}
+                                             });
     out_table->print();
     hustle::simple_profiler.summarizeToStream(std::cout);
 
