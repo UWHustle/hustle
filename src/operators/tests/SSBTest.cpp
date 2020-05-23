@@ -24,164 +24,16 @@ using namespace hustle;
 class SSBTestFixture : public testing::Test {
 protected:
 
-    std::shared_ptr<Table> lo, c, s, part, d;
+    std::shared_ptr<Table> lo, c, s, p, d;
     std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema, d_schema;
 
     void SetUp() override {
 
-
-
-        arrow::Status status;
-
-        std::shared_ptr<arrow::Field> field1 = arrow::field("orderkey",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field2 = arrow::field("linenumber",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field3 = arrow::field("custkey",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field4 = arrow::field("partkey",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field5 = arrow::field("suppkey",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field6 = arrow::field("orderdate",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field7 = arrow::field("ordpriority",
-                                                            arrow::utf8());
-        std::shared_ptr<arrow::Field> field8 = arrow::field("shippriority",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field9 = arrow::field("quantity",
-                                                            arrow::int64());
-        std::shared_ptr<arrow::Field> field10 = arrow::field("extendedprice",
-                                                             arrow::int64());
-        std::shared_ptr<arrow::Field> field11 = arrow::field("ordtotalprice",
-                                                             arrow::int64());
-        std::shared_ptr<arrow::Field> field12 = arrow::field("discount",
-                                                             arrow::int64());
-        std::shared_ptr<arrow::Field> field13 = arrow::field("revenue",
-                                                             arrow::int64());
-        std::shared_ptr<arrow::Field> field14 = arrow::field("supplycost",
-                                                             arrow::int64());
-        std::shared_ptr<arrow::Field> field15 = arrow::field("tax",
-                                                             arrow::int64());
-        std::shared_ptr<arrow::Field> field16 = arrow::field("commitdate",
-                                                             arrow::int64());
-        std::shared_ptr<arrow::Field> field17 = arrow::field("shipmode",
-                                                             arrow::utf8());
-        lo_schema = arrow::schema({field1, field2, field3, field4, field5,
-                                   field6, field7, field8, field9, field10,
-                                   field11, field12, field13, field14, field15,
-                                   field16, field17});
-
-
-        std::shared_ptr<arrow::Field> d_field1 = arrow::field("datekey",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> d_field2 = arrow::field("date",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> d_field3 = arrow::field("dayofweek",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> d_field4 = arrow::field("month",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> d_field5 = arrow::field("year",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> d_field6 = arrow::field("yearmonthnum",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> d_field7 = arrow::field("yearmonth",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> d_field8 = arrow::field("daynuminweek",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> d_field9 = arrow::field("daynuminmonth",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> d_field10 = arrow::field("daynuminyear",
-                                                               arrow::int64());
-        std::shared_ptr<arrow::Field> d_field11 = arrow::field("monthnuminyear",
-                                                               arrow::int64());
-        std::shared_ptr<arrow::Field> d_field12 = arrow::field("weeknuminyear",
-                                                               arrow::int64());
-        std::shared_ptr<arrow::Field> d_field13 = arrow::field("sellingseason",
-                                                               arrow::utf8());
-        std::shared_ptr<arrow::Field> d_field14 = arrow::field(
-                "lastdayinweekfl", arrow::int64());
-        std::shared_ptr<arrow::Field> d_field15 = arrow::field(
-                "lastdayinmonthfl", arrow::int64());
-        std::shared_ptr<arrow::Field> d_field16 = arrow::field("holidayfl",
-                                                               arrow::int64());
-        std::shared_ptr<arrow::Field> d_field17 = arrow::field("weekdayfl",
-                                                               arrow::int64());
-
-        d_schema = arrow::schema(
-                {d_field1, d_field2, d_field3, d_field4, d_field5,
-                 d_field6, d_field7, d_field8, d_field9, d_field10,
-                 d_field11, d_field12, d_field13, d_field14, d_field15,
-                 d_field16, d_field17});
-
-
-        std::shared_ptr<arrow::Field> p_field1 = arrow::field("partkey",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> p_field2 = arrow::field("name",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> p_field3 = arrow::field("mfgr",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> p_field4 = arrow::field("category",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> p_field5 = arrow::field("brand1",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> p_field6 = arrow::field("color",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> p_field7 = arrow::field("type",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> p_field8 = arrow::field("size",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> p_field9 = arrow::field("container",
-                                                              arrow::utf8());
-
-        p_schema = arrow::schema({p_field1, p_field2, p_field3, p_field4,
-                                  p_field5,
-                                  p_field6, p_field7, p_field8,
-                                  p_field9});
-
-
-        std::shared_ptr<arrow::Field> s_field1 = arrow::field("suppkey",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> s_field2 = arrow::field("name",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> s_field3 = arrow::field("address",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> s_field4 = arrow::field("city",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> s_field5 = arrow::field("nation",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> s_field6 = arrow::field("region",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> s_field7 = arrow::field("phone",
-                                                              arrow::utf8());
-
-        s_schema = arrow::schema({s_field1, s_field2, s_field3, s_field4,
-                                  s_field5,
-                                  s_field6, s_field7});
-
-
-        std::shared_ptr<arrow::Field> c_field1 = arrow::field("custkey",
-                                                              arrow::int64());
-        std::shared_ptr<arrow::Field> c_field2 = arrow::field("name",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> c_field3 = arrow::field("address",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> c_field4 = arrow::field("city",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> c_field5 = arrow::field("nation",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> c_field6 = arrow::field("region",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> c_field7 = arrow::field("phone",
-                                                              arrow::utf8());
-        std::shared_ptr<arrow::Field> c_field8 = arrow::field("mktsegment",
-                                                              arrow::utf8());
-
-        c_schema = arrow::schema({c_field1, c_field2, c_field3, c_field4,
-                                  c_field5, c_field6, c_field7, c_field8});
-
-        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder.hsl");
+        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder_small.hsl");
         d  = read_from_file("/Users/corrado/hustle/data/ssb-1/date.hsl");
+        p  = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
+        c  = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
+        s  = read_from_file("/Users/corrado/hustle/data/ssb-1/supplier.hsl");
 
     }
 };
@@ -632,3 +484,109 @@ TEST_F(SSBTestFixture, SSBQ1_3) {
                       (t4-t_start).count() <<std::endl;
 }
  */
+
+
+TEST_F(SSBTestFixture, SSBQ2_1){
+
+    std::shared_ptr<Table> out_table;
+
+    auto s_pred_1 = Predicate{
+        {s,
+         "region"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("AMERICA"))
+    };
+    auto s_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(s_pred_1));
+
+    auto s_pred_tree = std::make_shared<PredicateTree>(s_pred_node_1);
+
+
+    auto p_pred_1 = Predicate{
+        {p,
+         "category"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("MFGR#12"))
+    };
+    auto p_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(p_pred_1));
+
+    auto p_pred_tree = std::make_shared<PredicateTree>(p_pred_node_1);
+
+
+    auto p_select_result = std::make_shared<OperatorResult>();
+    auto s_select_result = std::make_shared<OperatorResult>();
+
+    p_select_result->append(p);
+    s_select_result->append(s);
+
+    auto select_result_out = std::make_shared<OperatorResult>();
+    // If you join on a table that has no selection, make sure you add it to
+    // the select output beforehand
+    select_result_out->append(lo);
+    select_result_out->append(d);
+
+    Select p_select_op(0, p_select_result, select_result_out, p_pred_tree);
+    Select s_select_op(0, s_select_result, select_result_out, s_pred_tree);
+
+    // Join date and lineorder tables
+    ColumnReference lo_d_ref = {lo, "order date"};
+    ColumnReference lo_p_ref = {lo, "part key"};
+    ColumnReference lo_s_ref = {lo, "supp key"};
+
+    ColumnReference d_ref = {d, "date key"};
+    ColumnReference p_ref = {p, "part key"};
+    ColumnReference s_ref = {s, "supp key"};
+
+    ColumnReference revenue_ref = {lo, "revenue"};
+
+    auto join_result_out = std::make_shared<OperatorResult>();
+    JoinPredicate d_join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
+    JoinPredicate p_join_pred = {lo_p_ref, arrow::compute::EQUAL, p_ref};
+    JoinPredicate s_join_pred = {lo_s_ref, arrow::compute::EQUAL, s_ref};
+
+    JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
+    Join join_op(0, select_result_out, join_result_out, graph);
+
+    auto agg_result_out = std::make_shared<OperatorResult>();
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
+    Aggregate agg_op(0,
+                     join_result_out, agg_result_out, {agg_ref},
+                     {{d, "year"}, {p, "brand1"}},
+                     {{d, "year"}, {p, "brand1"}});
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    ExecutionPlan plan(0);
+    auto p_select_id = plan.addOperator(&p_select_op);
+    auto s_select_id = plan.addOperator(&s_select_op);
+
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
+
+    // Declare join dependency on select operators
+    plan.createLink(p_select_id, join_id);
+    plan.createLink(s_select_id, join_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
+
+    scheduler.addTask(&plan);
+
+    auto container = hustle::simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    std::cout << std::endl;
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    hustle::simple_profiler.summarizeToStream(std::cout);
+
+
+}
