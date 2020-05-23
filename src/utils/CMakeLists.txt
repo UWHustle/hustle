@@ -28,6 +28,8 @@ add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hp
 add_library(hustle_src_utils_BloomFilter BloomFilter.cpp BloomFilter.h)
 add_library(hustle_src_utils_MurmurHash3 MurmurHash3.cpp MurmurHash3.h)
 
+# Include Arrow
+target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})
 
 # Link dependencies:
 target_link_libraries(hustle_src_utils_EventProfiler
@@ -39,7 +41,8 @@ target_link_libraries(hustle_src_utils_SyncStream
 target_link_libraries(hustle_src_utils_ThreadSafeQueue
         hustle_src_utils_Macros)
 target_link_libraries(hustle_src_utils_BloomFilter
-        hustle_src_utils_MurmurHash3)
+        hustle_src_utils_MurmurHash3
+        ${ARROW_SHARED_LIB})
 
 # Tests
 
@@ -50,6 +53,8 @@ target_link_libraries(hustle_src_utils_tests_BloomFilterTest
         gmock
         #        glog
         ${GFLAGS_LIB_NAME}
+        absl::hash
+        hustle_src_table
         hustle_src_utils_MurmurHash3
         hustle_src_utils_BloomFilter
         )
