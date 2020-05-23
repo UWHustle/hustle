@@ -43,6 +43,12 @@ public:
     void append(std::shared_ptr<Table> table);
 
     /**
+     * Append a new lazy table to the OperatorResult.
+     * @param table The lazy table to append
+     */
+    void append(LazyTable lazy_table);
+
+    /**
      * Append another OperatorResult to this OperatorResult.
      *
      * @param result Another OperatorResult
