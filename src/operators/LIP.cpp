@@ -7,10 +7,10 @@
 
 namespace hustle::operators {
 
-LIP::LIP(std::size_t queryId, const std::size_t query_id,
+LIP::LIP(const std::size_t query_id,
          std::shared_ptr<OperatorResult> prev_result,
          std::shared_ptr<OperatorResult> output_result,
-         hustle::operators::JoinGraph graph) : Operator(queryId) {
+         hustle::operators::JoinGraph graph) : Operator(query_id) {
 
     prev_result_ = std::move(prev_result);
     output_result_ = std::move(output_result);

@@ -21,7 +21,7 @@ public:
      * @param prev_result OperatorResult form an upstream operator.
      * @param graph A graph specifying all join predicates
      */
-    LIP(std::size_t queryId, const std::size_t query_id,
+    LIP(const std::size_t query_id,
         std::shared_ptr<OperatorResult> prev_result,
         std::shared_ptr<OperatorResult> output_result,
         hustle::operators::JoinGraph graph);
