@@ -84,6 +84,7 @@ public:
 
 private:
 
+    std::shared_ptr<arrow::ChunkedArray> empty_filter_;
     // If a thread wants to insert a group and its aggregate into group_builder_
     // and aggregate_builder_, then it must grab this mutex. Otherwise, another
     // thread may insert a different aggregate, associating the group with an

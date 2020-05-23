@@ -194,7 +194,6 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
 
         if (prev_filter != nullptr) {
             for (int j = 0; j < prev_filter->num_chunks(); j++) {
-
                 // Note that Compare cannot operate on ChunkedArrays.
                 status = arrow::compute::And(&function_context,
                                              prev_filter->chunk(j),
@@ -320,71 +319,35 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     arrow::compute::FunctionContext function_context(
         arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
-
     std::shared_ptr<arrow::Array> unique_values;
 
     auto group_by_col = prev_result_->get_table(group_ref.table)
         .get_column_by_name(group_ref.col_name);
 
-    // Fetch the unique values of group_by_col
-    status = arrow::compute::Unique(
-        &function_context, group_by_col, &unique_values);
+    status = arrow::compute::Unique(&function_context, group_by_col,
+                                    &unique_values);
     evaluate_status(status, __FUNCTION__, __LINE__);
+
+    // If this field is in the Order By clause, sort it now. This assumes
+    // that column names are unique within a table, which is a fair
+    // assumption to make.
+    for (auto & order_ref : order_by_refs_) {
+        if (order_ref.table == group_ref.table &&
+            order_ref.col_name == group_ref.col_name ) {
+
+            std::shared_ptr<arrow::Array> sorted_indices;
+
+            status = arrow::compute::SortToIndices(&function_context,
+                                                   *unique_values, &sorted_indices);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+
+            status = arrow::compute::Take(&function_context, *unique_values,
+                                          *sorted_indices, take_options, &unique_values);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
+    }
 
     return unique_values;
-}
-
-void Aggregate::sort() {
-
-    arrow::Status status;
-
-    std::shared_ptr<arrow::StructArray> groups;
-    std::shared_ptr<arrow::Array> aggregates;
-
-    status = group_builder_->Finish(&groups);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-    status = aggregate_builder_->Finish(&aggregates);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    arrow::compute::TakeOptions take_options;
-
-    for (int i = 0; i < group_by_refs_.size(); i++) {
-
-        // Fetch one of the group columns
-        auto values = groups->field(
-            out_schema_->GetFieldIndex(order_by_refs_[i].col_name));
-
-        // Sort the groups and aggregates by the order by columns (from left to right)
-        for (auto &order_by_ref : order_by_refs_) {
-            if (order_by_ref.table == group_by_refs_[i].table &&
-                order_by_ref.col_name == group_by_refs_[i].col_name) {
-
-                std::shared_ptr<arrow::Array> sorted_indices;
-
-                status = arrow::compute::SortToIndices(
-                    &function_context, *values, &sorted_indices);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-
-                // Sort group
-                status = arrow::compute::Take(
-                    &function_context, *values, *sorted_indices, take_options,
-                    &values);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-
-                // Sort aggregates. Note that this may be sorted multiple times if
-                // there are multiple orderbys.
-                status = arrow::compute::Take(
-                    &function_context, *aggregates, *sorted_indices,
-                    take_options, &aggregates);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-            }
-        }
-        out_table_data_.push_back(values->data());
-    }
-    out_table_data_.push_back(aggregates->data());
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
@@ -417,6 +380,24 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
 
 void Aggregate::finish() {
 
+    arrow::Status status;
+
+    std::shared_ptr<arrow::StructArray> groups;
+    std::shared_ptr<arrow::Array> aggregates;
+
+    status = group_builder_->Finish(&groups);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    status = aggregate_builder_->Finish(&aggregates);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    for (int i = 0; i < group_by_refs_.size(); i++) {
+        // Fetch one of the group columns
+        auto group_values = groups->field(
+            out_schema_->GetFieldIndex(group_by_refs_[i].col_name));
+        out_table_data_.push_back(group_values->data());
+    }
+    out_table_data_.push_back(aggregates->data());
     out_table_->insert_records(out_table_data_);
 
     output_result_->append(out_table_);
@@ -541,11 +522,6 @@ void Aggregate::execute(Task *ctx) {
         // Compute all aggregates
         CreateLambdaTask([this](Task *internal) {
             compute_aggregates(internal);
-        }),
-        CreateLambdaTask([this](Task *internal) {
-            // Sort the output table. Sorting must be done only after all aggregates
-            // are computed.
-            sort();
         }),
         CreateLambdaTask([this](Task *internal) {
             // Create the output result
