@@ -73,7 +73,7 @@ protected:
 //        auto t = read_from_csv_file("/Users/corrado/hustle/data/ssb-1/lineorder_smallish.tbl", lo_schema, BLOCK_SIZE);
 //        write_to_file("/Users/corrado/hustle/data/ssb-1/lineorder_smallish.hsl", *t);
 
-        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder_smallish.hsl");
+        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder.hsl");
         d  = read_from_file("/Users/corrado/hustle/data/ssb-1/date.hsl");
         p  = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
         c  = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
@@ -533,7 +533,7 @@ TEST_F(SSBTestFixture, SSBQ1_3) {
 TEST_F(SSBTestFixture, SSBQ2_1){
 
     std::shared_ptr<Table> out_table;
-
+    FLAGS_num_threads = 1;
     auto s_pred_1 = Predicate{
         {s,
          "region"},
@@ -633,6 +633,122 @@ TEST_F(SSBTestFixture, SSBQ2_1){
         {nullptr, "year"},
         {nullptr, "brand1"}
                                              });
+    out_table->print();
+    hustle::simple_profiler.summarizeToStream(std::cout);
+
+
+}
+
+
+TEST_F(SSBTestFixture, SSBQ2_1_LIP){
+
+    std::shared_ptr<Table> out_table;
+
+    auto s_pred_1 = Predicate{
+        {s,
+         "region"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("AMERICA"))
+    };
+    auto s_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(s_pred_1));
+
+    auto s_pred_tree = std::make_shared<PredicateTree>(s_pred_node_1);
+
+
+    auto p_pred_1 = Predicate{
+        {p,
+         "category"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("MFGR#12"))
+    };
+    auto p_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(p_pred_1));
+
+    auto p_pred_tree = std::make_shared<PredicateTree>(p_pred_node_1);
+
+
+    auto p_select_result = std::make_shared<OperatorResult>();
+    auto s_select_result = std::make_shared<OperatorResult>();
+
+    p_select_result->append(p);
+    s_select_result->append(s);
+
+    auto select_result_out = std::make_shared<OperatorResult>();
+    // If you join on a table that has no selection, make sure you add it to
+    // the select output beforehand
+    select_result_out->append(lo);
+    select_result_out->append(d);
+
+    Select p_select_op(0, p_select_result, select_result_out, p_pred_tree);
+    Select s_select_op(0, s_select_result, select_result_out, s_pred_tree);
+
+    // Join date and lineorder tables
+    ColumnReference lo_d_ref = {lo, "order date"};
+    ColumnReference lo_p_ref = {lo, "part key"};
+    ColumnReference lo_s_ref = {lo, "supp key"};
+
+    ColumnReference d_ref = {d, "date key"};
+    ColumnReference p_ref = {p, "part key"};
+    ColumnReference s_ref = {s, "supp key"};
+
+    ColumnReference revenue_ref = {lo, "revenue"};
+
+    auto join_result_out = std::make_shared<OperatorResult>();
+    auto lip_result_out = std::make_shared<OperatorResult>();
+    JoinPredicate d_join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
+    JoinPredicate p_join_pred = {lo_p_ref, arrow::compute::EQUAL, p_ref};
+    JoinPredicate s_join_pred = {lo_s_ref, arrow::compute::EQUAL, s_ref};
+
+    JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
+    LIP lip_op(0, select_result_out, lip_result_out, graph);
+    Join join_op(0, lip_result_out, join_result_out, graph);
+
+    auto agg_result_out = std::make_shared<OperatorResult>();
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
+    Aggregate agg_op(0,
+                     join_result_out, agg_result_out, {agg_ref},
+                     {{d, "year"}, {p, "brand1"}},
+                     {{d, "year"}, {p, "brand1"}});
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+
+    ExecutionPlan plan(0);
+    auto p_select_id = plan.addOperator(&p_select_op);
+    auto s_select_id = plan.addOperator(&s_select_op);
+
+    auto lip_id = plan.addOperator(&lip_op);
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
+
+    // Declare join dependency on select operators
+    plan.createLink(p_select_id, lip_id);
+    plan.createLink(s_select_id, lip_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(lip_id, join_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
+
+    scheduler.addTask(&plan);
+
+    auto container = hustle::simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    std::cout << std::endl;
+    out_table = agg_result_out->materialize({
+                                                {nullptr, "revenue"},
+                                                {nullptr, "year"},
+                                                {nullptr, "brand1"}
+                                            });
     out_table->print();
     hustle::simple_profiler.summarizeToStream(std::cout);
 
