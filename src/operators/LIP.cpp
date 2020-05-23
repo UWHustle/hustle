@@ -48,6 +48,7 @@ void LIP::build_filters() {
 void LIP::probe_filters() {
 
     arrow::Status status;
+    fact_filter_vec_.resize(fact_table_.table->get_num_blocks());
 
     for (int i=0; i<dim_tables_.size(); i++) {
 
@@ -55,11 +56,11 @@ void LIP::probe_filters() {
         auto fact_fk_col = fact_table_.get_column_by_name(fact_join_col_name);
         auto bloom_filter = dim_filters_[i];
 
-        for (int j=0; j<fact_fk_col->num_chunks(); i++) {
+        for (int j=0; j<fact_fk_col->num_chunks(); j++) {
 
             // TODO(nicholas): For now, we assume the column is of INT64 type
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(
-                fact_fk_col->chunk(i));
+                fact_fk_col->chunk(j));
 
             arrow::BooleanBuilder filter_builder;
 //            status = filter_builder.AppendValues(fact_fk_col->length(), false);
@@ -83,7 +84,7 @@ void LIP::probe_filters() {
             status = filter_builder.Finish(&filter);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-            fact_filter_vec_[i] = filter;
+            fact_filter_vec_[j] = filter;
         }
     }
 }
