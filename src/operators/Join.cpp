@@ -238,9 +238,11 @@ void Join::hash_join(LazyTable left, std::string left_col, LazyTable right,
             probe_hash_table(left_join_col, internal);
         }),
         CreateLambdaTask([this, left, right](Task *internal) {
+            auto left2 = prev_result_->get_table(left.table);
+            auto right2 = prev_result_->get_table(right.table);
             finish_probe();
             // Update indices of other LazyTables in the previous OperatorResult
-            prev_result_ = back_propogate_result(left, right, joined_indices_);
+            prev_result_ = back_propogate_result(left2, right2, joined_indices_);
         })
     ));
 }
@@ -304,8 +306,10 @@ void Join::execute(Task *ctx) {
 }
 
 void Join::finish() {
-    prev_result_->append(prev_result_);
+    // Must append to output_result_ first
     output_result_->append(prev_result_);
+    prev_result_->append(prev_result_);
+
 }
 
 } // namespace operators
