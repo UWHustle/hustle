@@ -30,6 +30,8 @@ void Join::build_hash_table
     arrow::Status status;
     arrow::compute::FunctionContext function_context(
         arrow::default_memory_pool());
+    // NOTE: Do not forget to clear the hash table
+    hash_table_.clear();
     hash_table_.reserve(col->length());
 
     // Precompute the row offsets of each chunk. A multithreaded build phase
@@ -150,7 +152,6 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
     arrow::compute::FunctionContext function_context(
         arrow::default_memory_pool());
     arrow::compute::TakeOptions take_options;
-    // Where we will store the result of calls to Take. This will be reused.
     arrow::compute::Datum new_indices;
 
     std::vector<LazyTable> output_lazy_tables;
