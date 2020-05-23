@@ -1,16 +1,15 @@
 #ifndef HUSTLE_BLOOMFILTER_H
 #define HUSTLE_BLOOMFILTER_H
 
-#include<stdlib.h>
+#include<cstdlib>
 #include <vector>
-#include <arrow/api.h>
 
 class BloomFilter {
 public:
     
-//    explicit BloomFilter(int num_vals);
-    explicit BloomFilter(std::shared_ptr<arrow::ChunkedArray> col);
-    void insert(std::shared_ptr<arrow::ChunkedArray> col);
+    explicit BloomFilter(int num_vals);
+//    explicit BloomFilter(std::shared_ptr<arrow::ChunkedArray> col);
+    void insert(long long val);
     bool probe(long long val);
     double get_hit_rate();
     void set_memory(int memory);

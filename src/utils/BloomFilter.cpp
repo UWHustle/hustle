@@ -1,17 +1,13 @@
-//
-// Created by Nicholas Corrado on 5/21/20.
-//
-
 #include <cmath>
 #include "BloomFilter.h"
 #include "MurmurHash3.h"
 
 #define MAX_SEED 65535
 
-BloomFilter::BloomFilter(std::shared_ptr<arrow::ChunkedArray> col) {
+BloomFilter::BloomFilter(int num_vals) {
     eps_ = 1e-2;
 
-    int n = col->length();
+    int n = num_vals;
     num_hash_ = int (round( - log(eps_) / log(2)));
     num_cells_ = int (n * num_hash_ / log(2));
 
@@ -27,7 +23,7 @@ BloomFilter::BloomFilter(std::shared_ptr<arrow::ChunkedArray> col) {
     hit_count_queue_sum_ = 0;
     probe_count_queue_sum_ = 0;
 
-    insert(col);
+//    insert(col);
 }
 
 //BloomFilter::BloomFilter(int num_vals) {
@@ -64,21 +60,13 @@ void BloomFilter::set_memory(int memory) {
     queue_index_ = memory_-1;
 }
 
-void BloomFilter::insert(std::shared_ptr<arrow::ChunkedArray> col) {
-    for (int i=0; i<col->num_chunks(); i++) {
-        // TODO(nicholas): For now, we assume the column is of string type.
-        auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
-
-        for (int j=0; j<chunk->length(); j++) {
-            auto val = chunk->Value(j);
-
-            // Hash the value using all hash functions
-            for (int k=0; k<num_hash_; k++) {
-                int index = hash(val, seeds_[k]) % num_cells_;
-                cells_[index] = true;
-            }
-        }
+void BloomFilter::insert(long long val) {
+    // Hash the value using all hash functions
+    for (int k=0; k<num_hash_; k++) {
+        int index = hash(val, seeds_[k]) % num_cells_;
+        cells_[index] = true;
     }
+
 }
 
 void BloomFilter::update(){
