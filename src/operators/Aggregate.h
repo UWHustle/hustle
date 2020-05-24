@@ -84,6 +84,8 @@ public:
 
 private:
 
+    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> group_by_cols_;
+
     std::shared_ptr<arrow::ChunkedArray> empty_filter_;
     // If a thread wants to insert a group and its aggregate into group_builder_
     // and aggregate_builder_, then it must grab this mutex. Otherwise, another

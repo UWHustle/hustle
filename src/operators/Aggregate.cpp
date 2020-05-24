@@ -322,8 +322,9 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
     arrow::compute::TakeOptions take_options;
     std::shared_ptr<arrow::Array> unique_values;
 
-    auto group_by_col = prev_result_->get_table(group_ref.table)
-        .get_column_by_name(group_ref.col_name);
+//    auto group_by_col = prev_result_->get_table(group_ref.table)
+//        .get_column_by_name(group_ref.col_name);
+    auto group_by_col = group_by_cols_[group_ref.col_name];
 
     status = arrow::compute::Unique(&function_context, group_by_col,
                                     &unique_values);
@@ -362,8 +363,9 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     arrow::compute::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
-    auto group_by_col = prev_result_->get_table(group_ref.table)
-        .get_column_by_name(group_ref.col_name);
+//    auto group_by_col = prev_result_->get_table(group_ref.table)
+//        .get_column_by_name(group_ref.col_name);
+    auto group_by_col = group_by_cols_[group_ref.col_name];
 
     for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
@@ -463,6 +465,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
     // all of them at once, since you need to know how many unique values
     // are in each column to initialize the loop variables.
     for (auto &col_ref : group_by_refs_) {
+        group_by_cols_.emplace(col_ref.col_name, prev_result_->get_table(col_ref.table).get_column_by_name(col_ref.col_name));
         all_unique_values_.push_back(get_unique_values(col_ref));
     }
 
