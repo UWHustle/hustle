@@ -72,31 +72,33 @@ void LIP::probe_filters() {
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(
                 fact_fk_col->chunk(j));
 
-            arrow::BooleanBuilder filter_builder;
-//            status = filter_builder.AppendValues(fact_fk_col->length(), false);
-            status = filter_builder.Reserve(chunk->length());
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+            auto filter_array_data = make_empty_filter(chunk->length());
+            auto *mutable_filter_data = filter_array_data->GetMutableValues<uint8_t>(1, 0);
 
             for (int row = 0; row < chunk->length(); row++) {
                 auto key = chunk->Value(j);
 
                 if (bloom_filter->probe(key)) {
-                    status = filter_builder.Append(true);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                    mutable_filter_data[row / 8] |= (1u << (row % 8u));
                 }
                 else{
-                    status = filter_builder.Append(false);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                    mutable_filter_data[row / 8] &= (1u << (row % 8u));
                 }
             }
 
-            std::shared_ptr<arrow::Array> filter;
-            status = filter_builder.Finish(&filter);
+            auto filter = arrow::MakeArray(filter_array_data);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
             fact_filter_vec_[j] = filter;
         }
     }
+}
+
+std::shared_ptr<arrow::ArrayData> LIP::make_empty_filter(int num_bits) {
+    auto result = arrow::AllocateResizableBuffer(num_bits/8 + 1);
+    evaluate_status(result.status(), __FUNCTION__, __LINE__);
+    std::shared_ptr<arrow::ResizableBuffer> valid_buffer = std::move(result.ValueOrDie());
+    return arrow::ArrayData::Make(arrow::boolean(),num_bits,{nullptr,valid_buffer});
 }
 
 void LIP::finish() {

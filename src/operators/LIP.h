@@ -67,6 +67,10 @@ private:
     void build_filters();
 
     void probe_filters();
+
+    void make_empty_filter();
+
+    std::shared_ptr<arrow::ArrayData> make_empty_filter(int num_bits);
 };
 
 } // namespace hustle
