@@ -21,9 +21,10 @@ private:
     double eps_;
     
     int num_cells_;
+    int num_bytes_;
     int num_hash_;
     int* seeds_;
-    std::vector<bool> cells_;
+    uint8_t *cells_;
 
     // LIP-specific data members
     int* hit_count_queue_;

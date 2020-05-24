@@ -10,8 +10,13 @@ BloomFilter::BloomFilter(int num_vals) {
     int n = num_vals;
     num_hash_ = int (round( - log(eps_) / log(2)));
     num_cells_ = int (n * num_hash_ / log(2));
+    num_bytes_ = sizeof(uint8_t) * num_cells_ / 8 + 1;
 
-    cells_ = std::vector<bool>(num_cells_, false);
+    cells_ = (uint8_t *) malloc(num_bytes_);
+
+    for (int i=0; i<num_bytes_; i++) {
+        cells_[i] = 0;
+    }
 
     seeds_ = (int*)malloc(num_hash_ * sizeof(int));
     for(int i = 0; i < num_hash_; ++i) {
@@ -64,7 +69,7 @@ void BloomFilter::insert(long long val) {
     // Hash the value using all hash functions
     for (int k=0; k<num_hash_; k++) {
         int index = hash(val, seeds_[k]) % num_cells_;
-        cells_[index] = true;
+        cells_[index/8] |= (1u << (index % 8u));
     }
 
 }
@@ -99,7 +104,8 @@ bool BloomFilter::probe(long long val){
     probe_count_++;
     for(int i=0; i<num_hash_; i++){
         int index = hash(val, seeds_[i]) % num_cells_;
-        if (!cells_[index]) {
+        int bit = cells_[index/8] & (1u << (index % 8u));
+        if (!bit) {
             return false;
         }
     }
