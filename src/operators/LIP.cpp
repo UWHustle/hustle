@@ -24,7 +24,10 @@ void LIP::build_filters() {
         auto lazy_table = dim_tables_[i];
         auto dim_join_col_name = dim_join_col_names_[i];
 
+        // Pre-materialized and save dim table pk columns.
         auto pk_col = lazy_table.get_column_by_name(dim_join_col_name);
+        dim_pk_cols_.emplace(dim_join_col_name, pk_col);
+
         auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
 
         for (int i=0; i<pk_col->num_chunks(); i++) {
@@ -50,10 +53,17 @@ void LIP::probe_filters() {
     arrow::Status status;
     fact_filter_vec_.resize(fact_table_.table->get_num_blocks());
 
+    // Pre-materialized and save fact table fk columns.
+    for (int i=0; i<dim_tables_.size(); i++) {
+        auto fact_join_col_name = fact_join_col_names_[i];
+        auto fact_fk_col = fact_table_.get_column_by_name(fact_join_col_name);
+        fact_fk_cols_.emplace(fact_join_col_name, fact_fk_col);
+    }
+
     for (int i=0; i<dim_tables_.size(); i++) {
 
         auto fact_join_col_name = fact_join_col_names_[i];
-        auto fact_fk_col = fact_table_.get_column_by_name(fact_join_col_name);
+        auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
         auto bloom_filter = dim_filters_[i];
 
         for (int j=0; j<fact_fk_col->num_chunks(); j++) {
@@ -64,7 +74,7 @@ void LIP::probe_filters() {
 
             arrow::BooleanBuilder filter_builder;
 //            status = filter_builder.AppendValues(fact_fk_col->length(), false);
-            status = filter_builder.Reserve(fact_fk_col->length());
+            status = filter_builder.Reserve(chunk->length());
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
             for (int row = 0; row < chunk->length(); row++) {
