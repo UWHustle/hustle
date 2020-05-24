@@ -119,10 +119,18 @@ bool BloomFilter::compare( BloomFilter *lhs,  BloomFilter *rhs) {
 }
 
 
-unsigned int BloomFilter::hash(long long val, int seed) {
-    uint32_t out;
-    MurmurHash3_x86_32(&val, sizeof(long long), seed, &out);
-    return out;
+//unsigned int BloomFilter::hash(long long val, int seed) {
+//    uint32_t out;
+//    MurmurHash3_x86_32(&val, sizeof(long long), seed, &out);
+//    return out;
+//}
+
+unsigned int BloomFilter::hash(long long x, int seed) {
+    x = (x<<32)^seed;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = (x >> 16) ^ x;
+    return x;
 }
 
 //	Function to hash a string, with a seed.
