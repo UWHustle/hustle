@@ -149,8 +149,8 @@ void BloomFilter::probe(
             bool hit = true;
 
             for (int i = 0; i < num_hash_; i++) {
-                int index = hash(key, seeds_[i]) % num_cells_;
-                int bit = cells_[index / 8] & (1u << (index % 8u));
+                int cell_index = hash(key, seeds_[i]) % num_cells_;
+                int bit = cells_[cell_index / 8] & (1u << (cell_index % 8u));
                 if (!bit) {
                     hit = false;
                     break;
@@ -183,7 +183,7 @@ bool BloomFilter::compare( BloomFilter *lhs,  BloomFilter *rhs) {
 //    return out;
 //}
 
-unsigned int BloomFilter::hash(long long x, int seed) {
+inline unsigned int BloomFilter::hash(long long x, int seed) {
     x = (x<<32)^seed;
     x = ((x >> 16) ^ x) * 0x45d9f3b;
     x = ((x >> 16) ^ x) * 0x45d9f3b;
