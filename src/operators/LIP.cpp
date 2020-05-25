@@ -80,13 +80,16 @@ void LIP::probe_filters() {
             auto bloom_filter = dim_filters_[i];
 
             for (int row = 0; row < chunk->length(); row++) {
-                auto key = chunk->Value(row);
+
                 uint8_t bit_mask = 1u << (row % 8u);
-                if ( (mutable_filter_data[row / 8] & bit_mask) && bloom_filter->probe(key)) {
-                    mutable_filter_data[row / 8] |= bit_mask;
-                }
-                else{
-                    mutable_filter_data[row / 8] &= ~bit_mask;
+                if (mutable_filter_data[row / 8] & bit_mask) {
+                    auto key = chunk->Value(row);
+
+                    if (bloom_filter->probe(key)) {
+                        mutable_filter_data[row / 8] |= bit_mask;
+                    } else {
+                        mutable_filter_data[row / 8] &= ~bit_mask;
+                    }
                 }
             }
         }
