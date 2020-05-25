@@ -16,7 +16,9 @@ public:
     void set_memory(int memory);
     void update();
 
-
+    std::shared_ptr<arrow::ArrayData> probe(
+        std::shared_ptr<arrow::ArrayData> filter_data,
+        std::shared_ptr<arrow::Array> col);
 private:
 
     double eps_;
@@ -47,7 +49,7 @@ private:
 
     void Reset();
 
-//    std::shared_ptr<arrow::ArrayData> probe(std::shared_ptr<arrow::Array> col);
+
 };
 
 

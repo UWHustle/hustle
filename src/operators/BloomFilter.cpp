@@ -111,19 +111,42 @@ bool BloomFilter::probe(long long val){
     return true;
 }
 
-//std::shared_ptr<arrow::ArrayData> BloomFilter::probe(std::shared_ptr<arrow::Array> col){
-//
-//    probe_count_++;
-//    for(int i=0; i<num_hash_; i++){
-//        int index = hash(val, seeds_[i]) % num_cells_;
-//        int bit = cells_[index/8] & (1u << (index % 8u));
-//        if (!bit) {
-//            return false;
-//        }
-//    }
-//    hit_count_++;
-//    return std::make_shared<arrow::ArrayData>();
-//}
+std::shared_ptr<arrow::ArrayData> BloomFilter::probe(
+    std::shared_ptr<arrow::ArrayData> filter_data,
+    std::shared_ptr<arrow::Array> col){
+
+    probe_count_++;
+    // TODO(nicholas): For now, we assume the column is of INT64 type
+    auto chunk = std::static_pointer_cast<arrow::Int64Array>(col);
+    auto *mutable_filter_data = filter_data->GetMutableValues<uint8_t>(1, 0);
+
+    for (int row = 0; row < chunk->length(); row++) {
+        uint8_t bit_mask = 1u << (row % 8u);
+        if (mutable_filter_data[row / 8] & bit_mask) {
+            auto key = chunk->Value(row);
+
+            bool hit = true;
+
+            for(int i=0; i<num_hash_; i++){
+                int index = hash(key, seeds_[i]) % num_cells_;
+                int bit = cells_[index/8] & (1u << (index % 8u));
+                if (!bit) {
+                    hit = false;
+                    break;
+                }
+            }
+
+            if (hit) {
+                mutable_filter_data[row / 8] |= bit_mask;
+            } else {
+                mutable_filter_data[row / 8] &= ~bit_mask;
+            }
+        }
+    }
+
+    hit_count_++;
+    return std::make_shared<arrow::ArrayData>();
+}
 
 double BloomFilter::get_hit_rate() {
     if (probe_count_queue_sum_ > 0)
