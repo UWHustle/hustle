@@ -35,9 +35,6 @@ namespace hustle::operators{
 
     std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) {
 
-        if (i == 0) {
-            int x = 0;
-        }
 
         if (materialized_cols_.count(i) > 0) {
             return materialized_cols_[i];
@@ -50,9 +47,7 @@ namespace hustle::operators{
                 arrow::default_memory_pool());
         std::shared_ptr<arrow::ChunkedArray> out;
 
-        // TODO(nicholas): Filters are ChunkedArrays while indices are Arrays.
-        //  If this changes in the future, then you will ned to
-        //  update these switch blocks.
+        // Filters are ChunkedArrays, indices are Arrays.
         switch(filter.kind()) {
             case arrow::compute::Datum::NONE: {
                 break;
