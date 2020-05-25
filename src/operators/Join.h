@@ -37,6 +37,11 @@ public:
 
 private:
 
+    std::vector<LazyTable> lefts;
+    std::vector<LazyTable> rights;
+    std::vector<std::string> left_col_names;
+    std::vector<std::string> right_col_names;
+
     // Operator result from an upstream operator
     std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<OperatorResult> output_result_;
@@ -84,8 +89,7 @@ private:
      * prev_result, but now their index arrays are updated, i.e. all indices
      * that did not satisfy the join predicate are not included.
      */
-    void hash_join(LazyTable left, std::string left_col, LazyTable right,
-                   std::string right_col, Task *ctx);
+    void hash_join(int i, Task *ctx);
 
     /**
      * After performing a single join, we must eliminate rows from other

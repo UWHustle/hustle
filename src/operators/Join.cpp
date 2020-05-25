@@ -217,33 +217,37 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
-void Join::hash_join(LazyTable left, std::string left_col, LazyTable right,
-                     std::string right_col, Task *ctx) {
+void Join::hash_join(int i, Task *ctx) {
+
+//    auto left = prev_result_->get_table(lefts[i].table);
+//    auto right = prev_result_->get_table(rights[i].table);
+//
+//    auto left_col_name = left_col_names[i];
+//    auto right_col_name = right_col_names[i];
+
 
     ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this, right, right_col](Task *internal) {
+        CreateLambdaTask([this, i](Task *internal) {
             // Build phase
             // TODO(nicholas): left and right should not be passed by value, since
             //   their indices will not be updated when a later join needs them!
             //   You'll crash when you propogate results.
-            auto right2 = prev_result_->get_table(right.table);
-            auto right_join_col = right2.get_column_by_name(right_col);
+            auto right = prev_result_->get_table(rights[i].table);
+            auto right_join_col = right.get_column_by_name(right_col_names[i]);
             build_hash_table(right_join_col, internal);
         }),
-        CreateLambdaTask([this, left, left_col](Task *internal) {
+        CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
-            int left_join_col_index = left.table->get_schema()->GetFieldIndex(
-                left_col);
-            auto left2 = prev_result_->get_table(left.table);
-            auto left_join_col = left2.get_column(left_join_col_index);
+            auto left = prev_result_->get_table(lefts[i].table);
+            auto left_join_col = left.get_column_by_name(left_col_names[i]);
             probe_hash_table(left_join_col, internal);
         }),
-        CreateLambdaTask([this, left, right](Task *internal) {
-            auto left2 = prev_result_->get_table(left.table);
-            auto right2 = prev_result_->get_table(right.table);
+        CreateLambdaTask([this, i](Task *internal) {
             finish_probe();
+            auto left = prev_result_->get_table(lefts[i].table);
+            auto right = prev_result_->get_table(rights[i].table);
             // Update indices of other LazyTables in the previous OperatorResult
-            prev_result_ = back_propogate_result(left2, right2, joined_indices_);
+            prev_result_ = back_propogate_result(left, right, joined_indices_);
         })
     ));
 }
@@ -254,10 +258,10 @@ void Join::execute(Task *ctx) {
     // cannot help us here!
     std::vector<Task *> tasks;
 
-    std::vector<LazyTable> lefts;
-    std::vector<LazyTable> rights;
-    std::vector<std::string> left_col_names;
-    std::vector<std::string> right_col_names;
+//    std::vector<LazyTable> lefts;
+//    std::vector<LazyTable> rights;
+//    std::vector<std::string> left_col_names;
+//    std::vector<std::string> right_col_names;
 
     // TODO(nicholas): For now, we assume joins have simple predicates
     //   without connective operators.
@@ -290,10 +294,8 @@ void Join::execute(Task *ctx) {
     // Each task is one join
     for (int i = 0; i < lefts.size(); i++) {
         tasks.push_back(CreateLambdaTask(
-            [=](Task *internal) {
-                hash_join(lefts[i], left_col_names[i], rights[i],
-                          right_col_names[i],
-                          internal);
+            [this, i](Task *internal) {
+                hash_join(i, internal);
             }));
     }
 
