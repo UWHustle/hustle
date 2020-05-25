@@ -5,7 +5,7 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
-#include <utils/BloomFilter.h>
+#include "BloomFilter.h"
 #include "OperatorResult.h"
 #include "JoinGraph.h"
 #include "Operator.h"
@@ -37,6 +37,8 @@ public:
     void execute(Task *ctx) override;
 
 private:
+    std::vector<std::vector<int64_t>> lip_indices_;
+
 
     std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols_;
     std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> dim_pk_cols_;

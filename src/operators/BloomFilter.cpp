@@ -111,25 +111,25 @@ bool BloomFilter::probe(long long val){
     return true;
 }
 
-std::shared_ptr<arrow::ArrayData> BloomFilter::probe(
-    std::shared_ptr<arrow::ArrayData> filter_data,
-    std::shared_ptr<arrow::Array> col){
+void BloomFilter::probe(
+    std::vector<std::vector<int64_t>> &indices,
+    std::shared_ptr<arrow::Array> col,
+    int offset,
+    int k){
 
     probe_count_++;
     // TODO(nicholas): For now, we assume the column is of INT64 type
     auto chunk = std::static_pointer_cast<arrow::Int64Array>(col);
-    auto *mutable_filter_data = filter_data->GetMutableValues<uint8_t>(1, 0);
 
-    for (int row = 0; row < chunk->length(); row++) {
-        uint8_t bit_mask = 1u << (row % 8u);
-        if (mutable_filter_data[row / 8] & bit_mask) {
+    if (k == 0) {
+        for (int row = 0; row < chunk->length(); row++) {
             auto key = chunk->Value(row);
 
             bool hit = true;
 
-            for(int i=0; i<num_hash_; i++){
+            for (int i = 0; i < num_hash_; i++) {
                 int index = hash(key, seeds_[i]) % num_cells_;
-                int bit = cells_[index/8] & (1u << (index % 8u));
+                int bit = cells_[index / 8] & (1u << (index % 8u));
                 if (!bit) {
                     hit = false;
                     break;
@@ -137,15 +137,32 @@ std::shared_ptr<arrow::ArrayData> BloomFilter::probe(
             }
 
             if (hit) {
-                mutable_filter_data[row / 8] |= bit_mask;
-            } else {
-                mutable_filter_data[row / 8] &= ~bit_mask;
+                indices[0].push_back(row + offset);
+            }
+        }
+    }
+    else{
+        for (auto &index : indices[k-1]) {
+
+            auto key = chunk->Value(index - offset);
+
+            bool hit = true;
+
+            for (int i = 0; i < num_hash_; i++) {
+                int index = hash(key, seeds_[i]) % num_cells_;
+                int bit = cells_[index / 8] & (1u << (index % 8u));
+                if (!bit) {
+                    hit = false;
+                    break;
+                }
+            }
+            if (hit) {
+                indices[k].push_back(index);
             }
         }
     }
 
     hit_count_++;
-    return std::make_shared<arrow::ArrayData>();
 }
 
 double BloomFilter::get_hit_rate() {

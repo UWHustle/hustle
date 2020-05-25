@@ -51,7 +51,7 @@ void LIP::build_filters() {
 void LIP::probe_filters() {
 
     arrow::Status status;
-    fact_filter_vec_.resize(fact_table_.table->get_num_blocks());
+    lip_indices_.resize(fact_table_.table->get_num_blocks());
 
     // Pre-materialized and save fact table fk columns.
     for (int i=0; i<dim_tables_.size(); i++) {
@@ -60,15 +60,26 @@ void LIP::probe_filters() {
         fact_fk_cols_.emplace(fact_join_col_name, fact_fk_col);
     }
 
+    // Grab any fact table column so we can pre-compute chunk row offsets.
+    auto fact_col = fact_table_.get_column(0);
+    std::vector<int64_t> chunk_row_offsets(fact_col->num_chunks());
+    chunk_row_offsets[0] = 0;
+    for (int i = 1; i < fact_col->num_chunks(); i++) {
+        chunk_row_offsets[i] =
+            chunk_row_offsets[i - 1] + fact_col->chunk(i - 1)->length();
+    }
 
-
+//    std::vector<int> lip_indices;
+//    int lip_indices_size = fact_table_.table->get_num_rows();
+//    auto lip_indices = (int*)malloc(lip_indices_size * sizeof(int));
+//    for (int i=0; i<lip_indices_size; i++) {
+//        lip_indices[i] = i;
+//    }
     for (int j=0; j<fact_table_.table->get_num_blocks(); j++) {
 
-        auto filter_array_data = make_empty_filter(fact_table_.table->get_block(j)->get_num_rows());
-        auto *mutable_filter_data = filter_array_data->GetMutableValues<uint8_t>(1, 0);
+        std::vector<std::vector<int64_t>> indices(dim_tables_.size());
 
-        bool skip = false;
-        for (int i=0; i<dim_tables_.size() && !skip; i++) {
+        for (int i=0; i<dim_tables_.size(); i++) {
 
             auto fact_join_col_name = fact_join_col_names_[i];
             auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
@@ -77,24 +88,36 @@ void LIP::probe_filters() {
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(
                 fact_fk_col->chunk(j));
 
+            for(auto &v : indices) {
+                v.reserve(chunk->length());
+            }
+
             auto bloom_filter = dim_filters_[i];
 
-            for (int row = 0; row < chunk->length(); row++) {
-
-                uint8_t bit_mask = 1u << (row % 8u);
-                if (mutable_filter_data[row / 8] & bit_mask) {
-                    auto key = chunk->Value(row);
-
-                    if (bloom_filter->probe(key)) {
-                        mutable_filter_data[row / 8] |= bit_mask;
-                    } else {
-                        mutable_filter_data[row / 8] &= ~bit_mask;
-                    }
-                }
-            }
+            bloom_filter->probe(indices, chunk, chunk_row_offsets[j], i);
+//            if (i==0) {
+//                for (int row = 0; row < chunk->length(); row++) {
+//
+//                    auto key = chunk->Value(row);
+//
+//                    if (bloom_filter->probe(key)) {
+//                        indices[0].push_back(row + chunk_row_offsets[j]);
+//                    }
+//                }
+//            }
+//            else {
+//
+//                for (auto &index : indices[i-1]) {
+//
+//                    auto key = chunk->Value(index - chunk_row_offsets[j]);
+//
+//                    if (bloom_filter->probe(key)) {
+//                        indices[i].push_back(index);
+//                    }
+//                }
+//            }
         }
-        auto filter = arrow::MakeArray(filter_array_data);
-        fact_filter_vec_[j] = filter;
+        lip_indices_[j] = indices[dim_tables_.size()-1];
     }
 }
 
@@ -111,10 +134,22 @@ std::shared_ptr<arrow::ArrayData> LIP::make_empty_filter(int num_bits) {
 }
 
 void LIP::finish() {
+    arrow::Status status;
+    arrow::Int64Builder new_indices_builder;
+    std::shared_ptr<arrow::Int64Array> new_indices;
 
-    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(fact_filter_vec_);
-    arrow::compute::Datum filter(chunked_filter);
-    LazyTable result_unit(fact_table_.table, filter, fact_table_.indices);
+    // Append all of the indices to an ArrayBuilder.
+    for (int i = 0; i < lip_indices_.size(); i++) {
+        status = new_indices_builder.AppendValues(lip_indices_[i]);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    }
+
+    // Construct left and right index arrays.
+    status = new_indices_builder.Finish(&new_indices);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+
+    LazyTable result_unit(fact_table_.table, fact_table_.filter, new_indices);
     OperatorResult result({result_unit});
     output_result_->append(std::make_shared<OperatorResult>(result));
 

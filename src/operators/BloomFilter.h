@@ -16,9 +16,14 @@ public:
     void set_memory(int memory);
     void update();
 
-    std::shared_ptr<arrow::ArrayData> probe(
-        std::shared_ptr<arrow::ArrayData> filter_data,
-        std::shared_ptr<arrow::Array> col);
+//    std::shared_ptr<arrow::ArrayData> probe(
+//        std::shared_ptr<arrow::ArrayData> filter_data,
+//        std::shared_ptr<arrow::Array> col);
+    void probe(
+        std::vector<std::vector<int64_t>> &indices,
+        std::shared_ptr<arrow::Array> col,
+        int offset, int i);
+
 private:
 
     double eps_;
@@ -48,6 +53,7 @@ private:
 //    unsigned int hash(const std::string& x, int seed);
 
     void Reset();
+
 
 
 };
