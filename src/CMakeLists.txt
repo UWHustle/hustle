@@ -38,6 +38,7 @@ target_link_libraries(hustle_main
         hustle_src_operators
         hustle_src_scheduler_Scheduler
         hustle_src_optimizer_ExecutionPlan
+        hustle_src_utils_BloomFilter
         ${ARROW_SHARED_LIB}
         ${GFLAGS_LIB_NAME}
         glog

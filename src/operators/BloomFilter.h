@@ -1,8 +1,9 @@
 #ifndef HUSTLE_BLOOMFILTER_H
 #define HUSTLE_BLOOMFILTER_H
 
-#include<cstdlib>
+#include <cstdlib>
 #include <vector>
+#include <arrow/api.h>
 
 class BloomFilter {
 public:
@@ -39,13 +40,14 @@ private:
     int memory_;
 
 
-
     static bool compare(BloomFilter *lhs, BloomFilter *rhs);
 
     unsigned int hash(long long val, int seed);
 //    unsigned int hash(const std::string& x, int seed);
 
     void Reset();
+
+//    std::shared_ptr<arrow::ArrayData> probe(std::shared_ptr<arrow::Array> col);
 };
 
 

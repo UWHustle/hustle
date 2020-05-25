@@ -1,6 +1,5 @@
 #include <cmath>
 #include "BloomFilter.h"
-#include "MurmurHash3.h"
 
 #define MAX_SEED 65535
 
@@ -100,7 +99,6 @@ void BloomFilter::Reset() {
 }
 
 bool BloomFilter::probe(long long val){
-
     probe_count_++;
     for(int i=0; i<num_hash_; i++){
         int index = hash(val, seeds_[i]) % num_cells_;
@@ -112,6 +110,20 @@ bool BloomFilter::probe(long long val){
     hit_count_++;
     return true;
 }
+
+//std::shared_ptr<arrow::ArrayData> BloomFilter::probe(std::shared_ptr<arrow::Array> col){
+//
+//    probe_count_++;
+//    for(int i=0; i<num_hash_; i++){
+//        int index = hash(val, seeds_[i]) % num_cells_;
+//        int bit = cells_[index/8] & (1u << (index % 8u));
+//        if (!bit) {
+//            return false;
+//        }
+//    }
+//    hit_count_++;
+//    return std::make_shared<arrow::ArrayData>();
+//}
 
 double BloomFilter::get_hit_rate() {
     if (probe_count_queue_sum_ > 0)
