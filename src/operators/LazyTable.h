@@ -66,10 +66,10 @@ public:
     std::shared_ptr<Table> table;
     arrow::compute::Datum filter; // filters are ChunkedArrays
     arrow::compute::Datum indices; // indices are Arrays
+    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
 
 private:
 //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
-    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
 
 //    std::vector<bool> materialized_cols_bitmap_;
 };
