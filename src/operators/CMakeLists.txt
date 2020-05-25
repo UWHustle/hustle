@@ -8,13 +8,13 @@ add_library(
         Predicate.cpp Predicate.h
         LazyTable.cpp LazyTable.h
         Operator.h
-        LIP.cpp LIP.h)
+        LIP.cpp LIP.h
+        BloomFilter.cpp BloomFilter.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
-        hustle_src_utils_BloomFilter
         ${ARROW_SHARED_LIB}
 )
 
