@@ -77,19 +77,18 @@ void LIP::probe_filters() {
 //    }
     for (int j=0; j<fact_table_.table->get_num_blocks(); j++) {
 
-        std::vector<std::vector<int64_t>> indices(dim_tables_.size());
+        int indices_start = 0;
+        int indices_size = fact_col->chunk(j)->length();
+        auto* indices = (int64_t*) malloc(indices_size*sizeof(int64_t));
+
         for (int i=0; i<dim_tables_.size(); i++) {
 
             auto fact_join_col_name = fact_join_col_names_[i];
             auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
 
             // TODO(nicholas): For now, we assume the column is of INT64 type
-            auto chunk = std::static_pointer_cast<arrow::Int64Array>(
-                fact_fk_col->chunk(j));
-
-            for(auto &v : indices) {
-                v.reserve(chunk->length());
-            }
+            auto chunk = fact_fk_col->chunk(j);
+            auto chunk_data = fact_fk_col->chunk(j)->data()->GetValues<int64_t>(1, 0);
 
             auto bloom_filter = dim_filters_[i];
 
@@ -97,26 +96,34 @@ void LIP::probe_filters() {
             if (i==0) {
                 for (int row = 0; row < chunk->length(); row++) {
 
-                    auto key = chunk->Value(row);
+                    auto key = chunk_data[row];
 
                     if (bloom_filter->probe(key)) {
-                        indices[0].push_back(row + chunk_row_offsets[j]);
+                        indices[indices_start++] = (row + chunk_row_offsets[j]);
+                    }
+                    else {
+                        indices_size--;
                     }
                 }
             }
             else {
+                std::vector<int64_t> test(indices, indices+indices_size);
+                for (int m=0; m<indices_size; m++) {
 
-                for (auto &index : indices[i-1]) {
+                    auto index = indices[m];
+                    auto key = chunk_data[index - chunk_row_offsets[j]];
 
-                    auto key = chunk->Value(index - chunk_row_offsets[j]);
-
-                    if (bloom_filter->probe(key)) {
-                        indices[i].push_back(index);
+                    if (!bloom_filter->probe(key)) {
+                        auto to_remove = indices[m];
+                        indices[m] = indices[indices_size-1];
+                        indices[indices_size-1] = to_remove;
+                        indices_size--;
                     }
                 }
             }
         }
-        lip_indices_[j] = indices[dim_tables_.size()-1];
+        std::vector<int64_t> v(indices, indices+indices_size);
+        lip_indices_[j] = v;
     }
 }
 
