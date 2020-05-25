@@ -60,37 +60,38 @@ void LIP::probe_filters() {
         fact_fk_cols_.emplace(fact_join_col_name, fact_fk_col);
     }
 
-    for (int i=0; i<dim_tables_.size(); i++) {
 
-        auto fact_join_col_name = fact_join_col_names_[i];
-        auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
-        auto bloom_filter = dim_filters_[i];
 
-        for (int j=0; j<fact_fk_col->num_chunks(); j++) {
+    for (int j=0; j<fact_table_.table->get_num_blocks(); j++) {
+
+        auto filter_array_data = make_empty_filter(fact_table_.table->get_block(j)->get_num_rows());
+        auto *mutable_filter_data = filter_array_data->GetMutableValues<uint8_t>(1, 0);
+
+        bool skip = false;
+        for (int i=0; i<dim_tables_.size() && !skip; i++) {
+
+            auto fact_join_col_name = fact_join_col_names_[i];
+            auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
 
             // TODO(nicholas): For now, we assume the column is of INT64 type
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(
                 fact_fk_col->chunk(j));
 
-            auto filter_array_data = make_empty_filter(chunk->length());
-            auto *mutable_filter_data = filter_array_data->GetMutableValues<uint8_t>(1, 0);
+            auto bloom_filter = dim_filters_[i];
 
             for (int row = 0; row < chunk->length(); row++) {
-                auto key = chunk->Value(j);
-
-                if (bloom_filter->probe(key)) {
-                    mutable_filter_data[row / 8] |= (1u << (row % 8u));
+                auto key = chunk->Value(row);
+                uint8_t bit_mask = 1u << (row % 8u);
+                if ( (mutable_filter_data[row / 8] & bit_mask) && bloom_filter->probe(key)) {
+                    mutable_filter_data[row / 8] |= bit_mask;
                 }
                 else{
-                    mutable_filter_data[row / 8] &= (1u << (row % 8u));
+                    mutable_filter_data[row / 8] &= ~bit_mask;
                 }
             }
-
-            auto filter = arrow::MakeArray(filter_array_data);
-            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-            fact_filter_vec_[j] = filter;
         }
+        auto filter = arrow::MakeArray(filter_array_data);
+        fact_filter_vec_[j] = filter;
     }
 }
 
@@ -98,6 +99,11 @@ std::shared_ptr<arrow::ArrayData> LIP::make_empty_filter(int num_bits) {
     auto result = arrow::AllocateResizableBuffer(num_bits/8 + 1);
     evaluate_status(result.status(), __FUNCTION__, __LINE__);
     std::shared_ptr<arrow::ResizableBuffer> valid_buffer = std::move(result.ValueOrDie());
+    uint8_t *mutable_data = valid_buffer->mutable_data();
+    for (int i=0; i<valid_buffer->size(); i++) {
+        mutable_data[i] = ~0u;
+    }
+
     return arrow::ArrayData::Make(arrow::boolean(),num_bits,{nullptr,valid_buffer});
 }
 
