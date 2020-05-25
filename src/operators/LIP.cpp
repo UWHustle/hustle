@@ -78,7 +78,6 @@ void LIP::probe_filters() {
     for (int j=0; j<fact_table_.table->get_num_blocks(); j++) {
 
         std::vector<std::vector<int64_t>> indices(dim_tables_.size());
-
         for (int i=0; i<dim_tables_.size(); i++) {
 
             auto fact_join_col_name = fact_join_col_names_[i];
@@ -94,28 +93,28 @@ void LIP::probe_filters() {
 
             auto bloom_filter = dim_filters_[i];
 
-            bloom_filter->probe(indices, chunk, chunk_row_offsets[j], i);
-//            if (i==0) {
-//                for (int row = 0; row < chunk->length(); row++) {
-//
-//                    auto key = chunk->Value(row);
-//
-//                    if (bloom_filter->probe(key)) {
-//                        indices[0].push_back(row + chunk_row_offsets[j]);
-//                    }
-//                }
-//            }
-//            else {
-//
-//                for (auto &index : indices[i-1]) {
-//
-//                    auto key = chunk->Value(index - chunk_row_offsets[j]);
-//
-//                    if (bloom_filter->probe(key)) {
-//                        indices[i].push_back(index);
-//                    }
-//                }
-//            }
+//            bloom_filter->probe(indices, chunk, chunk_row_offsets[j], i);
+            if (i==0) {
+                for (int row = 0; row < chunk->length(); row++) {
+
+                    auto key = chunk->Value(row);
+
+                    if (bloom_filter->probe(key)) {
+                        indices[0].push_back(row + chunk_row_offsets[j]);
+                    }
+                }
+            }
+            else {
+
+                for (auto &index : indices[i-1]) {
+
+                    auto key = chunk->Value(index - chunk_row_offsets[j]);
+
+                    if (bloom_filter->probe(key)) {
+                        indices[i].push_back(index);
+                    }
+                }
+            }
         }
         lip_indices_[j] = indices[dim_tables_.size()-1];
     }
