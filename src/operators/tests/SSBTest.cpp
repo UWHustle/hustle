@@ -723,7 +723,7 @@ TEST_F(SSBTestFixture, SSBQ2_1_LIP){
 TEST_F(SSBTestFixture, SSBQ4_1){
 
     std::shared_ptr<Table> out_table;
-    FLAGS_num_threads = 1;
+    FLAGS_num_threads = 8;
 
     auto s_pred_1 = Predicate{
         {s,
@@ -835,43 +835,44 @@ TEST_F(SSBTestFixture, SSBQ4_1){
                      {{d, "year"}, {c, "nation"}},
                      {{d, "year"}, {c, "nation"}});
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+//    for (int i=0; i<100; i++) {
+        Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    ExecutionPlan plan(0);
-    auto p_select_id = plan.addOperator(&p_select_op);
-    auto s_select_id = plan.addOperator(&s_select_op);
-    auto c_select_id = plan.addOperator(&c_select_op);
-
-
-    auto join_id = plan.addOperator(&join_op);
-    auto agg_id = plan.addOperator(&agg_op);
-
-    // Declare join dependency on select operators
-    plan.createLink(p_select_id, join_id);
-    plan.createLink(s_select_id, join_id);
-    plan.createLink(c_select_id, join_id);
+        ExecutionPlan plan(0);
+        auto p_select_id = plan.addOperator(&p_select_op);
+        auto s_select_id = plan.addOperator(&s_select_op);
+        auto c_select_id = plan.addOperator(&c_select_op);
 
 
-    // Declare aggregate dependency on join operator
-    plan.createLink(join_id, agg_id);
+        auto join_id = plan.addOperator(&join_op);
+        auto agg_id = plan.addOperator(&agg_op);
 
-    scheduler.addTask(&plan);
+        // Declare join dependency on select operators
+        plan.createLink(p_select_id, join_id);
+        plan.createLink(s_select_id, join_id);
+        plan.createLink(c_select_id, join_id);
 
-    auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("query execution");
-    scheduler.start();
-    scheduler.join();
-    container->endEvent("query execution");
 
-    std::cout << std::endl;
-    out_table = agg_result_out->materialize({
-                                                {nullptr, "revenue"},
-                                                {nullptr, "year"},
-                                                {nullptr, "nation"}
-                                            });
-    out_table->print();
-    hustle::simple_profiler.summarizeToStream(std::cout);
+        // Declare aggregate dependency on join operator
+        plan.createLink(join_id, agg_id);
 
+        scheduler.addTask(&plan);
+
+        auto container = hustle::simple_profiler.getContainer();
+        container->startEvent("query execution");
+        scheduler.start();
+        scheduler.join();
+        container->endEvent("query execution");
+
+        std::cout << std::endl;
+        out_table = agg_result_out->materialize({
+                                                    {nullptr, "revenue"},
+                                                    {nullptr, "year"},
+                                                    {nullptr, "nation"}
+                                                });
+        out_table->print();
+        hustle::simple_profiler.summarizeToStream(std::cout);
+//    }
 
 }
 

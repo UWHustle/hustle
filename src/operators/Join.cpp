@@ -17,9 +17,9 @@ Join::Join(
     std::shared_ptr<OperatorResult> output_result,
     JoinGraph graph) : Operator(query_id) {
 
-    prev_result_ = std::move(prev_result);
-    output_result_ = std::move(output_result);
-    graph_ = std::move(graph);
+    prev_result_ = prev_result;
+    output_result_ = output_result;
+    graph_ = graph;
     joined_indices_.resize(2);
 
 }

@@ -16,9 +16,9 @@ Select::Select(
     std::shared_ptr<OperatorResult> output_result,
     std::shared_ptr<PredicateTree> tree) : Operator(query_id) {
 
-    prev_result_ = std::move(prev_result);
-    output_result_ = std::move(output_result);
-    tree_ = std::move(tree);
+    prev_result_ = prev_result;
+    output_result_ = output_result;
+    tree_ = tree;
 
     auto node = tree_->root_;
 
