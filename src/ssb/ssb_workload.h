@@ -52,7 +52,6 @@ private:
     ColumnReference lo_p_ref;
     ColumnReference lo_s_ref;
     ColumnReference lo_c_ref;
-    ColumnReference lo_ref;
 
     ColumnReference d_ref;
     ColumnReference p_ref;
@@ -63,6 +62,11 @@ private:
     JoinPredicate p_join_pred;
     JoinPredicate s_join_pred;
     JoinPredicate c_join_pred;
+
+    ColumnReference lo_rev_ref;
+    ColumnReference d_year_ref;
+
+
     void reset_results();
 };
 
