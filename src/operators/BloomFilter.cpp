@@ -4,7 +4,7 @@
 #define MAX_SEED 65535
 
 BloomFilter::BloomFilter(int num_vals) {
-    eps_ = 1e-2;
+    eps_ = 1e-3;
 
     int n = num_vals;
     num_hash_ = int (round( - log(eps_) / log(2)));
@@ -27,26 +27,8 @@ BloomFilter::BloomFilter(int num_vals) {
     hit_count_queue_sum_ = 0;
     probe_count_queue_sum_ = 0;
 
-//    insert(col);
 }
 
-//BloomFilter::BloomFilter(int num_vals) {
-//    int n = num_vals;
-//    num_hash_ = int (round( - log(eps_) / log(2)));
-//    num_cells_ = int (n * num_hash_ / log(2));
-//
-//    cells_ = std::vector<bool>(num_cells_, false);
-//
-//    seeds_ = (int*)malloc(num_hash_ * sizeof(int));
-//    for(int i = 0; i < num_hash_; ++i) {
-//        seeds_[i] = rand() % MAX_SEED;
-//    }
-//
-//    hit_count_ = 0;
-//    probe_count_ = 0;
-//    hit_count_queue_sum_ = 0;
-//    probe_count_queue_sum_ = 0;
-//}
 
 // Note: We assume that the queues are empty when we call this function.
 void BloomFilter::set_memory(int memory) {
@@ -111,60 +93,6 @@ bool BloomFilter::probe(long long val){
     return true;
 }
 
-void BloomFilter::probe(
-    std::vector<std::vector<int64_t>> &indices,
-    std::shared_ptr<arrow::Array> col,
-    int offset,
-    int k){
-
-    probe_count_++;
-    // TODO(nicholas): For now, we assume the column is of INT64 type
-    auto chunk = std::static_pointer_cast<arrow::Int64Array>(col);
-
-    if (k == 0) {
-        for (int row = 0; row < chunk->length(); row++) {
-            auto key = chunk->Value(row);
-
-            bool hit = true;
-
-            for (int i = 0; i < num_hash_; i++) {
-                int index = hash(key, seeds_[i]) % num_cells_;
-                int bit = cells_[index / 8] & (1u << (index % 8u));
-                if (!bit) {
-                    hit = false;
-                    break;
-                }
-            }
-
-            if (hit) {
-                indices[0].push_back(row + offset);
-            }
-        }
-    }
-    else{
-        for (auto &index : indices[k-1]) {
-
-            auto key = chunk->Value(index - offset);
-
-            bool hit = true;
-
-            for (int i = 0; i < num_hash_; i++) {
-                int cell_index = hash(key, seeds_[i]) % num_cells_;
-                int bit = cells_[cell_index / 8] & (1u << (cell_index % 8u));
-                if (!bit) {
-                    hit = false;
-                    break;
-                }
-            }
-            if (hit) {
-                indices[k].push_back(index);
-            }
-        }
-    }
-
-    hit_count_++;
-}
-
 double BloomFilter::get_hit_rate() {
     if (probe_count_queue_sum_ > 0)
         return 1.0 * hit_count_queue_sum_ / probe_count_queue_sum_;
@@ -177,12 +105,6 @@ bool BloomFilter::compare( BloomFilter *lhs,  BloomFilter *rhs) {
 }
 
 
-//unsigned int BloomFilter::hash(long long val, int seed) {
-//    uint32_t out;
-//    MurmurHash3_x86_32(&val, sizeof(long long), seed, &out);
-//    return out;
-//}
-
 inline unsigned int BloomFilter::hash(long long x, int seed) {
     x = (x<<32)^seed;
     x = ((x >> 16) ^ x) * 0x45d9f3b;
@@ -191,18 +113,3 @@ inline unsigned int BloomFilter::hash(long long x, int seed) {
     return x;
 }
 
-//	Function to hash a string, with a seed.
-//	returns a hash.
-//unsigned int BloomFilter::hash(const std::string& x, int seed) {
-//    int len = x.length();
-//
-//    char* tmp = (char*)malloc(len * sizeof(char));
-//    strcpy(tmp, x.c_str());
-//
-//    unsigned int ret;
-//    MurmurHash3_x86_32 (tmp, len, seed, &ret );
-//
-//    free(tmp);
-//
-//    return ret;
-//}
