@@ -55,4 +55,5 @@ add_subdirectory(operators)
 add_subdirectory(scheduler)
 add_subdirectory(threading)
 add_subdirectory(execution)
+add_subdirectory(ssb)
 

@@ -31,42 +31,24 @@ protected:
 
     void SetUp() override {
 
-        std::shared_ptr<arrow::Field>field1=arrow::field("order key",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field2=arrow::field("line number",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field3=arrow::field("cust key",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field4=arrow::field("part key",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field5=arrow::field("supp key",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field6=arrow::field("order date",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field7=arrow::field("ord priority",
-                                                         arrow::utf8());
-        std::shared_ptr<arrow::Field>field8=arrow::field("ship priority",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field9=arrow::field("quantity",
-                                                         arrow::int64());
-        std::shared_ptr<arrow::Field>field10=arrow::field("extended price",
-                                                          arrow::int64());
-        std::shared_ptr<arrow::Field>field11=arrow::field("ord total price",
-                                                          arrow::int64());
-        std::shared_ptr<arrow::Field>field12=arrow::field("discount",
-                                                          arrow::int64());
-        std::shared_ptr<arrow::Field>field13=arrow::field("revenue",
-                                                          arrow::int64());
-        std::shared_ptr<arrow::Field>field14=arrow::field("supply cost",
-                                                          arrow::int64());
-        std::shared_ptr<arrow::Field>field15=arrow::field("tax",
-                                                          arrow::int64());
-        std::shared_ptr<arrow::Field>field16=arrow::field("commit date",
-                                                          arrow::int64());
-        std::shared_ptr<arrow::Field>field17=arrow::field("ship mode",
-                                                          arrow::utf8());
-        lo_schema=arrow::schema({field1,field2,field3,field4,
-                                 field5,
+        auto field1 = arrow::field("order key", arrow::int64());
+        auto field2 = arrow::field("line number", arrow::int64());
+        auto field3 = arrow::field("cust key", arrow::int64());
+        auto field4 = arrow::field("part key", arrow::int64());
+        auto field5 = arrow::field("supp key", arrow::int64());
+        auto field6 = arrow::field("order date", arrow::int64());
+        auto field7 = arrow::field("ord priority", arrow::utf8());
+        auto field8 = arrow::field("ship priority", arrow::int64());
+        auto field9 = arrow::field("quantity", arrow::int64());
+        auto field10 = arrow::field("extended price", arrow::int64());
+        auto field11 = arrow::field("ord total price", arrow::int64());
+        auto field12 = arrow::field("discount", arrow::int64());
+        auto field13 = arrow::field("revenue", arrow::int64());
+        auto field14 = arrow::field("supply cost", arrow::int64());
+        auto field15 = arrow::field("tax", arrow::int64());
+        auto field16 = arrow::field("commit date", arrow::int64());
+        auto field17 = arrow::field("ship mode", arrow::utf8());
+        lo_schema=arrow::schema({field1,field2,field3,field4,field5,
                                  field6,field7,field8,field9,field10,
                                  field11,field12,field13,field14,field15,
                                  field16,field17});

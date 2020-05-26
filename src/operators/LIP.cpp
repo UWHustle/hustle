@@ -89,12 +89,16 @@ void LIP::probe_filters() {
                 indices[0].reserve(fact_col->chunk(j)->length());
 
                 for (int row = 0; row < chunk->length(); row++) {
+//                    if (row % 2 == 0) {
+                        auto key = chunk_data[row];
 
-                    auto key = chunk_data[row];
-
-                    if (bloom_filter->probe(key)) {
-                        indices[0].push_back(row + chunk_row_offsets[j]);
-                    }
+                        if (bloom_filter->probe(key)) {
+                            indices[0].push_back(row + chunk_row_offsets[j]);
+                        }
+//                    }
+//                    else {
+//                        indices[0].push_back(row + chunk_row_offsets[j]);
+//                    }
                 }
             }
             else {
