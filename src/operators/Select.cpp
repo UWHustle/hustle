@@ -97,9 +97,8 @@ void Select::finish() {
 
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
     arrow::compute::Datum filter(chunked_filter);
-    LazyTable result_unit(table_, filter, arrow::compute::Datum());
-    OperatorResult result({result_unit});
-    output_result_->append(std::make_shared<OperatorResult>(result));
+    LazyTable lazy_table(table_, filter, arrow::compute::Datum());
+    output_result_->append(lazy_table);
 }
 
 arrow::compute::Datum Select::get_filter(
