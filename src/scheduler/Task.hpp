@@ -159,6 +159,25 @@ inline Task* CreateTaskChain(TaskTs *...taskchain) {
   });
 }
 
+template <typename ...TaskTs>
+inline Task* CreateTaskChain(std::vector<Task*> tasks) {
+    return CreateLambdaTask([=](Task *ctx) {
+        const std::size_t num_tasks = tasks.size();
+        SchedulerInterface *scheduler = ctx->getScheduler();
+        Continuation c_dependent = ctx->getContinuation();
+        for (std::size_t i = 0; i < num_tasks; ++i) {
+            const Continuation c_dependency =
+                    i == num_tasks-1 ? kInvalidNodeID : scheduler->allocateContinuation();
+
+            Task *task = tasks[num_tasks-1-i];
+            task->inheritDescription(ctx->getDescription());
+
+            scheduler->addTask(task, c_dependency, c_dependent);
+            c_dependent = c_dependency;
+        }
+    });
+}
+
 template <typename Functor>
 inline void Task::spawnLambdaTask(const Functor &functor) {
   spawnTask(new LambdaTask<Functor>(functor));

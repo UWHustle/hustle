@@ -97,9 +97,10 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     auto select_pred_tree = std::make_shared<PredicateTree>(select_pred_node);
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(0, result, select_pred_tree);
+    Select select_op(0, result, out_result, select_pred_tree);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -107,9 +108,8 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     scheduler.start();
 
     scheduler.join();
-    result = select_op.finish();
 
-    auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
+    auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
 
     // Construct expected results
@@ -174,18 +174,18 @@ TEST_F(JoinTestFixture, AndSelectTest) {
             (select_connective_node);
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(0, result, select_pred_tree);
+    Select select_op(0, result, out_result, select_pred_tree);
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
     scheduler.addTask(select_op.createTask());
     scheduler.start();
 
     scheduler.join();
-    result = select_op.finish();
 
-    auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
+    auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
 
     // Construct expected results
@@ -250,18 +250,18 @@ TEST_F(JoinTestFixture, OrSelectTest) {
             (select_connective_node);
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(0, result, select_pred_tree);
+    Select select_op(0, result, out_result, select_pred_tree);
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
     scheduler.addTask(select_op.createTask());
     scheduler.start();
 
     scheduler.join();
-    result = select_op.finish();
 
-    auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
+    auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
 
     // Construct expected results
@@ -306,9 +306,10 @@ TEST_F(JoinTestFixture, SingleSelectManyBlocksTest) {
     auto select_pred_tree = std::make_shared<PredicateTree>(select_pred_node);
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(0, result, select_pred_tree);
+    Select select_op(0, result, out_result, select_pred_tree);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -316,9 +317,8 @@ TEST_F(JoinTestFixture, SingleSelectManyBlocksTest) {
     scheduler.start();
 
     scheduler.join();
-    result = select_op.finish();
 
-    auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
+    auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
 
     // Construct expected results
@@ -384,9 +384,10 @@ TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
             (select_connective_node);
 
     auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
     result->append(R);
 
-    Select select_op(0, result, select_pred_tree);
+    Select select_op(0, result, out_result, select_pred_tree);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -394,9 +395,8 @@ TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
     scheduler.start();
 
     scheduler.join();
-    result = select_op.finish();
 
-    auto out_table = result->materialize({R_key_ref, R_group_ref, R_data_ref});
+    auto out_table = out_result->materialize({R_key_ref, R_group_ref, R_data_ref});
 //    out_table->print();
 
     // Construct expected results
