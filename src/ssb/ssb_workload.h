@@ -65,6 +65,12 @@ private:
 
     ColumnReference lo_rev_ref;
     ColumnReference d_year_ref;
+    ColumnReference c_nation_ref;
+    ColumnReference c_city_ref;
+    ColumnReference p_brand1_ref;
+    ColumnReference p_category_ref;
+
+
 
 
     void reset_results();

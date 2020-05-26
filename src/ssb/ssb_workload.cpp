@@ -30,6 +30,14 @@ SSB::SSB() {
     s_ref = {s, "supp key"};
     c_ref = {c, "cust key"};
 
+    lo_rev_ref   = {lo, "revenue"};
+    d_year_ref   = {d, "year"};
+    c_nation_ref = {c, "nation"};
+    c_city_ref   = {c, "city"};
+    p_brand1_ref = {p, "brand1"};
+    p_category_ref = {p, "category"};
+
+
     d_join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     p_join_pred = {lo_p_ref, arrow::compute::EQUAL, p_ref};
     s_join_pred = {lo_s_ref, arrow::compute::EQUAL, s_ref};
@@ -97,7 +105,7 @@ void SSB::q11() {
     auto lo_pred_tree = std::make_shared<PredicateTree>(lo_root_node);
 
     // date.year = 1993
-    ColumnReference year_ref = {d, "year"};
+    ColumnReference year_ref = d_year_ref;
     auto year_pred_1 = Predicate{
         {d,
          "year"},
@@ -137,7 +145,7 @@ void SSB::q11() {
     Join join_op(0, select_result_out, join_result_out, graph);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue",
-                                  {lo, "revenue"}};
+                                  lo_rev_ref};
     Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
     ////////////////////////////////////////////////////////////////////////////
@@ -155,7 +163,7 @@ void SSB::q11() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+    Scheduler scheduler = Scheduler(8);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -280,7 +288,7 @@ void SSB::q12() {
     Join join_op(0, select_result_out, join_result_out, graph);
 
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue",
-                                  {lo, "revenue"}};
+                                  lo_rev_ref};
     Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
     ////////////////////////////////////////////////////////////////////////////
@@ -298,7 +306,7 @@ void SSB::q12() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+    Scheduler scheduler = Scheduler(8);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -404,11 +412,11 @@ void SSB::q41() {
     JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
     Join join_op(0, select_result_out, join_result_out, graph);
 
-    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {{d, "year"}, {c, "nation"}, {p, "category"}},
-                     {{d, "year"}, {c, "nation"}, {p, "category"}});
+                     {d_year_ref, c_nation_ref},
+                     {d_year_ref, c_nation_ref});
 
     ////////////////////////////////////////////////////////////////////////////
 
@@ -428,7 +436,7 @@ void SSB::q41() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+    Scheduler scheduler = Scheduler(8);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -437,7 +445,7 @@ void SSB::q41() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "nation"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
@@ -566,11 +574,11 @@ void SSB::q42() {
     JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
     Join join_op(0, select_result_out, join_result_out, graph);
 
-    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {{d, "year"}, {c, "nation"}},
-                     {{d, "year"}, {c, "nation"}});
+                     {d_year_ref, c_nation_ref, p_category_ref},
+                     {d_year_ref, c_nation_ref, p_category_ref});
 
     ////////////////////////////////////////////////////////////////////////////
 
@@ -593,7 +601,7 @@ void SSB::q42() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+    Scheduler scheduler = Scheduler(8);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -602,7 +610,7 @@ void SSB::q42() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "nation"}, {nullptr, "category"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
@@ -713,11 +721,11 @@ void SSB::q43() {
     JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
     Join join_op(0, select_result_out, join_result_out, graph);
 
-    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {{d, "year"}, {c, "nation"}},
-                     {{d, "year"}, {c, "nation"}});
+                     {d_year_ref, c_city_ref, p_brand1_ref},
+                     {d_year_ref, c_city_ref, p_brand1_ref});
 
     ////////////////////////////////////////////////////////////////////////////
     
@@ -739,7 +747,7 @@ void SSB::q43() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
+    Scheduler scheduler = Scheduler(8);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -748,7 +756,7 @@ void SSB::q43() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "city"}, {nullptr, "brand1"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
