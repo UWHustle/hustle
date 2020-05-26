@@ -71,9 +71,7 @@ void LIP::probe_filters() {
     for (int j=0; j<fact_table_.table->get_num_blocks(); j++) {
 
         std::vector<std::vector<int64_t>> indices(dim_tables_.size());
-        for(auto &v : indices) {
-            v.reserve(fact_col->chunk(j)->length());
-        }
+
 
         for (int i=0; i<dim_tables_.size(); i++) {
 
@@ -87,6 +85,9 @@ void LIP::probe_filters() {
             auto bloom_filter = dim_filters_[i];
 
             if (i==0) {
+                // Reserve space for the first index vector
+                indices[0].reserve(fact_col->chunk(j)->length());
+
                 for (int row = 0; row < chunk->length(); row++) {
 
                     auto key = chunk_data[row];
@@ -97,6 +98,8 @@ void LIP::probe_filters() {
                 }
             }
             else {
+                // Reserve space for the next index vector
+                indices[i].reserve(indices[i-1].size());
 
                 for (auto &index : indices[i-1]) {
 
