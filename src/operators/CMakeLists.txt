@@ -63,7 +63,7 @@ target_link_libraries(hustle_select_test
         )
 add_test(HustleSelect_test hustle_select_test)
 
-add_executable(hustle_SSB_test "tests/SSBTest.cpp")
+add_executable(hustle_SSB_test "tests/ssb/SSBTest.cpp")
 target_link_libraries(hustle_SSB_test
         gtest
         gtest_main
