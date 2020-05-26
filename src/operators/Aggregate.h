@@ -113,7 +113,6 @@ private:
     // References denoting which columns we want to group by
     std::vector<ColumnReference> order_by_refs_;
 
-    std::vector<int64_t> sum_vec_;
     std::vector<int64_t> tuple_ordering_;
 
     // We append each aggregate to this after it is computed.

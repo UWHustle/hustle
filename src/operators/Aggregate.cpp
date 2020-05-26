@@ -513,7 +513,6 @@ void Aggregate::compute_aggregates(Task *ctx) {
     }
 
     tuple_ordering_.resize(num_agg);
-    sum_vec_.resize(num_agg);
     status = group_builder_->Resize(num_agg);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
