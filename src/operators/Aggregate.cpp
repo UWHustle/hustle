@@ -416,14 +416,9 @@ void Aggregate::finish() {
         out_table_data_.push_back(group_values->data());
 
     }
-    std::cout << aggregates->ToString() << std::endl;
     status = arrow::compute::Take(&function_context, *aggregates, *indices, take_options, &aggregates);
     evaluate_status(status, __FUNCTION__, __LINE__);
     out_table_data_.push_back(aggregates->data());
-
-    std::cout << indices->ToString() << std::endl;
-
-    std::cout << aggregates->ToString() << std::endl;
 
     out_table_->insert_records(out_table_data_);
     output_result_->append(out_table_);
