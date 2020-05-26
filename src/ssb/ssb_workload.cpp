@@ -62,7 +62,7 @@ void SSB::execute(ExecutionPlan &plan, std::shared_ptr<OperatorResult> &final_re
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(&plan);
 
-    auto container = hustle::simple_profiler.getContainer();
+    auto container = simple_profiler.getContainer();
     container->startEvent("query execution");
     scheduler.start();
     scheduler.join();
@@ -70,8 +70,9 @@ void SSB::execute(ExecutionPlan &plan, std::shared_ptr<OperatorResult> &final_re
 
     out_table = final_result->materialize({{nullptr, "revenue"}});
     out_table->print();
-    hustle::simple_profiler.summarizeToStream(std::cout);
+    simple_profiler.summarizeToStream(std::cout);
 
+    simple_profiler.zero_time();
     reset_results();
 }
 
@@ -608,7 +609,6 @@ void SSB::q43() {
     auto s_select_id = plan.addOperator(&s_select_op);
     auto c_select_id = plan.addOperator(&c_select_op);
     auto d_select_id = plan.addOperator(&d_select_op);
-
 
     auto join_id = plan.addOperator(&join_op);
     auto agg_id = plan.addOperator(&agg_op);
