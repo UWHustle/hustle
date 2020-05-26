@@ -113,6 +113,9 @@ private:
     // References denoting which columns we want to group by
     std::vector<ColumnReference> order_by_refs_;
 
+    std::vector<int64_t> sum_vec_;
+    std::vector<int64_t> tuple_ordering_;
+
     // We append each aggregate to this after it is computed.
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
 
@@ -180,7 +183,7 @@ private:
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    bool insert_group_aggregate(arrow::compute::Datum aggregate);
+    bool insert_group_aggregate(arrow::compute::Datum aggregate, int agg_index);
 
     /**
      * Get the filter corresponding to a single group across all group by

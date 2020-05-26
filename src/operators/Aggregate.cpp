@@ -265,7 +265,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
+bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate, int agg_index) {
 
     arrow::Status status;
     // Append a group's aggregate to its builder.
@@ -285,6 +285,7 @@ bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate) {
             }
             // Append the group's aggregate to its builder.
             status = aggregate_builder_casted->Append(aggregate_casted->value);
+            tuple_ordering_[agg_index] = aggregate_builder_casted->length()-1;
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
@@ -394,15 +395,37 @@ void Aggregate::finish() {
     status = aggregate_builder_->Finish(&aggregates);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
+    // Prepare to sort output
+    arrow::Int64Builder indices_builder;
+    std::shared_ptr<arrow::Array> indices;
+    status = indices_builder.AppendValues(tuple_ordering_);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    status = indices_builder.Finish(&indices);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+    arrow::compute::TakeOptions take_options;
+
     for (int i = 0; i < group_by_refs_.size(); i++) {
         // Fetch one of the group columns
         auto group_values = groups->field(
             out_schema_->GetFieldIndex(group_by_refs_[i].col_name));
-        out_table_data_.push_back(group_values->data());
-    }
-    out_table_data_.push_back(aggregates->data());
-    out_table_->insert_records(out_table_data_);
 
+        status = arrow::compute::Take(&function_context, *group_values, *indices, take_options, &group_values);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        out_table_data_.push_back(group_values->data());
+
+    }
+    std::cout << aggregates->ToString() << std::endl;
+    status = arrow::compute::Take(&function_context, *aggregates, *indices, take_options, &aggregates);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    out_table_data_.push_back(aggregates->data());
+
+    std::cout << indices->ToString() << std::endl;
+
+    std::cout << aggregates->ToString() << std::endl;
+
+    out_table_->insert_records(out_table_data_);
     output_result_->append(out_table_);
 }
 
@@ -454,6 +477,7 @@ arrow::compute::Datum Aggregate::compute_aggregate(
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
+    arrow::Status status;
     //TODO(nicholas): For now, we only perform one aggregate.
     auto table = aggregate_refs_[0].col_ref.table;
     auto aggregate_table = prev_result_->get_table(table);
@@ -475,12 +499,26 @@ void Aggregate::compute_aggregates(Task *ctx) {
     int maxes[n];
     std::vector<int> group_id(n);
 
+    // Number of aggregates to be computed.
+    int num_agg = 1;
+    // Index of the aggregate we are currently computing
+    int agg_index = 0;
+
     // initialize group_id = {0, 0, ..., 0} and initialize maxes[i] to the number
     // of unique values in group by column i.
     for (int i = 0; i < n; i++) {
         group_id[i] = 0;
         maxes[i] = all_unique_values_[i]->length();
+        num_agg *= maxes[i];
     }
+
+    tuple_ordering_.resize(num_agg);
+    sum_vec_.resize(num_agg);
+    status = group_builder_->Resize(num_agg);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    // TODO(nicholas): Store group before computing aggregates
+
 
     int index = n - 1; // loop index
     bool exit = false;
@@ -489,16 +527,19 @@ void Aggregate::compute_aggregates(Task *ctx) {
         // LOOP BODY START
         // Each task computes the aggregate of one group.
         ctx->spawnLambdaTask(
-            [this, group_id, aggregate_col] {
+            [this, group_id, aggregate_col, agg_index] {
                 auto group_filter = get_group_filter(group_id);
                 auto aggregate = compute_aggregate(aggregate_refs_[0].kernel,
                                                    aggregate_col, group_filter);
                 // Acquire builder_mutex_ so that groups are correctly associated with
-                // thier corresponding aggregates.
+                // thier corresponding aggregates, and so that agg_index corresponds
+                // to the correct aggregate.
                 std::unique_lock<std::mutex> lock(builder_mutex_);
-                auto is_nonzero_agg = insert_group_aggregate(aggregate);
+                auto is_nonzero_agg = insert_group_aggregate(aggregate, agg_index);
                 if (is_nonzero_agg) insert_group(group_id);
+//                tuple_ordering_.push_back(agg_index);
             });
+        agg_index++;
         // LOOP BODY END
 
         if (n == 0)
@@ -532,5 +573,11 @@ void Aggregate::execute(Task *ctx) {
             finish();
         })
     ));
+}
+
+void Aggregate::sort() {
+
+    arrow::Status status;
+
 }
 } // namespace hustle
