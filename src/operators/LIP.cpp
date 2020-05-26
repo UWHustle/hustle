@@ -68,13 +68,7 @@ void LIP::probe_filters() {
         chunk_row_offsets[i] =
             chunk_row_offsets[i - 1] + fact_col->chunk(i - 1)->length();
     }
-
-//    std::vector<int> lip_indices;
-//    int lip_indices_size = fact_table_.table->get_num_rows();
-//    auto lip_indices = (int*)malloc(lip_indices_size * sizeof(int));
-//    for (int i=0; i<lip_indices_size; i++) {
-//        lip_indices[i] = i;
-//    }
+    
     for (int j=0; j<fact_table_.table->get_num_blocks(); j++) {
 
         int indices_start = 0;
@@ -92,7 +86,6 @@ void LIP::probe_filters() {
 
             auto bloom_filter = dim_filters_[i];
 
-//            bloom_filter->probe(indices, chunk, chunk_row_offsets[j], i);
             if (i==0) {
                 for (int row = 0; row < chunk->length(); row++) {
 

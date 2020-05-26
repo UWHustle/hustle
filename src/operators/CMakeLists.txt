@@ -15,6 +15,7 @@ add_library(
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
+        hustle_src_utils_EventProfiler
         ${ARROW_SHARED_LIB}
 )
 

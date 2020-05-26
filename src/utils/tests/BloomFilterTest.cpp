@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "../../table/util.h"
 #include <fstream>
-#include <utils/BloomFilter.h>
+#include "operators/BloomFilter.h"
 
 using namespace testing;
 
@@ -38,7 +38,7 @@ TEST_F(BloomFilterTestFixture, Test1) {
 
         for (int j = 0; j < chunk->length(); j++) {
             auto val = chunk->Value(j);
-            b.probe(val/2);
+            b.probe(j);
         }
 
         b.update();

@@ -4,25 +4,17 @@
 #include <cstdlib>
 #include <vector>
 #include <arrow/api.h>
+#include "EventProfiler.hpp"
 
 class BloomFilter {
 public:
     
     explicit BloomFilter(int num_vals);
-//    explicit BloomFilter(std::shared_ptr<arrow::ChunkedArray> col);
     void insert(long long val);
     bool probe(long long val);
     double get_hit_rate();
     void set_memory(int memory);
     void update();
-
-//    std::shared_ptr<arrow::ArrayData> probe(
-//        std::shared_ptr<arrow::ArrayData> filter_data,
-//        std::shared_ptr<arrow::Array> col);
-    void probe(
-        std::vector<std::vector<int64_t>> &indices,
-        std::shared_ptr<arrow::Array> col,
-        int offset, int i);
 
 private:
 
