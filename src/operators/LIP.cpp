@@ -68,36 +68,29 @@ void LIP::probe_filters() {
         chunk_row_offsets[i] =
             chunk_row_offsets[i - 1] + fact_col->chunk(i - 1)->length();
     }
-
-//    std::vector<int> lip_indices;
-//    int lip_indices_size = fact_table_.table->get_num_rows();
-//    auto lip_indices = (int*)malloc(lip_indices_size * sizeof(int));
-//    for (int i=0; i<lip_indices_size; i++) {
-//        lip_indices[i] = i;
-//    }
+    
     for (int j=0; j<fact_table_.table->get_num_blocks(); j++) {
 
         std::vector<std::vector<int64_t>> indices(dim_tables_.size());
+        for(auto &v : indices) {
+            v.reserve(fact_col->chunk(j)->length());
+        }
+
         for (int i=0; i<dim_tables_.size(); i++) {
 
             auto fact_join_col_name = fact_join_col_names_[i];
             auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
 
             // TODO(nicholas): For now, we assume the column is of INT64 type
-            auto chunk = std::static_pointer_cast<arrow::Int64Array>(
-                fact_fk_col->chunk(j));
-
-            for(auto &v : indices) {
-                v.reserve(chunk->length());
-            }
+            auto chunk=fact_fk_col->chunk(j);
+            auto chunk_data=fact_fk_col->chunk(j)->data()->GetValues<int64_t>(1,0);
 
             auto bloom_filter = dim_filters_[i];
 
-//            bloom_filter->probe(indices, chunk, chunk_row_offsets[j], i);
             if (i==0) {
                 for (int row = 0; row < chunk->length(); row++) {
 
-                    auto key = chunk->Value(row);
+                    auto key = chunk_data[row];
 
                     if (bloom_filter->probe(key)) {
                         indices[0].push_back(row + chunk_row_offsets[j]);
@@ -108,7 +101,7 @@ void LIP::probe_filters() {
 
                 for (auto &index : indices[i-1]) {
 
-                    auto key = chunk->Value(index - chunk_row_offsets[j]);
+                    auto key = chunk_data[index - chunk_row_offsets[j]];
 
                     if (bloom_filter->probe(key)) {
                         indices[i].push_back(index);
