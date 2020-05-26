@@ -40,40 +40,11 @@ SSB::SSB() {
 
 void SSB::reset_results() {
 
-    select_result_out = std::make_shared<OperatorResult>();
-    lip_result_out    = std::make_shared<OperatorResult>();
-    join_result_out   = std::make_shared<OperatorResult>();
-    agg_result_out    = std::make_shared<OperatorResult>();
 
-    lo_select_result = std::make_shared<OperatorResult>();
-    d_select_result  = std::make_shared<OperatorResult>();
-    p_select_result  = std::make_shared<OperatorResult>();
-    s_select_result  = std::make_shared<OperatorResult>();
-    c_select_result  = std::make_shared<OperatorResult>();
-
-    d_select_result->append(d);
-    p_select_result->append(p);
-    s_select_result->append(s);
-    c_select_result->append(c);
 }
 
 void SSB::execute(ExecutionPlan &plan, std::shared_ptr<OperatorResult> &final_result) {
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
-    scheduler.addTask(&plan);
-
-    auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
-    scheduler.start();
-    scheduler.join();
-    container->endEvent("query execution");
-
-    out_table = final_result->materialize({{nullptr, "revenue"}});
-    out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
-
-    simple_profiler.zero_time();
-    reset_results();
 }
 
 void SSB::q11() {
@@ -140,6 +111,24 @@ void SSB::q11() {
 
     ////////////////////////////////////////////////////////////////////////////
 
+    auto select_result_out = std::make_shared<OperatorResult>();
+    auto lip_result_out    = std::make_shared<OperatorResult>();
+    auto join_result_out   = std::make_shared<OperatorResult>();
+    auto agg_result_out    = std::make_shared<OperatorResult>();
+
+    auto lo_select_result = std::make_shared<OperatorResult>();
+    auto d_select_result  = std::make_shared<OperatorResult>();
+    auto p_select_result  = std::make_shared<OperatorResult>();
+    auto s_select_result  = std::make_shared<OperatorResult>();
+    auto c_select_result  = std::make_shared<OperatorResult>();
+
+    d_select_result->append(d);
+    p_select_result->append(p);
+    s_select_result->append(s);
+    c_select_result->append(c);
+
+    ////////////////////////////////////////////////////////////////////////////
+
     Select lo_select_op(0, lo_select_result, select_result_out, lo_pred_tree);
     Select d_select_op(0, d_select_result, select_result_out, d_pred_tree);
 
@@ -166,7 +155,21 @@ void SSB::q11() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    execute(plan, agg_result_out);
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
 }
 
 
@@ -251,6 +254,24 @@ void SSB::q12() {
 
     ////////////////////////////////////////////////////////////////////////////
 
+    auto select_result_out = std::make_shared<OperatorResult>();
+    auto lip_result_out    = std::make_shared<OperatorResult>();
+    auto join_result_out   = std::make_shared<OperatorResult>();
+    auto agg_result_out    = std::make_shared<OperatorResult>();
+
+    auto lo_select_result = std::make_shared<OperatorResult>();
+    auto d_select_result  = std::make_shared<OperatorResult>();
+    auto p_select_result  = std::make_shared<OperatorResult>();
+    auto s_select_result  = std::make_shared<OperatorResult>();
+    auto c_select_result  = std::make_shared<OperatorResult>();
+
+    d_select_result->append(d);
+    p_select_result->append(p);
+    s_select_result->append(s);
+    c_select_result->append(c);
+
+    ////////////////////////////////////////////////////////////////////////////
+
     Select lo_select_op(0, lo_select_result, select_result_out, lo_pred_tree);
     Select d_select_op(0, d_select_result, select_result_out, d_pred_tree);
 
@@ -277,7 +298,21 @@ void SSB::q12() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    execute(plan, agg_result_out);
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
 }
 
 void SSB::q41() {
@@ -341,6 +376,24 @@ void SSB::q41() {
 
     ////////////////////////////////////////////////////////////////////////////
 
+    auto select_result_out = std::make_shared<OperatorResult>();
+    auto lip_result_out    = std::make_shared<OperatorResult>();
+    auto join_result_out   = std::make_shared<OperatorResult>();
+    auto agg_result_out    = std::make_shared<OperatorResult>();
+
+    auto lo_select_result = std::make_shared<OperatorResult>();
+    auto d_select_result  = std::make_shared<OperatorResult>();
+    auto p_select_result  = std::make_shared<OperatorResult>();
+    auto s_select_result  = std::make_shared<OperatorResult>();
+    auto c_select_result  = std::make_shared<OperatorResult>();
+
+    d_select_result->append(d);
+    p_select_result->append(p);
+    s_select_result->append(s);
+    c_select_result->append(c);
+
+    ////////////////////////////////////////////////////////////////////////////
+
     select_result_out->append(lo);
     select_result_out->append(d);
 
@@ -354,8 +407,8 @@ void SSB::q41() {
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lo, "revenue"}};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {{d, "year"}, {c, "nation"}},
-                     {{d, "year"}, {c, "nation"}});
+                     {{d, "year"}, {c, "nation"}, {p, "category"}},
+                     {{d, "year"}, {c, "nation"}, {p, "category"}});
 
     ////////////////////////////////////////////////////////////////////////////
 
@@ -375,7 +428,21 @@ void SSB::q41() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    execute(plan, agg_result_out);
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
 }
 
 void SSB::q42() {
@@ -470,6 +537,24 @@ void SSB::q42() {
 
     ////////////////////////////////////////////////////////////////////////////
 
+    auto select_result_out = std::make_shared<OperatorResult>();
+    auto lip_result_out    = std::make_shared<OperatorResult>();
+    auto join_result_out   = std::make_shared<OperatorResult>();
+    auto agg_result_out    = std::make_shared<OperatorResult>();
+
+    auto lo_select_result = std::make_shared<OperatorResult>();
+    auto d_select_result  = std::make_shared<OperatorResult>();
+    auto p_select_result  = std::make_shared<OperatorResult>();
+    auto s_select_result  = std::make_shared<OperatorResult>();
+    auto c_select_result  = std::make_shared<OperatorResult>();
+
+    d_select_result->append(d);
+    p_select_result->append(p);
+    s_select_result->append(s);
+    c_select_result->append(c);
+
+    ////////////////////////////////////////////////////////////////////////////
+
     select_result_out->append(lo);
 
     Select p_select_op(0, p_select_result, select_result_out, p_pred_tree);
@@ -508,7 +593,21 @@ void SSB::q42() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    execute(plan, agg_result_out);
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
 }
 
 void SSB::q43() {
@@ -585,6 +684,24 @@ void SSB::q43() {
 
     ////////////////////////////////////////////////////////////////////////////
 
+    auto select_result_out = std::make_shared<OperatorResult>();
+    auto lip_result_out    = std::make_shared<OperatorResult>();
+    auto join_result_out   = std::make_shared<OperatorResult>();
+    auto agg_result_out    = std::make_shared<OperatorResult>();
+
+    auto lo_select_result = std::make_shared<OperatorResult>();
+    auto d_select_result  = std::make_shared<OperatorResult>();
+    auto p_select_result  = std::make_shared<OperatorResult>();
+    auto s_select_result  = std::make_shared<OperatorResult>();
+    auto c_select_result  = std::make_shared<OperatorResult>();
+
+    d_select_result->append(d);
+    p_select_result->append(p);
+    s_select_result->append(s);
+    c_select_result->append(c);
+
+    ////////////////////////////////////////////////////////////////////////////
+
     select_result_out->append(lo);
 
     Select p_select_op(0, p_select_result, select_result_out, p_pred_tree);
@@ -622,7 +739,21 @@ void SSB::q43() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    execute(plan, agg_result_out);
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
 }
 
 }

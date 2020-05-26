@@ -35,16 +35,16 @@ public:
 
 private:
 
-    std::shared_ptr<OperatorResult> lo_select_result;
-    std::shared_ptr<OperatorResult> d_select_result;
-    std::shared_ptr<OperatorResult> p_select_result;
-    std::shared_ptr<OperatorResult> s_select_result;
-    std::shared_ptr<OperatorResult> c_select_result;
-
-    std::shared_ptr<OperatorResult> select_result_out;
-    std::shared_ptr<OperatorResult> lip_result_out;
-    std::shared_ptr<OperatorResult> join_result_out;
-    std::shared_ptr<OperatorResult> agg_result_out;
+//    std::shared_ptr<OperatorResult> lo_select_result;
+//    std::shared_ptr<OperatorResult> d_select_result;
+//    std::shared_ptr<OperatorResult> p_select_result;
+//    std::shared_ptr<OperatorResult> s_select_result;
+//    std::shared_ptr<OperatorResult> c_select_result;
+//
+//    std::shared_ptr<OperatorResult> select_result_out;
+//    std::shared_ptr<OperatorResult> lip_result_out;
+//    std::shared_ptr<OperatorResult> join_result_out;
+//    std::shared_ptr<OperatorResult> agg_result_out;
 
     std::shared_ptr<Table> out_table;
 
