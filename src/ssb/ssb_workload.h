@@ -1,6 +1,7 @@
 #ifndef HUSTLE_SSB_WORKLOAD_H
 #define HUSTLE_SSB_WORKLOAD_H
 
+#include <operators/Predicate.h>
 #include "table/table.h"
 #include "execution/ExecutionPlan.hpp"
 namespace hustle::operators {
@@ -45,12 +46,24 @@ private:
     std::shared_ptr<OperatorResult> join_result_out;
     std::shared_ptr<OperatorResult> agg_result_out;
 
+    std::shared_ptr<Table> out_table;
 
+    ColumnReference lo_d_ref;
+    ColumnReference lo_p_ref;
+    ColumnReference lo_s_ref;
+    ColumnReference lo_c_ref;
+    ColumnReference lo_ref;
 
+    ColumnReference d_ref;
+    ColumnReference p_ref;
+    ColumnReference s_ref;
+    ColumnReference c_ref;
 
-
-
-
+    JoinPredicate d_join_pred;
+    JoinPredicate p_join_pred;
+    JoinPredicate s_join_pred;
+    JoinPredicate c_join_pred;
+    void reset_results();
 };
 
 }
