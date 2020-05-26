@@ -184,7 +184,7 @@ private:
   struct Rep;
   Rep * rep_;
 
-  friend class Table;
+  friend class BWTable;
 };
 
 } // namespace bitweaving

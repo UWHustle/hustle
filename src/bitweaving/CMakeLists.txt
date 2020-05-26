@@ -27,5 +27,26 @@ add_library(
 target_include_directories(hustle_src_bitweaving PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_bitweaving PUBLIC
         hustle_src_table
+        hustle_src_operators
         ${ARROW_SHARED_LIB}
+        )
+
+set(TEST_SRC
+    tests/bitweaving_test.cc
+    tests/bitweaving_test_base.cpp tests/bitweaving_test_base.h
+    tests/bitweaving_test_util.cc tests/bitweaving_test_util.h
+    )
+
+add_executable(hustle_bitweaving_test ${TEST_SRC})
+target_link_libraries(hustle_bitweaving_test
+        gtest
+        gtest_main
+        gmock
+        #        glog
+        ${GFLAGS_LIB_NAME}
+        hustle_src_table
+        hustle_src_operators
+        hustle_src_optimizer_ExecutionPlan
+        hustle_src_scheduler_Scheduler
+        hustle_src_bitweaving
         )

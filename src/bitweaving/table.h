@@ -23,19 +23,19 @@ class AppendResult;
  * @brief Class for storing and accessing data in a table, which contains a
  * set of Column.
  */
-class Table {
+class BWTable {
 public:
   /**
    * @brief Constructor.
    * @param path The location of its associated data file.
    * @param options The options control the table.
    */
-  Table(const std::string& path, const Options& options);
+  BWTable(const std::string& path, const Options& options);
 
   /**
    * @brief Destructor.
    */
-  ~Table();
+  ~BWTable();
 
   /**
    * @brief Open the table. Load meta data if the file exists.

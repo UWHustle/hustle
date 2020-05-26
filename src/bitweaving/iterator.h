@@ -14,7 +14,7 @@
 
 namespace hustle::bitweaving {
 
-class Table;
+class BWTable;
 class BitVector;
 class BitVectorIterator;
 class Column;
@@ -64,14 +64,14 @@ public:
    */
     void FillDataIntoArrowFormat(std::shared_ptr<arrow::ArrayData> out);
 
-  friend class Table;
+  friend class BWTable;
 private:
   /**
    * @brief Constructs a new iterator for the input bit vector.
    * @ param bitvector BitVector object that is used to indicate
    * matching tuples
    */
-  Iterator(const Table & table, const BitVector & bitvector);
+  Iterator(const BWTable & table, const BitVector & bitvector);
 
   struct Rep;
   Rep * rep_;

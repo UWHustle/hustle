@@ -20,7 +20,7 @@ namespace hustle::bitweaving {
 /**
  * @brief Structure for private members of Class Table.
  */
-    struct Table::Rep {
+    struct BWTable::Rep {
         ~Rep() {
             delete env;
         }
@@ -51,7 +51,7 @@ namespace hustle::bitweaving {
         std::queue<ColumnId> free_column_ids;
     };
 
-    Table::Table(const std::string &path, const Options &options) {
+    BWTable::BWTable(const std::string &path, const Options &options) {
         rep_ = new Rep();
         rep_->num = 0;
         rep_->env = new Env();
@@ -60,11 +60,11 @@ namespace hustle::bitweaving {
             rep_->path = path;
     }
 
-    Table::~Table() {
+    BWTable::~BWTable() {
         delete rep_;
     }
 
-    Status Table::Open() {
+    Status BWTable::Open() {
         Status status;
 
         if (rep_->options.in_memory)
@@ -88,14 +88,14 @@ namespace hustle::bitweaving {
         return Status::OK();
     }
 
-    Status Table::Close() {
+    Status BWTable::Close() {
         if (rep_->options.in_memory)
             return Status::OK();
 
         return Save();
     }
 
-    Status Table::Save() {
+    Status BWTable::Save() {
         Status status;
 
         if (rep_->options.in_memory)
@@ -135,7 +135,7 @@ namespace hustle::bitweaving {
         return Status::OK();
     }
 
-    Status Table::LoadMetaFile(const std::string &filename) {
+    Status BWTable::LoadMetaFile(const std::string &filename) {
         Status status;
         SequentialReadFile file;
 
@@ -177,7 +177,7 @@ namespace hustle::bitweaving {
         return Status::OK();
     }
 
-    Status Table::SaveMetaFile(const std::string &filename) {
+    Status BWTable::SaveMetaFile(const std::string &filename) {
         Status status;
         SequentialWriteFile file;
 
@@ -218,21 +218,21 @@ namespace hustle::bitweaving {
         return Status::OK();
     }
 
-    BitVector *Table::CreateBitVector() const {
+    BitVector *BWTable::CreateBitVector() const {
         return new BitVector(rep_->num);
     }
 
-    Iterator *Table::CreateIterator() const {
+    Iterator *BWTable::CreateIterator() const {
         BitVector *bitvector = CreateBitVector();
         bitvector->SetOnes();
         return new Iterator(*this, *bitvector);
     }
 
-    Iterator *Table::CreateIterator(const BitVector &bitvector) const {
+    Iterator *BWTable::CreateIterator(const BitVector &bitvector) const {
         return new Iterator(*this, bitvector);
     }
 
-    Status Table::AddColumn(const std::string &name, ColumnType type, size_t bit_width) {
+    Status BWTable::AddColumn(const std::string &name, ColumnType type, size_t bit_width) {
         ColumnId column_id;
         if (rep_->free_column_ids.size() > 0) {
             column_id = rep_->free_column_ids.front();
@@ -251,7 +251,7 @@ namespace hustle::bitweaving {
         return Status::OK();
     }
 
-    Status Table::RemoveColumn(const std::string &name) {
+    Status BWTable::RemoveColumn(const std::string &name) {
         std::map<std::string, Column *>::iterator iter;
         iter = rep_->map.find(name);
         if (iter != rep_->map.end()) {
@@ -264,7 +264,7 @@ namespace hustle::bitweaving {
         return Status::OK();
     }
 
-    Column *Table::GetColumn(const std::string &name) const {
+    Column *BWTable::GetColumn(const std::string &name) const {
         std::map<std::string, Column *>::iterator iter;
         iter = rep_->map.find(name);
         if (iter != rep_->map.end()) {
@@ -273,12 +273,12 @@ namespace hustle::bitweaving {
         return NULL;
     }
 
-    ColumnId Table::GetMaxColumnId() const {
+    ColumnId BWTable::GetMaxColumnId() const {
         ColumnId max_column_id = rep_->map.size() + rep_->free_column_ids.size();
         return max_column_id;
     }
 
-    Column *Table::GetColumn(ColumnId column_id) const {
+    Column *BWTable::GetColumn(ColumnId column_id) const {
         if (column_id < GetMaxColumnId()) {
             std::map<std::string, Column *>::iterator iter;
             for (iter = rep_->map.begin(); iter != rep_->map.end(); ++iter) {
@@ -289,11 +289,11 @@ namespace hustle::bitweaving {
         return NULL;
     }
 
-    size_t Table::GetNumRows() {
+    size_t BWTable::GetNumRows() {
         return rep_->num;
     }
 
-    Code *Table::GetColumnCodesThusFar(Column *old_col, size_t old_col_size) {
+    Code *BWTable::GetColumnCodesThusFar(Column *old_col, size_t old_col_size) {
         Code *codes = new bitweaving::Code[old_col_size];
         Status status;
         for (size_t i = 0; i < old_col_size; i++) {
@@ -303,14 +303,14 @@ namespace hustle::bitweaving {
         return codes;
     }
 
-    Column *Table::RemoveAndAddColumn(Column *old_col, const std::string &name, size_t old_col_size, size_t new_bitwidth) {
+    Column *BWTable::RemoveAndAddColumn(Column *old_col, const std::string &name, size_t old_col_size, size_t new_bitwidth) {
 
         Code *old_codes = nullptr;
         if(old_col_size != 0){ // Else, this is the first set of codes we are appending to the column. No copy required
             old_codes = GetColumnCodesThusFar(old_col, old_col_size);
         }
         ColumnType type = old_col->GetType();
-        Table::RemoveColumn(name);
+        BWTable::RemoveColumn(name);
         AddColumn(name, type, new_bitwidth);
         Column *new_col = GetColumn(name);
         if(old_codes != nullptr){
@@ -322,7 +322,7 @@ namespace hustle::bitweaving {
         return new_col;
     }
 
-    AppendResult* Table::AppendToColumn(const std::string &name, Code *codes, size_t num) {
+    AppendResult* BWTable::AppendToColumn(const std::string &name, Code *codes, size_t num) {
         Column *col = GetColumn(name);
         AppendResult *append_result = col->Append(codes, num);
         while (!append_result->DoesCodeFitInBitwidth()) {

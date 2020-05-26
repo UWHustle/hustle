@@ -16,7 +16,7 @@ class BitVectorIterator;
 class BitVectorIteratorTest;
 class BitVectorBlock;
 class IteratorTest;
-class Table;
+class BWTable;
 
 /**
  * @brief Class of a bit-vector to indicate the results of a scan.
@@ -104,7 +104,7 @@ public:
   friend class BitVectorIterator;
   friend class BitVectorIteratorTest;
   friend class IteratorTest;
-  friend class Table;
+  friend class BWTable;
 private:
   /**
    * @brief Private constructor. Call Table::CreateBitVector to

@@ -17,7 +17,7 @@ namespace hustle::bitweaving {
  * @brief Structure for private members of Class Iterator.
  */
 struct Iterator::Rep {
-  Rep(const Table & _table, const BitVector & _bitvector)
+  Rep(const BWTable & _table, const BitVector & _bitvector)
       : table(_table), bitvector_iterator(_bitvector)
   {
     max_column_id = table.GetMaxColumnId();
@@ -35,7 +35,7 @@ struct Iterator::Rep {
   /**
    * @brief The associated table.
    */
-  const Table & table;
+  const BWTable & table;
   /**
    * @brief A bit-vector iterator on its associated bit-vector.
    */
@@ -50,7 +50,7 @@ struct Iterator::Rep {
   ColumnIterator ** column_iterators;
 };
 
-Iterator::Iterator(const Table & table, const BitVector & bitvector)
+Iterator::Iterator(const BWTable & table, const BitVector & bitvector)
   : rep_(new Rep(table, bitvector))
 {
 }
