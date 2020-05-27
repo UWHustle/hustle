@@ -332,6 +332,152 @@ void SSB::q12() {
     reset_results();
 }
 
+void SSB::q13() {
+
+    //discount >= 5
+    auto discount_pred_1 = Predicate{
+        {lo,
+         "discount"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 5)
+    };
+    auto discount_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_1));
+
+    //discount <= 7
+    auto discount_pred_2 = Predicate{
+        {lo,
+         "discount"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 7)
+    };
+    auto discount_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_2));
+
+    auto discount_connective_node = std::make_shared<ConnectiveNode>(
+        discount_pred_node_1,
+        discount_pred_node_2,
+        FilterOperator::AND
+    );
+
+    //quantity >= 26
+    auto quantity_pred_1 = Predicate{
+        {lo,
+         "quantity"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 26)
+    };
+    auto quantity_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_1));
+
+    //quantity <= 35
+    auto quantity_pred_2 = Predicate{
+        {lo,
+         "quantity"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 35)
+    };
+    auto quantity_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_2));
+
+    auto quantity_connective_node = std::make_shared<ConnectiveNode>(
+        quantity_pred_node_1,
+        quantity_pred_node_2,
+        FilterOperator::AND
+    );
+
+    auto lo_root_node = std::make_shared<ConnectiveNode>(
+        quantity_connective_node,
+        discount_connective_node,
+        FilterOperator::AND
+    );
+
+    auto lo_pred_tree = std::make_shared<PredicateTree>(lo_root_node);
+
+    // date.year month num = 199401
+    auto d_pred_1 = Predicate{
+        {d,
+         "week num in year"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum((int64_t) 6)
+    };
+    auto d_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(d_pred_1));
+
+    // date.year month num = 199401
+    auto d_pred_2 = Predicate{
+        {d,
+         "year"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum((int64_t) 1994)
+    };
+    auto d_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(d_pred_1));
+
+    auto d_connective_node = std::make_shared<ConnectiveNode>(
+        d_pred_node_1,
+        d_pred_node_2,
+        FilterOperator::AND
+    );
+
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_connective_node);
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    Select lo_select_op(0, lo_result_in, lo_select_result_out, lo_pred_tree);
+    Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+
+    join_result_in = {lo_select_result_out, d_select_result_out};
+
+    JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
+    JoinGraph graph({{join_pred}});
+
+    join_result_in = {lo_select_result_out, d_select_result_out};
+
+    Join join_op(0, join_result_in, join_result_out, graph);
+
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue",
+                                  lo_rev_ref};
+    Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    ExecutionPlan plan(0);
+    auto lo_select_id = plan.addOperator(&lo_select_op);
+    auto d_select_id = plan.addOperator(&d_select_op);
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
+
+    // Declare join dependency on select operators
+    plan.createLink(lo_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
+
+    Scheduler scheduler = Scheduler(8);
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
+}
+
 void SSB::q21() {
 
     auto s_pred_1 = Predicate{
