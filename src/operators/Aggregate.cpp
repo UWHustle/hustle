@@ -35,6 +35,13 @@ Aggregate::Aggregate(
                 ->GetFieldByName(group_by.col_name));
     }
 
+    sort_aggregate_col_ = false;
+    for (auto &order_by : order_by_refs_) {
+        if (order_by.table == nullptr) {
+            sort_aggregate_col_ = true;
+        }
+    }
+
     // Initialize a StructBuilder containing one builder for each group
     // by column.
     groupt_type_ = arrow::struct_(group_by_fields);
@@ -388,12 +395,10 @@ void Aggregate::finish() {
     arrow::Status status;
 
     std::shared_ptr<arrow::StructArray> groups;
-    std::shared_ptr<arrow::Array> aggregates;
-
     status = group_builder_->Finish(&groups);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    status = aggregate_builder_->Finish(&aggregates);
+    status = aggregate_builder_->Finish(&aggregates_);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     // Prepare to sort output
@@ -420,14 +425,23 @@ void Aggregate::finish() {
         // Sort groups
         status = arrow::compute::Take(&function_context, *group_values, *indices, take_options, &group_values);
         evaluate_status(status, __FUNCTION__, __LINE__);
-        out_table_data_.push_back(group_values->data());
+        sorted_groups_.push_back(group_values);
 
     }
 
     // Sort aggregates
-    status = arrow::compute::Take(&function_context, *aggregates, *indices, take_options, &aggregates);
+    status = arrow::compute::Take(&function_context, *aggregates_, *indices, take_options, &aggregates_);
     evaluate_status(status, __FUNCTION__, __LINE__);
-    out_table_data_.push_back(aggregates->data());
+
+    if (sort_aggregate_col_) {
+        sort();
+    }
+
+    for (auto &group_values : sorted_groups_) {
+        out_table_data_.push_back(group_values->data());
+    }
+    out_table_data_.push_back(aggregates_->data());
+
 
     out_table_->insert_records(out_table_data_);
     output_result_->append(out_table_);
@@ -580,6 +594,51 @@ void Aggregate::execute(Task *ctx) {
 void Aggregate::sort() {
 
     arrow::Status status;
+    arrow::compute::FunctionContext function_context(
+        arrow::default_memory_pool());
+    arrow::compute::TakeOptions take_options;
 
+    std::shared_ptr<arrow::Array> sorted_indices;
+
+
+    std::vector<int> order_to_group;
+    for (int i=0; i<order_by_refs_.size(); i++) {
+        for (int j=0; j<group_by_refs_.size(); j++) {
+            if (order_by_refs_[i].table == group_by_refs_[j].table) {
+                order_to_group.push_back(j);
+            }
+        }
+    }
+
+    // If we are sorting after computing all aggregates, we evaluate the ORDER BY
+    // clause in reverse order.
+    for (int i=order_by_refs_.size()-1; i >= 0; i--) {
+
+        auto order_ref = order_by_refs_[i];
+
+        if (order_ref.table == nullptr) {
+            status = arrow::compute::SortToIndices(&function_context,
+                                                   *aggregates_,
+                                                   &sorted_indices);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        } else {
+            auto group = sorted_groups_[order_to_group[i]];
+            status = arrow::compute::SortToIndices(&function_context, *group,
+                                                   &sorted_indices);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
+
+        status = arrow::compute::Take(&function_context, *aggregates_,
+                                      *sorted_indices, take_options,
+                                      &aggregates_);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+
+        for (int j = 0; j < sorted_groups_.size(); j++) {
+            status = arrow::compute::Take(&function_context, *sorted_groups_[j],
+                                          *sorted_indices, take_options,
+                                          &sorted_groups_[j]);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
+    }
 }
 } // namespace hustle
