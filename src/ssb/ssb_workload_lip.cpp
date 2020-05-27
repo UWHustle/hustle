@@ -129,7 +129,7 @@ void SSB::q41_lip() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 

@@ -181,7 +181,7 @@ void SSB::q11() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -310,7 +310,7 @@ void SSB::q12() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -456,7 +456,7 @@ void SSB::q13() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -841,7 +841,7 @@ void SSB::q31() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -953,7 +953,7 @@ void SSB::q32() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -1105,7 +1105,7 @@ void SSB::q33() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -1240,7 +1240,7 @@ void SSB::q34() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -1356,7 +1356,7 @@ void SSB::q41() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -1503,7 +1503,7 @@ void SSB::q42() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -1631,7 +1631,7 @@ void SSB::q43() {
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
-    simple_profiler.zero_time();
+    simple_profiler.clear();
     reset_results();
 }
 
