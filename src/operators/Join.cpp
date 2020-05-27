@@ -13,11 +13,12 @@ namespace operators {
 
 Join::Join(
     const std::size_t query_id,
-    std::shared_ptr<OperatorResult> prev_result,
+    std::vector<std::shared_ptr<OperatorResult>> prev_result,
     std::shared_ptr<OperatorResult> output_result,
     JoinGraph graph) : Operator(query_id) {
 
-    prev_result_ = prev_result;
+    prev_result_ = std::make_shared<OperatorResult>();
+    prev_result_vec_ = prev_result;
     output_result_ = output_result;
     graph_ = graph;
     joined_indices_.resize(2);
@@ -217,7 +218,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
 //    for (auto &lt : output_lazy_tables) {
 //        prev_result_->append(lt);
 //    }
-    prev_result_ = std::make_shared<OperatorResult>(output_lazy_tables);
+//    prev_result_ = std::make_shared<OperatorResult>(output_lazy_tables);
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
@@ -251,13 +252,17 @@ void Join::hash_join(int i, Task *ctx) {
             auto left = prev_result_->get_table(lefts[i].table);
             auto right = prev_result_->get_table(rights[i].table);
             // Update indices of other LazyTables in the previous OperatorResult
-            back_propogate_result(left, right, joined_indices_);
+            prev_result_ = back_propogate_result(left, right, joined_indices_);
         })
     ));
 }
 
 void Join::execute(Task *ctx) {
 
+    for (auto &result : prev_result_vec_) {
+        prev_result_->append(result);
+
+    }
     // To handle a variable number of joins, we must store the tasks beforehand. The variadic CreateTaskChain
     // cannot help us here!
     std::vector<Task *> tasks;
@@ -314,8 +319,8 @@ void Join::execute(Task *ctx) {
 
 void Join::finish() {
     // Must append to output_result_ first
-    output_result_= (prev_result_);
-//    prev_result_->append(prev_result_);
+    output_result_->append(prev_result_);
+    prev_result_->append(prev_result_);
 
 }
 

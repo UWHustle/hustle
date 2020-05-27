@@ -21,7 +21,7 @@ public:
      * @param graph A graph specifying all join predicates
      */
     Join(const std::size_t query_id,
-         std::shared_ptr<OperatorResult> prev_result,
+         std::vector<std::shared_ptr<OperatorResult>> prev_result,
          std::shared_ptr<OperatorResult> output_result,
          JoinGraph graph);
 
@@ -43,6 +43,7 @@ private:
     std::vector<std::string> right_col_names;
 
     // Operator result from an upstream operator
+    std::vector<std::shared_ptr<OperatorResult>> prev_result_vec_;
     std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<OperatorResult> output_result_;
 
