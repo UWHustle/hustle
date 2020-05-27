@@ -214,6 +214,10 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
             }
         }
     }
+//    for (auto &lt : output_lazy_tables) {
+//        prev_result_->append(lt);
+//    }
+    prev_result_ = std::make_shared<OperatorResult>(output_lazy_tables);
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
@@ -247,7 +251,7 @@ void Join::hash_join(int i, Task *ctx) {
             auto left = prev_result_->get_table(lefts[i].table);
             auto right = prev_result_->get_table(rights[i].table);
             // Update indices of other LazyTables in the previous OperatorResult
-            prev_result_ = back_propogate_result(left, right, joined_indices_);
+            back_propogate_result(left, right, joined_indices_);
         })
     ));
 }
@@ -310,8 +314,8 @@ void Join::execute(Task *ctx) {
 
 void Join::finish() {
     // Must append to output_result_ first
-    output_result_->append(prev_result_);
-    prev_result_->append(prev_result_);
+    output_result_= (prev_result_);
+//    prev_result_->append(prev_result_);
 
 }
 
