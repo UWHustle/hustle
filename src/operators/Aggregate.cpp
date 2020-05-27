@@ -281,6 +281,7 @@ bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate, int agg_
                     (aggregate.scalar());
             // If aggregate == 0, don't include it in the output table.
             if (aggregate_casted->value == 0) {
+                tuple_ordering_[agg_index] = -1;
                 return false;
             }
             // Append the group's aggregate to its builder.
@@ -398,8 +399,13 @@ void Aggregate::finish() {
     // Prepare to sort output
     arrow::Int64Builder indices_builder;
     std::shared_ptr<arrow::Array> indices;
-    status = indices_builder.AppendValues(tuple_ordering_);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    for (auto &index : tuple_ordering_) {
+        if(index >= 0) {
+            status = indices_builder.Append(index);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+        }
+    }
     status = indices_builder.Finish(&indices);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
@@ -411,11 +417,14 @@ void Aggregate::finish() {
         auto group_values = groups->field(
             out_schema_->GetFieldIndex(group_by_refs_[i].col_name));
 
+        // Sort groups
         status = arrow::compute::Take(&function_context, *group_values, *indices, take_options, &group_values);
         evaluate_status(status, __FUNCTION__, __LINE__);
         out_table_data_.push_back(group_values->data());
 
     }
+
+    // Sort aggregates
     status = arrow::compute::Take(&function_context, *aggregates, *indices, take_options, &aggregates);
     evaluate_status(status, __FUNCTION__, __LINE__);
     out_table_data_.push_back(aggregates->data());
