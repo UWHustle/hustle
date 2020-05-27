@@ -14,7 +14,6 @@ int main(int argc, char *argv[]) {
     workload.q22();
     workload.q23();
 
-    // need to apply order bys after output
     workload.q31();
     workload.q32();
     workload.q33();

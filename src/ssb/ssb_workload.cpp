@@ -808,8 +808,8 @@ void SSB::q31() {
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {c_nation_ref, s_nation_ref, d_year_ref},
-                     {d_year_ref}); // TODO(nicholas): order by revenue
+                     {d_year_ref, c_nation_ref, s_nation_ref},
+                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
 
 
     ExecutionPlan plan(0);
@@ -920,8 +920,8 @@ void SSB::q32() {
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {c_city_ref, s_city_ref, d_year_ref},
-                     {d_year_ref}); // TODO(nicholas): order by revenue
+                     {d_year_ref, c_city_ref, s_city_ref},
+                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
                      // TODO(nicholas): sort at the end if order by size does not match gorup by size
 
     ExecutionPlan plan(0);
@@ -1072,8 +1072,8 @@ void SSB::q33() {
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {c_city_ref, s_city_ref, d_year_ref},
-                     {d_year_ref}); // TODO(nicholas): order by revenue
+                     {d_year_ref, c_city_ref, s_city_ref},
+                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
     // TODO(nicholas): sort at the end if order by size does not match gorup by size
 
     ExecutionPlan plan(0);
@@ -1114,7 +1114,7 @@ void SSB::q34() {
     auto d_pred_1 = Predicate{
         {d,
          "year month"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("Dec1997"))
     };
@@ -1207,8 +1207,8 @@ void SSB::q34() {
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     {c_city_ref, s_city_ref, d_year_ref},
-                     {d_year_ref}); // TODO(nicholas): order by revenue
+                     {d_year_ref, c_city_ref, s_city_ref},
+                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
     // TODO(nicholas): sort at the end if order by size does not match gorup by size
 
     ExecutionPlan plan(0);
