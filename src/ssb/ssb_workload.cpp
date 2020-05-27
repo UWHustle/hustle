@@ -464,7 +464,7 @@ void SSB::q21() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "region"},
+         "s region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
@@ -652,7 +652,7 @@ void SSB::q23() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "region"},
+         "s region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("EUROPE"))
@@ -1248,7 +1248,7 @@ void SSB::q41() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "region"},
+         "s region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
@@ -1261,7 +1261,7 @@ void SSB::q41() {
 
     auto c_pred_1 = Predicate{
         {c,
-         "region"},
+         "c region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
@@ -1352,7 +1352,7 @@ void SSB::q41() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "nation"}});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
@@ -1395,7 +1395,7 @@ void SSB::q42() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "region"},
+         "s region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
@@ -1408,7 +1408,7 @@ void SSB::q42() {
 
     auto c_pred_1 = Predicate{
         {c,
-         "region"},
+         "c region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
@@ -1499,7 +1499,7 @@ void SSB::q42() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "nation"}, {nullptr, "category"}});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "s nation"}, {nullptr, "category"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
@@ -1542,7 +1542,7 @@ void SSB::q43() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "nation"},
+         "s nation"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
@@ -1555,7 +1555,7 @@ void SSB::q43() {
 
     auto c_pred_1 = Predicate{
         {c,
-         "region"},
+         "c region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
@@ -1627,7 +1627,7 @@ void SSB::q43() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"},  {nullptr, "city"}, {nullptr, "brand1"}});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"},  {nullptr, "s city"}, {nullptr, "brand1"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 

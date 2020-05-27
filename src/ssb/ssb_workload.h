@@ -30,6 +30,23 @@ public:
     void q42();
     void q43();
 
+    void q11_lip();
+    void q12_lip();
+    void q13_lip();
+
+    void q21_lip();
+    void q22_lip();
+    void q23_lip();
+
+    void q31_lip();
+    void q32_lip();
+    void q33_lip();
+    void q34_lip();
+
+    void q41_lip();
+    void q42_lip();
+    void q43_lip();
+
     std::shared_ptr <Table> lo, c, s, p, d;
     std::shared_ptr <arrow::Schema> lo_schema, c_schema, s_schema, p_schema, d_schema;
 
