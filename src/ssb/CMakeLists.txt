@@ -1,5 +1,6 @@
 add_library(hustle_src_ssb
-        ssb_workload.cpp ssb_workload.h)
+        ssb_workload.cpp ssb_workload.h
+        ssb_workload_lip.cpp)
 
 target_include_directories(hustle_src_ssb PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_ssb PUBLIC
