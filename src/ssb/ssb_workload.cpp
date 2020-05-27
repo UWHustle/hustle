@@ -27,19 +27,17 @@ SSB::SSB() {
 
     d_ref = {d, "date key"};
     p_ref = {p, "part key"};
-    s_ref = {s, "supp key"};
-    c_ref = {c, "cust key"};
+    s_ref = {s, "s supp key"};
+    c_ref = {c, "c cust key"};
 
     lo_rev_ref   = {lo, "revenue"};
     d_year_ref   = {d, "year"};
     p_brand1_ref = {p, "brand1"};
     p_category_ref = {p, "category"};
-    s_nation_ref = {s, "nation"};
-    s_city_ref = {s, "city"};
-    c_nation_ref = {c, "nation"};
-    c_city_ref   = {c, "city"};
-
-
+    s_nation_ref = {s, "s nation"};
+    s_city_ref = {s, "s city"};
+    c_nation_ref = {c, "c nation"};
+    c_city_ref   = {c, "c city"};
 
     d_join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     p_join_pred = {lo_p_ref, arrow::compute::EQUAL, p_ref};
@@ -423,7 +421,7 @@ void SSB::q22() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "region"},
+         "s region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
@@ -642,7 +640,7 @@ void SSB::q31() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "region"},
+         "s region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
@@ -655,7 +653,7 @@ void SSB::q31() {
 
     auto c_pred_1 = Predicate{
         {c,
-         "region"},
+         "c region"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
@@ -711,14 +709,13 @@ void SSB::q31() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, c_nation_ref, s_nation_ref, d_year_ref});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.zero_time();
     reset_results();
 }
-
 
 void SSB::q32() {
 
@@ -755,7 +752,7 @@ void SSB::q32() {
 
     auto s_pred_1 = Predicate{
         {s,
-         "nation"},
+         "s nation"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
@@ -768,7 +765,7 @@ void SSB::q32() {
 
     auto c_pred_1 = Predicate{
         {c,
-         "nation"},
+         "c nation"},
         arrow::compute::CompareOperator::EQUAL,
         arrow::compute::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
@@ -795,9 +792,9 @@ void SSB::q32() {
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
-                     { d_year_ref, c_city_ref, s_city_ref},
-                     {}); // TODO(nicholas): order by revenue
-
+                     {c_city_ref, s_city_ref, d_year_ref},
+                     {d_year_ref}); // TODO(nicholas): order by revenue
+                     // TODO(nicholas): sort at the end if order by size does not match gorup by size
 
     ExecutionPlan plan(0);
     auto s_select_id = plan.addOperator(&s_select_op);
@@ -815,7 +812,7 @@ void SSB::q32() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(1);
+    Scheduler scheduler = Scheduler(8);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -824,7 +821,294 @@ void SSB::q32() {
     scheduler.join();
     container->endEvent("query execution");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
+}
+
+void SSB::q33() {
+
+    auto d_pred_1 = Predicate{
+        {d,
+         "year"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 1992)
+    };
+
+    auto d_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(d_pred_1));
+
+    auto d_pred_2 = Predicate{
+        {d,
+         "year"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 1997)
+    };
+
+    auto d_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(d_pred_2));
+
+    auto d_connective_node =
+        std::make_shared<ConnectiveNode>(
+            d_pred_node_1,
+            d_pred_node_2,
+            FilterOperator::AND
+        );
+
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_connective_node);
+
+    auto s_pred_1 = Predicate{
+        {s,
+         "s city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI1"))
+    };
+
+    auto s_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(s_pred_1));
+
+    auto s_pred_2 = Predicate{
+        {s,
+         "s city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI5"))
+    };
+
+    auto s_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(s_pred_2));
+
+    auto s_connective_node =
+        std::make_shared<ConnectiveNode>(
+            s_pred_node_1,
+            s_pred_node_2,
+            FilterOperator::OR
+        );
+
+    auto s_pred_tree = std::make_shared<PredicateTree>(s_connective_node);
+
+    auto c_pred_1 = Predicate{
+        {c,
+         "c city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI1"))
+    };
+
+    auto c_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(c_pred_1));
+
+    auto c_pred_2 = Predicate{
+        {c,
+         "c city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI5"))
+    };
+
+    auto c_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(c_pred_2));
+
+    auto c_connective_node =
+        std::make_shared<ConnectiveNode>(
+            c_pred_node_1,
+            c_pred_node_2,
+            FilterOperator::OR
+        );
+
+    auto c_pred_tree = std::make_shared<PredicateTree>(c_connective_node);
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    lo_select_result_out->append(lo);
+
+    Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
+    Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
+    Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+
+    join_result_in = {lo_select_result_out, d_select_result_out, s_select_result_out, c_select_result_out};
+
+    JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
+    Join join_op(0, join_result_in, join_result_out, graph);
+
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+    Aggregate agg_op(0,
+                     join_result_out, agg_result_out, {agg_ref},
+                     {c_city_ref, s_city_ref, d_year_ref},
+                     {d_year_ref}); // TODO(nicholas): order by revenue
+    // TODO(nicholas): sort at the end if order by size does not match gorup by size
+
+    ExecutionPlan plan(0);
+    auto s_select_id = plan.addOperator(&s_select_op);
+    auto c_select_id = plan.addOperator(&c_select_op);
+    auto d_select_id = plan.addOperator(&d_select_op);
+
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
+
+    // Declare join dependency on select operators
+    plan.createLink(s_select_id, join_id);
+    plan.createLink(c_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
+
+    Scheduler scheduler = Scheduler(8);
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+    out_table->print();
+    simple_profiler.summarizeToStream(std::cout);
+
+    simple_profiler.zero_time();
+    reset_results();
+}
+
+void SSB::q34() {
+
+    auto d_pred_1 = Predicate{
+        {d,
+         "year month"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("Dec1997"))
+    };
+
+    auto d_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(d_pred_1));
+
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_pred_node_1);
+
+    auto s_pred_1 = Predicate{
+        {s,
+         "s city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI1"))
+    };
+
+    auto s_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(s_pred_1));
+
+    auto s_pred_2 = Predicate{
+        {s,
+         "s city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI5"))
+    };
+
+    auto s_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(s_pred_2));
+
+    auto s_connective_node =
+        std::make_shared<ConnectiveNode>(
+            s_pred_node_1,
+            s_pred_node_2,
+            FilterOperator::OR
+        );
+
+    auto s_pred_tree = std::make_shared<PredicateTree>(s_connective_node);
+
+    auto c_pred_1 = Predicate{
+        {c,
+         "c city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI1"))
+    };
+
+    auto c_pred_node_1 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(c_pred_1));
+
+    auto c_pred_2 = Predicate{
+        {c,
+         "c city"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+                                  ("UNITED KI5"))
+    };
+
+    auto c_pred_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(c_pred_2));
+
+    auto c_connective_node =
+        std::make_shared<ConnectiveNode>(
+            c_pred_node_1,
+            c_pred_node_2,
+            FilterOperator::OR
+        );
+
+    auto c_pred_tree = std::make_shared<PredicateTree>(c_connective_node);
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    lo_select_result_out->append(lo);
+
+    Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
+    Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
+    Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+
+    join_result_in = {lo_select_result_out, d_select_result_out, s_select_result_out, c_select_result_out};
+
+    JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
+    Join join_op(0, join_result_in, join_result_out, graph);
+
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+    Aggregate agg_op(0,
+                     join_result_out, agg_result_out, {agg_ref},
+                     {c_city_ref, s_city_ref, d_year_ref},
+                     {d_year_ref}); // TODO(nicholas): order by revenue
+    // TODO(nicholas): sort at the end if order by size does not match gorup by size
+
+    ExecutionPlan plan(0);
+    auto s_select_id = plan.addOperator(&s_select_op);
+    auto c_select_id = plan.addOperator(&c_select_op);
+    auto d_select_id = plan.addOperator(&d_select_op);
+
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
+
+    // Declare join dependency on select operators
+    plan.createLink(s_select_id, join_id);
+    plan.createLink(c_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
+
+    Scheduler scheduler = Scheduler(8);
+    scheduler.addTask(&plan);
+
+    auto container = simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
     out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
