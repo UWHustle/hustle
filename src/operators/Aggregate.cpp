@@ -496,9 +496,6 @@ void Aggregate::compute_aggregates(Task *ctx) {
         all_unique_values_.push_back(get_unique_values(col_ref));
     }
 
-    std::cout << all_unique_values_[0]->ToString() <<std::endl;
-    std::cout << all_unique_values_[1]->ToString() <<std::endl;
-
     // DYNAMIC DEPTH NESTED FOR LOOP
     // Initialize the slots to hold the current iteration value for each depth
     int n = groupt_type_->num_children();
