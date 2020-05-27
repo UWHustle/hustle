@@ -31,12 +31,12 @@ void LIP::build_filters() {
 
         auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
 
-        for (int i=0; i<pk_col->num_chunks(); i++) {
+        for (int j=0; j<pk_col->num_chunks(); j++) {
             // TODO(nicholas): For now, we assume the column is of INT64 type.
-            auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(i));
+            auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
 
-            for (int j=0; j<chunk->length(); j++) {
-                auto val = chunk->Value(j);
+            for (int k=0; k<chunk->length(); k++) {
+                auto val = chunk->Value(k);
 
                 bloom_filter->insert(val);
             }
