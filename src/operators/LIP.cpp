@@ -8,11 +8,12 @@
 namespace hustle::operators {
 
 LIP::LIP(const std::size_t query_id,
-         std::shared_ptr<OperatorResult> prev_result,
+         std::vector<std::shared_ptr<OperatorResult>> prev_result,
          std::shared_ptr<OperatorResult> output_result,
          hustle::operators::JoinGraph graph) : Operator(query_id) {
 
-    prev_result_ = std::move(prev_result);
+    prev_result_ = std::make_shared<OperatorResult>();
+    prev_result_vec_ = prev_result;
     output_result_ = std::move(output_result);
     graph_ = std::move(graph);
 }
@@ -158,6 +159,10 @@ void LIP::finish() {
 }
 
 void LIP::execute(Task *ctx) {
+
+    for (auto &result : prev_result_vec_) {
+        prev_result_->append(result);
+    }
     // TODO(nicholas): for now, we assume that there is no need to backpropogate
     //  the LIP result.
 

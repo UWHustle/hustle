@@ -22,7 +22,7 @@ public:
      * @param graph A graph specifying all join predicates
      */
     LIP(const std::size_t query_id,
-        std::shared_ptr<OperatorResult> prev_result,
+        std::vector<std::shared_ptr<OperatorResult>> prev_result,
         std::shared_ptr<OperatorResult> output_result,
         hustle::operators::JoinGraph graph);
 
@@ -53,6 +53,8 @@ private:
     std::vector<std::string> fact_join_col_names_;
 
     arrow::ArrayVector fact_filter_vec_;
+
+    std::vector<std::shared_ptr<OperatorResult>> prev_result_vec_;
 
     // Operator result from an upstream operator
     std::shared_ptr<OperatorResult> prev_result_;
