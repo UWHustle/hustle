@@ -140,24 +140,6 @@ void SSB::q11() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    auto select_result_out = std::make_shared<OperatorResult>();
-    auto lip_result_out    = std::make_shared<OperatorResult>();
-    auto join_result_out   = std::make_shared<OperatorResult>();
-    auto agg_result_out    = std::make_shared<OperatorResult>();
-
-    auto lo_select_result = std::make_shared<OperatorResult>();
-    auto d_select_result  = std::make_shared<OperatorResult>();
-    auto p_select_result  = std::make_shared<OperatorResult>();
-    auto s_select_result  = std::make_shared<OperatorResult>();
-    auto c_select_result  = std::make_shared<OperatorResult>();
-
-    d_select_result->append(d);
-    p_select_result->append(p);
-    s_select_result->append(s);
-    c_select_result->append(c);
-
-    ////////////////////////////////////////////////////////////////////////////
-
     Select lo_select_op(0, lo_result_in, lo_select_result_out, lo_pred_tree);
     Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
 
@@ -846,7 +828,7 @@ void SSB::q31() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(1);
+    Scheduler scheduler = Scheduler(8);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
