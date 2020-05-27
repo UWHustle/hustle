@@ -15,6 +15,8 @@ public:
     double get_hit_rate();
     void set_memory(int memory);
     void update();
+    static bool compare(BloomFilter *lhs, BloomFilter *rhs);
+
 
 private:
 
@@ -39,7 +41,6 @@ private:
     int memory_;
 
 
-    static bool compare(BloomFilter *lhs, BloomFilter *rhs);
 
     unsigned int hash(long long val, int seed);
 //    unsigned int hash(const std::string& x, int seed);
