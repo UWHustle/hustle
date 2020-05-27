@@ -100,7 +100,7 @@ double BloomFilter::get_hit_rate() {
         return 1;
 }
 
-bool BloomFilter::compare( BloomFilter *lhs,  BloomFilter *rhs) {
+bool BloomFilter::compare(std::shared_ptr<BloomFilter> lhs, std::shared_ptr<BloomFilter> rhs){
     return lhs->get_hit_rate() < rhs->get_hit_rate();
 }
 

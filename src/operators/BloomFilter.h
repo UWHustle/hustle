@@ -15,7 +15,7 @@ public:
     double get_hit_rate();
     void set_memory(int memory);
     void update();
-    static bool compare(BloomFilter *lhs, BloomFilter *rhs);
+    static bool compare(std::shared_ptr<BloomFilter> lhs, std::shared_ptr<BloomFilter> rhs);
 
 
 private:
