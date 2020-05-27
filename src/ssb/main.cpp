@@ -6,12 +6,20 @@ int main(int argc, char *argv[]) {
 
     SSB workload;
 
-    workload.q11();
-    workload.q12();
+//    workload.q11();
+//    workload.q12();
 //    workload.q13();
 
-    workload.q41();
-    workload.q42();
-    workload.q43();
+//    workload.q21();
+    workload.q22(); // wrong
+//    workload.q23();
+
+//    workload.q31(); // error
+//    workload.q32(); // error
+
+
+//    workload.q41();
+//    workload.q42();
+//    workload.q43();
 
 }

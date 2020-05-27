@@ -35,16 +35,26 @@ public:
 
 private:
 
-//    std::shared_ptr<OperatorResult> lo_select_result;
-//    std::shared_ptr<OperatorResult> d_select_result;
-//    std::shared_ptr<OperatorResult> p_select_result;
-//    std::shared_ptr<OperatorResult> s_select_result;
-//    std::shared_ptr<OperatorResult> c_select_result;
-//
-//    std::shared_ptr<OperatorResult> select_result_out;
-//    std::shared_ptr<OperatorResult> lip_result_out;
-//    std::shared_ptr<OperatorResult> join_result_out;
-//    std::shared_ptr<OperatorResult> agg_result_out;
+    std::shared_ptr<OperatorResult> lo_result_in;
+    std::shared_ptr<OperatorResult> d_result_in;
+    std::shared_ptr<OperatorResult> p_result_in;
+    std::shared_ptr<OperatorResult> s_result_in;
+    std::shared_ptr<OperatorResult> c_result_in;
+
+    std::shared_ptr<OperatorResult> lo_select_result_out;
+    std::shared_ptr<OperatorResult> d_select_result_out;
+    std::shared_ptr<OperatorResult> p_select_result_out;
+    std::shared_ptr<OperatorResult> s_select_result_out;
+    std::shared_ptr<OperatorResult> c_select_result_out;
+
+    std::vector<std::shared_ptr<OperatorResult>> lip_result_in;
+    std::vector<std::shared_ptr<OperatorResult>> join_result_in;
+
+    std::shared_ptr<OperatorResult> lip_result_out;
+    std::shared_ptr<OperatorResult> join_result_out;
+    std::shared_ptr<OperatorResult> agg_result_out;
+
+
 
     std::shared_ptr<Table> out_table;
 
@@ -65,10 +75,12 @@ private:
 
     ColumnReference lo_rev_ref;
     ColumnReference d_year_ref;
-    ColumnReference c_nation_ref;
-    ColumnReference c_city_ref;
     ColumnReference p_brand1_ref;
     ColumnReference p_category_ref;
+    ColumnReference s_nation_ref;
+    ColumnReference s_city_ref;
+    ColumnReference c_nation_ref;
+    ColumnReference c_city_ref;
 
 
 
