@@ -24,8 +24,8 @@ Aggregate::Aggregate(
     output_result_ = output_result;
     aggregate_refs_ = aggregate_refs;
 
-    group_by_refs_ = std::move(group_refs);
-    order_by_refs_ = std::move(order_by_refs);
+    group_by_refs_ = group_refs;
+    order_by_refs_ = order_by_refs;
 
     // Fetch the fields associated with each groupby column.
     std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
@@ -280,10 +280,10 @@ bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate, int agg_
                 std::static_pointer_cast<arrow::Int64Scalar>
                     (aggregate.scalar());
             // If aggregate == 0, don't include it in the output table.
-            if (aggregate_casted->value == 0) {
-                tuple_ordering_[agg_index] = -1;
-                return false;
-            }
+//            if (aggregate_casted->value == 0) {
+//                tuple_ordering_[agg_index] = -1;
+//                return false;
+//            }
             // Append the group's aggregate to its builder.
             status = aggregate_builder_casted->Append(aggregate_casted->value);
             tuple_ordering_[agg_index] = aggregate_builder_casted->length()-1;
@@ -379,6 +379,24 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
         filter_vector.push_back(out_filter.make_array());
     }
 
+    arrow::compute::Datum out;
+    auto c = std::make_shared<arrow::ChunkedArray>(filter_vector);
+
+    bool end = false;
+    for (int i=0;i<c->num_chunks() && !end; i++) {
+        auto chunk = std::static_pointer_cast<arrow::BooleanArray>(c->chunk(i));
+        auto chunk2 = std::static_pointer_cast<arrow::BooleanArray>(group_by_col->chunk(i));
+
+        for (int j=0; j<chunk->length(); j++) {
+            std::cout << chunk2->Value(j) << std::endl;
+            if (chunk->Value(j))
+            std::cout << "good" << std::endl;
+            end = true;
+            break;
+        }
+    }
+    std::cout << "done"<< std::endl;
+
     return std::make_shared<arrow::ChunkedArray>(filter_vector);
 }
 
@@ -445,8 +463,7 @@ arrow::compute::Datum Aggregate::compute_aggregate(
         arrow::default_memory_pool());
     arrow::compute::Datum datum_col;
 
-    // Apply group filter. Note that the selection filter was already applied in
-    // the main loop
+    // Apply group filter
     if (group_filter != nullptr) {
         status = arrow::compute::Filter(
             &function_context, aggregate_col, group_filter, filter_options,
@@ -496,6 +513,9 @@ void Aggregate::compute_aggregates(Task *ctx) {
         group_by_cols_.emplace(col_ref.col_name, prev_result_->get_table(col_ref.table).get_column_by_name(col_ref.col_name));
         all_unique_values_.push_back(get_unique_values(col_ref));
     }
+
+    std::cout << all_unique_values_[0]->ToString() <<std::endl;
+    std::cout << all_unique_values_[1]->ToString() <<std::endl;
 
     // DYNAMIC DEPTH NESTED FOR LOOP
     // Initialize the slots to hold the current iteration value for each depth
