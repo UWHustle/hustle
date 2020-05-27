@@ -117,7 +117,7 @@ void LIP::probe_filters() {
             }
         }
         lip_indices_[j] = indices[dim_tables_.size()-1];
-        std::sort(dim_tables_.begin(), dim_tables_.end(), BloomFilter::compare);
+        std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
     }
 }
 
