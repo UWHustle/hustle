@@ -280,10 +280,10 @@ bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate, int agg_
                 std::static_pointer_cast<arrow::Int64Scalar>
                     (aggregate.scalar());
             // If aggregate == 0, don't include it in the output table.
-//            if (aggregate_casted->value == 0) {
-//                tuple_ordering_[agg_index] = -1;
-//                return false;
-//            }
+            if (aggregate_casted->value == 0) {
+                tuple_ordering_[agg_index] = -1;
+                return false;
+            }
             // Append the group's aggregate to its builder.
             status = aggregate_builder_casted->Append(aggregate_casted->value);
             tuple_ordering_[agg_index] = aggregate_builder_casted->length()-1;
@@ -378,24 +378,6 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
 
         filter_vector.push_back(out_filter.make_array());
     }
-
-    arrow::compute::Datum out;
-    auto c = std::make_shared<arrow::ChunkedArray>(filter_vector);
-
-    bool end = false;
-    for (int i=0;i<c->num_chunks() && !end; i++) {
-        auto chunk = std::static_pointer_cast<arrow::BooleanArray>(c->chunk(i));
-        auto chunk2 = std::static_pointer_cast<arrow::BooleanArray>(group_by_col->chunk(i));
-
-        for (int j=0; j<chunk->length(); j++) {
-            std::cout << chunk2->Value(j) << std::endl;
-            if (chunk->Value(j))
-            std::cout << "good" << std::endl;
-            end = true;
-            break;
-        }
-    }
-    std::cout << "done"<< std::endl;
 
     return std::make_shared<arrow::ChunkedArray>(filter_vector);
 }
