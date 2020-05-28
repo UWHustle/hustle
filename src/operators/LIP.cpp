@@ -55,6 +55,53 @@ void LIP::build_filters(Task* ctx) {
     }
 }
 
+void LIP::probe_filters(int chunk_i) {
+//    auto batch_probe_task = CreateLambdaTask([this, block_i, batch_i, fact_col, batch_size, chunk_row_offsets]() {
+
+        std::vector<std::vector<int64_t>> indices(dim_tables_.size());
+
+        for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
+
+            auto fact_join_col_name = fact_join_col_names_[filter_j];
+            auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
+
+            // TODO(nicholas): For now, we assume the column is of INT64 type
+            auto chunk = fact_fk_col->chunk(chunk_i);
+            auto chunk_data = fact_fk_col->chunk(
+                chunk_i)->data()->GetValues<int64_t>(1, 0);
+
+            auto bloom_filter = dim_filters_[filter_j];
+
+            if (filter_j == 0) {
+                // Reserve space for the first index vector
+                indices[0].reserve(fact_fk_col->chunk(chunk_i)->length()*batch_size_);
+
+                for (int row = 0; row < chunk->length(); row++) {
+                    auto key = chunk_data[row];
+
+                    if (bloom_filter->probe(key)) {
+                        indices[0].push_back(
+                            row + chunk_row_offsets_[chunk_i]);
+                    }
+                }
+            } else {
+                // Reserve space for the next index vector
+                indices[filter_j].reserve(indices[filter_j - 1].size()*batch_size_);
+
+                for (auto &index : indices[filter_j - 1]) {
+
+                    auto key = chunk_data[index -
+                                          chunk_row_offsets_[chunk_i]];
+
+                    if (bloom_filter->probe(key)) {
+                        indices[filter_j].push_back(index);
+                    }
+                }
+            }
+        }
+        lip_indices_[chunk_i] = indices[dim_tables_.size() - 1];
+}
+
 void LIP::probe_filters(Task *ctx) {
 
     arrow::Status status;
@@ -68,68 +115,25 @@ void LIP::probe_filters(Task *ctx) {
 
     // Grab any fact table column so we can pre-compute chunk row offsets.
     auto fact_col = fact_table_.get_column(0);
-    std::vector<int64_t> chunk_row_offsets(fact_col->num_chunks());
-    chunk_row_offsets[0] = 0;
+    chunk_row_offsets_.resize(fact_col->num_chunks());
+    chunk_row_offsets_[0] = 0;
     for (int i = 1; i < fact_col->num_chunks(); i++) {
-        chunk_row_offsets[i] =
-            chunk_row_offsets[i - 1] + fact_col->chunk(i - 1)->length();
+        chunk_row_offsets_[i] =
+            chunk_row_offsets_[i - 1] + fact_col->chunk(i - 1)->length();
     }
 
-    int batch_size = 10;
+    batch_size_ = 1;
     lip_indices_.resize(fact_table_.table->get_num_blocks());
 
-    for (int block_i=0; block_i<fact_table_.table->get_num_blocks(); block_i+=batch_size) {
+    for (int block_i=0; block_i<fact_table_.table->get_num_blocks(); block_i+=batch_size_) {
 
-        ctx->spawnLambdaTask([this, block_i, fact_col, batch_size, chunk_row_offsets]() {
-            for (int batch_i=0; batch_i<batch_size && block_i+batch_i<fact_table_.table->get_num_blocks(); batch_i++) {
-                std::vector<std::vector<int64_t>> indices(dim_tables_.size());
-
-                for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
-
-                    auto fact_join_col_name = fact_join_col_names_[filter_j];
-                    auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
-
-                    // TODO(nicholas): For now, we assume the column is of INT64 type
-                    auto chunk = fact_fk_col->chunk(block_i+batch_i);
-                    auto chunk_data = fact_fk_col->chunk(
-                        block_i+batch_i)->data()->GetValues<int64_t>(1, 0);
-
-                    auto bloom_filter = dim_filters_[filter_j];
-
-                    if (filter_j == 0) {
-                        // Reserve space for the first index vector
-                        indices[0].reserve(fact_col->chunk(block_i+batch_i)->length()*batch_size);
-
-                        for (int row = 0; row < chunk->length(); row++) {
-                            auto key = chunk_data[row];
-
-                            if (bloom_filter->probe(key)) {
-                                indices[0].push_back(
-                                    row + chunk_row_offsets[block_i+batch_i]);
-                            }
-                        }
-                    } else {
-                        // Reserve space for the next index vector
-                        indices[filter_j].reserve(indices[filter_j - 1].size()*batch_size);
-
-                        for (auto &index : indices[filter_j - 1]) {
-
-                            auto key = chunk_data[index -
-                                                  chunk_row_offsets[block_i+batch_i]];
-
-                            if (bloom_filter->probe(key)) {
-                                indices[filter_j].push_back(index);
-                            }
-                        }
-                    }
-                }
-                lip_indices_[block_i+batch_i] = indices[dim_tables_.size() - 1];
+            for (int batch_i=0; batch_i<batch_size_ && block_i+batch_i<fact_table_.table->get_num_blocks(); batch_i++) {
+                probe_filters(batch_i+block_i);
             }
             for (auto &bloom_filter: dim_filters_) bloom_filter->update();
             // TODO(nicholas): This sorts the filters while other batches are still being probed!
             //   Threads will be stepping on each other!
 //            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
-        });
     }
 }
 

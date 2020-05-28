@@ -39,6 +39,8 @@ public:
 private:
     std::vector<std::vector<int64_t>> lip_indices_;
 
+    int batch_size_;
+    std::vector<int64_t> chunk_row_offsets_;
 
     std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols_;
     std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_pk_cols_;
@@ -77,6 +79,8 @@ private:
     std::shared_ptr<arrow::ArrayData> make_empty_filter(int num_bits);
 
     std::mutex build_mutex_;
+
+    void probe_filters(int chunk_i);
 };
 
 } // namespace hustle
