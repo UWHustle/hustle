@@ -131,19 +131,22 @@ void LIP::probe_filters(Task *ctx) {
 
     for (int batch_i=0; batch_i<num_batches; batch_i+=batch_size_) {
 
-        ctx->spawnTask(CreateLambdaTask([this, batch_i](Task *internal) {
+        auto probe_task = CreateLambdaTask([this, batch_i](Task *internal) {
            for (int block_j=0; block_j<batch_size_ && batch_i+block_j<fact_table_.table->get_num_blocks(); block_j++) {
                internal->spawnLambdaTask([this, batch_i, block_j] {
                    probe_filters(batch_i + block_j);
                });
            }
-        }));
+        });
 
+        tasks.push_back(probe_task);
             for (auto &bloom_filter: dim_filters_) bloom_filter->update();
             // TODO(nicholas): This sorts the filters while other batches are still being probed!
             //   Threads will be stepping on each other!
 //            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
     }
+
+    ctx->spawnTask(CreateTaskChain(tasks));
 }
 
 void LIP::finish() {
