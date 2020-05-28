@@ -94,17 +94,106 @@ protected:
         c_schema=arrow::schema({c_field1,c_field2,c_field3,c_field4,
                                    c_field5,c_field6,c_field7,c_field8});
 
+        std::shared_ptr<arrow::Field>d_field1=arrow::field("date key",
+                                                           arrow::int64());
+        std::shared_ptr<arrow::Field>d_field2=arrow::field("date",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>d_field3=arrow::field("day of week",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>d_field4=arrow::field("month",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>d_field5=arrow::field("year",
+                                                           arrow::int64());
+        std::shared_ptr<arrow::Field>d_field6=arrow::field("year month num",
+                                                           arrow::int64());
+        std::shared_ptr<arrow::Field>d_field7=arrow::field("year month",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>d_field8=arrow::field("day num in week",
+                                                           arrow::int64());
+        std::shared_ptr<arrow::Field>d_field9=arrow::field("day num in "
+                                                           "month",
+                                                           arrow::int64());
+        std::shared_ptr<arrow::Field>d_field10=arrow::field("day num in "
+                                                            "year",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field>d_field11=arrow::field("month num in "
+                                                            "year",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field>d_field12=arrow::field("week num in "
+                                                            "year",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field>d_field13=arrow::field("selling season",
+                                                            arrow::utf8());
+        std::shared_ptr<arrow::Field>d_field14=arrow::field("last day in "
+                                                            "week fl",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field>d_field15=arrow::field("last day in "
+                                                            "month fl",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field>d_field16=arrow::field("holiday fl",
+                                                            arrow::int64());
+        std::shared_ptr<arrow::Field>d_field17=arrow::field("weekday fl",
+                                                            arrow::int64());
 
-        auto t = read_from_csv_file("/Users/corrado/hustle/data/ssb-1/customer.tbl", c_schema, BLOCK_SIZE);
-        write_to_file("/Users/corrado/hustle/data/ssb-1/customer.hsl", *t);
-        t = read_from_csv_file("/Users/corrado/hustle/data/ssb-1/supplier.tbl", s_schema, BLOCK_SIZE);
-        write_to_file("/Users/corrado/hustle/data/ssb-1/supplier.hsl", *t);
+        d_schema=arrow::schema({d_field1,d_field2,d_field3,d_field4,d_field5,
+                                d_field6,d_field7,d_field8,d_field9,d_field10,
+                                d_field11,d_field12,d_field13,d_field14,d_field15,
+                                d_field16,d_field17});
 
-//        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder.hsl");
-//        d  = read_from_file("/Users/corrado/hustle/data/ssb-1/date.hsl");
-//        p  = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
-//        c  = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
-//        s  = read_from_file("/Users/corrado/hustle/data/ssb-1/supplier.hsl");
+
+
+
+        std::shared_ptr<arrow::Field>p_field1=arrow::field("part key",
+                                                           arrow::int64());
+        std::shared_ptr<arrow::Field>p_field2=arrow::field("name",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>p_field3=arrow::field("mfgr",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>p_field4=arrow::field("category",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>p_field5=arrow::field("brand1",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>p_field6=arrow::field("color",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>p_field7=arrow::field("type",
+                                                           arrow::utf8());
+        std::shared_ptr<arrow::Field>p_field8=arrow::field("size",
+                                                           arrow::int64());
+        std::shared_ptr<arrow::Field>p_field9=arrow::field("container",
+                                                           arrow::utf8());
+
+        p_schema=arrow::schema({p_field1,p_field2,p_field3,p_field4,
+                                p_field5,
+                                p_field6,p_field7,p_field8,
+                                p_field9});
+
+
+
+        auto t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/customer.tbl", c_schema, BLOCK_SIZE);
+        write_to_file("/Users/corrado/h/hustle/src/ssb/data/customer.hsl", *t);
+        std::cout << "c" << std::endl;
+
+        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/supplier.tbl", s_schema, BLOCK_SIZE);
+        write_to_file("/Users/corrado/h/hustle/src/ssb/data/supplier.hsl", *t);
+        std::cout << "s" << std::endl;
+
+        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.tbl", lo_schema, BLOCK_SIZE);
+        write_to_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.hsl", *t);
+        std::cout << "lo" << std::endl;
+
+        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/date.tbl", d_schema, BLOCK_SIZE);
+        write_to_file("/Users/corrado/h/hustle/src/ssb/data/date.hsl", *t);
+        std::cout << "d" << std::endl;
+
+        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/part.tbl", p_schema, BLOCK_SIZE);
+        write_to_file("/Users/corrado/h/hustle/src/ssb/data/part.hsl", *t);
+        std::cout << "p" << std::endl;
+
+//        lo = read_from_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.hsl");
+//        d  = read_from_file("/Users/corrado/h/hustle/src/ssb/data/date.hsl");
+//        p  = read_from_file("/Users/corrado/h/hustle/src/ssb/data/part.hsl");
+//        c  = read_from_file("/Users/corrado/h/hustle/src/ssb/data/customer.hsl");
+//        s  = read_from_file("/Users/corrado/h/hustle/src/ssb/data/supplier.hsl");
 
     }
 };
