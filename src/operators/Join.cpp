@@ -172,7 +172,6 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
             take_options,
             &new_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        output_lazy_tables.emplace_back(left.table, left.filter, new_indices);
     } else {
         new_indices = left_indices_of_indices;
     }
@@ -320,7 +319,7 @@ void Join::execute(Task *ctx) {
 void Join::finish() {
     // Must append to output_result_ first
     output_result_->append(prev_result_);
-    prev_result_->append(prev_result_);
+//    prev_result_->append(prev_result_);
 
 }
 
