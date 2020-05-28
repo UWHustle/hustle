@@ -19,12 +19,18 @@ SSB::SSB() {
 //    p = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
 //    c = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
 //    s = read_from_file("/Users/corrado/hustle/data/ssb-1/supplier.hsl");
-
-    lo = read_from_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.hsl");
-    d = read_from_file("/Users/corrado/h/hustle/src/ssb/data/date.hsl");
-    p = read_from_file("/Users/corrado/h/hustle/src/ssb/data/part.hsl");
-    c = read_from_file("/Users/corrado/h/hustle/src/ssb/data/customer.hsl");
-    s = read_from_file("/Users/corrado/h/hustle/src/ssb/data/supplier.hsl");
+//
+//    lo = read_from_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.hsl");
+//    d = read_from_file("/Users/corrado/h/hustle/src/ssb/data/date.hsl");
+//    p = read_from_file("/Users/corrado/h/hustle/src/ssb/data/part.hsl");
+//    c = read_from_file("/Users/corrado/h/hustle/src/ssb/data/customer.hsl");
+//    s = read_from_file("/Users/corrado/h/hustle/src/ssb/data/supplier.hsl");
+//
+    lo = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/lineorder.hsl");
+    d = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/date.hsl");
+    p = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/part.hsl");
+    c = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/customer.hsl");
+    s = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/supplier.hsl");
 
     lo_d_ref = {lo, "order date"};
     lo_p_ref = {lo, "part key"};
@@ -184,7 +190,7 @@ void SSB::q11() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -313,7 +319,7 @@ void SSB::q12() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -459,7 +465,7 @@ void SSB::q13() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -546,7 +552,7 @@ void SSB::q21() {
                                                 {nullptr, "year"},
                                                 {nullptr, "brand1"}
                                             });
-    out_table->print();
+    //out_table->print();
     hustle::simple_profiler.summarizeToStream(std::cout);
     reset_results();
 }
@@ -649,7 +655,7 @@ void SSB::q22() {
                                                 {nullptr, "year"},
                                                 {nullptr, "brand1"}
                                             });
-    out_table->print();
+    //out_table->print();
     hustle::simple_profiler.summarizeToStream(std::cout);
     reset_results();
 }
@@ -734,7 +740,7 @@ void SSB::q23() {
                                                 {nullptr, "year"},
                                                 {nullptr, "brand1"}
                                             });
-    out_table->print();
+    //out_table->print();
     hustle::simple_profiler.summarizeToStream(std::cout);
     reset_results();
 }
@@ -844,7 +850,7 @@ void SSB::q31() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -956,7 +962,7 @@ void SSB::q32() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1108,7 +1114,7 @@ void SSB::q33() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1243,7 +1249,7 @@ void SSB::q34() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1359,7 +1365,7 @@ void SSB::q41() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1506,7 +1512,7 @@ void SSB::q42() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "s nation"}, {nullptr, "category"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1634,7 +1640,7 @@ void SSB::q43() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"},  {nullptr, "s city"}, {nullptr, "brand1"}});
-    out_table->print();
+    //out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();

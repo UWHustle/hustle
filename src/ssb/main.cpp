@@ -20,11 +20,14 @@ int main(int argc, char *argv[]) {
 //    workload.q34();
 
     workload.q41();
-//    workload.q42();
-//    workload.q43();
+    workload.q42();
+    workload.q43();
 
     workload.q41_lip();
+    workload.q42_lip();
+    workload.q43_lip();
 
+//
 //
 //    std::shared_ptr<Table> lo, c, s, p, d;
 //    std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema, d_schema;
@@ -168,24 +171,24 @@ int main(int argc, char *argv[]) {
 //
 //
 //
-//        auto t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/customer.tbl", c_schema, BLOCK_SIZE);
-//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/customer.hsl", *t);
+//        auto t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/customer.tbl", c_schema, BLOCK_SIZE);
+//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/customer.hsl", *t);
 //        std::cout << "c" << std::endl;
 //
-//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/supplier.tbl", s_schema, BLOCK_SIZE);
-//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/supplier.hsl", *t);
+//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/supplier.tbl", s_schema, BLOCK_SIZE);
+//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/supplier.hsl", *t);
 //        std::cout << "s" << std::endl;
 //
-//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.tbl", lo_schema, BLOCK_SIZE);
-//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.hsl", *t);
+//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/lineorder.tbl", lo_schema, BLOCK_SIZE);
+//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/lineorder.hsl", *t);
 //        std::cout << "lo" << std::endl;
 //
-//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/date.tbl", d_schema, BLOCK_SIZE);
-//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/date.hsl", *t);
+//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/date.tbl", d_schema, BLOCK_SIZE);
+//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/date.hsl", *t);
 //        std::cout << "d" << std::endl;
 //
-//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/part.tbl", p_schema, BLOCK_SIZE);
-//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/part.hsl", *t);
+//        t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/part.tbl", p_schema, BLOCK_SIZE);
+//        write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/part.hsl", *t);
 //        std::cout << "p" << std::endl;
 
 
