@@ -35,7 +35,6 @@ void LIP::build_filters(Task* ctx) {
             dim_pk_cols_.emplace(dim_join_col_name, pk_col);
             lock.unlock();
 
-            std::cout << pk_col->chunk(0)->ToString() << std::endl;
             auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
 
             for (int j=0; j<pk_col->num_chunks(); j++) {
@@ -158,7 +157,6 @@ void LIP::finish() {
     // Construct left and right index arrays.
     status = new_indices_builder.Finish(&new_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    std::cout << new_indices->ToString() << std::endl;
 
 
     LazyTable result_unit(fact_table_.table, fact_table_.filter, new_indices);
