@@ -20,9 +20,12 @@ LIP::LIP(const std::size_t query_id,
 
 void LIP::build_filters(Task* ctx) {
 
+    dim_filters_.resize(dim_tables_.size());
+    dim_join_col_num_chunks_.resize(dim_tables_.size());
+
     for (int i=0; i<dim_tables_.size(); i++) {
 
-//        ctx->spawnTask(CreateLambdaTask([this, i]() {
+        ctx->spawnTask(CreateLambdaTask([this, i]() {
             auto lazy_table = dim_tables_[i];
             auto dim_join_col_name = dim_join_col_names_[i];
 
@@ -32,6 +35,7 @@ void LIP::build_filters(Task* ctx) {
             dim_pk_cols_.emplace(dim_join_col_name, pk_col);
             lock.unlock();
 
+            std::cout << pk_col->chunk(0)->ToString() << std::endl;
             auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
 
             for (int j=0; j<pk_col->num_chunks(); j++) {
@@ -47,11 +51,9 @@ void LIP::build_filters(Task* ctx) {
 
             bloom_filter->set_memory(1000);
 
-            lock.lock();
-            dim_filters_.push_back(bloom_filter);
-            dim_join_col_num_chunks_.push_back(pk_col->num_chunks());
-            lock.unlock();
-//        }));
+            dim_filters_[i] = (bloom_filter);
+            dim_join_col_num_chunks_[i] = (pk_col->num_chunks());
+        }));
     }
 }
 
