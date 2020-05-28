@@ -77,6 +77,8 @@ private:
     std::mutex build_mutex_;
 
     void probe_filters(int chunk_i);
+
+    void probe_filters(Task *ctx, int chunk_i);
 };
 
 } // namespace hustle

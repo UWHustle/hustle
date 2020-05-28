@@ -55,9 +55,10 @@ void LIP::build_filters(Task* ctx) {
     }
 }
 
-void LIP::probe_filters(int chunk_i) {
+void LIP::probe_filters(Task *ctx, int chunk_i) {
 //    auto batch_probe_task = CreateLambdaTask([this, block_i, batch_i, fact_col, batch_size, chunk_row_offsets]() {
 
+    ctx->spawnLambdaTask([this, chunk_i] {
         std::vector<std::vector<int64_t>> indices(dim_tables_.size());
 
         for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
@@ -74,7 +75,8 @@ void LIP::probe_filters(int chunk_i) {
 
             if (filter_j == 0) {
                 // Reserve space for the first index vector
-                indices[0].reserve(fact_fk_col->chunk(chunk_i)->length()*batch_size_);
+                indices[0].reserve(
+                    fact_fk_col->chunk(chunk_i)->length() * batch_size_);
 
                 for (int row = 0; row < chunk->length(); row++) {
                     auto key = chunk_data[row];
@@ -86,7 +88,8 @@ void LIP::probe_filters(int chunk_i) {
                 }
             } else {
                 // Reserve space for the next index vector
-                indices[filter_j].reserve(indices[filter_j - 1].size()*batch_size_);
+                indices[filter_j].reserve(
+                    indices[filter_j - 1].size() * batch_size_);
 
                 for (auto &index : indices[filter_j - 1]) {
 
@@ -100,6 +103,7 @@ void LIP::probe_filters(int chunk_i) {
             }
         }
         lip_indices_[chunk_i] = indices[dim_tables_.size() - 1];
+    });
 }
 
 void LIP::probe_filters(Task *ctx) {
@@ -129,21 +133,22 @@ void LIP::probe_filters(Task *ctx) {
 
     std::vector<Task *> tasks;
 
-    for (int batch_i=0; batch_i<num_batches; batch_i+=batch_size_) {
+    for (int batch_i=0; batch_i<num_batches; batch_i+=1) {
 
-        auto probe_task = CreateLambdaTask([this, batch_i](Task *internal) {
+        auto probe_task = CreateLambdaTask([this, batch_i, ctx](Task *internal) {
            for (int block_j=0; block_j<batch_size_ && batch_i+block_j<fact_table_.table->get_num_blocks(); block_j++) {
-               internal->spawnLambdaTask([this, batch_i, block_j] {
-                   probe_filters(batch_i + block_j);
-               });
+               probe_filters(internal,batch_i + block_j);
            }
+           std::cout << "batch = " << batch_i << std::endl;
         });
 
-        tasks.push_back(probe_task);
+        auto update_and_sort_task = CreateLambdaTask([this] {
             for (auto &bloom_filter: dim_filters_) bloom_filter->update();
-            // TODO(nicholas): This sorts the filters while other batches are still being probed!
-            //   Threads will be stepping on each other!
-//            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
+            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
+            std::cout << "sorting" << std::endl;
+        });
+
+        tasks.push_back(CreateTaskChain(probe_task, update_and_sort_task));
     }
 
     ctx->spawnTask(CreateTaskChain(tasks));
