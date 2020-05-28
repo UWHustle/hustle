@@ -14,11 +14,17 @@
 namespace hustle::operators {
 
 SSB::SSB() {
-    lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder.hsl");
-    d = read_from_file("/Users/corrado/hustle/data/ssb-1/date.hsl");
-    p = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
-    c = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
-    s = read_from_file("/Users/corrado/hustle/data/ssb-1/supplier.hsl");
+//    lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder.hsl");
+//    d = read_from_file("/Users/corrado/hustle/data/ssb-1/date.hsl");
+//    p = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
+//    c = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
+//    s = read_from_file("/Users/corrado/hustle/data/ssb-1/supplier.hsl");
+
+    lo = read_from_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.hsl");
+    d = read_from_file("/Users/corrado/h/hustle/src/ssb/data/date.hsl");
+    p = read_from_file("/Users/corrado/h/hustle/src/ssb/data/part.hsl");
+    c = read_from_file("/Users/corrado/h/hustle/src/ssb/data/customer.hsl");
+    s = read_from_file("/Users/corrado/h/hustle/src/ssb/data/supplier.hsl");
 
     lo_d_ref = {lo, "order date"};
     lo_p_ref = {lo, "part key"};
