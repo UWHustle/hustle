@@ -58,7 +58,9 @@ void LIP::build_filters(Task* ctx) {
 void LIP::probe_filters(Task *ctx, int chunk_i) {
 //    auto batch_probe_task = CreateLambdaTask([this, block_i, batch_i, fact_col, batch_size, chunk_row_offsets]() {
 
-    ctx->spawnLambdaTask([this, chunk_i] {
+    ctx->spawnTask(CreateLambdaTask([this, chunk_i] {
+        std::cout << "chunk_i = " << chunk_i << std::endl;
+
         std::vector<std::vector<int64_t>> indices(dim_tables_.size());
 
         for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
@@ -105,7 +107,7 @@ void LIP::probe_filters(Task *ctx, int chunk_i) {
             }
         }
         lip_indices_[chunk_i] = indices[dim_tables_.size() - 1];
-    });
+    }));
 }
 
 void LIP::probe_filters(Task *ctx) {
@@ -128,18 +130,18 @@ void LIP::probe_filters(Task *ctx) {
             chunk_row_offsets_[i - 1] + fact_col->chunk(i - 1)->length();
     }
 
-    batch_size_ = 1;
+    batch_size_ = 10;
     lip_indices_.resize(fact_table_.table->get_num_blocks());
 
     int num_batches = fact_table_.table->get_num_blocks()/batch_size_ + 1;
 
     std::vector<Task *> tasks;
 
-    for (int batch_i=0; batch_i<num_batches; batch_i+=1) {
+    for (int batch_i=0; batch_i<num_batches; batch_i++) {
 
         auto probe_task = CreateLambdaTask([this, batch_i](Task *internal) {
-           for (int block_j=0; block_j<batch_size_ && batch_i+block_j<fact_table_.table->get_num_blocks(); block_j++) {
-               probe_filters(internal,batch_i + block_j);
+           for (int block_j=0; block_j<batch_size_ && batch_i*batch_size_+block_j<fact_table_.table->get_num_blocks(); block_j++) {
+               probe_filters(internal,batch_i*batch_size_ + block_j);
            }
            std::cout << "batch = " << batch_i << std::endl;
         });
