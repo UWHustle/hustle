@@ -22,6 +22,7 @@ void LIP::build_filters(Task* ctx) {
 
     dim_filters_.resize(dim_tables_.size());
     dim_join_col_num_chunks_.resize(dim_tables_.size());
+    dim_pk_cols_.resize(dim_tables_.size());
 
     for (int i=0; i<dim_tables_.size(); i++) {
 
@@ -31,9 +32,7 @@ void LIP::build_filters(Task* ctx) {
 
             // Pre-materialized and save dim table pk columns.
             auto pk_col = lazy_table.get_column_by_name(dim_join_col_name);
-            std::unique_lock<std::mutex> lock(build_mutex_);
-            dim_pk_cols_.emplace(dim_join_col_name, pk_col);
-            lock.unlock();
+            dim_pk_cols_[i] = (dim_join_col_name, pk_col);
 
             auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
 
@@ -126,6 +125,7 @@ void LIP::probe_filters(Task *ctx) {
                 }
                 lip_indices_[block_i+batch_i] = indices[dim_tables_.size() - 1];
             }
+            for (auto &bloom_filter: dim_filters_) bloom_filter->update();
             std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
         });
     }

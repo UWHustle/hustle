@@ -41,7 +41,7 @@ private:
 
 
     std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols_;
-    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> dim_pk_cols_;
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_pk_cols_;
 
     std::vector<std::shared_ptr<BloomFilter>> dim_filters_;
 
