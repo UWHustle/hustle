@@ -29,6 +29,14 @@ BloomFilter::BloomFilter(int num_vals) {
 
 }
 
+void BloomFilter::set_fact_fk_name(std::string fk_name) {
+    fk_name_ = fk_name;
+}
+
+std::string BloomFilter::get_fact_fk_name() {
+    return fk_name_;
+}
+
 
 // Note: We assume that the queues are empty when we call this function.
 void BloomFilter::set_memory(int memory) {

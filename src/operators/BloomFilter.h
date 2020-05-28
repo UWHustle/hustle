@@ -16,10 +16,13 @@ public:
     void set_memory(int memory);
     void update();
     static bool compare(std::shared_ptr<BloomFilter> lhs, std::shared_ptr<BloomFilter> rhs);
+    void set_fact_fk_name(std::string fk_name);
+    std::string get_fact_fk_name();
 
 
 private:
 
+    std::string fk_name_;
     double eps_;
     
     int num_cells_;
@@ -46,7 +49,6 @@ private:
 //    unsigned int hash(const std::string& x, int seed);
 
     void Reset();
-
 
 
 };

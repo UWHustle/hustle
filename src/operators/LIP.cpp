@@ -21,7 +21,7 @@ LIP::LIP(const std::size_t query_id,
 void LIP::build_filters(Task* ctx) {
 
     dim_filters_.resize(dim_tables_.size());
-    dim_join_col_num_chunks_.resize(dim_tables_.size());
+//    dim_join_col_num_chunks_.resize(dim_tables_.size());
 //    dim_pk_cols_.resize(dim_tables_.size());
 
     for (int i=0; i<dim_tables_.size(); i++) {
@@ -48,9 +48,9 @@ void LIP::build_filters(Task* ctx) {
             }
 
             bloom_filter->set_memory(1000);
-
+            bloom_filter->set_fact_fk_name(fact_join_col_names_[i]);
             dim_filters_[i] = (bloom_filter);
-            dim_join_col_num_chunks_[i] = (pk_col->num_chunks());
+//            dim_join_col_num_chunks_[i] = (pk_col->num_chunks());
         }));
     }
 }
@@ -63,7 +63,10 @@ void LIP::probe_filters(Task *ctx, int chunk_i) {
 
         for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
 
-            auto fact_join_col_name = fact_join_col_names_[filter_j];
+            auto bloom_filter = dim_filters_[filter_j];
+
+//            auto fact_join_col_name = fact_join_col_names_[filter_j];
+            auto fact_join_col_name = bloom_filter->get_fact_fk_name();
             auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
 
             // TODO(nicholas): For now, we assume the column is of INT64 type
@@ -71,7 +74,6 @@ void LIP::probe_filters(Task *ctx, int chunk_i) {
             auto chunk_data = fact_fk_col->chunk(
                 chunk_i)->data()->GetValues<int64_t>(1, 0);
 
-            auto bloom_filter = dim_filters_[filter_j];
 
             if (filter_j == 0) {
                 // Reserve space for the first index vector
@@ -135,7 +137,7 @@ void LIP::probe_filters(Task *ctx) {
 
     for (int batch_i=0; batch_i<num_batches; batch_i+=1) {
 
-        auto probe_task = CreateLambdaTask([this, batch_i, ctx](Task *internal) {
+        auto probe_task = CreateLambdaTask([this, batch_i](Task *internal) {
            for (int block_j=0; block_j<batch_size_ && batch_i+block_j<fact_table_.table->get_num_blocks(); block_j++) {
                probe_filters(internal,batch_i + block_j);
            }
@@ -145,6 +147,8 @@ void LIP::probe_filters(Task *ctx) {
         auto update_and_sort_task = CreateLambdaTask([this] {
             for (auto &bloom_filter: dim_filters_) bloom_filter->update();
             std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
+//            std::sort(fact_join_col_names_.begin(), fact_join_col_names_.end());
+//            std::sort(fact_fk_cols_.begin(), fact_fk_cols_.end());
             std::cout << "sorting" << std::endl;
         });
 
