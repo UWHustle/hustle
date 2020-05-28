@@ -32,40 +32,40 @@ Select::Select(
 
 arrow::compute::Datum
 Select::get_filter(const std::shared_ptr<Node> &node,
-                   const std::shared_ptr<Block> &block) {
+                   Task *task) {
 
     arrow::Status status;
 
     if (node->is_leaf()) {
-        return get_filter(node->predicate_, block);
+        return get_filter(node->predicate_, task);
     }
-    auto left_child_filter = get_filter(node->left_child_, block);
-    auto right_child_filter = get_filter(node->right_child_, block);
+    auto left_child_filter = get_filter(node->left_child_, task);
+    auto right_child_filter = get_filter(node->right_child_, task);
 
     arrow::compute::FunctionContext function_context(
         arrow::default_memory_pool());
-    arrow::compute::Datum block_filter;
+    arrow::compute::Datum filter;
 
     switch (node->connective_) {
         case AND: {
             status = arrow::compute::And(
                 &function_context, left_child_filter, right_child_filter,
-                &block_filter);
+                &filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case OR: {
             status = arrow::compute::Or(
                 &function_context, left_child_filter, right_child_filter,
-                &block_filter);
+                &filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case NONE: {
-            block_filter = left_child_filter;
+          filter = left_child_filter;
         }
     }
-    return block_filter;
+    return filter;
 }
 
 void Select::execute(Task *ctx) {
@@ -74,16 +74,7 @@ void Select::execute(Task *ctx) {
         // Task 1: perform selection on all blocks
         CreateLambdaTask([this](Task *internal){
             filter_vector_.resize(table_->get_num_blocks());
-
-            for (int i = 0; i < table_->get_num_blocks(); i++) {
-
-                // Each task gets the filter for one block and stores it in filter_vector
-                internal->spawnLambdaTask([this, i]() {
-                    auto block = table_->get_block(i);
-                    auto block_filter = this->get_filter(tree_->root_, block);
-                    filter_vector_[i] = block_filter.make_array();
-                });
-            }
+            auto block_filter = this->get_filter(tree_->root_, internal);
         }),
         // Task 2: create the output result
         CreateLambdaTask([this]() {
@@ -95,11 +86,28 @@ void Select::execute(Task *ctx) {
 
 void Select::finish() {
 
-    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
-    arrow::compute::Datum filter(chunked_filter);
-    LazyTable result_unit(table_, filter, arrow::compute::Datum());
+    //auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
+    //arrow::compute::Datum filter(chunked_filter);
+    LazyTable result_unit(table_, *filter_, arrow::compute::Datum());
     OperatorResult result({result_unit});
     output_result_->append(std::make_shared<OperatorResult>(result));
+}
+
+arrow::compute::Datum Select::get_filter(const std::shared_ptr<Predicate> &predicate, Task *internal){
+
+  for (int i = 0; i < table_->get_num_blocks(); i++) {
+
+    // Each task gets the filter for one block and stores it in filter_vector
+    internal->spawnLambdaTask([this, i, predicate]() {
+      auto block = table_->get_block(i);
+      auto block_filter = this->get_filter(predicate, block);
+      filter_vector_[i] = block_filter.make_array();
+    });
+  }
+  auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
+  filter_ = new arrow::compute::Datum(chunked_filter);
+  return *filter_;
+
 }
 
 arrow::compute::Datum Select::get_filter(
@@ -123,6 +131,7 @@ arrow::compute::Datum Select::get_filter(
     return block_filter;
 
 }
+
 
 } // namespace operators
 } // namespace hustle

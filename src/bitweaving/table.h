@@ -161,6 +161,12 @@ private:
    */
   Column* RemoveAndAddColumn(Column* old_col, const std::string& name, size_t old_col_size, size_t new_bitwidth);
 
+  /**
+   *
+   * @param old_col
+   * @param old_col_size
+   * @return
+   */
   Code* GetColumnCodesThusFar(Column* old_col, size_t old_col_size);
 
   struct Rep;

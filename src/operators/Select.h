@@ -41,6 +41,7 @@ private:
     std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
     arrow::ArrayVector filter_vector_;
+    arrow::compute::Datum* filter_;
 
     /**
      * Perform the selection specified by a node in the predicate tree on
@@ -49,13 +50,13 @@ private:
      * predicate tree are visited using inorder traversal.
      *
      * @param node A node of the predicate tree.
-     * @param block A block of the table
+     * @param task Pointer to a task
      *
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
     arrow::compute::Datum get_filter(const std::shared_ptr<Node> &node,
-                                     const std::shared_ptr<Block> &block);
+                                     Task *task);
 
     /**
      * Perform the selection specified by a predicate (i.e. leaf node) in the
@@ -72,6 +73,18 @@ private:
     arrow::compute::Datum get_filter(
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
+
+
+    /**
+     * Perform the selection specified by a predicate (i.e. leaf node) in the
+     * predicate tree on the table.
+     *
+     * @param predicate - A predicate from one of the leaf nodes of the
+     * predicate tree.
+     * @return A filter corresponding to values that satisfy the node's
+     * selection predicate(s)
+     */
+    arrow::compute::Datum get_filter(const std::shared_ptr<Predicate> &predicate, Task *task);
 
     void finish();
 };

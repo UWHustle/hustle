@@ -5,6 +5,8 @@ project(hustle)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+OPTION(INCLUDE_BITWEAVING "Option to build and use bitweaving for predicate evaluation" OFF)
+
 find_package(Threads REQUIRED)
 
 include_directories(third_party)

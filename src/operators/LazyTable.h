@@ -13,7 +13,6 @@ struct ColumnReference {
     std::string col_name;
 };
 
-
 /**
  * A LazyTable associates a table pointer with a boolean filter and an array
  * of indices. The filter and indices determine which rows of the table are

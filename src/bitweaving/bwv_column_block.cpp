@@ -107,7 +107,7 @@ namespace hustle::bitweaving {
         if (num_ + num > NUM_CODES_PER_BLOCK) {
             return new AppendResult(Status::InvalidArgument("Load too many codes into a column block."),
                     false,
-                                      CODE_SIZE);
+                    CODE_SIZE);
         }
 
         num_ += num;
@@ -118,7 +118,8 @@ namespace hustle::bitweaving {
             max_code_ = std::max((Code)max_code_, codes[i]);
             SetCode(i + (num_ - num), codes[i]);
         }
-        //((uint64_t)1 << CODE_SIZE works as long as CODE_SIZE is less tha 64
+        //((uint64_t)1 << CODE_SIZE works as long as CODE_SIZE is less than 64. Right now, with this bitweaving library,
+        // we have max CODE_SIZE as 32.
         if(max_code_ >= ((uint64_t)1 << CODE_SIZE)){
             int suggested_bitwidth = ceil(log2(max_code_)) == floor(log2(max_code_)) ?
                     ceil(log2(max_code_)) + 1 : ceil(log2(max_code_));

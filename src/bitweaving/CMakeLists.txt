@@ -21,7 +21,9 @@ add_library(
         rdtsc.h
         doxy.h
         status.h
-        types.h)
+        types.h
+        bitweaving_util.cc bitweaving_util.h
+        )
 
 
 target_include_directories(hustle_src_bitweaving PUBLIC ${ARROW_INCLUDE_DIR})
@@ -34,7 +36,7 @@ target_link_libraries(hustle_src_bitweaving PUBLIC
 set(TEST_SRC
     tests/bitweaving_test.cc
     tests/bitweaving_test_base.cpp tests/bitweaving_test_base.h
-    tests/bitweaving_test_util.cc tests/bitweaving_test_util.h
+    bitweaving_util.cc bitweaving_util.h
     )
 
 add_executable(hustle_bitweaving_test ${TEST_SRC})

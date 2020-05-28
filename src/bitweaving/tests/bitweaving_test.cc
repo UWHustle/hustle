@@ -22,11 +22,12 @@
 #include <operators/Join.h>
 #include <operators/JoinGraph.h>
 #include <bitweaving/rdtsc.h>
+#include <operators/Aggregate.h>
+#include <execution/ExecutionPlan.hpp>
 #include "scheduler/Scheduler.hpp"
 
-#include "bitweaving_test_util.h"
+#include "bitweaving/bitweaving_util.h"
 #include "bitweaving_test_base.h"
-
 
 using namespace hustle::operators;
 
@@ -273,7 +274,8 @@ TEST(BitweavingTest, bwCompareWithInputLargerThanAWord) {
 TEST(BitweavingTest, ArrowComparePerfTest) {
     std::vector<std::string> schema = {"discount"};
 
-    std::shared_ptr<Table> single_col_table = read_from_file("./data/large_single_column.hsl");
+    std::shared_ptr<Table> single_col_table =
+        read_from_file("/Users/sandhyakannan/Masters/RA/Project/Arrow-Bitweaving/cpp/data/large_single_column.hsl");
 
 //            std::shared_ptr<Table> single_col_table = build_table("./data/test.csv",
 //                                                                  arrow::default_memory_pool(), schema);
@@ -288,70 +290,68 @@ TEST(BitweavingTest, ArrowComparePerfTest) {
     auto start = std::chrono::high_resolution_clock::now();
 
     auto select_pred = Predicate{
-            {single_col_table,
-            "discount"},
-            arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum((int64_t) 8)
+        {single_col_table,
+         "discount"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 8)
     };
     auto select_pred_node =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(select_pred));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(select_pred));
 
     auto select_pred_tree = std::make_shared<PredicateTree>(select_pred_node);
 
     auto select_result = std::make_shared<OperatorResult>();
     select_result->append(single_col_table);
 
-    Select select_op(0, select_result, select_pred_tree);
+    auto result = std::make_shared<OperatorResult>();
+
+    Select select_op(0, select_result, result, select_pred_tree);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(select_op.createTask());
 
-    auto result = std::make_shared<OperatorResult>();
     typedef unsigned long long cycle;
-    cycle sum=0;
+    cycle sum = 0;
     int num_iterations = 1;
-    for(int i=0; i<num_iterations; i++){
+    for (int i = 0; i < num_iterations; i++) {
         cycle c;
         startTimer(&c);
 
         scheduler.start();
         scheduler.join();
-        select_result = select_op.finish();
 
         stopTimer(&c);
         sum += c;
     }
 
-    std::cout << "Avg cycles per value: " << double(sum) / num_iterations / single_col_table->get_num_rows() << std::endl;
+    std::cout << "Avg cycles per value: " << double(sum) / num_iterations / single_col_table->get_num_rows()
+              << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Arrow compute compare predicate execution time = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
-                      (end - start).count() << "ms" << std::endl;
+                  (end - start).count() << "ms" << std::endl;
 
-    out_table = select_result->materialize({discount_ref});
+    out_table = result->materialize({discount_ref});
 
     std::cout << "Total selected rows " << out_table->get_column(0)->length() << std::endl;
 
 }
 
-
 TEST(BitweavingTest, BitweavingPerfTest) {
     std::vector<std::string> schema = {"discount"};
 
-//            std::shared_ptr<Table> single_col_table = build_table("./data/test.csv",
-//                    arrow::default_memory_pool(), schema);
-
-    std::shared_ptr<Table> single_col_table = read_from_file("./data/large_single_column.hsl");
+    std::shared_ptr<Table> single_col_table =
+        read_from_file("/Users/sandhyakannan/Masters/RA/Project/Arrow-Bitweaving/cpp/data/large_single_column.hsl");
 
     Options options;
     options = Options();
     options.delete_exist_files = true;
     options.in_memory = true;
 
-    auto *bw_single_col_table = new BWTable("./abc", options);
-    addColumnsToBitweavingTable(single_col_table, bw_single_col_table);
+    auto *bw_single_col_table = createBitweavingIndex(single_col_table,
+        {BitweavingColumnIndexUnit("discount", 4)}, false);
 
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
 
@@ -360,9 +360,9 @@ TEST(BitweavingTest, BitweavingPerfTest) {
     Column *column = bw_single_col_table->GetColumn("discount"); //year
     std::shared_ptr<Code> min_discount = std::make_shared<uint64_t>(8);
     std::shared_ptr<Comparator> op = std::make_shared<Comparator>(
-            kGreaterEqual);
+        kGreaterEqual);
     std::shared_ptr<BitVectorOpt> opt = std::make_shared<BitVectorOpt>(
-            kSet);
+        kSet);
     BitweavingCompareOptionsUnit optUnit(min_discount, op, opt);
     BitweavingCompareOptions option(column);
     option.addOpt(optUnit);
@@ -371,19 +371,19 @@ TEST(BitweavingTest, BitweavingPerfTest) {
     auto start = std::chrono::high_resolution_clock::now();
 
     typedef unsigned long long cycle;
-    cycle sum=0;
+    cycle sum = 0;
     //cycle sum_builtin = 0;
     int num_iterations = 1;
-    for(int i=0; i<num_iterations; i++){
+    for (int i = 0; i < num_iterations; i++) {
         cycle c;
         startTimer(&c);
         //assert(__has_builtin(__builtin_readcyclecounter));
         //unsigned long long t0 = __builtin_readcyclecounter();
         status = BitweavingCompare(
-                &function_context,
-                bw_single_col_table,
-                std::vector<BitweavingCompareOptions> {option},
-                bw_resultBitVector
+            &function_context,
+            bw_single_col_table,
+            std::vector<BitweavingCompareOptions>{option},
+            bw_resultBitVector
         );
         evaluate_status(status, __FUNCTION__, __LINE__);
         //unsigned long long t1 = __builtin_readcyclecounter();
@@ -392,12 +392,13 @@ TEST(BitweavingTest, BitweavingPerfTest) {
         sum += c;
     }
     //std::cout << "Cycles per value by builtin counter " << double(sum_builtin)/ 3 /single_col_table->num_rows() << std::endl;
-    std::cout << "Avg cycles per value: " << double(sum) / num_iterations / single_col_table->get_num_rows() << std::endl;
+    std::cout << "Avg cycles per value: " << double(sum) / num_iterations / single_col_table->get_num_rows()
+              << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "bitweaving predicate execution time = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
-                      (end - start).count() << "ms" << std::endl;
+                  (end - start).count() << "ms" << std::endl;
 
     auto *filter_result = new arrow::compute::Datum();
     std::shared_ptr<arrow::ChunkedArray> select_col = single_col_table->get_column_by_name("discount");
@@ -415,8 +416,7 @@ TEST(BitweavingTest, BitweavingPerfTest) {
     ASSERT_EQ(filter_result->chunked_array()->length(), 78524496);
 }
 
-
-/*TEST_F(BitweavingTestBase, SSBQ1_1Arrow){
+TEST_F(BitweavingTestBase, SSBQ1_1Arrow) {
 
     std::shared_ptr<Table> out_table;
     ColumnReference discount_ref = {lineorder, "discount"};
@@ -425,47 +425,47 @@ TEST(BitweavingTest, BitweavingPerfTest) {
     auto t_start = std::chrono::high_resolution_clock::now();
     //discount >= 1
     auto discount_pred_1 = Predicate{
-            {lineorder,
-             "discount"},
-            arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum((int64_t) 1)
+        {lineorder,
+         "discount"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 1)
     };
     auto discount_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(discount_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_1));
 
     //discount <= 3
     auto discount_pred_2 = Predicate{
-            {lineorder,
-             "discount"},
-            arrow::compute::CompareOperator::LESS_EQUAL,
-            arrow::compute::Datum((int64_t) 3)
+        {lineorder,
+         "discount"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 3)
     };
     auto discount_pred_node_2 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(discount_pred_2));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_2));
 
     auto discount_connective_node = std::make_shared<ConnectiveNode>(
-            discount_pred_node_1,
-            discount_pred_node_2,
-            FilterOperator::AND
+        discount_pred_node_1,
+        discount_pred_node_2,
+        FilterOperator::AND
     );
 
     //quantity < 25
     auto quantity_pred_1 = Predicate{
-            {lineorder,
-             "quantity"},
-            arrow::compute::CompareOperator::LESS,
-            arrow::compute::Datum((int64_t) 25)
+        {lineorder,
+         "quantity"},
+        arrow::compute::CompareOperator::LESS,
+        arrow::compute::Datum((int64_t) 25)
     };
     auto quantity_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(quantity_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_1));
 
     auto lo_root_node = std::make_shared<ConnectiveNode>(
-            quantity_pred_node_1,
-            discount_connective_node,
-            FilterOperator::AND
+        quantity_pred_node_1,
+        discount_connective_node,
+        FilterOperator::AND
     );
 
     auto lineorder_pred_tree = std::make_shared<PredicateTree>(lo_root_node);
@@ -473,16 +473,15 @@ TEST(BitweavingTest, BitweavingPerfTest) {
     // date.year = 1993
     ColumnReference year_ref = {date, "year"};
     auto year_pred_1 = Predicate{
-            {date,
-             "year"},
-            arrow::compute::CompareOperator::EQUAL,
-            arrow::compute::Datum((int64_t) 1993)
+        {date,
+         "year"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum((int64_t) 1993)
     };
     auto year_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(year_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(year_pred_1));
     auto date_pred_tree = std::make_shared<PredicateTree>(year_pred_node_1);
-
 
     auto lo_select_result = std::make_shared<OperatorResult>();
     lo_select_result->append(lineorder);
@@ -490,18 +489,12 @@ TEST(BitweavingTest, BitweavingPerfTest) {
     auto date_select_result = std::make_shared<OperatorResult>();
     date_select_result->append(date);
 
-    Select lo_select_op(lo_select_result, lineorder_pred_tree);
-    Select date_select_op(date_select_result, date_pred_tree);
+    auto select_result_out = std::make_shared<OperatorResult>();
+
+    Select lo_select_op(0, lo_select_result, select_result_out, lineorder_pred_tree);
+    Select date_select_op(0, date_select_result, select_result_out, date_pred_tree);
 
     auto t1 = std::chrono::high_resolution_clock::now();
-
-    lo_select_result = lo_select_op.run();
-    date_select_result = date_select_op.run();
-
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Predicate execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2-t1).count() <<std::endl;
 
     // Join date and lineorder tables
     ColumnReference lo_d_ref = {lineorder, "order date"};
@@ -514,35 +507,44 @@ TEST(BitweavingTest, BitweavingPerfTest) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(join_result, graph);
+    Join join_op(0, select_result_out, join_result, graph);
 
-    join_result = join_op.run();
+    auto agg_result = std::make_shared<OperatorResult>();
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};
+    Aggregate agg_op(0, join_result, agg_result, {agg_ref}, {}, {});
 
-    out_table = join_result->materialize({revenue_ref, lo_d_ref, d_ref});
+    Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    std::cout << "Total selected rows " << out_table->num_rows() << std::endl;
+    ExecutionPlan plan(0);
+    auto lo_select_id = plan.addOperator(&lo_select_op);
+    auto d_select_id = plan.addOperator(&date_select_op);
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
+
+    // Declare join dependency on select operators
+    plan.createLink(lo_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
+
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
+
+    scheduler.addTask(&plan);
+
+    auto container = hustle::simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    hustle::simple_profiler.summarizeToStream(std::cout);
     //ASSERT_EQ(out_table->num_rows(), 118598);
-
-    auto t3 = std::chrono::high_resolution_clock::now();
-    std::cout << "Join execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t3 - t2).count() << std::endl;
-
-    FunctionContext function_context(arrow::default_memory_pool());
-
-    std::shared_ptr<arrow::ChunkedArray> revenue = out_table->column(2); //REVENUE
-    arrow::compute::Datum sum_result;
-    arrow::Status status = arrow::compute::Sum(
-            &function_context,
-            revenue,
-            &sum_result
-    );
-    evaluate_status(status, __FUNCTION__, __LINE__);
 
     auto t4 = std::chrono::high_resolution_clock::now();
     std::cout << "Query execution time = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t4-t_start).count() <<std::endl;
+                  (t4 - t_start).count() << std::endl;
 }
 
 TEST_F(BitweavingTestBase, SSBQ1_2Arrow) {
@@ -554,64 +556,64 @@ TEST_F(BitweavingTestBase, SSBQ1_2Arrow) {
     auto t_start = std::chrono::high_resolution_clock::now();
     //discount >= 4
     auto discount_pred_1 = Predicate{
-            {lineorder,
-             "discount"},
-            arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum((int64_t) 4)
+        {lineorder,
+         "discount"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 4)
     };
     auto discount_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(discount_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_1));
 
     //discount <= 6
     auto discount_pred_2 = Predicate{
-            {lineorder,
-             "discount"},
-            arrow::compute::CompareOperator::LESS_EQUAL,
-            arrow::compute::Datum((int64_t) 6)
+        {lineorder,
+         "discount"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 6)
     };
     auto discount_pred_node_2 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(discount_pred_2));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_2));
 
     auto discount_connective_node = std::make_shared<ConnectiveNode>(
-            discount_pred_node_1,
-            discount_pred_node_2,
-            FilterOperator::AND
+        discount_pred_node_1,
+        discount_pred_node_2,
+        FilterOperator::AND
     );
 
     //quantity >= 26
     auto quantity_pred_1 = Predicate{
-            {lineorder,
-             "quantity"},
-            arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum((int64_t) 26)
+        {lineorder,
+         "quantity"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 26)
     };
     auto quantity_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(quantity_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_1));
 
     //quantity <= 35
     auto quantity_pred_2 = Predicate{
-            {lineorder,
-             "quantity"},
-            arrow::compute::CompareOperator::LESS_EQUAL,
-            arrow::compute::Datum((int64_t) 35)
+        {lineorder,
+         "quantity"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 35)
     };
     auto quantity_pred_node_2 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(quantity_pred_2));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_2));
 
     auto quantity_connective_node = std::make_shared<ConnectiveNode>(
-            quantity_pred_node_1,
-            quantity_pred_node_2,
-            FilterOperator::AND
+        quantity_pred_node_1,
+        quantity_pred_node_2,
+        FilterOperator::AND
     );
 
     auto lo_root_node = std::make_shared<ConnectiveNode>(
-            quantity_connective_node,
-            discount_connective_node,
-            FilterOperator::AND
+        quantity_connective_node,
+        discount_connective_node,
+        FilterOperator::AND
     );
 
     auto lineorder_pred_tree = std::make_shared<PredicateTree>(lo_root_node);
@@ -619,16 +621,15 @@ TEST_F(BitweavingTestBase, SSBQ1_2Arrow) {
     // date.year month num = 199401
     ColumnReference year_ref = {date, "year month num"};
     auto year_pred_1 = Predicate{
-            {date,
-             "year month num"},
-            arrow::compute::CompareOperator::EQUAL,
-            arrow::compute::Datum((int64_t) 199401)
+        {date,
+         "year month num"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum((int64_t) 199401)
     };
     auto year_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(year_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(year_pred_1));
     auto date_pred_tree = std::make_shared<PredicateTree>(year_pred_node_1);
-
 
     auto lo_select_result = std::make_shared<OperatorResult>();
     lo_select_result->append(lineorder);
@@ -636,18 +637,10 @@ TEST_F(BitweavingTestBase, SSBQ1_2Arrow) {
     auto date_select_result = std::make_shared<OperatorResult>();
     date_select_result->append(date);
 
-    Select lo_select_op(lo_select_result, lineorder_pred_tree);
-    Select date_select_op(date_select_result, date_pred_tree);
+    auto select_result_out = std::make_shared<OperatorResult>();
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-
-    lo_select_result = lo_select_op.run();
-    date_select_result = date_select_op.run();
-
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Predicate execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2-t1).count() <<std::endl;
+    Select lo_select_op(0, lo_select_result, select_result_out, lineorder_pred_tree);
+    Select date_select_op(0, date_select_result, select_result_out, date_pred_tree);
 
     // Join date and lineorder tables
     ColumnReference lo_d_ref = {lineorder, "order date"};
@@ -660,35 +653,43 @@ TEST_F(BitweavingTestBase, SSBQ1_2Arrow) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(join_result, graph);
+    Join join_op(0, select_result_out, join_result, graph);
 
-    join_result = join_op.run();
+    auto agg_result = std::make_shared<OperatorResult>();
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};
+    Aggregate agg_op(0, join_result, agg_result, {agg_ref}, {}, {});
 
-    out_table = join_result->materialize({lo_d_ref, d_ref, revenue_ref});
+    Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    std::cout << "Total selected rows " << out_table->num_rows() << std::endl;
-    //ASSERT_EQ(out_table->num_rows(), 4301);
+    ExecutionPlan plan(0);
+    auto lo_select_id = plan.addOperator(&lo_select_op);
+    auto d_select_id = plan.addOperator(&date_select_op);
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
 
-    auto t3 = std::chrono::high_resolution_clock::now();
-    std::cout << "Join execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t3 - t2).count() << std::endl;
+    // Declare join dependency on select operators
+    plan.createLink(lo_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
 
-    FunctionContext function_context(arrow::default_memory_pool());
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
 
-    std::shared_ptr<arrow::ChunkedArray> revenue = out_table->column(2); //REVENUE
-    arrow::compute::Datum sum_result;
-    arrow::Status status = arrow::compute::Sum(
-            &function_context,
-            revenue,
-            &sum_result
-    );
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    scheduler.addTask(&plan);
+
+    auto container = hustle::simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    hustle::simple_profiler.summarizeToStream(std::cout);
 
     auto t4 = std::chrono::high_resolution_clock::now();
     std::cout << "Query execution time = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t4-t_start).count() <<std::endl;
+                  (t4 - t_start).count() << std::endl;
 }
 
 TEST_F(BitweavingTestBase, SSBQ1_3Arrow) {
@@ -700,94 +701,94 @@ TEST_F(BitweavingTestBase, SSBQ1_3Arrow) {
     auto t_start = std::chrono::high_resolution_clock::now();
     //discount >= 5
     auto discount_pred_1 = Predicate{
-            {lineorder,
-             "discount"},
-            arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum((int64_t) 5)
+        {lineorder,
+         "discount"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 5)
     };
     auto discount_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(discount_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_1));
 
     //discount <= 7
     auto discount_pred_2 = Predicate{
-            {lineorder,
-             "discount"},
-            arrow::compute::CompareOperator::LESS_EQUAL,
-            arrow::compute::Datum((int64_t) 7)
+        {lineorder,
+         "discount"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 7)
     };
     auto discount_pred_node_2 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(discount_pred_2));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred_2));
 
     auto discount_connective_node = std::make_shared<ConnectiveNode>(
-            discount_pred_node_1,
-            discount_pred_node_2,
-            FilterOperator::AND
+        discount_pred_node_1,
+        discount_pred_node_2,
+        FilterOperator::AND
     );
 
     //quantity >= 26
     auto quantity_pred_1 = Predicate{
-            {lineorder,
-             "quantity"},
-            arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum((int64_t) 26)
+        {lineorder,
+         "quantity"},
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::compute::Datum((int64_t) 26)
     };
     auto quantity_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(quantity_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_1));
 
     //quantity <= 35
     auto quantity_pred_2 = Predicate{
-            {lineorder,
-             "quantity"},
-            arrow::compute::CompareOperator::LESS_EQUAL,
-            arrow::compute::Datum((int64_t) 35)
+        {lineorder,
+         "quantity"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::Datum((int64_t) 35)
     };
     auto quantity_pred_node_2 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(quantity_pred_2));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_2));
 
     auto quantity_connective_node = std::make_shared<ConnectiveNode>(
-            quantity_pred_node_1,
-            quantity_pred_node_2,
-            FilterOperator::AND
+        quantity_pred_node_1,
+        quantity_pred_node_2,
+        FilterOperator::AND
     );
 
     auto lo_root_node = std::make_shared<ConnectiveNode>(
-            quantity_connective_node,
-            discount_connective_node,
-            FilterOperator::AND
+        quantity_connective_node,
+        discount_connective_node,
+        FilterOperator::AND
     );
 
     auto lineorder_pred_tree = std::make_shared<PredicateTree>(lo_root_node);
 
     // date.year = 1994
     auto year_pred_1 = Predicate{
-            {date,
-             "year"},
-            arrow::compute::CompareOperator::EQUAL,
-            arrow::compute::Datum((int64_t) 1994)
+        {date,
+         "year"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum((int64_t) 1994)
     };
     auto year_pred_node_1 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(year_pred_1));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(year_pred_1));
 
     // date.week num in year = 6
     auto year_pred_2 = Predicate{
-            {date,
-             "week num in year"},
-            arrow::compute::CompareOperator::EQUAL,
-            arrow::compute::Datum((int64_t) 6)
+        {date,
+         "week num in year"},
+        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::Datum((int64_t) 6)
     };
     auto year_pred_node_2 =
-            std::make_shared<PredicateNode>(
-                    std::make_shared<Predicate>(year_pred_2));
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(year_pred_2));
 
     auto date_root_node = std::make_shared<ConnectiveNode>(
-            year_pred_node_1,
-            year_pred_node_2,
-            FilterOperator::AND
+        year_pred_node_1,
+        year_pred_node_2,
+        FilterOperator::AND
     );
 
     auto date_pred_tree = std::make_shared<PredicateTree>(date_root_node);
@@ -798,18 +799,10 @@ TEST_F(BitweavingTestBase, SSBQ1_3Arrow) {
     auto date_select_result = std::make_shared<OperatorResult>();
     date_select_result->append(date);
 
-    Select lo_select_op(lo_select_result, lineorder_pred_tree);
-    Select date_select_op(date_select_result, date_pred_tree);
+    auto select_result_out = std::make_shared<OperatorResult>();
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-
-    lo_select_result = lo_select_op.run();
-    date_select_result = date_select_op.run();
-
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Predicate execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t2-t1).count() <<std::endl;
+    Select lo_select_op(0, lo_select_result, select_result_out, lineorder_pred_tree);
+    Select date_select_op(0, date_select_result, select_result_out, date_pred_tree);
 
     // Join date and lineorder tables
     ColumnReference lo_d_ref = {lineorder, "order date"};
@@ -822,41 +815,49 @@ TEST_F(BitweavingTestBase, SSBQ1_3Arrow) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(join_result, graph);
+    Join join_op(0, select_result_out, join_result, graph);
 
-    join_result = join_op.run();
+    auto agg_result = std::make_shared<OperatorResult>();
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};
+    Aggregate agg_op(0, join_result, agg_result, {agg_ref}, {}, {});
 
-    out_table = join_result->materialize({lo_d_ref, d_ref, revenue_ref});
+    Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    std::cout << "Total selected rows " << out_table->num_rows() << std::endl;
-    //ASSERT_EQ(out_table->num_rows(), 955);
+    ExecutionPlan plan(0);
+    auto lo_select_id = plan.addOperator(&lo_select_op);
+    auto d_select_id = plan.addOperator(&date_select_op);
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
 
-    auto t3 = std::chrono::high_resolution_clock::now();
-    std::cout << "Join execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t3 - t2).count() << std::endl;
+    // Declare join dependency on select operators
+    plan.createLink(lo_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
 
-    FunctionContext function_context(arrow::default_memory_pool());
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
 
-    std::shared_ptr<arrow::ChunkedArray> revenue = out_table->column(2); //REVENUE
-    arrow::compute::Datum sum_result;
-    arrow::Status status = arrow::compute::Sum(
-            &function_context,
-            revenue,
-            &sum_result
-    );
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    scheduler.addTask(&plan);
+
+    auto container = hustle::simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    hustle::simple_profiler.summarizeToStream(std::cout);
 
     auto t4 = std::chrono::high_resolution_clock::now();
     std::cout << "Query execution time = " <<
               std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t4-t_start).count() <<std::endl;
+                  (t4 - t_start).count() << std::endl;
 }
 
-TEST_F(BitweavingTestBase, SSBQ1_1) {
+/*TEST_F(BitweavingTestBase, SSBQ1_1) {
     arrow::Status status;
 
-    FunctionContext function_context(arrow::default_memory_pool());
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     auto *lo_resultBitVector = new arrow::compute::Datum();
     std::vector<BitweavingCompareOptions> options;
 
@@ -884,7 +885,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1) {
     options.push_back(quantity_options);
 
     auto t_start = std::chrono::high_resolution_clock::now();
-    status = arrow::compute::BitweavingCompare(
+    status = BitweavingCompare(
             &function_context,
             lineorder_table,
             options,
@@ -904,7 +905,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1) {
     date_options.addOpt(year_optUnit);
     auto *d_resultBitVector = new arrow::compute::Datum();
 
-    status = arrow::compute::BitweavingCompare(
+    status = BitweavingCompare(
             &function_context,
             date_table,
             std::vector<BitweavingCompareOptions> {date_options},
@@ -928,31 +929,38 @@ TEST_F(BitweavingTestBase, SSBQ1_1) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(join_result, graph);
+    Join join_op(0, select_result_out, join_result, graph);
 
-    join_result = join_op.run();
+    auto agg_result = std::make_shared<OperatorResult>();
+    AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};
+    Aggregate agg_op(0, join_result, agg_result, {agg_ref}, {}, {});
 
-    auto out_table = join_result->materialize({lo_d_ref, d_ref, revenue_ref});
+    Scheduler &scheduler = Scheduler::GlobalInstance();
 
-    std::cout << "Total selected rows " << out_table->num_rows() << std::endl;
+    ExecutionPlan plan(0);
+    auto lo_select_id = plan.addOperator(&lo_select_op);
+    auto d_select_id = plan.addOperator(&date_select_op);
+    auto join_id = plan.addOperator(&join_op);
+    auto agg_id = plan.addOperator(&agg_op);
 
-   // ASSERT_EQ(out_table->num_rows(), 118598);
+    // Declare join dependency on select operators
+    plan.createLink(lo_select_id, join_id);
+    plan.createLink(d_select_id, join_id);
 
-    auto t3 = std::chrono::high_resolution_clock::now();
-    std::cout << "Join execution time = " <<
-              std::chrono::duration_cast<std::chrono::milliseconds>
-                      (t3 - t2).count() << std::endl;
+    // Declare aggregate dependency on join operator
+    plan.createLink(join_id, agg_id);
 
-    std::shared_ptr<arrow::ChunkedArray> revenue = out_table->GetColumnByName("revenue"); //REVENUE
-    arrow::compute::Datum sum_result;
-    status = arrow::compute::Sum(
-            &function_context,
-            revenue,
-            &sum_result
-    );
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    scheduler.addTask(&plan);
 
-   // std::cout << "Sum(revenue) is " << sum_result[0] <<std::endl;
+    auto container = hustle::simple_profiler.getContainer();
+    container->startEvent("query execution");
+    scheduler.start();
+    scheduler.join();
+    container->endEvent("query execution");
+
+    out_table = agg_result->materialize({{nullptr, "revenue"}});
+    out_table->print();
+    hustle::simple_profiler.summarizeToStream(std::cout);
 
     auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -965,7 +973,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1) {
  TEST_F(BitweavingTestBase, SSBQ1_2) {
     arrow::Status status;
 
-    FunctionContext function_context(arrow::default_memory_pool());
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     auto *lo_resultBitVector = new arrow::compute::Datum();
 
     std::vector<BitweavingCompareOptions> compare_options;
@@ -997,7 +1005,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1) {
     compare_options.push_back(quantity_options);
 
     auto t_start = std::chrono::high_resolution_clock::now();
-    status = arrow::compute::BitweavingCompare(
+    status = BitweavingCompare(
             &function_context,
             lineorder_table,
             compare_options,
@@ -1016,7 +1024,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1) {
     date_options.addOpt(BitweavingCompareOptionsUnit(year_month_num, d_op, d_opt));
     auto *d_resultBitVector = new arrow::compute::Datum();
 
-    status = arrow::compute::BitweavingCompare(
+    status = BitweavingCompare(
             &function_context,
             date_table,
             std::vector<BitweavingCompareOptions> {date_options},
@@ -1078,7 +1086,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1) {
 TEST_F(BitweavingTestBase, SSBQ1_3) {
     arrow::Status status;
 
-    FunctionContext function_context(arrow::default_memory_pool());
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     auto *lo_resultBitVector = new arrow::compute::Datum();
 
     std::vector<BitweavingCompareOptions> compare_options;
@@ -1110,7 +1118,7 @@ TEST_F(BitweavingTestBase, SSBQ1_3) {
     compare_options.push_back(quantity_options);
 
     auto t_start = std::chrono::high_resolution_clock::now();
-    status = arrow::compute::BitweavingCompare(
+    status = BitweavingCompare(
             &function_context,
             lineorder_table,
             compare_options,
@@ -1135,7 +1143,7 @@ TEST_F(BitweavingTestBase, SSBQ1_3) {
                     kAnd)));
     auto *d_resultBitVector = new arrow::compute::Datum();
 
-    status = arrow::compute::BitweavingCompare(
+    status = BitweavingCompare(
             &function_context,
             date_table,
             std::vector<BitweavingCompareOptions> {year_options, week_options},
