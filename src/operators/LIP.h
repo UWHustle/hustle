@@ -74,10 +74,6 @@ private:
 
     void probe_filters(Task *ctx);
 
-    void make_empty_filter();
-
-    std::shared_ptr<arrow::ArrayData> make_empty_filter(int num_bits);
-
     std::mutex build_mutex_;
 
     void probe_filters(int chunk_i);

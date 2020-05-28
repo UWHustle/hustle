@@ -137,18 +137,6 @@ void LIP::probe_filters(Task *ctx) {
     }
 }
 
-std::shared_ptr<arrow::ArrayData> LIP::make_empty_filter(int num_bits) {
-    auto result = arrow::AllocateResizableBuffer(num_bits/8 + 1);
-    evaluate_status(result.status(), __FUNCTION__, __LINE__);
-    std::shared_ptr<arrow::ResizableBuffer> valid_buffer = std::move(result.ValueOrDie());
-    uint8_t *mutable_data = valid_buffer->mutable_data();
-    for (int i=0; i<valid_buffer->size(); i++) {
-        mutable_data[i] = ~0u;
-    }
-
-    return arrow::ArrayData::Make(arrow::boolean(),num_bits,{nullptr,valid_buffer});
-}
-
 void LIP::finish() {
     arrow::Status status;
     arrow::Int64Builder new_indices_builder;
