@@ -18,34 +18,40 @@ LIP::LIP(const std::size_t query_id,
     graph_ = std::move(graph);
 }
 
-void LIP::build_filters() {
+void LIP::build_filters(Task* ctx) {
 
     for (int i=0; i<dim_tables_.size(); i++) {
 
-        auto lazy_table = dim_tables_[i];
-        auto dim_join_col_name = dim_join_col_names_[i];
+//        ctx->spawnTask(CreateLambdaTask([this, i]() {
+            auto lazy_table = dim_tables_[i];
+            auto dim_join_col_name = dim_join_col_names_[i];
 
-        // Pre-materialized and save dim table pk columns.
-        auto pk_col = lazy_table.get_column_by_name(dim_join_col_name);
-        dim_pk_cols_.emplace(dim_join_col_name, pk_col);
+            // Pre-materialized and save dim table pk columns.
+            auto pk_col = lazy_table.get_column_by_name(dim_join_col_name);
+            std::unique_lock<std::mutex> lock(build_mutex_);
+            dim_pk_cols_.emplace(dim_join_col_name, pk_col);
+            lock.unlock();
 
-        auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
+            auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
 
-        for (int j=0; j<pk_col->num_chunks(); j++) {
-            // TODO(nicholas): For now, we assume the column is of INT64 type.
-            auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
+            for (int j=0; j<pk_col->num_chunks(); j++) {
+                // TODO(nicholas): For now, we assume the column is of INT64 type.
+                auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
 
-            for (int k=0; k<chunk->length(); k++) {
-                auto val = chunk->Value(k);
+                for (int k=0; k<chunk->length(); k++) {
+                    auto val = chunk->Value(k);
 
-                bloom_filter->insert(val);
+                    bloom_filter->insert(val);
+                }
             }
-        }
 
-        bloom_filter->set_memory(1000);
+            bloom_filter->set_memory(1000);
 
-        dim_filters_.push_back(bloom_filter);
-        dim_join_col_num_chunks_.push_back(pk_col->num_chunks());
+            lock.lock();
+            dim_filters_.push_back(bloom_filter);
+            dim_join_col_num_chunks_.push_back(pk_col->num_chunks());
+            lock.unlock();
+//        }));
     }
 }
 
@@ -147,6 +153,7 @@ void LIP::finish() {
     // Construct left and right index arrays.
     status = new_indices_builder.Finish(&new_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    std::cout << new_indices->ToString() << std::endl;
 
 
     LazyTable result_unit(fact_table_.table, fact_table_.filter, new_indices);
@@ -200,11 +207,20 @@ void LIP::execute(Task *ctx) {
         }
     }
 
-    ctx->spawnLambdaTask([&]{
-        build_filters();
-        probe_filters();
-        finish();
-    });
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask(
+        [this](Task *internal) {
+            build_filters(internal);
+        }),
+        CreateLambdaTask(
+        [this]() {
+            probe_filters();
+        }),
+        CreateLambdaTask(
+            [this]() {
+                finish();
+            })
+    ));
 }
 
 

@@ -68,13 +68,15 @@ private:
 
     void finish();
 
-    void build_filters();
+    void build_filters(Task *ctx);
 
     void probe_filters();
 
     void make_empty_filter();
 
     std::shared_ptr<arrow::ArrayData> make_empty_filter(int num_bits);
+
+    std::mutex build_mutex_;
 };
 
 } // namespace hustle
