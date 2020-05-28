@@ -70,7 +70,7 @@ private:
 
     void build_filters(Task *ctx);
 
-    void probe_filters();
+    void probe_filters(Task *ctx);
 
     void make_empty_filter();
 

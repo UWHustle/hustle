@@ -57,7 +57,7 @@ void LIP::build_filters(Task* ctx) {
     }
 }
 
-void LIP::probe_filters() {
+void LIP::probe_filters(Task *ctx) {
 
     arrow::Status status;
     lip_indices_.resize(fact_table_.table->get_num_blocks());
@@ -215,8 +215,8 @@ void LIP::execute(Task *ctx) {
             build_filters(internal);
         }),
         CreateLambdaTask(
-        [this]() {
-            probe_filters();
+        [this](Task *internal) {
+            probe_filters(internal);
         }),
         CreateLambdaTask(
             [this]() {
