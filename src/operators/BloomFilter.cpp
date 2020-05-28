@@ -9,7 +9,7 @@ BloomFilter::BloomFilter(int num_vals) {
     int n = num_vals;
     num_hash_ = int (round( - log(eps_) / log(2)));
     num_cells_ = int (n * num_hash_ / log(2));
-    num_bytes_ = sizeof(uint8_t) * num_cells_ / 8 + 1;
+    int num_bytes_ = sizeof(uint8_t) * num_cells_ / 8 + 1;
 
     cells_ = (uint8_t *) malloc(num_bytes_);
 
