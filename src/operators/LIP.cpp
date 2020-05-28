@@ -78,61 +78,57 @@ void LIP::probe_filters(Task *ctx) {
     }
 
     int batch_size = 10;
-//    lip_indices_.resize(fact_table_.table->get_num_blocks()/batch_size);
     lip_indices_.resize(fact_table_.table->get_num_blocks());
 
-
     for (int block_i=0; block_i<fact_table_.table->get_num_blocks(); block_i+=batch_size) {
-        for (int batch_i=0; batch_i<batch_size && block_i+batch_i<fact_table_.table->get_num_blocks(); batch_i++) {
-            std::vector<std::vector<int64_t>> indices(dim_tables_.size());
 
-            for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
+        ctx->spawnLambdaTask([this, block_i, fact_col, batch_size, chunk_row_offsets]() {
+            for (int batch_i=0; batch_i<batch_size && block_i+batch_i<fact_table_.table->get_num_blocks(); batch_i++) {
+                std::vector<std::vector<int64_t>> indices(dim_tables_.size());
 
-                auto fact_join_col_name = fact_join_col_names_[filter_j];
-                auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
+                for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
 
-                // TODO(nicholas): For now, we assume the column is of INT64 type
-                auto chunk = fact_fk_col->chunk(block_i+batch_i);
-                auto chunk_data = fact_fk_col->chunk(
-                    block_i+batch_i)->data()->GetValues<int64_t>(1, 0);
+                    auto fact_join_col_name = fact_join_col_names_[filter_j];
+                    auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
 
-                auto bloom_filter = dim_filters_[filter_j];
+                    // TODO(nicholas): For now, we assume the column is of INT64 type
+                    auto chunk = fact_fk_col->chunk(block_i+batch_i);
+                    auto chunk_data = fact_fk_col->chunk(
+                        block_i+batch_i)->data()->GetValues<int64_t>(1, 0);
 
-                if (filter_j == 0) {
-                    // Reserve space for the first index vector
-                    indices[0].reserve(fact_col->chunk(block_i+batch_i)->length()*batch_size);
+                    auto bloom_filter = dim_filters_[filter_j];
 
-                    for (int row = 0; row < chunk->length(); row++) {
-//                    if (row % 2 == 0) {
-                        auto key = chunk_data[row];
+                    if (filter_j == 0) {
+                        // Reserve space for the first index vector
+                        indices[0].reserve(fact_col->chunk(block_i+batch_i)->length()*batch_size);
 
-                        if (bloom_filter->probe(key)) {
-                            indices[0].push_back(
-                                row + chunk_row_offsets[block_i+batch_i]);
+                        for (int row = 0; row < chunk->length(); row++) {
+                            auto key = chunk_data[row];
+
+                            if (bloom_filter->probe(key)) {
+                                indices[0].push_back(
+                                    row + chunk_row_offsets[block_i+batch_i]);
+                            }
                         }
-//                    }
-//                    else {
-//                        indices[0].push_back(row + chunk_row_offsets[block_i]);
-//                    }
-                    }
-                } else {
-                    // Reserve space for the next index vector
-                    indices[filter_j].reserve(indices[filter_j - 1].size()*batch_size);
+                    } else {
+                        // Reserve space for the next index vector
+                        indices[filter_j].reserve(indices[filter_j - 1].size()*batch_size);
 
-                    for (auto &index : indices[filter_j - 1]) {
+                        for (auto &index : indices[filter_j - 1]) {
 
-                        auto key = chunk_data[index -
-                                              chunk_row_offsets[block_i+batch_i]];
+                            auto key = chunk_data[index -
+                                                  chunk_row_offsets[block_i+batch_i]];
 
-                        if (bloom_filter->probe(key)) {
-                            indices[filter_j].push_back(index);
+                            if (bloom_filter->probe(key)) {
+                                indices[filter_j].push_back(index);
+                            }
                         }
                     }
                 }
+                lip_indices_[block_i+batch_i] = indices[dim_tables_.size() - 1];
             }
-            lip_indices_[block_i+batch_i] = indices[dim_tables_.size() - 1];
-        }
-        std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
+            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
+        });
     }
 }
 
