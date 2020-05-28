@@ -46,16 +46,16 @@ void Join::build_hash_table
 
     for (int i = 0; i < col->num_chunks(); i++) {
         // Each task inserts one chunk into the hash table
-        ctx->spawnLambdaTask([this, i, col, chunk_row_offsets] {
+//        ctx->spawnLambdaTask([this, i, col, chunk_row_offsets] {
             // TODO(nicholas): for now, we assume the join column is INT64 type.
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(
                 col->chunk(i));
 
             for (int row = 0; row < chunk->length(); row++) {
-                std::scoped_lock<std::mutex> lock(hash_table_mutex_);
+//                std::scoped_lock<std::mutex> lock(hash_table_mutex_);
                 hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
             }
-        });
+//        });
     }
 }
 
