@@ -126,7 +126,7 @@ void SSB::q41_lip() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}});
-//    out_table->print();
+    if (print_) out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -277,7 +277,7 @@ void SSB::q42_lip() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "s nation"}, {nullptr, "category"}});
-//    out_table->print();
+    if (print_) out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -409,7 +409,7 @@ void SSB::q43_lip() {
     container->endEvent("query execution");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"},  {nullptr, "s city"}, {nullptr, "brand1"}});
-//    out_table->print();
+    if (print_) out_table->print();
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();

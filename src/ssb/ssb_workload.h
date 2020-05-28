@@ -9,7 +9,7 @@ class SSB {
 
 public:
 
-    SSB();
+    explicit SSB(int SF=1, bool print=false);
 
     void execute(ExecutionPlan &plan, std::shared_ptr<OperatorResult> &final_result);
 
@@ -51,6 +51,8 @@ public:
     std::shared_ptr <arrow::Schema> lo_schema, c_schema, s_schema, p_schema, d_schema;
 
 private:
+
+    bool print_;
 
     std::shared_ptr<OperatorResult> lo_result_in;
     std::shared_ptr<OperatorResult> d_result_in;

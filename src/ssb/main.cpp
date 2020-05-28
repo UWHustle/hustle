@@ -4,7 +4,7 @@ using namespace hustle::operators;
 
 int main(int argc, char *argv[]) {
 
-    SSB workload;
+    SSB workload(1, true);
 
 //    workload.q11();
 //    workload.q12();
@@ -19,9 +19,9 @@ int main(int argc, char *argv[]) {
 //    workload.q33();
 //    workload.q34();
 
-    workload.q41();
-    workload.q42();
-    workload.q43();
+//    workload.q41();
+//    workload.q42();
+//    workload.q43();
 
     workload.q41_lip();
     workload.q42_lip();
