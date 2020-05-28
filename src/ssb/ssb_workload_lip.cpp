@@ -113,10 +113,10 @@ void SSB::q11_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q1.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q1.1_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
     if (print_) out_table->print();
@@ -246,10 +246,10 @@ void SSB::q12_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q1.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q1.2_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
     if (print_) out_table->print();
@@ -396,10 +396,10 @@ void SSB::q13_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q1.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q1.3_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
     if (print_) out_table->print();
@@ -482,12 +482,12 @@ void SSB::q21_lip() {
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q2.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q2.1_lip");
 
-    std::cout << std::endl;
+    
     out_table = agg_result_out->materialize({
                                                 {nullptr, "revenue"},
                                                 {nullptr, "year"},
@@ -589,12 +589,12 @@ void SSB::q22_lip() {
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q2.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q2.2_lip");
 
-    std::cout << std::endl;
+    
     out_table = agg_result_out->materialize({
                                                 {nullptr, "revenue"},
                                                 {nullptr, "year"},
@@ -678,12 +678,12 @@ void SSB::q23_lip() {
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q2.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q2.3_lip");
 
-    std::cout << std::endl;
+    
     out_table = agg_result_out->materialize({
                                                 {nullptr, "revenue"},
                                                 {nullptr, "year"},
@@ -798,10 +798,10 @@ void SSB::q31_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q3.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q3.1_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
     if (print_) out_table->print();
@@ -915,10 +915,10 @@ void SSB::q32_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q3.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q3.2_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
     if (print_) out_table->print();
@@ -1072,10 +1072,10 @@ void SSB::q33_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q3.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q3.3_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
     if (print_) out_table->print();
@@ -1210,10 +1210,10 @@ void SSB::q34_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q3.4_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q3.4_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
     if (print_) out_table->print();
@@ -1330,10 +1330,10 @@ void SSB::q41_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q4.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q4.1_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}});
     if (print_) out_table->print();
@@ -1481,10 +1481,10 @@ void SSB::q42_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q4.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q4.2_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "s nation"}, {nullptr, "category"}});
     if (print_) out_table->print();
@@ -1613,10 +1613,10 @@ void SSB::q43_lip() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("query execution");
+    container->startEvent("q4.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("query execution");
+    container->endEvent("q4.3_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"},  {nullptr, "s city"}, {nullptr, "brand1"}});
     if (print_) out_table->print();
