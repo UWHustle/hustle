@@ -18,25 +18,25 @@ SSB::SSB(int SF, bool print) {
     print_ = print;
 
     if (SF==1) {
-        lo = read_from_file("/Users/corrado/hustle/data/ssb-1/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/data/ssb-1/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/data/ssb-1/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/data/ssb-1/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/data/ssb-1/supplier.hsl");
+        lo = read_from_file("/Users/corrado/hustle/data/ssb-01/lineorder.hsl");
+        d = read_from_file("/Users/corrado/hustle/data/ssb-01/date.hsl");
+        p = read_from_file("/Users/corrado/hustle/data/ssb-01/part.hsl");
+        c = read_from_file("/Users/corrado/hustle/data/ssb-01/customer.hsl");
+        s = read_from_file("/Users/corrado/hustle/data/ssb-01/supplier.hsl");
     }
     else if (SF==5) {
-        lo = read_from_file("/Users/corrado/h/hustle/src/ssb/data/lineorder.hsl");
-        d = read_from_file("/Users/corrado/h/hustle/src/ssb/data/date.hsl");
-        p = read_from_file("/Users/corrado/h/hustle/src/ssb/data/part.hsl");
-        c = read_from_file("/Users/corrado/h/hustle/src/ssb/data/customer.hsl");
-        s = read_from_file("/Users/corrado/h/hustle/src/ssb/data/supplier.hsl");
+        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/lineorder.hsl");
+        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/date.hsl");
+        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/part.hsl");
+        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/customer.hsl");
+        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/supplier.hsl");
     }
     else if (SF==10) {
-        lo = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/lineorder.hsl");
-        d = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/date.hsl");
-        p = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/part.hsl");
-        c = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/customer.hsl");
-        s = read_from_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/supplier.hsl");
+        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/lineorder.hsl");
+        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/date.hsl");
+        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/part.hsl");
+        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/customer.hsl");
+        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/supplier.hsl");
     }
 
     lo_d_ref = {lo, "order date"};
