@@ -7,19 +7,17 @@
 
 namespace hustle {
 
+// Filters are ChunkedArrays, indices are Arrays.
+
 void apply_filter(
     const arrow::compute::Datum& values,
     const arrow::compute::Datum& filter,
     arrow::compute::Datum* out);
 
 void apply_indices(
-    const std::shared_ptr<arrow::ChunkedArray>& values,
+    const arrow::compute::Datum& values,
     const arrow::compute::Datum& indices,
-    std::shared_ptr<arrow::ChunkedArray>* out);
-
-
-
-
+    arrow::compute::Datum* out);
 
 }
 
