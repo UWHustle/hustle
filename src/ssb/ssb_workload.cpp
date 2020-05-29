@@ -828,7 +828,7 @@ void SSB::q31() {
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
                      {d_year_ref, c_nation_ref, s_nation_ref},
-                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
+                     {d_year_ref, {nullptr, "revenue"}});
 
 
     ExecutionPlan plan(0);
@@ -940,8 +940,7 @@ void SSB::q32() {
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
                      {d_year_ref, c_city_ref, s_city_ref},
-                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
-                     // TODO(nicholas): sort at the end if order by size does not match gorup by size
+                     {d_year_ref, {nullptr, "revenue"}});
 
     ExecutionPlan plan(0);
     auto s_select_id = plan.addOperator(&s_select_op);
@@ -1092,8 +1091,7 @@ void SSB::q33() {
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
                      {d_year_ref, c_city_ref, s_city_ref},
-                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
-    // TODO(nicholas): sort at the end if order by size does not match gorup by size
+                     {d_year_ref, {nullptr, "revenue"}});
 
     ExecutionPlan plan(0);
     auto s_select_id = plan.addOperator(&s_select_op);
@@ -1227,8 +1225,7 @@ void SSB::q34() {
     Aggregate agg_op(0,
                      join_result_out, agg_result_out, {agg_ref},
                      {d_year_ref, c_city_ref, s_city_ref},
-                     {d_year_ref, {nullptr, "revenue"}}); // TODO(nicholas): order by revenue
-    // TODO(nicholas): sort at the end if order by size does not match gorup by size
+                     {d_year_ref, {nullptr, "revenue"}});
 
     ExecutionPlan plan(0);
     auto s_select_id = plan.addOperator(&s_select_op);
