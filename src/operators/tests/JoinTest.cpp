@@ -95,7 +95,7 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 
     JoinPredicate join_pred = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
     JoinGraph graph({{join_pred}});
-    Join join_op(0, result, out_result, graph);
+    Join join_op(0, {result}, out_result, graph);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -161,7 +161,7 @@ TEST_F(JoinTestFixture, EquiJoin2) {
     JoinPredicate join_pred_RT = {R_ref_1, arrow::compute::EQUAL, T_ref_1};
 
     JoinGraph graph({{join_pred_RS, join_pred_RT}});
-    Join join_op(0, result, out_result, graph);
+    Join join_op(0, {result}, out_result, graph);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -237,7 +237,7 @@ TEST_F(JoinTestFixture, EquiJoin3) {
     JoinPredicate join_pred_ST = {S_ref_1, arrow::compute::EQUAL, T_ref_1};
 
     JoinGraph graph({{join_pred_RS}, {join_pred_ST}});
-    Join join_op(0, result, out_result, graph);
+    Join join_op(0, {result}, out_result, graph);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(join_op.createTask());

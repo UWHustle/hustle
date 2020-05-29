@@ -23,15 +23,22 @@ namespace hustle::operators{
         this->table = table;
         this->filter = filter;
         this->indices = indices;
+
+        materialized_cols_.reserve(table->get_num_cols());
     }
 
     std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column_by_name
-        (std::string col_name) const {
+        (std::string col_name) {
 
         return get_column(table->get_schema()->GetFieldIndex(col_name));
     }
 
-    std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) const {
+    std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) {
+
+
+        if (materialized_cols_.count(i) > 0) {
+            return materialized_cols_[i];
+        }
 
         arrow::Status status;
         auto col = arrow::compute::Datum(table->get_column(i));
@@ -40,9 +47,7 @@ namespace hustle::operators{
                 arrow::default_memory_pool());
         std::shared_ptr<arrow::ChunkedArray> out;
 
-        // TODO(nicholas): Filters are ChunkedArrays while indices are Arrays.
-        //  If this changes in the future (it will!), then you will ned to
-        //  update these switch blocks.
+        // Filters are ChunkedArrays, indices are Arrays.
         switch(filter.kind()) {
             case arrow::compute::Datum::NONE: {
                 break;
@@ -85,8 +90,10 @@ namespace hustle::operators{
             }
         }
 
+        std::shared_ptr<arrow::ChunkedArray> out_col = col.chunked_array();
+        materialized_cols_.emplace(i, out_col);
 
-        return col.chunked_array();
+        return out_col;
     }
 
 }

@@ -84,6 +84,13 @@ public:
 
 private:
 
+    bool sort_aggregate_col_;
+    std::vector<std::shared_ptr<arrow::Array>> sorted_groups_;
+    std::shared_ptr<arrow::Array> aggregates_;
+
+    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> group_by_cols_;
+
+    std::shared_ptr<arrow::ChunkedArray> empty_filter_;
     // If a thread wants to insert a group and its aggregate into group_builder_
     // and aggregate_builder_, then it must grab this mutex. Otherwise, another
     // thread may insert a different aggregate, associating the group with an
@@ -109,6 +116,8 @@ private:
     std::vector<ColumnReference> group_by_refs_;
     // References denoting which columns we want to group by
     std::vector<ColumnReference> order_by_refs_;
+
+    std::vector<int64_t> tuple_ordering_;
 
     // We append each aggregate to this after it is computed.
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
@@ -177,7 +186,7 @@ private:
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    void insert_group_aggregate(arrow::compute::Datum aggregate);
+    bool insert_group_aggregate(arrow::compute::Datum aggregate, int agg_index);
 
     /**
      * Get the filter corresponding to a single group across all group by
