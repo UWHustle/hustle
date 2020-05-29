@@ -9,7 +9,8 @@ add_library(
         LazyTable.cpp LazyTable.h
         Operator.h
         LIP.cpp LIP.h
-        BloomFilter.cpp BloomFilter.h)
+        ../utils/BloomFilter.cpp ../utils/BloomFilter.h
+        ../utils/xxHash.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})

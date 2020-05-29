@@ -123,8 +123,7 @@ private:
      * @param seed random seed
      * @return a 32-bit hash value
      */
-    unsigned int hash(long long val, int seed);
-//    unsigned int hash(const std::string& x, int seed);
+//    unsigned int hash(long long val, int seed);
 
     void Reset();
 

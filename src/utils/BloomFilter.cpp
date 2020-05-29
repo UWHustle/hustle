@@ -1,5 +1,6 @@
 #include <cmath>
 #include "BloomFilter.h"
+#include "xxHash.h"
 
 #define MAX_SEED 65535
 
@@ -56,8 +57,10 @@ void BloomFilter::set_memory(int memory) {
 
 void BloomFilter::insert(long long val) {
     // Hash the value using all hash functions
+    int index;
     for (int k=0; k<num_hash_; k++) {
-        int index = hash(val, seeds_[k]) % num_cells_;
+        index = xxh::xxhash<64>(&val, sizeof(val), seeds_[k]) % num_cells_;
+//        index = hash(val, seeds_[k]) % num_cells_;
         cells_[index/8] |= (1u << (index % 8u));
     }
 
@@ -90,8 +93,10 @@ void BloomFilter::Reset() {
 
 bool BloomFilter::probe(long long val){
     probe_count_++;
+    int index;
     for(int i=0; i<num_hash_; i++){
-        int index = hash(val, seeds_[i]) % num_cells_;
+        index = xxh::xxhash<64>(&val, sizeof(val), seeds_[i]) % num_cells_;
+//        index = hash(val, seeds_[i]) % num_cells_;
         int bit = cells_[index/8] & (1u << (index % 8u));
         if (!bit) {
             return false;
@@ -113,11 +118,11 @@ bool BloomFilter::compare(std::shared_ptr<BloomFilter> lhs, std::shared_ptr<Bloo
 }
 
 
-inline unsigned int BloomFilter::hash(long long x, int seed) {
-    x = (x<<32)^seed;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = (x >> 16) ^ x;
-    return x;
-}
+//inline unsigned int BloomFilter::hash(long long x, int seed) {
+//    x = (x<<32)^seed;
+//    x = ((x >> 16) ^ x) * 0x45d9f3b;
+//    x = ((x >> 16) ^ x) * 0x45d9f3b;
+//    x = (x >> 16) ^ x;
+//    return x;
+//}
 
