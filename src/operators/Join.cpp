@@ -7,6 +7,7 @@
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
+#include <utils/arrow_compute_wrappers.h>
 
 namespace hustle {
 namespace operators {
@@ -148,30 +149,19 @@ std::shared_ptr<OperatorResult>
 Join::back_propogate_result(LazyTable left, LazyTable right,
                             std::vector<arrow::compute::Datum> joined_indices) {
 
-    arrow::Status status;
-
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    arrow::compute::TakeOptions take_options;
     arrow::compute::Datum new_indices;
-
     std::vector<LazyTable> output_lazy_tables;
 
     // The indices of the indices that were joined
     auto left_indices_of_indices = joined_indices_[0];
     auto right_indices_of_indices = joined_indices_[1];
 
-
     // Update the indices of the left LazyTable. If there was no previous
     // join on the left table, then left_indices_of_indices directly
     // corresponds to indices in the left table, and we do not need to
     // call Take.
     if (left.indices.kind() != arrow::compute::Datum::NONE) {
-        status = arrow::compute::Take(
-            &function_context, left.indices, left_indices_of_indices,
-            take_options,
-            &new_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        apply_indices(left.indices, left_indices_of_indices, &new_indices);
     } else {
         new_indices = left_indices_of_indices;
     }
@@ -183,10 +173,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
     // corresponds to indices in the right table, and we do not need to
     // call Take.
     if (right.indices.kind() != arrow::compute::Datum::NONE) {
-        status = arrow::compute::Take(
-            &function_context, right.indices, right_indices_of_indices,
-            take_options, &new_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        apply_indices(right.indices, right_indices_of_indices, &new_indices);
     } else {
         new_indices = right_indices_of_indices;
     }
@@ -200,11 +187,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
             lazy_table.table != right.table) {
             if (lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
 
-                status = arrow::compute::Take(
-                    &function_context, lazy_table.indices,
-                    left_indices_of_indices,
-                    take_options, &new_indices);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                apply_indices(lazy_table.indices, left_indices_of_indices, &new_indices);
 
                 output_lazy_tables.emplace_back(
                     lazy_table.table, lazy_table.filter, new_indices);
@@ -214,10 +197,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
             }
         }
     }
-//    for (auto &lt : output_lazy_tables) {
-//        prev_result_->append(lt);
-//    }
-//    prev_result_ = std::make_shared<OperatorResult>(output_lazy_tables);
+
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
