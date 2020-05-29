@@ -18,11 +18,11 @@ SSB::SSB(int SF, bool print) {
     print_ = print;
 
     if (SF==1) {
-        lo = read_from_file("/Users/corrado/hustle/data/ssb-01/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/data/ssb-01/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/data/ssb-01/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/data/ssb-01/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/data/ssb-01/supplier.hsl");
+        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl");
+        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl");
+        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl");
+        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl");
+        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl");
     }
     else if (SF==5) {
         lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/lineorder.hsl");

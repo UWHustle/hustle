@@ -34,7 +34,23 @@ struct AggregateReference {
     ColumnReference col_ref;
 };
 
-
+/**
+ * Group = a set of column values, one for each column in the GROUP BY clause
+ *
+ * Initialize an empty output table T
+ * Fetch all the unique value of each column in the GROUP BY clause
+ * If the aggregate column does not appear in the ORDER BY clause
+ *   sort the unique values according to the ORDER BY clause
+ *
+ * Iterate over all possible groups G:
+ *   Get a filter for each column value in G
+ *   Logically AND all the filters
+ *   Apply the filter to the aggregate column
+ *   Compute the aggregate over the filtered column
+ *   If the aggregate is > 0:
+ *      Insert the tuple (G, aggregate) into T
+ *
+ */
 class Aggregate : public Operator {
 public:
 
@@ -44,12 +60,6 @@ public:
      * clause, simply pass in an empty vector.
      *
      * Due to limitations in Arrow, we only support sorting in ascending order.
-     *
-     * TODO(nicholas): Address this:
-     * It is currently not possible to sort on the aggregate column, since
-     * that would require us to pass a ColumnReference for the aggregate
-     * column in the order_by_refs parameter, but the aggregate table does
-     * not exist until we run the aggregate operator.
      *
      * @param prev_result OperatorResult form an upstream operator.
      * @param aggregate_ref vector of AggregateReferences denoting which
@@ -123,7 +133,7 @@ private:
     std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
 
     // A StructType containing the types of all group by columns
-    std::shared_ptr<arrow::DataType> groupt_type_;
+    std::shared_ptr<arrow::DataType> group_type_;
     // We append each group to this after we compute the aggregate for that
     // group.
     std::shared_ptr<arrow::StructBuilder> group_builder_;
@@ -168,8 +178,7 @@ private:
      */
     arrow::compute::Datum compute_aggregate(
         AggregateKernels kernel,
-        std::shared_ptr<arrow::ChunkedArray> aggregate_col,
-        std::shared_ptr<arrow::ChunkedArray> group_filter);
+        std::shared_ptr<arrow::ChunkedArray> aggregate_col);
 
 
     /**
@@ -225,6 +234,12 @@ private:
     void compute_aggregates(Task *ctx);
 
     void finish();
+
+    void initialize();
+
+    void compute_group_aggregate(int agg_index, std::vector<int> group_id,
+                                 std::shared_ptr<arrow::ChunkedArray> agg_col);
+
 
 };
 

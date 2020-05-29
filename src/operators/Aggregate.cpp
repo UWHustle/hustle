@@ -27,36 +27,6 @@ Aggregate::Aggregate(
     group_by_refs_ = group_refs;
     order_by_refs_ = order_by_refs;
 
-    // Fetch the fields associated with each groupby column.
-    std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
-    for (auto &group_by : group_by_refs_) {
-        group_by_fields.push_back(
-            group_by.table->get_schema()
-                ->GetFieldByName(group_by.col_name));
-    }
-
-    sort_aggregate_col_ = false;
-    for (auto &order_by : order_by_refs_) {
-        if (order_by.table == nullptr) {
-            sort_aggregate_col_ = true;
-        }
-    }
-
-    // Initialize a StructBuilder containing one builder for each group
-    // by column.
-    groupt_type_ = arrow::struct_(group_by_fields);
-    group_builder_ = std::make_shared<arrow::StructBuilder>(
-        groupt_type_, arrow::default_memory_pool(), get_group_builders());
-
-    // Initialize aggregate builder
-    aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
-
-    // Initialize output table schema. group_type_ must be initialized beforehand.
-    out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
-                                    aggregate_refs_[0].agg_name);
-    //Initialize output table.
-    out_table_ = std::make_shared<Table>("aggregate", out_schema_, BLOCK_SIZE);
-
 }
 
 
@@ -65,7 +35,7 @@ Aggregate::get_group_builders() {
 
     arrow::Status status;
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
-    for (auto &field : groupt_type_->children()) {
+    for (auto &field : group_type_->children()) {
         switch (field->type()->id()) {
 
             case arrow::Type::STRING: {
@@ -118,8 +88,8 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
     arrow::Status status;
     arrow::SchemaBuilder schema_builder;
 
-    if (groupt_type_ != nullptr) {
-        status = schema_builder.AddFields(groupt_type_->children());
+    if (group_type_ != nullptr) {
+        status = schema_builder.AddFields(group_type_->children());
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
     switch (kernel) {
@@ -155,7 +125,7 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
         arrow::default_memory_pool());
 
     // No Group By clause
-    if (groupt_type_->num_children() == 0) {
+    if (group_type_->num_children() == 0) {
         return nullptr;
     }
 
@@ -163,11 +133,11 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
     std::shared_ptr<arrow::ChunkedArray> prev_filter;
 
     // Fetch the next Group By filter and AND it with the previous filter
-    for (int field_i = 0; field_i < groupt_type_->num_children(); field_i++) {
+    for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
 
         std::shared_ptr<arrow::ChunkedArray> next_filter;
 
-        switch (groupt_type_->child(field_i)->type()->id()) {
+        switch (group_type_->child(field_i)->type()->id()) {
             case arrow::Type::STRING: {
                 auto one_unique_values_casted =
                     std::static_pointer_cast<arrow::StringArray>
@@ -226,8 +196,8 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     arrow::Status status;
     // Loop over columns in group builder, and append one of its unique values to
     // its builder.
-    for (int i = 0; i < groupt_type_->num_children(); i++) {
-        switch (groupt_type_->child(i)->type()->id()) {
+    for (int i = 0; i < group_type_->num_children(); i++) {
+        switch (group_type_->child(i)->type()->id()) {
 
             case arrow::Type::STRING: {
                 // Downcast the column's builder
@@ -261,7 +231,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
             }
             default: {
                 std::cerr << "Cannot insert unsupported aggregate type: "
-                             + groupt_type_->child(i)->type()->ToString()
+                             + group_type_->child(i)->type()->ToString()
                           << std::endl;
             }
         }
@@ -372,9 +342,9 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     arrow::compute::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
-//    auto group_by_col = prev_result_->get_table(group_ref.table)
-//        .get_column_by_name(group_ref.col_name);
-    auto group_by_col = group_by_cols_[group_ref.col_name];
+    auto group_by_col = prev_result_->get_table(group_ref.table)
+        .get_column_by_name(group_ref.col_name);
+//    auto group_by_col = group_by_cols_[group_ref.col_name];
 
     for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
@@ -449,25 +419,11 @@ void Aggregate::finish() {
 
 arrow::compute::Datum Aggregate::compute_aggregate(
     AggregateKernels kernel,
-    std::shared_ptr<arrow::ChunkedArray> aggregate_col,
-    std::shared_ptr<arrow::ChunkedArray> group_filter) {
+    std::shared_ptr<arrow::ChunkedArray> aggregate_col) {
 
     arrow::Status status;
-
     arrow::compute::FilterOptions filter_options;
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    arrow::compute::Datum datum_col;
-
-    // Apply group filter
-    if (group_filter != nullptr) {
-        status = arrow::compute::Filter(
-            &function_context, aggregate_col, group_filter, filter_options,
-            &datum_col);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        aggregate_col = datum_col.chunked_array();
-    }
-
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     arrow::compute::Datum out_aggregate;
 
     switch (kernel) {
@@ -493,30 +449,95 @@ arrow::compute::Datum Aggregate::compute_aggregate(
     return out_aggregate;
 }
 
-void Aggregate::compute_aggregates(Task *ctx) {
-    arrow::Status status;
-    //TODO(nicholas): For now, we only perform one aggregate.
-    auto table = aggregate_refs_[0].col_ref.table;
-    auto aggregate_table = prev_result_->get_table(table);
-    auto col_name = aggregate_refs_[0].col_ref.col_name;
-    auto aggregate_col = prev_result_->
-        get_table(table).get_column_by_name(col_name);
 
-    // Fetch unique values for all Group By columns. You need to do fetch
-    // all of them at once, since you need to know how many unique values
-    // are in each column to initialize the loop variables.
+
+void Aggregate::initialize() {
+
+    // Fetch the fields associated with each groupby column.
+    std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
+    for (auto &group_by : group_by_refs_) {
+        group_by_fields.push_back(
+            group_by.table->get_schema()
+                ->GetFieldByName(group_by.col_name));
+    }
+
+    sort_aggregate_col_ = false;
+    for (auto &order_by : order_by_refs_) {
+        if (order_by.table == nullptr) {
+            sort_aggregate_col_ = true;
+        }
+    }
+
+    // Initialize a StructBuilder containing one builder for each group
+    // by column.
+    group_type_ = arrow::struct_(group_by_fields);
+    group_builder_ = std::make_shared<arrow::StructBuilder>(
+        group_type_, arrow::default_memory_pool(), get_group_builders());
+
+    // Initialize aggregate builder
+    aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
+
+    // Initialize output table schema. group_type_ must be initialized beforehand.
+    out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
+                                    aggregate_refs_[0].agg_name);
+    //Initialize output table.
+    out_table_ = std::make_shared<Table>("aggregate", out_schema_, BLOCK_SIZE);
+
+    // Fetch unique values for all Group By columns.
     for (auto &col_ref : group_by_refs_) {
         group_by_cols_.emplace(col_ref.col_name, prev_result_->get_table(col_ref.table).get_column_by_name(col_ref.col_name));
         all_unique_values_.push_back(get_unique_values(col_ref));
     }
+}
+
+void Aggregate::compute_group_aggregate(
+    int agg_index,
+    std::vector<int> group_id,
+    std::shared_ptr<arrow::ChunkedArray> agg_col) {
+
+    auto group_filter = get_group_filter(group_id);
+
+    arrow::Status status;
+    arrow::compute::FilterOptions filter_options;
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+    arrow::compute::Datum datum_col;
+
+    // Apply group filter
+    if (group_filter != nullptr) {
+        status = arrow::compute::Filter(
+            &function_context, agg_col, group_filter, filter_options,
+            &datum_col);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        agg_col = datum_col.chunked_array();
+    }
+
+    // Compute the aggregate over the filtered agg_col
+    auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col);
+
+    // Acquire builder_mutex_ so that groups are correctly associated with
+    // thier corresponding aggregates, and so that agg_index corresponds
+    // to the correct aggregate.
+    std::unique_lock<std::mutex> lock(builder_mutex_);
+    auto is_nonzero_agg = insert_group_aggregate(aggregate, agg_index);
+    if (is_nonzero_agg) insert_group(group_id);
+}
+
+void Aggregate::compute_aggregates(Task *ctx) {
+    arrow::Status status;
+    //TODO(nicholas): For now, we only perform one aggregate.
+    auto table = aggregate_refs_[0].col_ref.table;
+    auto col_name = aggregate_refs_[0].col_ref.col_name;
+    auto agg_lazy_table = prev_result_->get_table(table);
+    auto agg_col = agg_lazy_table.get_column_by_name(col_name);
 
     // DYNAMIC DEPTH NESTED FOR LOOP
     // Initialize the slots to hold the current iteration value for each depth
-    int n = groupt_type_->num_children();
+    int n = group_type_->num_children();
     int maxes[n];
     std::vector<int> group_id(n);
 
-    // Number of aggregates to be computed.
+    // Number of aggregates to be computed. Equal to the product of the number
+    // of unique values in each group by column.
     int num_agg = 1;
     // Index of the aggregate we are currently computing
     int agg_index = 0;
@@ -533,27 +554,15 @@ void Aggregate::compute_aggregates(Task *ctx) {
     status = group_builder_->Resize(num_agg);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    // TODO(nicholas): Store group before computing aggregates
-
-
     int index = n - 1; // loop index
     bool exit = false;
     while (!exit) {
 
         // LOOP BODY START
-        // Each task computes the aggregate of one group.
+        // Task = compute the aggregate of one group.
         ctx->spawnLambdaTask(
-            [this, group_id, aggregate_col, agg_index] {
-                auto group_filter = get_group_filter(group_id);
-                auto aggregate = compute_aggregate(aggregate_refs_[0].kernel,
-                                                   aggregate_col, group_filter);
-                // Acquire builder_mutex_ so that groups are correctly associated with
-                // thier corresponding aggregates, and so that agg_index corresponds
-                // to the correct aggregate.
-                std::unique_lock<std::mutex> lock(builder_mutex_);
-                auto is_nonzero_agg = insert_group_aggregate(aggregate, agg_index);
-                if (is_nonzero_agg) insert_group(group_id);
-//                tuple_ordering_.push_back(agg_index);
+            [this, group_id, agg_col, agg_index] {
+                compute_group_aggregate(agg_index, group_id, agg_col);
             });
         agg_index++;
         // LOOP BODY END
@@ -561,7 +570,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
         if (n == 0)
             break; // Only execute the loop once if there are no group bys
 
-        // INCREMENTED NESTED LOOP
+        // INCREMENT LOOP VARIABLE
         group_id[n - 1]++;
         while (group_id[index] == maxes[index]) {
             // if n == 0, we have no Group By clause and should exit after one
@@ -580,12 +589,13 @@ void Aggregate::compute_aggregates(Task *ctx) {
 void Aggregate::execute(Task *ctx) {
 
     ctx->spawnTask(CreateTaskChain(
-        // Compute all aggregates
+        // Task 1 = Compute all aggregates
         CreateLambdaTask([this](Task *internal) {
+            initialize();
             compute_aggregates(internal);
         }),
+        // Task 2 = Create the output result
         CreateLambdaTask([this](Task *internal) {
-            // Create the output result
             finish();
         })
     ));
