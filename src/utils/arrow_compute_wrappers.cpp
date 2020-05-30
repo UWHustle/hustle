@@ -9,13 +9,6 @@ void apply_filter(
     const arrow::compute::Datum& values,
     const arrow::compute::Datum& filter,
     arrow::compute::Datum* out) {
-
-    assert(
-        (values.kind() == arrow::compute::Datum::CHUNKED_ARRAY &&
-         filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY)||
-        (values.kind() == arrow::compute::Datum::ARRAY &&
-         filter.kind() == arrow::compute::Datum::ARRAY)
-     );
     
     arrow::Status status;
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
@@ -38,6 +31,9 @@ void apply_filter(
                                             filter_options,
                                             out);
         }
+        default: {
+            std::cerr << "Value kind not supported" << std::endl;
+        }
     }
 
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -47,8 +43,6 @@ void apply_indices(
     const arrow::compute::Datum& values,
     const arrow::compute::Datum& indices,
     arrow::compute::Datum* out) {
-
-    assert(indices.kind() == arrow::compute::Datum::ARRAY);
 
     arrow::Status status;
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
@@ -75,7 +69,7 @@ void apply_indices(
             break;
         }
         default:
-            std::cerr << "Value array kind not supported" << std::endl;
+            std::cerr << "Value kind not supported" << std::endl;
     }
 
 
@@ -83,8 +77,6 @@ void apply_indices(
 }
 
 void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum* out) {
-
-    assert(values.kind() == arrow::compute::Datum::ARRAY);
 
     arrow::Status status;
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
@@ -97,8 +89,6 @@ void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum*
 }
 
 void sort_datum(const arrow::compute::Datum& values, arrow::compute::Datum* out) {
-
-    assert(values.kind() == arrow::compute::Datum::ARRAY);
 
     arrow::compute::Datum sorted_indices;
 
