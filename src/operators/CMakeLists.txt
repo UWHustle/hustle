@@ -17,6 +17,7 @@ target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
         hustle_src_utils_EventProfiler
+        hustle_src_utils_ArrowComputeWrappers
         ${ARROW_SHARED_LIB}
 )
 
