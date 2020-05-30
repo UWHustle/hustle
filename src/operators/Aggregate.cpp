@@ -405,10 +405,9 @@ void Aggregate::finish() {
 
 arrow::compute::Datum Aggregate::compute_aggregate(
     AggregateKernels kernel,
-    std::shared_ptr<arrow::ChunkedArray> aggregate_col) {
+    arrow::compute::Datum aggregate_col) {
 
     arrow::Status status;
-    arrow::compute::FilterOptions filter_options;
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     arrow::compute::Datum out_aggregate;
 
@@ -478,22 +477,15 @@ void Aggregate::initialize() {
 void Aggregate::compute_group_aggregate(
     int agg_index,
     std::vector<int> group_id,
-    std::shared_ptr<arrow::ChunkedArray> agg_col) {
+    arrow::compute::Datum agg_col) {
 
     auto group_filter = get_group_filter(group_id);
 
-    arrow::Status status;
-    arrow::compute::FilterOptions filter_options;
-    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     arrow::compute::Datum datum_col;
 
     // Apply group filter
     if (group_filter != nullptr) {
-        status = arrow::compute::Filter(
-            &function_context, agg_col, group_filter, filter_options,
-            &datum_col);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        agg_col = datum_col.chunked_array();
+        apply_filter(agg_col, group_filter, &agg_col);
     }
 
     // Compute the aggregate over the filtered agg_col

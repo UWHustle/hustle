@@ -178,7 +178,7 @@ private:
      */
     arrow::compute::Datum compute_aggregate(
         AggregateKernels kernel,
-        std::shared_ptr<arrow::ChunkedArray> aggregate_col);
+        arrow::compute::Datum aggregate_col);
 
 
     /**
@@ -238,7 +238,7 @@ private:
     void initialize();
 
     void compute_group_aggregate(int agg_index, std::vector<int> group_id,
-                                 std::shared_ptr<arrow::ChunkedArray> agg_col);
+                                 arrow::compute::Datum agg_col);
 
 
 };
