@@ -10,17 +10,35 @@ void apply_filter(
     const arrow::compute::Datum& filter,
     arrow::compute::Datum* out) {
 
-    assert(filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY);
-
+    assert(
+        (values.kind() == arrow::compute::Datum::CHUNKED_ARRAY &&
+         filter.kind() == arrow::compute::Datum::CHUNKED_ARRAY)||
+        (values.kind() == arrow::compute::Datum::ARRAY &&
+         filter.kind() == arrow::compute::Datum::ARRAY)
+     );
+    
     arrow::Status status;
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     arrow::compute::FilterOptions filter_options;
 
-    status = arrow::compute::Filter(&function_context,
-                                    values,
-                                    filter.chunked_array(),
-                                    filter_options,
-                                    out);
+    switch(values.kind()) {
+        case arrow::compute::Datum::NONE:
+            break;
+        case arrow::compute::Datum::ARRAY: {
+            status = arrow::compute::Filter(&function_context,
+                                            values,
+                                            filter.make_array(),
+                                            filter_options,
+                                            out);
+        }
+        case arrow::compute::Datum::CHUNKED_ARRAY: {
+            status = arrow::compute::Filter(&function_context,
+                                            values,
+                                            filter.chunked_array(),
+                                            filter_options,
+                                            out);
+        }
+    }
 
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 }
