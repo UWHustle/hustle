@@ -8,7 +8,7 @@ void read_from_csv() {
     std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema, d_schema;
 
 
-    auto field1 = arrow::field("order date", arrow::int64());
+    auto field1 = arrow::field("order key", arrow::int64());
     auto field2 = arrow::field("line number", arrow::int64());
     auto field3 = arrow::field("cust key", arrow::int64());
     auto field4 = arrow::field("part key", arrow::int64());
