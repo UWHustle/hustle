@@ -330,7 +330,7 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     arrow::ArrayVector filter_vector;
 
     auto group_by_col = group_by_cols_[group_ref.col_name];
-    
+
     // TODO(nicholas): spawn a new task for each block
     for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
@@ -591,20 +591,16 @@ void Aggregate::sort() {
 
     // If we are sorting after computing all aggregates, we evaluate the ORDER BY
     // clause in reverse order.
-    std::reverse(order_by_refs_.begin(), order_by_refs_.end());
-    for (int i=0; i<order_by_refs_.size(); i++) {
+    for (int i=order_by_refs_.size()-1; i>=0; i--) {
 
         auto order_ref = order_by_refs_[i];
 
         if (order_ref.table == nullptr) {
             sort_to_indices(aggregates_, &sorted_indices);
-            sort_datum(aggregates_, &aggregates_);
-
         } else {
             auto group = groups_[order_to_group[i]];
             sort_to_indices(group, &sorted_indices);
         }
-
         apply_indices(aggregates_, sorted_indices, &aggregates_);
 
         for (auto &group: groups_) {
