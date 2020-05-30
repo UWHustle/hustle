@@ -325,24 +325,15 @@ arrow::compute::Datum Aggregate::get_unique_values(
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     (const ColumnReference& group_ref, arrow::compute::Datum value) {
 
-    arrow::Status status;
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    arrow::compute::CompareOptions compare_options(
-        arrow::compute::CompareOperator::EQUAL);
     arrow::compute::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
-//    auto group_by_col = prev_result_->get_table(group_ref.table)
-//        .get_column_by_name(group_ref.col_name);
     auto group_by_col = group_by_cols_[group_ref.col_name];
 
     for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
         auto block_col = group_by_col->chunk(i);
-        status = arrow::compute::Compare(
-            &function_context, block_col, value, compare_options, &out_filter);
-        evaluate_status(status, __FUNCTION__, __LINE__);
+        compare(block_col, value, arrow::compute::CompareOperator::EQUAL, &out_filter);
 
         filter_vector.push_back(out_filter.make_array());
     }

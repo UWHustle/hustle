@@ -76,7 +76,6 @@ void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum*
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     out->value = temp->data();
-
 }
 
 void sort_datum(const arrow::compute::Datum& values, arrow::compute::Datum* out) {
@@ -90,7 +89,20 @@ void sort_datum(const arrow::compute::Datum& values, arrow::compute::Datum* out)
 }
 
 
+void compare(
+    const arrow::compute::Datum& left,
+    const arrow::compute::Datum& right,
+    arrow::compute::CompareOperator compare_operator,
+    arrow::compute::Datum* out) {
 
+    arrow::Status status;
+    arrow::compute::CompareOptions compare_options(compare_operator);
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+
+    status = arrow::compute::Compare(
+        &function_context, left, right, compare_options, out);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+}
 
 
 }
