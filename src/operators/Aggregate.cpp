@@ -140,24 +140,32 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
 
         switch (group_type_->child(field_i)->type()->id()) {
             case arrow::Type::STRING: {
-                auto one_unique_values_casted =
+                // Downcast an Array of unique values.
+                auto one_unique_value_casted =
                     std::static_pointer_cast<arrow::StringArray>
                         (all_unique_values_[field_i]);
+                // Fetch a particular unique value from the array specified by
+                // the group_id
                 value = arrow::compute::Datum(
                     std::make_shared<arrow::StringScalar>(
-                        one_unique_values_casted->GetString(
+                        one_unique_value_casted->GetString(
                             group_id[field_i])));
+                // Get the filter for this particular unique value.
                 next_filter = get_unique_value_filter(group_by_refs_[field_i],
                                                       value);
                 break;
             }
             case arrow::Type::INT64: {
-                auto one_unique_values_casted =
+                // Downcast an Array of unique values.
+                auto one_unique_value_casted =
                     std::static_pointer_cast<arrow::Int64Array>
                         (all_unique_values_[field_i]);
+                // Fetch a particular unique value from the array specified by
+                // the group_id
                 value = arrow::compute::Datum(
                     std::make_shared<arrow::Int64Scalar>(
-                        one_unique_values_casted->Value(group_id[field_i])));
+                        one_unique_value_casted->Value(group_id[field_i])));
+                // Get the filter for this particular unique value.
                 next_filter = get_unique_value_filter(group_by_refs_[field_i],
                                                       value);
                 break;
