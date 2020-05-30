@@ -88,6 +88,17 @@ void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum*
 
 }
 
+void sort_datum(const arrow::compute::Datum& values, arrow::compute::Datum* out) {
+
+    assert(values.kind() == arrow::compute::Datum::ARRAY);
+
+    arrow::compute::Datum sorted_indices;
+
+    sort_to_indices(values, &sorted_indices);
+    apply_indices(values, sorted_indices, out);
+}
+
+
 
 
 
