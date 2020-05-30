@@ -153,7 +153,7 @@ private:
      * @return The schema for the output table.
      */
     std::shared_ptr<arrow::Schema> get_output_schema(
-        AggregateKernels kernel, std::string agg_col_name);
+        AggregateKernels kernel, const std::string& agg_col_name);
 
     /**
      * Construct an ArrayBuilder for the aggregate values.
@@ -178,7 +178,7 @@ private:
      */
     arrow::compute::Datum compute_aggregate(
         AggregateKernels kernel,
-        arrow::compute::Datum aggregate_col);
+        const arrow::compute::Datum& aggregate_col);
 
 
     /**
@@ -195,7 +195,7 @@ private:
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    bool insert_group_aggregate(arrow::compute::Datum aggregate, int agg_index);
+    bool insert_group_aggregate(const arrow::compute::Datum& aggregate, int agg_index);
 
     /**
      * Get the filter corresponding to a single group across all group by
@@ -209,7 +209,7 @@ private:
      */
     arrow::compute::Datum get_group_filter(std::vector<int> its);
 
-    arrow::compute::Datum get_unique_values(ColumnReference group_ref);
+    arrow::compute::Datum get_unique_values(const ColumnReference& group_ref);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -222,7 +222,7 @@ private:
      * i.e. the filter corresponding to a single group of col_ref.
      */
     std::shared_ptr<arrow::ChunkedArray> get_unique_value_filter(
-        ColumnReference col_ref,
+        const ColumnReference& col_ref,
         arrow::compute::Datum value);
 
     /**
@@ -237,7 +237,7 @@ private:
 
     void initialize();
 
-    void compute_group_aggregate(int agg_index, std::vector<int> group_id,
+    void compute_group_aggregate(int agg_index, const std::vector<int>& group_id,
                                  arrow::compute::Datum agg_col);
 
 

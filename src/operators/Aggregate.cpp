@@ -84,7 +84,7 @@ std::shared_ptr<arrow::ArrayBuilder> Aggregate::get_aggregate_builder(
 
 std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
     AggregateKernels kernel,
-    std::string agg_col_name) {
+    const std::string& agg_col_name) {
 
     arrow::Status status;
     arrow::SchemaBuilder schema_builder;
@@ -242,7 +242,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate, int agg_index) {
+bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate, int agg_index) {
 
     arrow::Status status;
     // Append a group's aggregate to its builder.
@@ -292,7 +292,7 @@ bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate, int agg_
 
 
 arrow::compute::Datum Aggregate::get_unique_values(
-    ColumnReference group_ref) {
+    const ColumnReference& group_ref) {
 
     arrow::Status status;
 
@@ -323,7 +323,7 @@ arrow::compute::Datum Aggregate::get_unique_values(
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
-    (ColumnReference group_ref, arrow::compute::Datum value) {
+    (const ColumnReference& group_ref, arrow::compute::Datum value) {
 
     arrow::Status status;
     arrow::compute::FunctionContext function_context(
@@ -404,7 +404,7 @@ void Aggregate::finish() {
 
 arrow::compute::Datum Aggregate::compute_aggregate(
     AggregateKernels kernel,
-    arrow::compute::Datum aggregate_col) {
+    const arrow::compute::Datum& aggregate_col) {
 
     arrow::Status status;
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
@@ -475,7 +475,7 @@ void Aggregate::initialize() {
 
 void Aggregate::compute_group_aggregate(
     int agg_index,
-    std::vector<int> group_id,
+    const std::vector<int>& group_id,
     arrow::compute::Datum agg_col) {
 
     auto group_filter = get_group_filter(group_id);
@@ -579,10 +579,17 @@ void Aggregate::execute(Task *ctx) {
 
 void Aggregate::sort() {
 
+    // The columns in the GROUP BY and ORDER BY clause may not directly correspond
+    // to the same column, e.g we may have
+    // GROUP BY R.a, R.b
+    // ORDER BY R.b, R.a
+    // order_by_group[i] is the index at which the ith ORDER BY column appears in
+    // the GROUP BY clause. In this example, order_to_group = {1, 0}
     std::vector<int> order_to_group;
-    for (int i=0; i<order_by_refs_.size(); i++) {
+
+    for (auto & order_by_ref : order_by_refs_) {
         for (int j=0; j<group_by_refs_.size(); j++) {
-            if (order_by_refs_[i].table == group_by_refs_[j].table) {
+            if (order_by_ref.table == group_by_refs_[j].table) {
                 order_to_group.push_back(j);
             }
         }
@@ -592,7 +599,8 @@ void Aggregate::sort() {
 
     // If we are sorting after computing all aggregates, we evaluate the ORDER BY
     // clause in reverse order.
-    for (int i=order_by_refs_.size()-1; i >= 0; i--) {
+    std::reverse(order_by_refs_.begin(), order_by_refs_.end());
+    for (int i=0; i<order_by_refs_.size(); i++) {
 
         auto order_ref = order_by_refs_[i];
 
