@@ -132,6 +132,7 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
     arrow::compute::Datum value;
     std::shared_ptr<arrow::ChunkedArray> prev_filter;
 
+    // TODO(nicholas): spawn a new task for each group by column
     // Fetch the next Group By filter and AND it with the previous filter
     for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
 
@@ -329,7 +330,8 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     arrow::ArrayVector filter_vector;
 
     auto group_by_col = group_by_cols_[group_ref.col_name];
-
+    
+    // TODO(nicholas): spawn a new task for each block
     for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
         auto block_col = group_by_col->chunk(i);
@@ -482,8 +484,7 @@ void Aggregate::compute_group_aggregate(
     auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col);
 
     // Acquire builder_mutex_ so that groups are correctly associated with
-    // thier corresponding aggregates, and so that agg_index corresponds
-    // to the correct aggregate.
+    // their corresponding aggregates
     std::unique_lock<std::mutex> lock(builder_mutex_);
     auto is_nonzero_agg = insert_group_aggregate(aggregate, agg_index);
     if (is_nonzero_agg) insert_group(group_id);
