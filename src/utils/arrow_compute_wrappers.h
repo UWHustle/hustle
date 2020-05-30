@@ -21,9 +21,7 @@ void apply_indices(
 
 void sort_datum(const arrow::compute::Datum& values, arrow::compute::Datum* out);
 
-//void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum* out);
-
-void sort_to_indices(const std::shared_ptr<arrow::Array>& values, std::shared_ptr<arrow::Array>* out);
+void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum* out);
 
 }
 
