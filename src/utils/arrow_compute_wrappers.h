@@ -19,6 +19,10 @@ void apply_indices(
     const arrow::compute::Datum& indices,
     arrow::compute::Datum* out);
 
+void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum* offsets);
+
+void sort_to_indices(const std::shared_ptr<arrow::Array>& values, std::shared_ptr<arrow::Array>* out);
+
 }
 
 #endif //HUSTLE_ARROW_COMPUTE_WRAPPERS_H

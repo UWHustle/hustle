@@ -7,6 +7,7 @@
 
 #include <table/util.h>
 #include <iostream>
+#include <utils/arrow_compute_wrappers.h>
 
 
 namespace hustle::operators {
@@ -318,9 +319,8 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 
             std::shared_ptr<arrow::Array> sorted_indices;
 
-            status = arrow::compute::SortToIndices(&function_context,
-                                                   *unique_values, &sorted_indices);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+            sort_to_indices(unique_values, &sorted_indices);
+//            apply_indices(unique_values, sorted_indices, &unique_values)
 
             status = arrow::compute::Take(&function_context, *unique_values,
                                           *sorted_indices, take_options, &unique_values);
@@ -342,9 +342,9 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     arrow::compute::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
-    auto group_by_col = prev_result_->get_table(group_ref.table)
-        .get_column_by_name(group_ref.col_name);
-//    auto group_by_col = group_by_cols_[group_ref.col_name];
+//    auto group_by_col = prev_result_->get_table(group_ref.table)
+//        .get_column_by_name(group_ref.col_name);
+    auto group_by_col = group_by_cols_[group_ref.col_name];
 
     for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
@@ -627,15 +627,10 @@ void Aggregate::sort() {
         auto order_ref = order_by_refs_[i];
 
         if (order_ref.table == nullptr) {
-            status = arrow::compute::SortToIndices(&function_context,
-                                                   *aggregates_,
-                                                   &sorted_indices);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+            sort_to_indices(aggregates_, &sorted_indices);
         } else {
             auto group = sorted_groups_[order_to_group[i]];
-            status = arrow::compute::SortToIndices(&function_context, *group,
-                                                   &sorted_indices);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+            sort_to_indices(group, &sorted_indices);
         }
 
         status = arrow::compute::Take(&function_context, *aggregates_,

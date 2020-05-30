@@ -64,6 +64,30 @@ void apply_indices(
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 }
 
+void sort_to_indices(const std::shared_ptr<arrow::Array>& values, std::shared_ptr<arrow::Array>* out) {
+
+    arrow::Status status;
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+
+    status = arrow::compute::SortToIndices(&function_context, *values, out);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+}
+
+void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum* out) {
+
+    assert(values.kind() == arrow::compute::Datum::ARRAY);
+
+    arrow::Status status;
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+
+    std::shared_ptr<arrow::Array> temp;
+    status = arrow::compute::SortToIndices(&function_context, *values.make_array().get(), &temp);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    out->value = temp->data();
+
+}
+
 
 
 
