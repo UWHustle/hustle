@@ -114,5 +114,18 @@ void compare(
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
+void unique(const arrow::compute::Datum& values, arrow::compute::Datum* out) {
+
+    arrow::Status status;
+    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
+    std::shared_ptr<arrow::Array> unique_values;
+
+    std::shared_ptr<arrow::Array> temp_array;
+    // Fetch the unique values in group_by_col
+    status = arrow::compute::Unique(&function_context, values, &temp_array);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    out->value = temp_array->data();
+}
 
 }

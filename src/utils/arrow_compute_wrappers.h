@@ -83,6 +83,16 @@ void compare(
     const arrow::compute::Datum& right,
     arrow::compute::CompareOperator compare_operator,
     arrow::compute::Datum* out);
+
+void unique(const arrow::compute::Datum& values, arrow::compute::Datum* out);
+
+
+
+
+
+
+
 }
+
 
 #endif //HUSTLE_ARROW_COMPUTE_WRAPPERS_H

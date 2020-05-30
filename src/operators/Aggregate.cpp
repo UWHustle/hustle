@@ -301,32 +301,12 @@ bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
 arrow::compute::Datum Aggregate::get_unique_values(
     const ColumnReference& group_ref) {
 
-    arrow::Status status;
-
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    std::shared_ptr<arrow::Array> unique_values;
-
-//    auto group_by_col = prev_result_->get_table(group_ref.table)
-//        .get_column_by_name(group_ref.col_name);
+    arrow::compute::Datum unique_values;
     auto group_by_col = group_by_cols_[group_ref.col_name];
 
-    status = arrow::compute::Unique(&function_context, group_by_col,
-                                    &unique_values);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    unique(group_by_col, &unique_values);
 
-    arrow::compute::Datum sorted_unique_values = unique_values;
-
-//    // If this field is in the Order By clause, sort it now.
-//    for (auto & order_ref : order_by_refs_) {
-//        if (order_ref.table == group_ref.table &&
-//            order_ref.col_name == group_ref.col_name ) {
-//
-//            sort_datum(unique_values, &sorted_unique_values);
-//        }
-//    }
-
-    return sorted_unique_values.make_array();
+    return unique_values;
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
@@ -455,9 +435,7 @@ void Aggregate::compute_group_aggregate(
 
     auto group_filter = get_group_filter(group_id);
 
-    arrow::compute::Datum datum_col;
-
-    // Apply group filter
+    // Apply group filter to the aggregate column
     if (group_filter.kind() != arrow::compute::Datum::NONE) {
         apply_filter(agg_col, group_filter, &agg_col);
     }
@@ -473,6 +451,7 @@ void Aggregate::compute_group_aggregate(
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
+
     arrow::Status status;
     //TODO(nicholas): For now, we only perform one aggregate.
     auto table = aggregate_refs_[0].col_ref.table;
@@ -572,6 +551,8 @@ void Aggregate::sort() {
 
         auto order_ref = order_by_refs_[i];
 
+        // A nullptr indicates that we are sorting by the aggregate column
+        // TODO(nicholas): better way to indicate we want to sort the aggregate?
         if (order_ref.table == nullptr) {
             sort_to_indices(aggregates_, &sorted_indices);
         } else {
