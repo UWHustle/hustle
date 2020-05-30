@@ -95,10 +95,8 @@ public:
 private:
 
     bool sort_aggregate_col_;
-    std::vector<std::shared_ptr<arrow::Array>> sorted_groups_;
-    std::shared_ptr<arrow::Array> aggs_;
+    std::vector<arrow::compute::Datum> groups_;
     arrow::compute::Datum aggregates_;
-//    arrow::compute::Datum aggs_;
 
     std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> group_by_cols_;
 

@@ -299,7 +299,6 @@ std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
 
     arrow::compute::FunctionContext function_context(
         arrow::default_memory_pool());
-    arrow::compute::TakeOptions take_options;
     std::shared_ptr<arrow::Array> unique_values;
 
 //    auto group_by_col = prev_result_->get_table(group_ref.table)
@@ -357,14 +356,18 @@ void Aggregate::finish() {
 
     arrow::Status status;
 
-    std::shared_ptr<arrow::StructArray> groups;
-    status = group_builder_->Finish(&groups);
+    std::shared_ptr<arrow::StructArray> groups_temp;
+    status = group_builder_->Finish(&groups_temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    std::shared_ptr<arrow::Array> aggs;
-    status = aggregate_builder_->Finish(&aggs);
+    for (int i = 0; i < groups_temp->num_fields(); i++) {
+        groups_.push_back(groups_temp->field(i));
+    }
+
+    std::shared_ptr<arrow::Array> agg_temp;
+    status = aggregate_builder_->Finish(&agg_temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
-    aggregates_.value = aggs->data();
+    aggregates_.value = agg_temp->data();
 
     // Prepare to sort output
     arrow::Int64Builder indices_builder;
@@ -379,20 +382,8 @@ void Aggregate::finish() {
     status = indices_builder.Finish(&indices);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-    arrow::compute::TakeOptions take_options;
-
-    for (int i = 0; i < group_by_refs_.size(); i++) {
-        // Fetch one of the group columns
-        auto group_values = groups->field(
-            out_schema_->GetFieldIndex(group_by_refs_[i].col_name));
-
-        // Sort groups
-//        apply_indices(group_values, indices, &group_values);
-        status = arrow::compute::Take(&function_context, *group_values, *indices, take_options, &group_values);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        sorted_groups_.push_back(group_values);
-
+    for (auto &group: groups_) {
+        apply_indices(group, indices, &group);
     }
 
     // Sort aggregates
@@ -402,8 +393,8 @@ void Aggregate::finish() {
         sort();
     }
 
-    for (auto &group_values : sorted_groups_) {
-        out_table_data_.push_back(group_values->data());
+    for (auto &group_values : groups_) {
+        out_table_data_.push_back(group_values.make_array()->data());
     }
     out_table_data_.push_back(aggregates_.make_array()->data());
 
@@ -427,7 +418,6 @@ arrow::compute::Datum Aggregate::compute_aggregate(
                 &function_context, aggregate_col, &out_aggregate);
             break;
         }
-            // Returns a Datum of the same type as the column
         case COUNT: {
             throw std::runtime_error("Count aggregate not supported.");
             break;
@@ -598,14 +588,6 @@ void Aggregate::execute(Task *ctx) {
 
 void Aggregate::sort() {
 
-    arrow::Status status;
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    arrow::compute::TakeOptions take_options;
-
-    std::shared_ptr<arrow::Array> sorted_indices;
-
-
     std::vector<int> order_to_group;
     for (int i=0; i<order_by_refs_.size(); i++) {
         for (int j=0; j<group_by_refs_.size(); j++) {
@@ -615,6 +597,8 @@ void Aggregate::sort() {
         }
     }
 
+    arrow::compute::Datum sorted_indices;
+
     // If we are sorting after computing all aggregates, we evaluate the ORDER BY
     // clause in reverse order.
     for (int i=order_by_refs_.size()-1; i >= 0; i--) {
@@ -622,21 +606,18 @@ void Aggregate::sort() {
         auto order_ref = order_by_refs_[i];
 
         if (order_ref.table == nullptr) {
-            arrow::compute::Datum out;
-//            sort_to_indices(aggregates_, &sorted_indices);
+            sort_to_indices(aggregates_, &sorted_indices);
             sort_datum(aggregates_, &aggregates_);
 
         } else {
-            auto group = sorted_groups_[order_to_group[i]];
+            auto group = groups_[order_to_group[i]];
             sort_to_indices(group, &sorted_indices);
         }
 
+        apply_indices(aggregates_, sorted_indices, &aggregates_);
 
-        for (int j = 0; j < sorted_groups_.size(); j++) {
-            status = arrow::compute::Take(&function_context, *sorted_groups_[j],
-                                          *sorted_indices, take_options,
-                                          &sorted_groups_[j]);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+        for (auto &group: groups_) {
+            apply_indices(group, sorted_indices, &group);
         }
     }
 }
