@@ -41,8 +41,6 @@ struct AggregateReference {
  *
  * Initialize an empty output table T
  * Fetch all the unique value of each column in the GROUP BY clause
- * If the aggregate column does not appear in the ORDER BY clause:
- *   Sort the unique values as specified by the ORDER BY clause
  *
  * Iterate over all possible groups G:
  *   Get a filter for each column value in G
@@ -54,16 +52,6 @@ struct AggregateReference {
  *
  * If the aggregate column appears in the ORDER BY clause:
  *   Sort T with as specified by the ORDER BY clause
- *
- * If the aggregate column does not appear in the ORDER BY clause, then by
- * sorting unique values prior to computing any group aggregates, we assure
- * that the order in which we iterate over groups G is the order in which the
- * tuples should appear in the output table.
- *
- * If the aggregate column appears in the ORDER BY clause, of course we must
- * sort only after all group aggregates have been computed. Then we sort the
- * columns of T with respect to columns in the ORDER BY clause but in the
- * reverse order in which they appear. 
  */
 class Aggregate : public Operator {
 public:
@@ -156,28 +144,6 @@ private:
     // groups and its aggregates are inserted at the same row.
     std::mutex builder_mutex_;
 
-    // In a multithreaded setting, we cannot guarantee that aggregates are computed
-    // and inserted into aggregate_builder_ in the correct order even though we
-    // assign single-group aggregation tasks in the correct order. So, we assign
-    // each task an index (see agg_index in compute_aggregates()) which is equal
-    // to the index at which the aggregate resides when the output is correctly
-    // ordered. When an aggregate is inserted into aggregate_builder_, we also
-    // append it's agg_index to tuple_ordering_. So, tuple_ordering_ maps the
-    // aggregate's current index to its correctly sorted index. For example,
-    // say we have two groups A and B with agg_index 0 and 1, respectively. If
-    // B's aggregate is computed before A's, then our output looks like
-    //
-    // B agg_B
-    // A agg_A
-    //
-    // and tuple_ordering = {1 , 0}. Sorting our output by the indices in
-    // tuple_ordering_ gives us the correct result:
-    //
-    // A agg_A
-    // B agg_B
-    std::vector<int64_t> tuple_ordering_;
-
-
     /**
      * Initialize or pre-compute data members.
      */
@@ -259,13 +225,12 @@ private:
      * Compute the aggregate over a single group. This calls compute_aggregate()
      * after applying a group filter to the aggregate column.
      *
-     * @param agg_index The aggregate's sorted position in the final output
      * @param group_id indices corresponding to values in unique_values_, e.g.
      * passing in group_id = [0, 3, 7] would insert unique_values_[0],
      * unique_values_[3], and unique_values_[7], into group_builder_.
      * @param agg_col aggregate column
      */
-    void compute_group_aggregate(int agg_index, const std::vector<int>& group_id,
+    void compute_group_aggregate(const std::vector<int>& group_id,
                                  arrow::compute::Datum agg_col);
 
     /**
@@ -295,7 +260,7 @@ private:
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    bool insert_group_aggregate(const arrow::compute::Datum& aggregate, int agg_index);
+    bool insert_group_aggregate(const arrow::compute::Datum& aggregate);
 
     /**
      * Create the output result from data computed during operator execution.
@@ -303,10 +268,12 @@ private:
     void finish();
 
     /**
-     * If the aggregate column appears in the ORDER BY clause, we must sort
-     * after all group aggregates have been computed. This sorts the output data
-     * with respect to each column in the ORDER BY clause, but in the reverse
-     * order in which they appear.
+     * Sort the output data with respect to each column in the ORDER BY clause.
+     * To produce the correct ordering, we must sort the output with respect
+     * columns in the ORDER BY clause but in the reverse order in which they appear.
+     *
+     * For example, if we have ORDER BY R.a, R.b, then we first sort our output
+     * with respect to R.b, and then sort with respect to R.a.
      */
     void sort();
 

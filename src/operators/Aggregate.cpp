@@ -251,7 +251,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate, int agg_index) {
+bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
 
     arrow::Status status;
     // Append a group's aggregate to its builder.
@@ -267,12 +267,10 @@ bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate, i
                     (aggregate.scalar());
             // If aggregate == 0, don't include it in the output table.
             if (aggregate_casted->value == 0) {
-                tuple_ordering_[agg_index] = -1;
                 return false;
             }
             // Append the group's aggregate to its builder.
             status = aggregate_builder_casted->Append(aggregate_casted->value);
-            tuple_ordering_[agg_index] = aggregate_builder_casted->length()-1;
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
@@ -319,14 +317,14 @@ arrow::compute::Datum Aggregate::get_unique_values(
 
     arrow::compute::Datum sorted_unique_values = unique_values;
 
-    // If this field is in the Order By clause, sort it now.
-    for (auto & order_ref : order_by_refs_) {
-        if (order_ref.table == group_ref.table &&
-            order_ref.col_name == group_ref.col_name ) {
-
-            sort_datum(unique_values, &sorted_unique_values);
-        }
-    }
+//    // If this field is in the Order By clause, sort it now.
+//    for (auto & order_ref : order_by_refs_) {
+//        if (order_ref.table == group_ref.table &&
+//            order_ref.col_name == group_ref.col_name ) {
+//
+//            sort_datum(unique_values, &sorted_unique_values);
+//        }
+//    }
 
     return sorted_unique_values.make_array();
 }
@@ -369,35 +367,12 @@ void Aggregate::finish() {
     evaluate_status(status, __FUNCTION__, __LINE__);
     aggregates_.value = agg_temp->data();
 
-    // Prepare to sort output
-    arrow::Int64Builder indices_builder;
-    std::shared_ptr<arrow::Array> indices;
-
-    for (auto &index : tuple_ordering_) {
-        if(index >= 0) {
-            status = indices_builder.Append(index);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-    }
-    status = indices_builder.Finish(&indices);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-    for (auto &group: groups_) {
-        apply_indices(group, indices, &group);
-    }
-
-    // Sort aggregates
-    apply_indices(aggregates_, indices, &aggregates_);
-
-    if (sort_aggregate_col_) {
-        sort();
-    }
+    sort();
 
     for (auto &group_values : groups_) {
         out_table_data_.push_back(group_values.make_array()->data());
     }
     out_table_data_.push_back(aggregates_.make_array()->data());
-
 
     out_table_->insert_records(out_table_data_);
     output_result_->append(out_table_);
@@ -475,7 +450,6 @@ void Aggregate::initialize() {
 }
 
 void Aggregate::compute_group_aggregate(
-    int agg_index,
     const std::vector<int>& group_id,
     arrow::compute::Datum agg_col) {
 
@@ -494,7 +468,7 @@ void Aggregate::compute_group_aggregate(
     // Acquire builder_mutex_ so that groups are correctly associated with
     // their corresponding aggregates
     std::unique_lock<std::mutex> lock(builder_mutex_);
-    auto is_nonzero_agg = insert_group_aggregate(aggregate, agg_index);
+    auto is_nonzero_agg = insert_group_aggregate(aggregate);
     if (is_nonzero_agg) insert_group(group_id);
 }
 
@@ -506,27 +480,23 @@ void Aggregate::compute_aggregates(Task *ctx) {
     auto agg_lazy_table = prev_result_->get_table(table);
     auto agg_col = agg_lazy_table.get_column_by_name(col_name);
 
-    // DYNAMIC DEPTH NESTED FOR LOOP
     // Initialize the slots to hold the current iteration value for each depth
     int n = group_type_->num_children();
     int maxes[n];
     std::vector<int> group_id(n);
 
     // Number of aggregates to be computed. Equal to the product of the number
-    // of unique values in each group by column.
+    // of unique values in each group by column. We compute this so we know how
+    // much space our group_builder_ should reserve.
     int num_agg = 1;
-    // Index of the aggregate we are currently computing
-    int agg_index = 0;
 
     // initialize group_id = {0, 0, ..., 0} and initialize maxes[i] to the number
     // of unique values in group by column i.
     for (int i = 0; i < n; i++) {
         group_id[i] = 0;
         maxes[i] = all_unique_values_[i]->length();
-        num_agg *= maxes[i];
     }
 
-    tuple_ordering_.resize(num_agg);
     status = group_builder_->Resize(num_agg);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
@@ -537,10 +507,9 @@ void Aggregate::compute_aggregates(Task *ctx) {
         // LOOP BODY START
         // Task = compute the aggregate of one group.
         ctx->spawnLambdaTask(
-            [this, group_id, agg_col, agg_index] {
-                compute_group_aggregate(agg_index, group_id, agg_col);
+            [this, group_id, agg_col] {
+                compute_group_aggregate(group_id, agg_col);
             });
-        agg_index++;
         // LOOP BODY END
 
         if (n == 0)
