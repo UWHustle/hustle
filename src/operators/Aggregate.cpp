@@ -94,7 +94,6 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
         evaluate_status(status, __FUNCTION__, __LINE__);
     }
     switch (kernel) {
-        // Returns a Datum of the same type INT64
         case SUM: {
             status = schema_builder.AddField(
                 arrow::field(agg_col_name, arrow::int64()));
@@ -118,7 +117,7 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
     return result.ValueOrDie();
 }
 
-std::shared_ptr<arrow::ChunkedArray>
+arrow::compute::Datum
 Aggregate::get_group_filter(std::vector<int> group_id) {
 
     arrow::Status status;
@@ -127,7 +126,7 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
 
     // No Group By clause
     if (group_type_->num_children() == 0) {
-        return nullptr;
+        return arrow::compute::Datum();
     }
 
     arrow::compute::Datum value;
@@ -292,7 +291,7 @@ bool Aggregate::insert_group_aggregate(arrow::compute::Datum aggregate, int agg_
 }
 
 
-std::shared_ptr<arrow::Array> Aggregate::get_unique_values(
+arrow::compute::Datum Aggregate::get_unique_values(
     ColumnReference group_ref) {
 
     arrow::Status status;
@@ -470,7 +469,7 @@ void Aggregate::initialize() {
     // Fetch unique values for all Group By columns.
     for (auto &col_ref : group_by_refs_) {
         group_by_cols_.emplace(col_ref.col_name, prev_result_->get_table(col_ref.table).get_column_by_name(col_ref.col_name));
-        all_unique_values_.push_back(get_unique_values(col_ref));
+        all_unique_values_.push_back(get_unique_values(col_ref).make_array());
     }
 }
 
@@ -484,7 +483,7 @@ void Aggregate::compute_group_aggregate(
     arrow::compute::Datum datum_col;
 
     // Apply group filter
-    if (group_filter != nullptr) {
+    if (group_filter.kind() != arrow::compute::Datum::NONE) {
         apply_filter(agg_col, group_filter, &agg_col);
     }
 

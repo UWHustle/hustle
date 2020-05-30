@@ -207,9 +207,9 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_group_filter(std::vector<int> its);
+    arrow::compute::Datum get_group_filter(std::vector<int> its);
 
-    std::shared_ptr<arrow::Array> get_unique_values(ColumnReference group_ref);
+    arrow::compute::Datum get_unique_values(ColumnReference group_ref);
 
     /**
      * Get the filter corresponding to a single group of a single column.
