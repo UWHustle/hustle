@@ -23,6 +23,7 @@ void apply_filter(
                                             filter.make_array(),
                                             filter_options,
                                             out);
+            break;
         }
         case arrow::compute::Datum::CHUNKED_ARRAY: {
             status = arrow::compute::Filter(&function_context,
@@ -30,6 +31,7 @@ void apply_filter(
                                             filter.chunked_array(),
                                             filter_options,
                                             out);
+            break;
         }
         default: {
             std::cerr << "Value kind not supported" << std::endl;
