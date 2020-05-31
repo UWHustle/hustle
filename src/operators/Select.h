@@ -81,6 +81,9 @@ private:
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
 
+    /**
+     * Create the output result from the raw data computed during execution.
+     */
     void finish();
 };
 
