@@ -350,12 +350,12 @@ void Aggregate::finish() {
     sort();
 
     for (auto &group_values : groups_) {
-        output_tabl_data_.push_back(group_values.make_array()->data());
+        output_table_data_.push_back(group_values.make_array()->data());
     }
-    output_tabl_data_.push_back(aggregates_.make_array()->data());
+    output_table_data_.push_back(aggregates_.make_array()->data());
 
-    output_tabl_->insert_records(output_tabl_data_);
-    output_result_->append(output_tabl_);
+    output_table_->insert_records(output_table_data_);
+    output_result_->append(output_table_);
 }
 
 arrow::compute::Datum Aggregate::compute_aggregate(
@@ -420,7 +420,7 @@ void Aggregate::initialize() {
     out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
                                     aggregate_refs_[0].agg_name);
     //Initialize output table.
-    output_tabl_ = std::make_shared<Table>("aggregate", out_schema_, BLOCK_SIZE);
+    output_table_ = std::make_shared<Table>("aggregate", out_schema_, BLOCK_SIZE);
 
     // Fetch unique values for all Group By columns.
     for (auto &col_ref : group_by_refs_) {
@@ -553,7 +553,7 @@ void Aggregate::sort() {
 
         // A nullptr indicates that we are sorting by the aggregate column
         // TODO(nicholas): better way to indicate we want to sort the aggregate?
-        if (order_ref.table == output_tabl_) {
+        if (order_ref.table == output_table_) {
             sort_to_indices(aggregates_, &sorted_indices);
         } else {
             auto group = groups_[order_to_group[i]];
