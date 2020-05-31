@@ -12,6 +12,13 @@
 
 namespace hustle::operators {
 
+/**
+ * The LIP operator updates the index array of the fact LazyTable in the inputted
+ * OperatorResults. After execution, the index array of the fact LazyTable contains
+ * the indices of rows that join with all other LazyTables the fact LazyTable
+ * was joined with and possibly with some extraneous indices (false positives).
+ * The index array of all other LazyTables are unchanged. Filters are unchanged.
+ */
 class LIP : public Operator {
 public:
 

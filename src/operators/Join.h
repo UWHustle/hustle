@@ -16,6 +16,9 @@ namespace hustle::operators {
  * OperatorResults. After execution, the index arrays of each LazyTable contains
  * only the indices of rows that join with all other LazyTables this LazyTable
  * was joined with. Filters are unchanged.
+ *
+ * See slides 18-27 for an in-depth example:
+ * https://docs.google.com/presentation/d/1KlNdwwTy5k-cwlRwY_hRg-AQ9dt3mh_k_MVuIsmyQbQ/edit#slide=id.p
  */
 class Join : public Operator {
 public:
