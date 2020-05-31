@@ -29,9 +29,6 @@ Join::Join(
 void Join::build_hash_table
     (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx) {
 
-    arrow::Status status;
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
     // NOTE: Do not forget to clear the hash table
     hash_table_.clear();
     hash_table_.reserve(col->length());
@@ -47,29 +44,19 @@ void Join::build_hash_table
 
     for (int i = 0; i < col->num_chunks(); i++) {
         // Each task inserts one chunk into the hash table
-//        ctx->spawnLambdaTask([this, i, col, chunk_row_offsets] {
             // TODO(nicholas): for now, we assume the join column is INT64 type.
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(
                 col->chunk(i));
 
             for (int row = 0; row < chunk->length(); row++) {
-//                std::scoped_lock<std::mutex> lock(hash_table_mutex_);
                 hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
             }
-//        });
     }
 }
 
 void Join::probe_hash_table
     (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx) {
-    // It would make much more sense to use an ArrayVector instead of a vector of
-    // vectors, since we can make a ChunkedArray out from an ArrayVector. But
-    // Arrow's Take function is very inefficient when the indices are in a
-    // ChunkedArray. So, we instead use a vector of vectors to store the indices,
-    // and then construct an Array from the vector of vectors.
 
-    // The indices of rows joined in chunk i are stored in
-    // new_left_indices_vector[i] and new_right_indices_vector[i]
     new_left_indices_vector.resize(probe_col->num_chunks());
     new_right_indices_vector.resize(probe_col->num_chunks());
 
@@ -203,19 +190,21 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
 
 void Join::hash_join(int i, Task *ctx) {
 
-//    auto left = prev_result_->get_table(lefts[i].table);
-//    auto right = prev_result_->get_table(rights[i].table);
-//
-//    auto left_col_name = left_col_names[i];
-//    auto right_col_name = right_col_names[i];
-
-
+    // Join lefts[i] with rights[i].
+    // Why pass in an index i instead of the actual left and right tables?
+    // If we pass the tables to the lambda expression by value, then updates
+    // made to the index arrays will not be seen by downstream joins. If we
+    // pass the tables by reference, then we get a nullptr exception, since
+    // the left and right tables would go out of scope before the Task can be
+    // executed. To get around this issue, we store the left and right tables
+    // in vectors and access them by index. Because the vectors are class
+    // variables (and because we pass `this` by reference), updates to the index
+    // arrays will be seen by downstream joins, and we don't have to worry about
+    // anything going out of scope.
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, i](Task *internal) {
             // Build phase
-            // TODO(nicholas): left and right should not be passed by value, since
-            //   their indices will not be updated when a later join needs them!
-            //   You'll crash when you propogate results.
+            // TODO(nicholas):
             auto right = prev_result_->get_table(rights[i].table);
             auto right_join_col = right.get_column_by_name(right_col_names[i]);
             build_hash_table(right_join_col, internal);
@@ -240,20 +229,13 @@ void Join::execute(Task *ctx) {
 
     for (auto &result : prev_result_vec_) {
         prev_result_->append(result);
-
     }
     // To handle a variable number of joins, we must store the tasks beforehand. The variadic CreateTaskChain
     // cannot help us here!
     std::vector<Task *> tasks;
 
-//    std::vector<LazyTable> lefts;
-//    std::vector<LazyTable> rights;
-//    std::vector<std::string> left_col_names;
-//    std::vector<std::string> right_col_names;
-
     // TODO(nicholas): For now, we assume joins have simple predicates
     //   without connective operators.
-    // TODO(nicholas): Loop over tables in adj
     auto predicates = graph_.get_predicates(0);
 
     // Loop over the join predicates and store the left/right LazyTables and the
