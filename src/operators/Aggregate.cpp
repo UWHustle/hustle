@@ -133,7 +133,10 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
     std::shared_ptr<arrow::ChunkedArray> prev_filter;
 
     // TODO(nicholas): spawn a new task for each group by column
-    // Fetch the next Group By filter and AND it with the previous filter
+    // e.g. group_id = [4, 1, 2]
+    // We get the filter for all_unique_values[0][4], all_unique_values[1][1],
+    // and all_unique_values[3][2]. Recall that all_unique_values[i] is an array
+    // of all the unique values of the ith GROUP BY column
     for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
 
         std::shared_ptr<arrow::ChunkedArray> next_filter;
@@ -178,9 +181,9 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
         arrow::compute::Datum temp_filter;
         arrow::ArrayVector filter_vector;
 
+        // Perform a logical AND on all the unique value filters
         if (prev_filter != nullptr) {
             for (int j = 0; j < prev_filter->num_chunks(); j++) {
-                // Note that Compare cannot operate on ChunkedArrays.
                 status = arrow::compute::And(&function_context,
                                              prev_filter->chunk(j),
                                              next_filter->chunk(j),
@@ -190,8 +193,7 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
                 filter_vector.push_back(temp_filter.make_array());
             }
 
-            prev_filter = std::make_shared<arrow::ChunkedArray>
-                (filter_vector);
+            prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
         } else {
             prev_filter = next_filter;
         }
@@ -296,9 +298,10 @@ void Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
 arrow::compute::Datum Aggregate::get_unique_values(
     const ColumnReference& group_ref) {
 
-    arrow::compute::Datum unique_values;
     auto group_by_col = group_by_cols_[group_ref.col_name];
 
+    // Get the unique values in group_by_col
+    arrow::compute::Datum unique_values;
     unique(group_by_col, &unique_values);
 
     return unique_values;
@@ -329,6 +332,7 @@ void Aggregate::finish() {
 
     arrow::Status status;
 
+    // Create Arrow Arrays from the ArrayBuilders
     std::shared_ptr<arrow::StructArray> groups_temp;
     status = group_builder_->Finish(&groups_temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
@@ -342,8 +346,11 @@ void Aggregate::finish() {
     evaluate_status(status, __FUNCTION__, __LINE__);
     aggregates_.value = agg_temp->data();
 
+    // Sort the output according to the ORDER BY clause
     sort();
 
+    // Add the sorted data to the output table, and wrap the output table in
+    // the output OperatorResult.
     for (auto &group_values : groups_) {
         output_table_data_.push_back(group_values.make_array()->data());
     }
@@ -449,7 +456,6 @@ void Aggregate::compute_group_aggregate(
 
 void Aggregate::compute_aggregates(Task *ctx) {
 
-    arrow::Status status;
     //TODO(nicholas): For now, we only perform one aggregate.
     auto table = aggregate_refs_[0].col_ref.table;
     auto col_name = aggregate_refs_[0].col_ref.col_name;
@@ -461,10 +467,18 @@ void Aggregate::compute_aggregates(Task *ctx) {
     int maxes[n];
     std::vector<int> group_id(n);
 
-    // Number of aggregates to be computed. Equal to the product of the number
-    // of unique values in each group by column. We compute this so we know how
-    // much space our group_builder_ should reserve.
-    int num_agg = 1;
+    // DYNAMIC DEPTH NESTED LOOP:
+    // We must handle an arbitrary number of GROUP BY columns. We need a dynamic
+    // nested loop to iterate over all possible groups. If maxes = {2, 3}
+    // (i.e. we have two group by columns which have 2 and 3 unique values,
+    // respectively), then group_id takes on the following values at each iteration:
+    //
+    // {0, 0}
+    // {0, 1}
+    // {0, 2}
+    // {1, 0}
+    // {1, 1}
+    // {1, 2}
 
     // initialize group_id = {0, 0, ..., 0} and initialize maxes[i] to the number
     // of unique values in group by column i.
@@ -472,9 +486,6 @@ void Aggregate::compute_aggregates(Task *ctx) {
         group_id[i] = 0;
         maxes[i] = all_unique_values_[i]->length();
     }
-
-    status = group_builder_->Resize(num_agg);
-    evaluate_status(status, __FUNCTION__, __LINE__);
 
     int index = n - 1; // loop index
     bool exit = false;
@@ -491,7 +502,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
         if (n == 0)
             break; // Only execute the loop once if there are no group bys
 
-        // INCREMENT LOOP VARIABLE
+        // INCREMENT group_id
         group_id[n - 1]++;
         while (group_id[index] == maxes[index]) {
             // if n == 0, we have no Group By clause and should exit after one
