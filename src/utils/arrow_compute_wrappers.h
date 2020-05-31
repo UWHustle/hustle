@@ -84,6 +84,13 @@ void compare(
     arrow::compute::CompareOperator compare_operator,
     arrow::compute::Datum* out);
 
+/**
+ * A wrapper around Arrow's arrow::compute::Unique() function that computes the
+ * unique elements from an array-like object.
+ *
+ * @param values Array or ChunkedArray of values.
+ * @param out unique values of values as an Array.
+ */
 void unique(const arrow::compute::Datum& values, arrow::compute::Datum* out);
 
 
