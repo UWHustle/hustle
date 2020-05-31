@@ -2,52 +2,13 @@
 #include "../table/util.h"
 using namespace hustle::operators;
 
-int main(int argc, char *argv[]) {
-
-    SSB workload(1, false);
-
-    workload.q11();
-    workload.q12();
-    workload.q13();
-
-    workload.q21();
-    workload.q22();
-    workload.q23();
-
-    workload.q31();
-    workload.q32();
-    workload.q33();
-    workload.q34();
-
-    workload.q41();
-    workload.q42();
-    workload.q43();
-
-    workload.q11_lip();
-    workload.q12_lip();
-    workload.q13_lip();
-
-    workload.q21_lip();
-    workload.q22_lip();
-    workload.q23_lip();
-
-    workload.q31_lip();
-    workload.q32_lip();
-    workload.q33_lip();
-    workload.q34_lip();
-
-    workload.q41_lip();
-    workload.q42_lip();
-    workload.q43_lip();
-}
-
 void read_from_csv() {
 
     std::shared_ptr<Table> lo, c, s, p, d;
     std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema, d_schema;
 
 
-    auto field1 = arrow::field("order date", arrow::int64());
+    auto field1 = arrow::field("order key", arrow::int64());
     auto field2 = arrow::field("line number", arrow::int64());
     auto field3 = arrow::field("cust key", arrow::int64());
     auto field4 = arrow::field("part key", arrow::int64());
@@ -185,24 +146,66 @@ void read_from_csv() {
 
 
 
-    auto t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/customer.tbl", c_schema, BLOCK_SIZE);
-    write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/customer.hsl", *t);
+    auto t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl", c_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl", *t);
     std::cout << "c" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/supplier.tbl", s_schema, BLOCK_SIZE);
-    write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/supplier.hsl", *t);
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.tbl", s_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl", *t);
     std::cout << "s" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/lineorder.tbl", lo_schema, BLOCK_SIZE);
-    write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/lineorder.hsl", *t);
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.tbl", lo_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl", *t);
     std::cout << "lo" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/date.tbl", d_schema, BLOCK_SIZE);
-    write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/date.hsl", *t);
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.tbl", d_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl", *t);
     std::cout << "d" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/part.tbl", p_schema, BLOCK_SIZE);
-    write_to_file("/Users/corrado/h/hustle/src/ssb/data/ssb-10/part.hsl", *t);
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.tbl", p_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl", *t);
     std::cout << "p" << std::endl;
 
+}
+
+
+int main(int argc, char *argv[]) {
+
+//    read_from_csv();
+
+    SSB workload(1, false);
+
+    workload.q11();
+    workload.q12();
+    workload.q13();
+
+    workload.q21();
+    workload.q22();
+    workload.q23();
+
+    workload.q31();
+    workload.q32();
+    workload.q33();
+    workload.q34();
+
+    workload.q41();
+    workload.q42();
+    workload.q43();
+
+    workload.q11_lip();
+    workload.q12_lip();
+    workload.q13_lip();
+
+    workload.q21_lip();
+    workload.q22_lip();
+    workload.q23_lip();
+
+    workload.q31_lip();
+    workload.q32_lip();
+    workload.q33_lip();
+    workload.q34_lip();
+
+    workload.q41_lip();
+    workload.q42_lip();
+    workload.q43_lip();
 }

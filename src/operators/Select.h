@@ -12,6 +12,14 @@
 
 namespace hustle::operators {
 
+/**
+ * The Select operator updates the filter of a LazyTable so that it filters out
+ * all tuples that do not satisfy the selection predicate.
+ *
+ * Predicates are inputted as a predicate tree. All internal nodes of the tree
+ * are connective operators (AND, OR), while leaf nodes are simple predicates,
+ * e.g. column = 7.
+ */
 class Select : public Operator {
 public:
 
@@ -73,6 +81,9 @@ private:
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
 
+    /**
+     * Create the output result from the raw data computed during execution.
+     */
     void finish();
 };
 
