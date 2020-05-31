@@ -63,6 +63,11 @@ public:
      *
      * Due to limitations in Arrow, we only support sorting in ascending order.
      *
+     * Sorting by the aggregate column is a bit hacky. We need to input a
+     * ColumnReference for the aggregate column, but the table containing the
+     * aggregate column does not actually exist until we execute the Aggregate
+     * operator. For now, I let
+     *
      * @param prev_result OperatorResult form an upstream operator.
      * @param aggregate_ref vector of AggregateReferences denoting which
      * columns we want to perform an aggregate on and which aggregate to
@@ -104,9 +109,9 @@ private:
     // The output table's schema
     std::shared_ptr<arrow::Schema> out_schema_;
     // The new output table containing the group columns and aggregate columns.
-    std::shared_ptr<Table> out_table_;
+    std::shared_ptr<Table> output_table_;
     // The output table's data.
-    std::vector<std::shared_ptr<arrow::ArrayData>> out_table_data_;
+    std::vector<std::shared_ptr<arrow::ArrayData>> output_table_data_;
 
     // Group columns for the output table.
     std::vector<arrow::compute::Datum> groups_;
@@ -276,6 +281,10 @@ private:
      * with respect to R.b, and then sort with respect to R.a.
      */
     void sort();
+
+    inline std::shared_ptr<Table> get_output_table() {
+        return output_table_;
+    }
 
 
 };
