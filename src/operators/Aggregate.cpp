@@ -251,7 +251,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
+void Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
 
     arrow::Status status;
     // Append a group's aggregate to its builder.
@@ -265,10 +265,6 @@ bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
             auto aggregate_casted =
                 std::static_pointer_cast<arrow::Int64Scalar>
                     (aggregate.scalar());
-            // If aggregate == 0, don't include it in the output table.
-            if (aggregate_casted->value == 0) {
-                return false;
-            }
             // Append the group's aggregate to its builder.
             status = aggregate_builder_casted->Append(aggregate_casted->value);
             evaluate_status(status, __FUNCTION__, __LINE__);
@@ -294,7 +290,6 @@ bool Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
                       std::endl;
         }
     }
-    return true;
 }
 
 
@@ -440,14 +435,16 @@ void Aggregate::compute_group_aggregate(
         apply_filter(agg_col, group_filter, &agg_col);
     }
 
-    // Compute the aggregate over the filtered agg_col
-    auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col);
+    if (agg_col.length() > 0) {
+        // Compute the aggregate over the filtered agg_col
+        auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col);
 
-    // Acquire builder_mutex_ so that groups are correctly associated with
-    // their corresponding aggregates
-    std::unique_lock<std::mutex> lock(builder_mutex_);
-    auto is_nonzero_agg = insert_group_aggregate(aggregate);
-    if (is_nonzero_agg) insert_group(group_id);
+        // Acquire builder_mutex_ so that groups are correctly associated with
+        // their corresponding aggregates
+        std::unique_lock<std::mutex> lock(builder_mutex_);
+        insert_group_aggregate(aggregate);
+        insert_group(group_id);
+    }
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
@@ -553,7 +550,7 @@ void Aggregate::sort() {
 
         // A nullptr indicates that we are sorting by the aggregate column
         // TODO(nicholas): better way to indicate we want to sort the aggregate?
-        if (order_ref.table == output_table_) {
+        if (order_ref.table == nullptr) {
             sort_to_indices(aggregates_, &sorted_indices);
         } else {
             auto group = groups_[order_to_group[i]];

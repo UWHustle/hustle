@@ -44,14 +44,44 @@ struct AggregateReference {
  *
  * Iterate over all possible groups G:
  *   Get a filter for each column value in G
- *   Logically AND all the filters
+ *   Logically AND all the filters (1)
  *   Apply the filter to the aggregate column
- *   Compute the aggregate over the filtered column
- *   If the aggregate is > 0:
+ *   If the filtered aggregate column has positive length:
+ *      Compute the aggregate over the filtered column
  *      Insert the tuple (G, aggregate) into T
  *
  * If the aggregate column appears in the ORDER BY clause:
  *   Sort T with as specified by the ORDER BY clause
+ *
+ * (1) The resulting filter corresponds to all rows of the table that are part
+ * of group G
+ *
+ * Example:
+ *
+ * R =
+ * group1 | group2 | data
+ *   A    |   a    |  1
+ *   A    |   a    |  10
+ *   A    |   b    |  100
+ *   B    |   b    |  1000
+ *
+ * SELECT group1, group2, sum(data)
+ * FROM R
+ * GROUP BY group1, group2
+ *
+ * All possible groups: (A, a), (A, b), (B, a), (B, b)
+ *
+ * For group (A, a):
+ * group1 filter = [1, 1, 1, 0]
+ * group2 filter = [1, 1, 0, 0]
+ * group (A, a) filter = [1, 1, 0, 0]
+ *
+ * data after applying group (A, a) filter = [1, 10]
+ * result tuple = (A, a, 11)
+ *
+ * Group (B, a) does not exist in R. The group (B, a) filter is [0, 0, 0, 0],
+ * which means the filtered aggregate column with have length 0. Thus, this
+ * group will be excluded from the output.
  */
 class Aggregate : public Operator {
 public:
@@ -265,7 +295,7 @@ private:
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    bool insert_group_aggregate(const arrow::compute::Datum& aggregate);
+    void insert_group_aggregate(const arrow::compute::Datum& aggregate);
 
     /**
      * Create the output result from data computed during operator execution.
@@ -276,15 +306,10 @@ private:
      * Sort the output data with respect to each column in the ORDER BY clause.
      * To produce the correct ordering, we must sort the output with respect
      * columns in the ORDER BY clause but in the reverse order in which they appear.
-     *
      * For example, if we have ORDER BY R.a, R.b, then we first sort our output
      * with respect to R.b, and then sort with respect to R.a.
      */
     void sort();
-
-    inline std::shared_ptr<Table> get_output_table() {
-        return output_table_;
-    }
 
 
 };
