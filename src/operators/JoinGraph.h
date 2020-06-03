@@ -6,7 +6,7 @@
 #define HUSTLE_JOINGRAPH_H
 
 #include "table/table.h"
-#include "Predicate.h"
+#include "table/Predicate.h"
 
 namespace hustle{
 namespace operators {

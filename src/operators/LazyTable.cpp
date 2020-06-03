@@ -47,7 +47,8 @@ namespace hustle::operators{
             case arrow::compute::Datum::NONE: {
                 break;
             }
-            case arrow::compute::Datum::CHUNKED_ARRAY: {
+            case arrow::compute::Datum::CHUNKED_ARRAY:
+            case arrow::compute::Datum::ARRAY: {
                 arrow::compute::FilterOptions filter_options;
                 status = arrow::compute::Filter(&function_context,
                                                 col,

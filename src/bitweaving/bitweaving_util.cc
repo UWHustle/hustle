@@ -6,12 +6,9 @@
 #include <arrow/csv/options.h>
 #include <arrow/csv/reader.h>
 #include <bitweaving/table.h>
-#include <operators/LazyTable.h>
 #include "table/table.h"
 #include "bitweaving_util.h"
 #include <map>
-
-std::map<LazyTable, BWTable*, LazyTableCompare> table_index_map;
 
 namespace hustle::bitweaving {
 
@@ -35,11 +32,8 @@ BWTable *createBitweavingIndex(const std::shared_ptr<Table> &hustle_table,
       continue;
     }
     //std::cout << "Column : " << col_names[i] << std::endl;
-    uint8_t bit_width = auto_tune_bitwidth ? 16 : cols[i].bit_width; //Set the default bitwidth to be 16 and
-    // let the bitweaving library
-    // to figure out the optimum bitwidth
 
-    bw_table->AddColumn(cols[i].col_name, kBitWeavingV, bit_width);
+    bw_table->AddColumn(cols[i].col_name, kBitWeavingV, cols[i].bit_width);
 
     Column *column = bw_table->GetColumn(cols[i].col_name);;
     assert(column != nullptr);
@@ -61,13 +55,6 @@ BWTable *createBitweavingIndex(const std::shared_ptr<Table> &hustle_table,
       }
     }
   }
-  //Add to the global map structure
-  hustle::operators::LazyTable lazy_table(
-      std::move(hustle_table),
-      arrow::compute::Datum(),
-      arrow::compute::Datum());
-
-  table_index_map.insert(std::make_pair(lazy_table, bw_table));
 
   return bw_table;
 }

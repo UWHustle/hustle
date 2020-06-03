@@ -1,7 +1,6 @@
 //
 // Created by Nicholas Corrado on 4/26/20.
 //
-
 #ifndef HUSTLE_OPERATOR_H
 #define HUSTLE_OPERATOR_H
 
@@ -9,6 +8,10 @@
 #include "OperatorResult.h"
 #include "scheduler/Task.hpp"
 #include "utils/EventProfiler.hpp"
+
+#ifdef USE_BITWEAVING
+#include <bitweaving/bitweaving_util.h>
+#endif
 
 namespace hustle::operators {
 

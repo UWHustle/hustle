@@ -6,7 +6,7 @@
 
 #include <utility>
 
-namespace hustle::operators {
+//namespace hustle::operators {
 
 
     bool Node::is_leaf() {
@@ -34,4 +34,4 @@ namespace hustle::operators {
     PredicateTree::PredicateTree(std::shared_ptr<Node> root) {
         root_ = std::move(root);
     }
-}
+//}

@@ -162,10 +162,10 @@ private:
   Column* RemoveAndAddColumn(Column* old_col, const std::string& name, size_t old_col_size, size_t new_bitwidth);
 
   /**
-   *
-   * @param old_col
-   * @param old_col_size
-   * @return
+   * This method retrieves the existing column codes in the column. Used when re-adjusting the bit width for the column
+   * @param old_col - The col for which the bit width is being optimized for
+   * @param old_col_size - Size of the col
+   * @return The pointer to the code array
    */
   Code* GetColumnCodesThusFar(Column* old_col, size_t old_col_size);
 

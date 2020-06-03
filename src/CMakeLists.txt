@@ -7,6 +7,11 @@ macro (set_gflags_lib_name)
 endmacro (set_gflags_lib_name)
 
 set_gflags_lib_name ()
+if(INCLUDE_BITWEAVING)
+    MESSAGE(STATUS "Include bitweaving set")
+    add_compile_definitions(USE_BITWEAVING)
+endif()
+
 
 set(THIRD_PARTY_SOURCE_DIR "${PROJECT_SOURCE_DIR}/third_party")
 
@@ -56,7 +61,5 @@ add_subdirectory(threading)
 add_subdirectory(execution)
 if(INCLUDE_BITWEAVING)
     add_subdirectory(bitweaving)
-    add_definitions(-DUSE_BITWEAVING=1)
-else()
-    add_definitions(-DUSE_BITWEAVING=0)
 endif()
+

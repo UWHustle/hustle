@@ -41,41 +41,22 @@ struct BitweavingCompareOptions {
 
 };
 
-inline arrow::Status AllocateBufferMemory(arrow::compute::FunctionContext* ctx, const std::shared_ptr<arrow::DataType>& type,
-                                  arrow::compute::Datum* out) {
-    DCHECK_EQ(out->kind(), arrow::compute::Datum::ARRAY);
-    arrow::ArrayData* data = out->array().get();
-    data->buffers.resize(2);
+/**
+ *
+ * @param ctx
+ * @param type
+ * @param out
+ * @return
+ */
+arrow::Status AllocateBufferMemory(arrow::compute::FunctionContext* ctx, const std::shared_ptr<arrow::DataType>& type,
+                                  arrow::compute::Datum* out);
 
-    // Allocate the value buffer
-    const int64_t length = data->length;
-    std::shared_ptr<arrow::Buffer>* buffer = &(data->buffers[1]);
-    std::shared_ptr<arrow::DataType> type_ptr = arrow::boolean();
-    if ((*type).id() != arrow::Type::NA) {
-        const auto& fw_type = arrow::internal::checked_cast<const arrow::FixedWidthType&>(*type);
-
-        int bit_width = fw_type.bit_width();
-        int64_t buffer_size = 0;
-
-        if (bit_width == 1) {
-            buffer_size = arrow::BitUtil::BytesForBits(length);
-        } else {
-            if(bit_width % 8 != 0)
-                return arrow::Status::NotImplemented("Only widths multiple of 8", bit_width);
-            buffer_size = length * fw_type.bit_width() / 8;
-        }
-        RETURN_NOT_OK(ctx->Allocate(buffer_size, buffer));
-
-        if (bit_width == 1 && buffer_size > 0) {
-            // Some utility methods access the last byte before it might be
-            // initialized this makes valgrind/asan unhappy, so we proactively
-            // zero it.
-            *(buffer->get()->mutable_data() + (buffer->get()->size() - 1)) = 0;
-        }
-    }
-
-    return arrow::Status::OK();
-}
+/**
+ *
+ * @param op
+ * @return
+ */
+std::shared_ptr<bitweaving::Comparator> GetBitweavingCompareOperator(arrow::compute::CompareOperator op);
 
 /**
  *

@@ -7,9 +7,10 @@
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
-#include "OperatorResult.h"
+#include "operators/OperatorResult.h"
 
-namespace hustle::operators {
+using namespace hustle::operators;
+//namespace hustle::operators {
 
 
 struct Predicate {
@@ -78,7 +79,7 @@ public:
     std::shared_ptr<Node> root_;
 };
 
-}
+//}
 
 
 

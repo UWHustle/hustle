@@ -12,22 +12,15 @@
 #include <map>
 #include <operators/LazyTable.h>
 #include <arrow/util/memory.h>
-
-using namespace hustle::operators;
-using namespace hustle::bitweaving;
-
-struct LazyTableCompare {
-  bool operator()(const LazyTable &lhs, const LazyTable &rhs) const {
-    //The ordering actually doesn't matter here.
-    return arrow::internal::SharedPtrEquals(lhs.table->get_schema(), rhs.table->get_schema());
-  }
-};
-
-extern std::map<LazyTable, BWTable*, LazyTableCompare> table_index_map;
+#include <table/Index.h>
 
 namespace hustle::bitweaving {
 
+const int default_bit_width = 16;
+
 struct BitweavingColumnIndexUnit {
+  BitweavingColumnIndexUnit(std::string name) : col_name(std::move(name)), bit_width(default_bit_width) {}
+
   BitweavingColumnIndexUnit(std::string name, int bitwidth) : col_name(std::move(name)),
                                                               bit_width(bitwidth) {}
 
@@ -44,7 +37,7 @@ struct BitweavingColumnIndexUnit {
  */
 BWTable *createBitweavingIndex(const std::shared_ptr<Table> &hustle_table,
                                std::vector<BitweavingColumnIndexUnit> cols,
-                               bool auto_tune_bitwidth = false);
+                               bool auto_tune_bitwidth = true);
 }
 
 #endif //HUSTLE_BITWEAVING_UTIL_H

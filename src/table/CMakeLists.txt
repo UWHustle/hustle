@@ -3,7 +3,8 @@ add_library(
         table.h table.cpp
         block.h block.cpp
         util.h  util.cpp
-)
+        Predicate.h Predicate.cpp
+        Index.h)
 
 target_include_directories(hustle_src_table PUBLIC ${ARROW_INCLUDE_DIR} )
 target_link_libraries(hustle_src_table PUBLIC
@@ -12,7 +13,8 @@ target_link_libraries(hustle_src_table PUBLIC
         absl::container
         absl::hash
         absl::flat_hash_map
-        hustle_src_catalog)
+        hustle_src_catalog
+        hustle_src_operators)
 
 
 add_executable(hustle_table_test "tests/TableTest.cpp")

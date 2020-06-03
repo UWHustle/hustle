@@ -23,7 +23,7 @@ add_library(
         status.h
         types.h
         bitweaving_util.cc bitweaving_util.h
-        )
+        bitweaving_index.cpp bitweaving_index.h)
 
 
 target_include_directories(hustle_src_bitweaving PUBLIC ${ARROW_INCLUDE_DIR})

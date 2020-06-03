@@ -5,14 +5,15 @@ add_library(
         Aggregate.h Aggregate.cpp
         Select.h Select.cpp
         JoinGraph.cpp JoinGraph.h
-        Predicate.cpp Predicate.h
         LazyTable.cpp LazyTable.h
-        Operator.h)
+        Operator.h
+        )
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
+        hustle_src_bitweaving
         ${ARROW_SHARED_LIB}
 )
 

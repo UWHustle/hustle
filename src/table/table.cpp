@@ -5,7 +5,9 @@
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
 #include "util.h"
+#include "Index.h"
 
+TableIndexMap table_index_map;
 
 Table::Table(std::string name, const std::shared_ptr<arrow::Schema>& schema,
              int block_capacity)
