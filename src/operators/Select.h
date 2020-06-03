@@ -48,7 +48,11 @@ private:
     std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
-    arrow::ArrayVector filter_vector_;
+
+    std::shared_ptr<arrow::ChunkedArray> select_col_;
+
+    arrow::ArrayVector left_filter_vector_;
+    arrow::ArrayVector right_filter_vector_;
 
     /**
      * Perform the selection specified by a node in the predicate tree on
@@ -62,8 +66,6 @@ private:
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
-    arrow::compute::Datum get_filter(const std::shared_ptr<Node> &node,
-                                     const std::shared_ptr<Block> &block);
 
     /**
      * Perform the selection specified by a predicate (i.e. leaf node) in the
@@ -77,7 +79,7 @@ private:
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
-    arrow::compute::Datum get_filter(
+    arrow::compute::Datum get_block_filter(
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
 
@@ -85,6 +87,14 @@ private:
      * Create the output result from the raw data computed during execution.
      */
     void finish();
+
+    std::vector<Task *> traverse_predicate_tree();
+
+    void traverse_predicate_tree(std::vector<Task*>& tasks, std::shared_ptr<Node> node, int side);
+
+    void get_predicate_filter(Task *ctx, std::shared_ptr<Node> predicate, arrow::ArrayVector& out);
+
+    void combine_filters(std::shared_ptr<Node> node);
 };
 
 } // namespace hustle
