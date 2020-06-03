@@ -4,8 +4,10 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 #include <table/util.h>
+#include <table/Index.h>
 #include <iostream>
-#include "utils/arrow_compute_wrappers.h"
+#include <map>
+
 
 namespace hustle {
 namespace operators {
@@ -129,21 +131,31 @@ void Select::execute(Task *ctx) {
 }
 
 void Select::finish() {
-
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(left_filter_vector_);
     arrow::compute::Datum filter(chunked_filter);
-    LazyTable lazy_table(table_, filter, arrow::compute::Datum());
-    output_result_->append(lazy_table);
+
+    LazyTable result_unit(table_, filter, arrow::compute::Datum());
+    OperatorResult result({result_unit});
+    output_result_->append(std::make_shared<OperatorResult>(result));
 }
 
 arrow::compute::Datum Select::get_block_filter(
     const std::shared_ptr<Predicate> &predicate,
     const std::shared_ptr<Block> &block) {
 
-    auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
+    arrow::Status status;
 
+    arrow::compute::FunctionContext function_context(
+        arrow::default_memory_pool());
+    arrow::compute::CompareOptions compare_options(predicate->comparator_);
     arrow::compute::Datum block_filter;
-    compare(select_col, predicate->value_, predicate->comparator_, &block_filter);
+
+    auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
+    auto value = predicate->value_;
+
+    status = arrow::compute::Compare(
+        &function_context, select_col, value, compare_options, &block_filter);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
     return block_filter;
 }
