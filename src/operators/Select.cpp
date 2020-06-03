@@ -4,10 +4,8 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 #include <table/util.h>
-#include <table/Index.h>
 #include <iostream>
-#include <map>
-
+#include "utils/arrow_compute_wrappers.h"
 
 namespace hustle {
 namespace operators {
@@ -18,201 +16,136 @@ Select::Select(
     std::shared_ptr<OperatorResult> output_result,
     std::shared_ptr<PredicateTree> tree) : Operator(query_id) {
 
-  prev_result_ = std::move(prev_result);
-  output_result_ = std::move(output_result);
-  tree_ = std::move(tree);
+    prev_result_ = prev_result;
+    output_result_ = output_result;
+    tree_ = tree;
 
-  auto node = tree_->root_;
+    auto node = tree_->root_;
 
-  // We can figure out which table we are performing the selection on if we
-  // look at the LHS of one of the leaf nodes.
-  while (!node->is_leaf()) {
-    node = node->left_child_;
-  }
-  table_ = node->predicate_->col_ref_.table;
+    // We can figure out which table we are performing the selection on if we
+    // look at the LHS of one of the leaf nodes.
+    while (!node->is_leaf()) {
+        node = node->left_child_;
+    }
+    table_ = node->predicate_->col_ref_.table;
+    left_filter_vector_.resize(table_->get_num_blocks());
+    right_filter_vector_.resize(table_->get_num_blocks());
+
 }
 
-arrow::compute::Datum
-Select::get_filter(const std::shared_ptr<Node> &node,
-                   const std::shared_ptr<Block> &block) {
+void Select::get_predicate_filter(
+    Task* ctx,
+    std::shared_ptr<Node> node,
+    arrow::ArrayVector& out){
 
-  arrow::Status status;
-
-  if (node->is_leaf()) {
-    return get_filter(node->predicate_, block);
-  }
-  auto left_child_filter = get_filter(node->left_child_, block);
-  auto right_child_filter = get_filter(node->right_child_, block);
-
-  arrow::compute::FunctionContext function_context(
-      arrow::default_memory_pool());
-  arrow::compute::Datum block_filter;
-
-  switch (node->connective_) {
-    case AND: {
-      status = arrow::compute::And(
-          &function_context, left_child_filter, right_child_filter,
-          &block_filter);
-      evaluate_status(status, __FUNCTION__, __LINE__);
-      break;
+    for (int i = 0; i < table_->get_num_blocks(); i++) {
+        // Each task gets the filter for one block and stores it in filter_vector
+        ctx->spawnLambdaTask([this, &out, node, i]() {
+            auto block = table_->get_block(i);
+            auto block_filter = this->get_block_filter(node->predicate_, block);
+            out[i] = block_filter.make_array();
+        });
     }
-    case OR: {
-      status = arrow::compute::Or(
-          &function_context, left_child_filter, right_child_filter,
-          &block_filter);
-      evaluate_status(status, __FUNCTION__, __LINE__);
-      break;
-    }
-    case NONE: {
-      block_filter = left_child_filter;
-    }
-  }
-  return block_filter;
 }
 
-arrow::compute::Datum Select::get_filter(const std::shared_ptr<Node> &node){
-  arrow::Status status;
+void Select::combine_filters(std::shared_ptr<Node> node) {
 
-  if (node->is_leaf()) {
-    return get_filter(node->predicate_);
-  }
-  auto left_child_filter = get_filter(node->left_child_);
-  auto right_child_filter = get_filter(node->right_child_);
+    arrow::Status status;
+    arrow::compute::FunctionContext function_context(
+        arrow::default_memory_pool());
+    arrow::compute::Datum block_filter;
 
-  arrow::compute::FunctionContext function_context(
-      arrow::default_memory_pool());
-  arrow::compute::Datum filter;
+    // TODO(nicholas): spawn new task for each Array
+    switch (node->connective_) {
+        case AND: {
+            for (int i=0; i<table_->get_num_blocks(); i++) {
+                status = arrow::compute::And(
+                    &function_context, left_filter_vector_[i], right_filter_vector_[i],
+                    &block_filter);
+                evaluate_status(status, __FUNCTION__, __LINE__);
+                left_filter_vector_[i] = block_filter.make_array();
+            }
 
-  switch (node->connective_) {
-    case AND: {
-      status = arrow::compute::And(
-          &function_context, left_child_filter, right_child_filter,
-          &filter);
-      evaluate_status(status, __FUNCTION__, __LINE__);
-      break;
+            break;
+        }
+        case OR: {
+            for (int i=0; i<table_->get_num_blocks(); i++) {
+                status = arrow::compute::Or(
+                    &function_context, left_filter_vector_[i], right_filter_vector_[i],
+                    &block_filter);
+                evaluate_status(status, __FUNCTION__, __LINE__);
+                left_filter_vector_[i] = block_filter.make_array();
+            }
+            break;
+        }
+        case NONE: {
+            break;
+        }
     }
-    case OR: {
-      status = arrow::compute::Or(
-          &function_context, left_child_filter, right_child_filter,
-          &filter);
-      evaluate_status(status, __FUNCTION__, __LINE__);
-      break;
-    }
-    case NONE: {
-      filter = left_child_filter;
-    }
-  }
-  return filter;
 }
 
+void Select::traverse_predicate_tree(std::vector<Task*>& tasks, std::shared_ptr<Node> node, int side) {
+
+    if (node->is_leaf()) {
+        if (side == 0) {
+            tasks.push_back(CreateLambdaTask([this, node](Task* internal) {
+                get_predicate_filter(internal, node, left_filter_vector_);
+            }));
+        } else {
+            tasks.push_back(CreateLambdaTask([this, node](Task* internal) {
+                get_predicate_filter(internal, node, right_filter_vector_);
+            }));
+        }
+        return;
+    }
+
+    tasks.push_back(CreateLambdaTask([this, node] {
+        combine_filters(node);
+    }));
+
+    traverse_predicate_tree(tasks, node->left_child_, 0);
+    traverse_predicate_tree(tasks, node->right_child_, 1);
+
+}
+
+std::vector<Task*> Select::traverse_predicate_tree() {
+
+    std::vector<Task*> tasks;
+    traverse_predicate_tree(tasks, tree_->root_, 0);
+    return tasks;
+
+}
 
 void Select::execute(Task *ctx) {
 
-//  ctx->spawnTask(CreateTaskChain(
-//      // Task 1: perform selection on all blocks
-//      CreateLambdaTask([this](Task *internal){
-//        predicate_filter_vector_.resize(table_->get_num_blocks());
-//
-//        for (int i = 0; i < table_->get_num_blocks(); i++) {
-//
-//          // Each task gets the filter for one block and stores it in filter_vector
-//          internal->spawnLambdaTask([this, i]() {
-//            auto block = table_->get_block(i);
-//            auto block_filter = this->get_filter(tree_->root_, block);
-//            predicate_filter_vector_[i] = block_filter.make_array();
-//          });
-//        }
-//      }),
-//      // Task 2: create the output result
-//      CreateLambdaTask([this]() {
-//        finish();
-//      })
-//  ));
+    auto tasks = traverse_predicate_tree();
+    std::reverse(tasks.begin(), tasks.end());
+    tasks.push_back(CreateLambdaTask([this]() {
+        finish();
+    }));
 
-  result_out_ = this->get_filter(tree_->root_);
-
-  taskChain_.emplace_back(CreateLambdaTask([this]() {
-    finish();
-  }));
-
-  ctx->spawnTask(CreateTaskChain(taskChain_));
+    ctx->spawnTask(CreateTaskChain(tasks));
 
 }
 
 void Select::finish() {
 
-  //auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
-  //arrow::compute::Datum filter(chunked_filter);
-  LazyTable result_unit(table_, result_out_, arrow::compute::Datum());
-  OperatorResult result({result_unit});
-  output_result_->append(std::make_shared<OperatorResult>(result));
+    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(left_filter_vector_);
+    arrow::compute::Datum filter(chunked_filter);
+    LazyTable lazy_table(table_, filter, arrow::compute::Datum());
+    output_result_->append(lazy_table);
 }
 
-arrow::compute::Datum Select::get_filter(
+arrow::compute::Datum Select::get_block_filter(
     const std::shared_ptr<Predicate> &predicate,
     const std::shared_ptr<Block> &block) {
 
-  arrow::Status status;
+    auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
 
-  arrow::compute::FunctionContext function_context(
-      arrow::default_memory_pool());
-  arrow::compute::CompareOptions compare_options(predicate->comparator_);
-  arrow::compute::Datum block_filter;
+    arrow::compute::Datum block_filter;
+    compare(select_col, predicate->value_, predicate->comparator_, &block_filter);
 
-  auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
-  auto value = predicate->value_;
-
-  status = arrow::compute::Compare(
-      &function_context, select_col, value, compare_options, &block_filter);
-  evaluate_status(status, __FUNCTION__, __LINE__);
-
-  return block_filter;
-
-}
-
-arrow::compute::Datum Select::get_filter(
-    std::shared_ptr<Predicate>& predicate) {
-
-  bool use_index = false;
-
-  //Check if Index can be used to evaluate the predicate
-  if(table_index_map.find(table_) != table_index_map.end()){
-    auto it = table_index_map.find(table_);
-    Index* index = it->second;
-    use_index = index->isColumnIndexed(predicate->col_ref_.col_name);
-    if(use_index){
-      taskChain_.emplace_back(CreateLambdaTask([this, index, &predicate]() {
-        //arrow::compute::Datum result = index->scan(predicate);
-        predicate_out_ = std::make_shared<arrow::compute::Datum>(index->scan(predicate));
-      }));
-    }
-  }
-
-  // If index isn't available for this column, then do the traditional block by block arrow compare
-  if(!use_index){ //
-    taskChain_.emplace_back(CreateLambdaTask([this](Task *internal){
-      predicate_filter_vector_.resize(table_->get_num_blocks());
-
-      for (int i = 0; i < table_->get_num_blocks(); i++) {
-
-        // Each task gets the filter for one block and stores it in filter_vector
-        internal->spawnLambdaTask([this, i]() {
-          auto block = table_->get_block(i);
-          auto block_filter = this->get_filter(tree_->root_, block);
-          predicate_filter_vector_[i] = block_filter.make_array();
-        });
-      }
-    }));
-
-    taskChain_.emplace_back(CreateLambdaTask([this]() {
-      // Assemble the filter_vector to form the chunked array datum
-      auto chunked_filter = std::make_shared<arrow::ChunkedArray>(predicate_filter_vector_);
-      predicate_out_ = std::make_shared<arrow::compute::Datum>(chunked_filter);
-    }));
-  }
-
-  return *predicate_out_;
-
+    return block_filter;
 }
 
 } // namespace operators
