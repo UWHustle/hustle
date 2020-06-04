@@ -492,7 +492,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1Arrow) {
     auto select_result_out = std::make_shared<OperatorResult>();
 
     Select lo_select_op(0, lo_select_result, select_result_out, lineorder_pred_tree);
-    Select date_select_op(0, date_select_result, select_result_out, date_pred_tree);
+    Select date_select_op(0, date_select_result, select_result_out, date_pred_tree, true);
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -507,7 +507,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1Arrow) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(0, select_result_out, join_result, graph);
+    Join join_op(0, {select_result_out}, join_result, graph);
 
     auto agg_result = std::make_shared<OperatorResult>();
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};
@@ -653,7 +653,7 @@ TEST_F(BitweavingTestBase, SSBQ1_2Arrow) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(0, select_result_out, join_result, graph);
+    Join join_op(0, {select_result_out}, join_result, graph);
 
     auto agg_result = std::make_shared<OperatorResult>();
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};
@@ -815,7 +815,7 @@ TEST_F(BitweavingTestBase, SSBQ1_3Arrow) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(0, select_result_out, join_result, graph);
+    Join join_op(0, {select_result_out}, join_result, graph);
 
     auto agg_result = std::make_shared<OperatorResult>();
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};

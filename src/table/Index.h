@@ -5,7 +5,7 @@
 #include <arrow/compute/api.h>
 #include <map>
 #include "table.h"
-#include "Predicate.h"
+#include "operators/Predicate.h"
 
 #ifndef HUSTLE_SRC_TABLE_INDEX_H_
 #define HUSTLE_SRC_TABLE_INDEX_H_
@@ -15,9 +15,14 @@ enum IndexType{
   None
 };
 
+using namespace hustle::operators;
 class Index{
  public:
+  virtual ~Index() {}
+
   virtual arrow::compute::Datum scan(std::shared_ptr<Predicate>& p) = 0;
+
+  virtual arrow::compute::Datum scan(std::shared_ptr<PredicateTree>& root) = 0;
 
   virtual void createIndex(std::shared_ptr<Table> table, std::vector<std::string> cols) = 0;
 

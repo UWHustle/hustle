@@ -32,7 +32,7 @@ class Select : public Operator {
       const std::size_t query_id,
       std::shared_ptr<OperatorResult> prev_result,
       std::shared_ptr<OperatorResult> output_result,
-      std::shared_ptr<PredicateTree> tree);
+      std::shared_ptr<PredicateTree> tree, bool use_index = false);
 
   /**
    * Perform the selection specified by the predicate tree passed into the
@@ -48,6 +48,9 @@ class Select : public Operator {
   std::shared_ptr<OperatorResult> output_result_;
   std::shared_ptr<Table> table_;
   arrow::ArrayVector filter_vector_;
+
+  arrow::compute::Datum result_filter_;
+  bool use_index_;
 
   /**
    * Perform the selection specified by a node in the predicate tree on

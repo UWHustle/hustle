@@ -8,14 +8,13 @@
 #include <gtest/gtest.h>
 #include <bitweaving/table.h>
 #include <table/util.h>
+#include <table/Index.h>
+#include <bitweaving/bitweaving_index.h>
 
 namespace hustle::bitweaving {
 
-BWTable *BitweavingTestBase::customer_table = nullptr;
-BWTable *BitweavingTestBase::date_table = nullptr;
-BWTable *BitweavingTestBase::lineorder_table = nullptr;
-BWTable *BitweavingTestBase::part_table = nullptr;
-BWTable *BitweavingTestBase::supplier_table = nullptr;
+std::shared_ptr<Index> BitweavingTestBase::lo_index = nullptr;
+std::shared_ptr<Index> BitweavingTestBase::date_index = nullptr;
 
 std::shared_ptr<Table> BitweavingTestBase::customer = nullptr;
 std::shared_ptr<Table> BitweavingTestBase::date = nullptr;
@@ -84,30 +83,25 @@ void BitweavingTestBase::SetUpTestCase() {
   options.delete_exist_files = true;
   options.in_memory = true;
 
-  customer_table = new BWTable("./abc", options);
-  date_table = new BWTable("./abc", options);
-  lineorder_table = new BWTable("./abc", options);
-  part_table = new BWTable("./abc", options);
-  supplier_table = new BWTable("./abc", options);
 
-  lineorder_table = createBitweavingIndex(lineorder,{BitweavingColumnIndexUnit("quantity", 6),
-                         BitweavingColumnIndexUnit("discount", 4)}, false);
+//  lineorder_table = createBitweavingIndex(lineorder,{BitweavingColumnIndexUnit("quantity", 6),
+//                         BitweavingColumnIndexUnit("discount", 4)}, false);
 
-  date_table = createBitweavingIndex(date,{BitweavingColumnIndexUnit("year", 11),
-                         BitweavingColumnIndexUnit("year month num", 16),
-                         BitweavingColumnIndexUnit("week num in year", 16)},
-                        true);
-  //createBitweavingIndex(customer, customer_table);
-  //createBitweavingIndex(part, part_table);
-  //createBitweavingIndex(supplier, supplier_table);
+  lo_index = std::make_shared<BitweavingIndex>(IndexType::BitweavingIndex);
+  lo_index->createIndex(lineorder, {"quantity", "discount"});
+
+//  date_table = createBitweavingIndex(date,{BitweavingColumnIndexUnit("year", 11),
+//                         BitweavingColumnIndexUnit("year month num", 16),
+//                         BitweavingColumnIndexUnit("week num in year", 16)},
+//                        true);
+
+  date_index = std::make_shared<BitweavingIndex>(IndexType::BitweavingIndex);
+  date_index->createIndex(date, {"year", "year month num", "week num in year"});
+
 }
 
 void BitweavingTestBase::TearDownTestCase() {
-  delete customer_table;
-  delete part_table;
-  delete lineorder_table;
-  delete date_table;
-  delete supplier_table;
+
 }
 
 }

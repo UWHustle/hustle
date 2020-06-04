@@ -10,7 +10,7 @@
 #include "operators/OperatorResult.h"
 
 using namespace hustle::operators;
-//namespace hustle::operators {
+namespace hustle::operators {
 
 
 struct Predicate {
@@ -79,7 +79,7 @@ public:
     std::shared_ptr<Node> root_;
 };
 
-//}
+}
 
 
 

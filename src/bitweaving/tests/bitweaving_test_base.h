@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <bitweaving/table.h>
 #include <table/table.h>
+#include <table/Index.h>
 
 namespace hustle::bitweaving {
         class BitweavingTestBase : public ::testing::Test
@@ -51,13 +52,10 @@ namespace hustle::bitweaving {
             virtual void TearDown() override;
 
 
-        public:
+         public:
 
-            static BWTable *customer_table;
-            static BWTable *date_table;
-            static BWTable *lineorder_table;
-            static BWTable *part_table;
-            static BWTable *supplier_table;
+            static std::shared_ptr<Index> lo_index;
+            static std::shared_ptr<Index> date_index;
 
             Options options;
 

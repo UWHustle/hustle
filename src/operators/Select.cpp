@@ -6,7 +6,6 @@
 #include <table/util.h>
 #include <iostream>
 
-
 namespace hustle {
 namespace operators {
 
@@ -14,11 +13,13 @@ Select::Select(
     const std::size_t query_id,
     std::shared_ptr<OperatorResult> prev_result,
     std::shared_ptr<OperatorResult> output_result,
-    std::shared_ptr<PredicateTree> tree) : Operator(query_id) {
+    std::shared_ptr<PredicateTree> tree,
+    bool use_index) : Operator(query_id) {
 
   prev_result_ = prev_result;
   output_result_ = output_result;
   tree_ = tree;
+  use_index_ = use_index;
 
   auto node = tree_->root_;
 
@@ -70,34 +71,57 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 
 void Select::execute(Task *ctx) {
 
-  ctx->spawnTask(CreateTaskChain(
-      // Task 1: perform selection on all blocks
-      CreateLambdaTask([this](Task *internal){
-        filter_vector_.resize(table_->get_num_blocks());
+  if(use_index_){
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this](Task *internal) {
+          //Check if Index can be used to evaluate the predicate
+          if (table_index_map.find(table_) != table_index_map.end()) {
+            auto it = table_index_map.find(table_);
+            Index *index = it->second;
+            result_filter_ = index->scan(tree_);
+          }
+        }),
+        // Task 2: create the output result
+        CreateLambdaTask([this]() {
+          finish();
+        })
+    ));
+  } else{
+    ctx->spawnTask(CreateTaskChain(
+        // Task 1: perform selection on all blocks
+        CreateLambdaTask([this](Task *internal) {
+          filter_vector_.resize(table_->get_num_blocks());
 
-        for (int i = 0; i < table_->get_num_blocks(); i++) {
+          for (int i = 0; i < table_->get_num_blocks(); i++) {
 
-          // Each task gets the filter for one block and stores it in filter_vector
-          internal->spawnLambdaTask([this, i]() {
-            auto block = table_->get_block(i);
-            auto block_filter = this->get_filter(tree_->root_, block);
-            filter_vector_[i] = block_filter.make_array();
-          });
-        }
-      }),
-      // Task 2: create the output result
-      CreateLambdaTask([this]() {
-        finish();
-      })
-  ));
+            // Each task gets the filter for one block and stores it in filter_vector
+            internal->spawnLambdaTask([this, i]() {
+              auto block = table_->get_block(i);
+              auto block_filter = this->get_filter(tree_->root_, block);
+              filter_vector_[i] = block_filter.make_array();
+            });
+          }
+        }),
+        // Task 2: create the output result
+        CreateLambdaTask([this]() {
+          finish();
+        })
+    ));
+  }
 
 }
 
 void Select::finish() {
 
-  auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
-  arrow::compute::Datum filter(chunked_filter);
-  LazyTable lazy_table(table_, filter, arrow::compute::Datum());
+  std::shared_ptr<arrow::compute::Datum> filter;
+  if(use_index_){
+    filter = std::make_shared<arrow::compute::Datum>(result_filter_);
+  }else{
+    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
+    filter = std::make_shared<arrow::compute::Datum>(chunked_filter);
+  }
+
+  LazyTable lazy_table(table_, *filter, arrow::compute::Datum());
   output_result_->append(lazy_table);
 }
 

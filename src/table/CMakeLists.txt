@@ -3,7 +3,6 @@ add_library(
         table.h table.cpp
         block.h block.cpp
         util.h  util.cpp
-        Predicate.h Predicate.cpp
         Index.h)
 
 target_include_directories(hustle_src_table PUBLIC ${ARROW_INCLUDE_DIR} )

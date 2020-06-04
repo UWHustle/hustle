@@ -28,7 +28,18 @@ namespace hustle::operators {
     }
 
     void OperatorResult::append(LazyTable lazy_table) {
+      auto it = std::find(lazy_tables_.begin(), lazy_tables_.end(), lazy_table);
+      
+      if( it != lazy_tables_.end()) {
+        arrow::compute::FunctionContext function_context(
+            arrow::default_memory_pool());
+        arrow::Status status = arrow::compute::And(
+            &function_context, it->filter, lazy_table.filter,
+            &it->filter);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+      } else{
         lazy_tables_.insert(lazy_tables_.begin(),lazy_table);
+      }
     }
 
     void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {

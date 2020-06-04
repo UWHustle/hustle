@@ -6,11 +6,11 @@
 #include <table/table.h>
 #include <arrow/compute/api.h>
 
-namespace hustle::operators{
+namespace hustle::operators {
 
 struct ColumnReference {
-    std::shared_ptr<Table> table;
-    std::string col_name;
+  std::shared_ptr<Table> table;
+  std::string col_name;
 };
 
 /**
@@ -23,51 +23,65 @@ struct ColumnReference {
  * all the information necessary to materialize the active rows.
  */
 class LazyTable {
-public:
+ public:
 
-    LazyTable();
-    /**
-     * Construct a LazyTable
-     *
-     * @param table a table
-     * @param filter A Boolean ChunkedArray Datum
-     * @param indices An INT64 Array Datum
-     */
-    LazyTable(
-            std::shared_ptr<Table> table,
-            arrow::compute::Datum filter,
-            arrow::compute::Datum indices
-    );
+  LazyTable();
+  /**
+   * Construct a LazyTable
+   *
+   * @param table a table
+   * @param filter A Boolean ChunkedArray Datum
+   * @param indices An INT64 Array Datum
+   */
+  LazyTable(
+      std::shared_ptr<Table> table,
+      arrow::compute::Datum filter,
+      arrow::compute::Datum indices
+  );
 
-    /**
-     * Materialize the active rows of one column of the LazyTable. This is
-     * achieved by first applying the filter to the column and then applying
-     * the indices.
-     *
-     * @param i column index
-     * @return A new ChunkedArray column containing only active rows of the
-     * column.
-     */
-    std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+  /**
+   * Materialize the active rows of one column of the LazyTable. This is
+   * achieved by first applying the filter to the column and then applying
+   * the indices.
+   *
+   * @param i column index
+   * @return A new ChunkedArray column containing only active rows of the
+   * column.
+   */
+  std::shared_ptr<arrow::ChunkedArray> get_column(int i);
 
-    /**
-     * Materialize the active rows of one column of the LazyTable. This is
-     * achieved by first applying the filter to the column and then applying
-     * the indices.
-     *
-     * @param col_name column name
-     * @return A new ChunkedArray column containing only active rows of the
-     * column.
-     */
-    std::shared_ptr<arrow::ChunkedArray> get_column_by_name(
-            std::string col_name);
+  /**
+   * Materialize the active rows of one column of the LazyTable. This is
+   * achieved by first applying the filter to the column and then applying
+   * the indices.
+   *
+   * @param col_name column name
+   * @return A new ChunkedArray column containing only active rows of the
+   * column.
+   */
+  std::shared_ptr<arrow::ChunkedArray> get_column_by_name(
+      std::string col_name);
 
-    std::shared_ptr<Table> table;
-    arrow::compute::Datum filter; // filters are ChunkedArrays
-    arrow::compute::Datum indices; // indices are Arrays
-    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+  std::shared_ptr<Table> table;
+  arrow::compute::Datum filter; // filters are ChunkedArrays
+  arrow::compute::Datum indices; // indices are Arrays
+  std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
 
-private:
+  /**
+   * Overriding the == operator in order to use std::find over the vector of Lazy tables
+   * @param obj - The object to compare with
+   * @return true if both are same ; false otherwise
+   */
+  bool operator==(const LazyTable &obj) const;
+
+//  /**
+//   * Method to append the filter and indices datum to the existing ones
+//   * @param filter - the filter Datum
+//   * @param indices - the indices Datum
+//   */
+//  void append(arrow::compute::Datum filter, arrow::compute::Datum indices);
+
+ private:
 //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
 
 //    std::vector<bool> materialized_cols_bitmap_;

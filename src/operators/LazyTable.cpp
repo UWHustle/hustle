@@ -2,8 +2,6 @@
 // Created by Nicholas Corrado on 4/5/20.
 //
 
-#include "OperatorResult.h"
-
 #include <utility>
 #include <iostream>
 #include "table/util.h"
@@ -55,5 +53,8 @@ namespace hustle::operators{
         return out_col;
     }
 
+bool LazyTable::operator==(const LazyTable &obj) const {
+  return this->table == obj.table;
+}
 
 }
