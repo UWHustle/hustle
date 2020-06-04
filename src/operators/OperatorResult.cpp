@@ -14,16 +14,20 @@ namespace hustle::operators {
     OperatorResult::OperatorResult(
             std::vector<LazyTable> lazy_tables) {
 
-        lazy_tables_ = std::move(lazy_tables);
+        lazy_tables_ = lazy_tables;
     }
 
     OperatorResult::OperatorResult() = default;
 
     void OperatorResult::append(std::shared_ptr<Table> table) {
         LazyTable lazy_table(
-                std::move(table),
+                table,
                 arrow::compute::Datum(),
                 arrow::compute::Datum());
+        lazy_tables_.insert(lazy_tables_.begin(),lazy_table);
+    }
+
+    void OperatorResult::append(LazyTable lazy_table) {
         lazy_tables_.insert(lazy_tables_.begin(),lazy_table);
     }
 

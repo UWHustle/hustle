@@ -62,4 +62,5 @@ add_subdirectory(execution)
 if(INCLUDE_BITWEAVING)
     add_subdirectory(bitweaving)
 endif()
+add_subdirectory(ssb)
 

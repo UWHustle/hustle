@@ -7,19 +7,21 @@
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
+#include <utils/arrow_compute_wrappers.h>
 
 namespace hustle {
 namespace operators {
 
 Join::Join(
     const std::size_t query_id,
-    std::shared_ptr<OperatorResult> prev_result,
+    std::vector<std::shared_ptr<OperatorResult>> prev_result,
     std::shared_ptr<OperatorResult> output_result,
     JoinGraph graph) : Operator(query_id) {
 
-    prev_result_ = std::move(prev_result);
-    output_result_ = std::move(output_result);
-    graph_ = std::move(graph);
+    prev_result_ = std::make_shared<OperatorResult>();
+    prev_result_vec_ = prev_result;
+    output_result_ = output_result;
+    graph_ = graph;
     joined_indices_.resize(2);
 
 }
@@ -27,9 +29,8 @@ Join::Join(
 void Join::build_hash_table
     (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx) {
 
-    arrow::Status status;
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
+    // NOTE: Do not forget to clear the hash table
+    hash_table_.clear();
     hash_table_.reserve(col->length());
 
     // Precompute the row offsets of each chunk. A multithreaded build phase
@@ -43,29 +44,19 @@ void Join::build_hash_table
 
     for (int i = 0; i < col->num_chunks(); i++) {
         // Each task inserts one chunk into the hash table
-        ctx->spawnLambdaTask([this, i, col, chunk_row_offsets] {
             // TODO(nicholas): for now, we assume the join column is INT64 type.
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(
                 col->chunk(i));
 
             for (int row = 0; row < chunk->length(); row++) {
-                std::scoped_lock<std::mutex> lock(hash_table_mutex_);
                 hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
             }
-        });
     }
 }
 
 void Join::probe_hash_table
     (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx) {
-    // It would make much more sense to use an ArrayVector instead of a vector of
-    // vectors, since we can make a ChunkedArray out from an ArrayVector. But
-    // Arrow's Take function is very inefficient when the indices are in a
-    // ChunkedArray. So, we instead use a vector of vectors to store the indices,
-    // and then construct an Array from the vector of vectors.
 
-    // The indices of rows joined in chunk i are stored in
-    // new_left_indices_vector[i] and new_right_indices_vector[i]
     new_left_indices_vector.resize(probe_col->num_chunks());
     new_right_indices_vector.resize(probe_col->num_chunks());
 
@@ -145,32 +136,19 @@ std::shared_ptr<OperatorResult>
 Join::back_propogate_result(LazyTable left, LazyTable right,
                             std::vector<arrow::compute::Datum> joined_indices) {
 
-    arrow::Status status;
-
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    arrow::compute::TakeOptions take_options;
-    // Where we will store the result of calls to Take. This will be reused.
     arrow::compute::Datum new_indices;
-
     std::vector<LazyTable> output_lazy_tables;
 
     // The indices of the indices that were joined
     auto left_indices_of_indices = joined_indices_[0];
     auto right_indices_of_indices = joined_indices_[1];
 
-
     // Update the indices of the left LazyTable. If there was no previous
     // join on the left table, then left_indices_of_indices directly
     // corresponds to indices in the left table, and we do not need to
     // call Take.
     if (left.indices.kind() != arrow::compute::Datum::NONE) {
-        status = arrow::compute::Take(
-            &function_context, left.indices, left_indices_of_indices,
-            take_options,
-            &new_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        output_lazy_tables.emplace_back(left.table, left.filter, new_indices);
+        apply_indices(left.indices, left_indices_of_indices, &new_indices);
     } else {
         new_indices = left_indices_of_indices;
     }
@@ -182,10 +160,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
     // corresponds to indices in the right table, and we do not need to
     // call Take.
     if (right.indices.kind() != arrow::compute::Datum::NONE) {
-        status = arrow::compute::Take(
-            &function_context, right.indices, right_indices_of_indices,
-            take_options, &new_indices);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        apply_indices(right.indices, right_indices_of_indices, &new_indices);
     } else {
         new_indices = right_indices_of_indices;
     }
@@ -199,11 +174,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
             lazy_table.table != right.table) {
             if (lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
 
-                status = arrow::compute::Take(
-                    &function_context, lazy_table.indices,
-                    left_indices_of_indices,
-                    take_options, &new_indices);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                apply_indices(lazy_table.indices, left_indices_of_indices, &new_indices);
 
                 output_lazy_tables.emplace_back(
                     lazy_table.table, lazy_table.filter, new_indices);
@@ -213,27 +184,41 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
             }
         }
     }
+
     return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
-void Join::hash_join(LazyTable left, std::string left_col, LazyTable right,
-                     std::string right_col, Task *ctx) {
+void Join::hash_join(int i, Task *ctx) {
 
+    // Join lefts[i] with rights[i].
+    // Why pass in an index i instead of the actual left and right tables?
+    // If we pass the tables to the lambda expression by value, then updates
+    // made to the index arrays will not be seen by downstream joins. If we
+    // pass the tables by reference, then we get a nullptr exception, since
+    // the left and right tables would go out of scope before the Task can be
+    // executed. To get around this issue, we store the left and right tables
+    // in vectors and access them by index. Because the vectors are class
+    // variables (and because we pass `this` by reference), updates to the index
+    // arrays will be seen by downstream joins, and we don't have to worry about
+    // anything going out of scope.
     ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this, right, right_col](Task *internal) {
+        CreateLambdaTask([this, i](Task *internal) {
             // Build phase
-            auto right_join_col = right.get_column_by_name(right_col);
+            // TODO(nicholas):
+            auto right = prev_result_->get_table(rights[i].table);
+            auto right_join_col = right.get_column_by_name(right_col_names[i]);
             build_hash_table(right_join_col, internal);
         }),
-        CreateLambdaTask([this, left, left_col](Task *internal) {
+        CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
-            int left_join_col_index = left.table->get_schema()->GetFieldIndex(
-                left_col);
-            auto left_join_col = left.get_column(left_join_col_index);
+            auto left = prev_result_->get_table(lefts[i].table);
+            auto left_join_col = left.get_column_by_name(left_col_names[i]);
             probe_hash_table(left_join_col, internal);
         }),
-        CreateLambdaTask([this, left, right](Task *internal) {
+        CreateLambdaTask([this, i](Task *internal) {
             finish_probe();
+            auto left = prev_result_->get_table(lefts[i].table);
+            auto right = prev_result_->get_table(rights[i].table);
             // Update indices of other LazyTables in the previous OperatorResult
             prev_result_ = back_propogate_result(left, right, joined_indices_);
         })
@@ -242,18 +227,15 @@ void Join::hash_join(LazyTable left, std::string left_col, LazyTable right,
 
 void Join::execute(Task *ctx) {
 
+    for (auto &result : prev_result_vec_) {
+        prev_result_->append(result);
+    }
     // To handle a variable number of joins, we must store the tasks beforehand. The variadic CreateTaskChain
     // cannot help us here!
     std::vector<Task *> tasks;
 
-    std::vector<LazyTable> lefts;
-    std::vector<LazyTable> rights;
-    std::vector<std::string> left_col_names;
-    std::vector<std::string> right_col_names;
-
     // TODO(nicholas): For now, we assume joins have simple predicates
     //   without connective operators.
-    // TODO(nicholas): Loop over tables in adj
     auto predicates = graph_.get_predicates(0);
 
     // Loop over the join predicates and store the left/right LazyTables and the
@@ -282,10 +264,8 @@ void Join::execute(Task *ctx) {
     // Each task is one join
     for (int i = 0; i < lefts.size(); i++) {
         tasks.push_back(CreateLambdaTask(
-            [=](Task *internal) {
-                hash_join(lefts[i], left_col_names[i], rights[i],
-                          right_col_names[i],
-                          internal);
+            [this, i](Task *internal) {
+                hash_join(i, internal);
             }));
     }
 
@@ -299,7 +279,10 @@ void Join::execute(Task *ctx) {
 }
 
 void Join::finish() {
+    // Must append to output_result_ first
     output_result_->append(prev_result_);
+//    prev_result_->append(prev_result_);
+
 }
 
 } // namespace operators

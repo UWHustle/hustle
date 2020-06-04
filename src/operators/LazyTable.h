@@ -48,7 +48,7 @@ public:
      * @return A new ChunkedArray column containing only active rows of the
      * column.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_column(int i) const;
+    std::shared_ptr<arrow::ChunkedArray> get_column(int i);
 
     /**
      * Materialize the active rows of one column of the LazyTable. This is
@@ -60,13 +60,17 @@ public:
      * column.
      */
     std::shared_ptr<arrow::ChunkedArray> get_column_by_name(
-            std::string col_name) const;
+            std::string col_name);
 
-    // TODO(nicholas): Should these be private? Should I have accessors
-    //  for these instead?
     std::shared_ptr<Table> table;
     arrow::compute::Datum filter; // filters are ChunkedArrays
     arrow::compute::Datum indices; // indices are Arrays
+    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+
+private:
+//    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+
+//    std::vector<bool> materialized_cols_bitmap_;
 };
 
 }

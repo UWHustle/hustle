@@ -1,0 +1,102 @@
+ d_year |    s_nation     | p_category |   profit
+--------+-----------------+------------+------------
+   1997 | ARGENTINA       | MFGR#11    |  929897316
+   1997 | ARGENTINA       | MFGR#12    |  947524356
+   1997 | ARGENTINA       | MFGR#13    |  997746491
+   1997 | ARGENTINA       | MFGR#14    |  998952602
+   1997 | ARGENTINA       | MFGR#15    |  962016785
+   1997 | ARGENTINA       | MFGR#21    | 1039601095
+   1997 | ARGENTINA       | MFGR#22    |  896595829
+   1997 | ARGENTINA       | MFGR#23    | 1056358940
+   1997 | ARGENTINA       | MFGR#24    |  916837741
+   1997 | ARGENTINA       | MFGR#25    | 1030652521
+   1997 | BRAZIL          | MFGR#11    | 1100015860
+   1997 | BRAZIL          | MFGR#12    | 1015804913
+   1997 | BRAZIL          | MFGR#13    | 1155980565
+   1997 | BRAZIL          | MFGR#14    | 1223367657
+   1997 | BRAZIL          | MFGR#15    | 1122832898
+   1997 | BRAZIL          | MFGR#21    |  934274218
+   1997 | BRAZIL          | MFGR#22    | 1018969351
+   1997 | BRAZIL          | MFGR#23    | 1134979608
+   1997 | BRAZIL          | MFGR#24    | 1084326343
+   1997 | BRAZIL          | MFGR#25    | 1019954801
+   1997 | CANADA          | MFGR#11    |  877119002
+   1997 | CANADA          | MFGR#12    |  962591157
+   1997 | CANADA          | MFGR#13    |  983477504
+   1997 | CANADA          | MFGR#14    | 1027244118
+   1997 | CANADA          | MFGR#15    |  869212851
+   1997 | CANADA          | MFGR#21    | 1024442029
+   1997 | CANADA          | MFGR#22    |  798968074
+   1997 | CANADA          | MFGR#23    |  951113009
+   1997 | CANADA          | MFGR#24    |  872870984
+   1997 | CANADA          | MFGR#25    |  928264321
+   1997 | PERU            | MFGR#11    | 1127139861
+   1997 | PERU            | MFGR#12    | 1020049469
+   1997 | PERU            | MFGR#13    |  870292188
+   1997 | PERU            | MFGR#14    |  970878227
+   1997 | PERU            | MFGR#15    | 1024148361
+   1997 | PERU            | MFGR#21    |  891013129
+   1997 | PERU            | MFGR#22    | 1014012256
+   1997 | PERU            | MFGR#23    | 1093664535
+   1997 | PERU            | MFGR#24    |  958861853
+   1997 | PERU            | MFGR#25    | 1006606268
+   1997 | UNITED STATES   | MFGR#11    | 1073451151
+   1997 | UNITED STATES   | MFGR#12    |  932491085
+   1997 | UNITED STATES   | MFGR#13    | 1123698681
+   1997 | UNITED STATES   | MFGR#14    |  957822931
+   1997 | UNITED STATES   | MFGR#15    |  987775228
+   1997 | UNITED STATES   | MFGR#21    | 1025830497
+   1997 | UNITED STATES   | MFGR#22    | 1103063430
+   1997 | UNITED STATES   | MFGR#23    |  961354541
+   1997 | UNITED STATES   | MFGR#24    | 1029160032
+   1997 | UNITED STATES   | MFGR#25    | 1077658116
+   1998 | ARGENTINA       | MFGR#11    |  582337502
+   1998 | ARGENTINA       | MFGR#12    |  539974048
+   1998 | ARGENTINA       | MFGR#13    |  597645658
+   1998 | ARGENTINA       | MFGR#14    |  537245596
+   1998 | ARGENTINA       | MFGR#15    |  536517460
+   1998 | ARGENTINA       | MFGR#21    |  517818356
+   1998 | ARGENTINA       | MFGR#22    |  519378406
+   1998 | ARGENTINA       | MFGR#23    |  574974702
+   1998 | ARGENTINA       | MFGR#24    |  537455697
+   1998 | ARGENTINA       | MFGR#25    |  562506328
+   1998 | BRAZIL          | MFGR#11    |  655393550
+   1998 | BRAZIL          | MFGR#12    |  662247665
+   1998 | BRAZIL          | MFGR#13    |  672718683
+   1998 | BRAZIL          | MFGR#14    |  566789499
+   1998 | BRAZIL          | MFGR#15    |  682626723
+   1998 | BRAZIL          | MFGR#21    |  685591439
+   1998 | BRAZIL          | MFGR#22    |  607079625
+   1998 | BRAZIL          | MFGR#23    |  708128337
+   1998 | BRAZIL          | MFGR#24    |  577274119
+   1998 | BRAZIL          | MFGR#25    |  721807865
+   1998 | CANADA          | MFGR#11    |  522274384
+   1998 | CANADA          | MFGR#12    |  500587199
+   1998 | CANADA          | MFGR#13    |  499206678
+   1998 | CANADA          | MFGR#14    |  540934379
+   1998 | CANADA          | MFGR#15    |  548860770
+   1998 | CANADA          | MFGR#21    |  467476343
+   1998 | CANADA          | MFGR#22    |  608463567
+   1998 | CANADA          | MFGR#23    |  588950648
+   1998 | CANADA          | MFGR#24    |  523192587
+   1998 | CANADA          | MFGR#25    |  561233419
+   1998 | PERU            | MFGR#11    |  581607230
+   1998 | PERU            | MFGR#12    |  554327894
+   1998 | PERU            | MFGR#13    |  605585363
+   1998 | PERU            | MFGR#14    |  493838375
+   1998 | PERU            | MFGR#15    |  583736720
+   1998 | PERU            | MFGR#21    |  547604099
+   1998 | PERU            | MFGR#22    |  541543392
+   1998 | PERU            | MFGR#23    |  652005096
+   1998 | PERU            | MFGR#24    |  603963850
+   1998 | PERU            | MFGR#25    |  556476175
+   1998 | UNITED STATES   | MFGR#11    |  571541071
+   1998 | UNITED STATES   | MFGR#12    |  627200894
+   1998 | UNITED STATES   | MFGR#13    |  637164304
+   1998 | UNITED STATES   | MFGR#14    |  569059315
+   1998 | UNITED STATES   | MFGR#15    |  538626821
+   1998 | UNITED STATES   | MFGR#21    |  576541147
+   1998 | UNITED STATES   | MFGR#22    |  594975583
+   1998 | UNITED STATES   | MFGR#23    |  672971145
+   1998 | UNITED STATES   | MFGR#24    |  553236918
+   1998 | UNITED STATES   | MFGR#25    |  604510724

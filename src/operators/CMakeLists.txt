@@ -7,13 +7,17 @@ add_library(
         JoinGraph.cpp JoinGraph.h
         LazyTable.cpp LazyTable.h
         Operator.h
-        )
+        LIP.cpp LIP.h
+        ../utils/BloomFilter.cpp ../utils/BloomFilter.h
+        ../utils/xxHash.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
         hustle_src_bitweaving
+        hustle_src_utils_EventProfiler
+        hustle_src_utils_ArrowComputeWrappers
         ${ARROW_SHARED_LIB}
 )
 
@@ -60,19 +64,5 @@ target_link_libraries(hustle_select_test
         hustle_src_scheduler_Scheduler
         )
 add_test(HustleSelect_test hustle_select_test)
-
-add_executable(hustle_SSB_test "tests/SSBTest.cpp")
-target_link_libraries(hustle_SSB_test
-        gtest
-        gtest_main
-        gmock
-#        glog
-        ${GFLAGS_LIB_NAME}
-        hustle_src_table
-        hustle_src_operators
-        hustle_src_optimizer_ExecutionPlan
-        hustle_src_scheduler_Scheduler
-        )
-#add_test(HustleSSB_test hustle_SSB_test)
 
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
