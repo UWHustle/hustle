@@ -24,6 +24,7 @@
 #include <bitweaving/rdtsc.h>
 #include <operators/Aggregate.h>
 #include <execution/ExecutionPlan.hpp>
+#include <bitweaving/bitweaving_index.h>
 #include "scheduler/Scheduler.hpp"
 
 #include "bitweaving/bitweaving_util.h"
@@ -275,12 +276,16 @@ TEST(BitweavingTest, ArrowComparePerfTest) {
     std::vector<std::string> schema = {"discount"};
 
     std::shared_ptr<Table> single_col_table =
-        read_from_file("/Users/sandhyakannan/Masters/RA/Project/Arrow-Bitweaving/cpp/data/large_single_column.hsl");
+        read_from_file("/Users/sandhyakannan/Masters/RA/Project/Arrow-Bitweaving/cpp/data/single_column.hsl");
 
-//            std::shared_ptr<Table> single_col_table = build_table("./data/test.csv",
-//                                                                  arrow::default_memory_pool(), schema);
+//    std::shared_ptr<Table> single_col_table =
+//        read_from_csv_file("/Users/sandhyakannan/Masters/RA/Project/Arrow-Bitweaving/cpp/data/large_single_column.hsl",
+//        schema);
 //
-//            write_to_file("./data/single_column.hsl", single_col_table);
+//    write_to_file("./data/single_column.hsl", *single_col_table);
+
+  Index *index = new BitweavingIndex(IndexType::BitweavingIndex);
+  index->createIndex(single_col_table, {"discount"});
 
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     arrow::Status status;
@@ -306,7 +311,7 @@ TEST(BitweavingTest, ArrowComparePerfTest) {
 
     auto result = std::make_shared<OperatorResult>();
 
-    Select select_op(0, select_result, result, select_pred_tree);
+    Select select_op(0, select_result, result, select_pred_tree, true);
 
     Scheduler &scheduler = Scheduler::GlobalInstance();
     scheduler.addTask(select_op.createTask());
@@ -489,10 +494,11 @@ TEST_F(BitweavingTestBase, SSBQ1_1Arrow) {
     auto date_select_result = std::make_shared<OperatorResult>();
     date_select_result->append(date);
 
-    auto select_result_out = std::make_shared<OperatorResult>();
+    auto select_result_out_1 = std::make_shared<OperatorResult>();
+    Select lo_select_op(0, lo_select_result, select_result_out_1, lineorder_pred_tree);
 
-    Select lo_select_op(0, lo_select_result, select_result_out, lineorder_pred_tree);
-    Select date_select_op(0, date_select_result, select_result_out, date_pred_tree, true);
+  auto select_result_out_2 = std::make_shared<OperatorResult>();
+  Select date_select_op(0, date_select_result, select_result_out_2, date_pred_tree, true);
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -507,7 +513,7 @@ TEST_F(BitweavingTestBase, SSBQ1_1Arrow) {
 
     JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
     JoinGraph graph({{join_pred}});
-    Join join_op(0, {select_result_out}, join_result, graph);
+    Join join_op(0, {select_result_out_1, select_result_out_2}, join_result, graph);
 
     auto agg_result = std::make_shared<OperatorResult>();
     AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", {lineorder, "revenue"}};

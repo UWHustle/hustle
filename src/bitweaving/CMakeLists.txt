@@ -52,3 +52,4 @@ target_link_libraries(hustle_bitweaving_test
         hustle_src_scheduler_Scheduler
         hustle_src_bitweaving
         )
+add_test(Hustle_bitweaving_test hustle_bitweaving_test)
