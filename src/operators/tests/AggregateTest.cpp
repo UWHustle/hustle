@@ -11,7 +11,6 @@
 #include "operators/Select.h"
 #include "scheduler/Scheduler.hpp"
 
-#include <arrow/compute/kernels/filter.h>
 #include <fstream>
 
 using namespace testing;
@@ -19,7 +18,7 @@ using namespace hustle::operators;
 using namespace hustle;
 
 
-class JoinTestFixture : public testing::Test {
+class AggregateTestFixture : public testing::Test {
 protected:
 
     std::shared_ptr<arrow::Schema> schema;
@@ -79,7 +78,7 @@ protected:
  * SELECT avg(R.data) as data_mean
  * FROM R
  */
-TEST_F(JoinTestFixture, MeanTest) {
+TEST_F(AggregateTestFixture, MeanTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
@@ -115,7 +114,7 @@ TEST_F(JoinTestFixture, MeanTest) {
  * SELECT sum(R.data) as data_sum
  * FROM R
  */
-TEST_F(JoinTestFixture, SumTest) {
+TEST_F(AggregateTestFixture, SumTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
@@ -150,7 +149,7 @@ TEST_F(JoinTestFixture, SumTest) {
  * FROM R
  * WHERE R.group == "R0"
  */
-TEST_F(JoinTestFixture, SumWithSelectTest) {
+TEST_F(AggregateTestFixture, SumWithSelectTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
@@ -205,7 +204,7 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
  * FROM R
  * GROUP BY R.group
  */
-TEST_F(JoinTestFixture, SumWithGroupByTest) {
+TEST_F(AggregateTestFixture, SumWithGroupByTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
@@ -262,7 +261,7 @@ TEST_F(JoinTestFixture, SumWithGroupByTest) {
  * GROUP BY R.group
  * ORDER BY R.group
  */
-TEST_F(JoinTestFixture, SumWithGroupByOrderByTest) {
+TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
