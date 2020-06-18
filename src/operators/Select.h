@@ -62,7 +62,7 @@ private:
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
-    arrow::compute::Datum get_filter(const std::shared_ptr<Node> &node,
+    arrow::Datum get_filter(const std::shared_ptr<Node> &node,
                                      const std::shared_ptr<Block> &block);
 
     /**
@@ -77,7 +77,7 @@ private:
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
-    arrow::compute::Datum get_filter(
+    arrow::Datum get_filter(
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
 

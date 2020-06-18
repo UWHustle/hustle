@@ -30,7 +30,7 @@ Select::Select(
     table_ = node->predicate_->col_ref_.table;
 }
 
-arrow::compute::Datum
+arrow::Datum
 Select::get_filter(const std::shared_ptr<Node> &node,
                    const std::shared_ptr<Block> &block) {
 
@@ -42,22 +42,17 @@ Select::get_filter(const std::shared_ptr<Node> &node,
     auto left_child_filter = get_filter(node->left_child_, block);
     auto right_child_filter = get_filter(node->right_child_, block);
 
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
-    arrow::compute::Datum block_filter;
+    arrow::compute::ExecContext exec_context;
+    arrow::Datum block_filter;
 
     switch (node->connective_) {
         case AND: {
-            status = arrow::compute::And(
-                &function_context, left_child_filter, right_child_filter,
-                &block_filter);
+            status = arrow::compute::And(left_child_filter, right_child_filter).Value(&block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case OR: {
-            status = arrow::compute::Or(
-                &function_context, left_child_filter, right_child_filter,
-                &block_filter);
+            status = arrow::compute::Or(left_child_filter, right_child_filter).Value(&block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
@@ -96,27 +91,24 @@ void Select::execute(Task *ctx) {
 void Select::finish() {
 
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
-    arrow::compute::Datum filter(chunked_filter);
-    LazyTable lazy_table(table_, filter, arrow::compute::Datum());
+    arrow::Datum filter(chunked_filter);
+    LazyTable lazy_table(table_, filter, arrow::Datum());
     output_result_->append(lazy_table);
 }
 
-arrow::compute::Datum Select::get_filter(
+arrow::Datum Select::get_filter(
     const std::shared_ptr<Predicate> &predicate,
     const std::shared_ptr<Block> &block) {
 
     arrow::Status status;
-
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
+    
     arrow::compute::CompareOptions compare_options(predicate->comparator_);
-    arrow::compute::Datum block_filter;
+    arrow::Datum block_filter;
 
     auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
     auto value = predicate->value_;
 
-    status = arrow::compute::Compare(
-        &function_context, select_col, value, compare_options, &block_filter);
+    status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     return block_filter;
