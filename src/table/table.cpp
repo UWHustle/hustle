@@ -190,8 +190,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             for (int i=0; i<column_data.size(); i++) {
                 // Note that row is equal to the index of the first record we
                 // cannot fit in the block.
-                auto sliced_data = std::make_shared<arrow::ArrayData>
-                        (column_data[i]->Slice(offset,row-offset));
+                auto sliced_data = column_data[i]->Slice(offset,row-offset);
                 sliced_column_data.push_back(sliced_data);
             }
 
@@ -213,8 +212,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     for (int i=0; i<column_data.size(); i++) {
         // Note that row is equal to the index of the first record we
         // cannot fit in the block.
-        auto sliced_data = std::make_shared<arrow::ArrayData>
-                (column_data[i]->Slice(offset,l-offset));
+        auto sliced_data = column_data[i]->Slice(offset,l-offset);
         sliced_column_data.push_back(sliced_data);
     }
     block->insert_records(sliced_column_data);
