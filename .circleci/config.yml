@@ -5,13 +5,14 @@ jobs:
       image: 'ubuntu-1604:201903-01'
     steps:
       - checkout
-      - restore_cache:
-            keys: my-cache
+#      - restore_cache:
+#            keys: my-cache
       - run: ./install_requirements.sh
       - run: ./install_arrow.sh
       - save_cache:
             key: my-cache
             paths:
+              - arrow
               - cmake-3.15.5
       - run: mkdir build
       - run: (cd build && ../cmake-3.15.5/bin/cmake .. )
