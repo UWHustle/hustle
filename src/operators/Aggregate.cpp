@@ -7,7 +7,6 @@
 
 #include <table/util.h>
 #include <iostream>
-#include <utils/arrow_compute_wrappers.h>
 
 
 namespace hustle::operators {

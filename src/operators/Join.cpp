@@ -5,7 +5,6 @@
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
-#include <utils/arrow_compute_wrappers.h>
 
 namespace hustle {
 namespace operators {

@@ -8,7 +8,6 @@
 #include <iostream>
 #include "table/util.h"
 #include "LazyTable.h"
-#include "utils/arrow_compute_wrappers.h"
 
 namespace hustle::operators{
 
