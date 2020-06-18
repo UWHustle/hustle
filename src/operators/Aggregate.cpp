@@ -294,11 +294,14 @@ void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate) {
 arrow::Datum Aggregate::get_unique_values(
     const ColumnReference& group_ref) {
 
+    arrow::Status status;
     auto group_by_col = group_by_cols_[group_ref.col_name];
 
     // Get the unique values in group_by_col
     arrow::Datum unique_values;
-    unique(group_by_col, &unique_values);
+    status = arrow::compute::Unique(group_by_col).Value(&unique_values);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
 
     return unique_values;
 }
@@ -306,8 +309,10 @@ arrow::Datum Aggregate::get_unique_values(
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     (const ColumnReference& group_ref, arrow::Datum value) {
 
+    arrow::Status status;
     arrow::Datum out_filter;
     arrow::ArrayVector filter_vector;
+    arrow::compute::CompareOptions compare_options(arrow::compute::EQUAL);
 
     auto group_by_col = group_by_cols_[group_ref.col_name];
 
@@ -315,7 +320,8 @@ std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
     for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
         auto block_col = group_by_col->chunk(i);
-        compare(block_col, value, arrow::compute::CompareOperator::EQUAL, &out_filter);
+        status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
+        evaluate_status(status, __FUNCTION__, __LINE__);
 
         filter_vector.push_back(out_filter.make_array());
     }
@@ -427,11 +433,13 @@ void Aggregate::compute_group_aggregate(
     const std::vector<int>& group_id,
     arrow::Datum agg_col) {
 
+    arrow::Status status;
     auto group_filter = get_group_filter(group_id);
 
     // Apply group filter to the aggregate column
     if (group_filter.kind() != arrow::Datum::NONE) {
-        apply_filter(agg_col, group_filter, &agg_col);
+        status = arrow::compute::Filter(agg_col, group_filter).Value(&agg_col);
+        evaluate_status(status, __FUNCTION__, __LINE__);
     }
 
     if (agg_col.length() > 0) {
@@ -544,7 +552,7 @@ void Aggregate::sort() {
     }
 
     arrow::Datum sorted_indices;
-
+    arrow::Status status;
     // If we are sorting after computing all aggregates, we evaluate the ORDER BY
     // clause in reverse order.
     for (int i=order_by_refs_.size()-1; i>=0; i--) {
@@ -554,15 +562,22 @@ void Aggregate::sort() {
         // A nullptr indicates that we are sorting by the aggregate column
         // TODO(nicholas): better way to indicate we want to sort the aggregate?
         if (order_ref.table == nullptr) {
-            sort_to_indices(aggregates_, &sorted_indices);
+            status = arrow::compute::SortToIndices(*aggregates_.make_array()).Value(&sorted_indices);
+            evaluate_status(status, __FUNCTION__, __LINE__);
         } else {
             auto group = groups_[order_to_group[i]];
-            sort_to_indices(group, &sorted_indices);
+            status = arrow::compute::SortToIndices(*group.make_array()).Value(&sorted_indices);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+
         }
-        apply_indices(aggregates_, sorted_indices, &aggregates_);
+        status = arrow::compute::Take(aggregates_, sorted_indices).Value(&aggregates_);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+
 
         for (auto &group: groups_) {
-            apply_indices(group, sorted_indices, &group);
+            status = arrow::compute::Take(group, sorted_indices).Value(&group);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+
         }
     }
 }

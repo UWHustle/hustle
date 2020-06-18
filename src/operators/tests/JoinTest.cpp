@@ -6,13 +6,9 @@
 
 #include <table/block.h>
 #include <table/util.h>
-#include "operators/Aggregate.h"
 #include "operators/Join.h"
 #include "operators/Select.h"
 #include "scheduler/Scheduler.hpp"
-
-
-#include <arrow/compute/kernels/filter.h>
 #include <fstream>
 
 using namespace testing;
