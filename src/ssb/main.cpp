@@ -1,6 +1,7 @@
 #include "ssb_workload.h"
 #include "../table/util.h"
 using namespace hustle::operators;
+using namespace std::chrono;
 
 void read_from_csv() {
 
@@ -175,6 +176,8 @@ int main(int argc, char *argv[]) {
 
     SSB workload(1, false);
 
+    auto t1 = high_resolution_clock::now();
+
     workload.q11();
     workload.q12();
     workload.q13();
@@ -192,6 +195,8 @@ int main(int argc, char *argv[]) {
     workload.q42();
     workload.q43();
 
+    auto t2 = high_resolution_clock::now();
+    std::cout << duration_cast<milliseconds>(t2-t1).count() << std::endl;
 //    workload.q11_lip();
 //    workload.q12_lip();
 //    workload.q13_lip();
