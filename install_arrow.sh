@@ -2,7 +2,7 @@ if [ ! -d "arrow" ]
 then
   git clone https://github.com/apache/arrow.git
   cd arrow
-  git checkout d5dfa0ec083163f5d4b62dd35d9c305bdcb856b2
+  git checkout 4d99ec48a0f36531124a368afe7818b56e25dfb3
   cd cpp
   mkdir release
   cd release
