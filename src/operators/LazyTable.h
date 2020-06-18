@@ -36,8 +36,8 @@ public:
      */
     LazyTable(
             std::shared_ptr<Table> table,
-            arrow::compute::Datum filter,
-            arrow::compute::Datum indices
+            arrow::Datum filter,
+            arrow::Datum indices
     );
 
     /**
@@ -64,8 +64,8 @@ public:
             std::string col_name);
 
     std::shared_ptr<Table> table;
-    arrow::compute::Datum filter; // filters are ChunkedArrays
-    arrow::compute::Datum indices; // indices are Arrays
+    arrow::Datum filter; // filters are ChunkedArrays
+    arrow::Datum indices; // indices are Arrays
     std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
 
 private:
