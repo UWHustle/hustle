@@ -192,20 +192,20 @@ int main(int argc, char *argv[]) {
     workload.q42();
     workload.q43();
 
-    workload.q11_lip();
-    workload.q12_lip();
-    workload.q13_lip();
-
-    workload.q21_lip();
-    workload.q22_lip();
-    workload.q23_lip();
-
-    workload.q31_lip();
-    workload.q32_lip();
-    workload.q33_lip();
-    workload.q34_lip();
-
-    workload.q41_lip();
-    workload.q42_lip();
-    workload.q43_lip();
+//    workload.q11_lip();
+//    workload.q12_lip();
+//    workload.q13_lip();
+//
+//    workload.q21_lip();
+//    workload.q22_lip();
+//    workload.q23_lip();
+//
+//    workload.q31_lip();
+//    workload.q32_lip();
+//    workload.q33_lip();
+//    workload.q34_lip();
+//
+//    workload.q41_lip();
+//    workload.q42_lip();
+//    workload.q43_lip();
 }

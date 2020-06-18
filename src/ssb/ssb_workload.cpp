@@ -102,7 +102,7 @@ void SSB::q11() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1)
+        arrow::Datum((int64_t) 1)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -113,7 +113,7 @@ void SSB::q11() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 3)
+        arrow::Datum((int64_t) 3)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -130,7 +130,7 @@ void SSB::q11() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS,
-        arrow::compute::Datum((int64_t) 25)
+        arrow::Datum((int64_t) 25)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -150,7 +150,7 @@ void SSB::q11() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1993)
+        arrow::Datum((int64_t) 1993)
     };
     auto year_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -211,7 +211,7 @@ void SSB::q12() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 4)
+        arrow::Datum((int64_t) 4)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -222,7 +222,7 @@ void SSB::q12() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 6)
+        arrow::Datum((int64_t) 6)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -239,7 +239,7 @@ void SSB::q12() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 26)
+        arrow::Datum((int64_t) 26)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -250,7 +250,7 @@ void SSB::q12() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 35)
+        arrow::Datum((int64_t) 35)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -276,7 +276,7 @@ void SSB::q12() {
         {d,
          "year month num"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 199401)
+        arrow::Datum((int64_t) 199401)
     };
     auto year_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -340,7 +340,7 @@ void SSB::q13() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 5)
+        arrow::Datum((int64_t) 5)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -351,7 +351,7 @@ void SSB::q13() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 7)
+        arrow::Datum((int64_t) 7)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -368,7 +368,7 @@ void SSB::q13() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 26)
+        arrow::Datum((int64_t) 26)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -379,7 +379,7 @@ void SSB::q13() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 35)
+        arrow::Datum((int64_t) 35)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -404,7 +404,7 @@ void SSB::q13() {
         {d,
          "week num in year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 6)
+        arrow::Datum((int64_t) 6)
     };
     auto d_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -415,7 +415,7 @@ void SSB::q13() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1994)
+        arrow::Datum((int64_t) 1994)
     };
     auto d_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -485,7 +485,7 @@ void SSB::q21() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto s_pred_node_1 =
@@ -499,7 +499,7 @@ void SSB::q21() {
         {p,
          "category"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#12"))
     };
     auto p_pred_node_1 =
@@ -570,7 +570,7 @@ void SSB::q22() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
     };
     auto s_pred_node_1 =
@@ -584,7 +584,7 @@ void SSB::q22() {
         {p,
          "brand1"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2221"))
     };
     auto p_pred_node_1 =
@@ -595,7 +595,7 @@ void SSB::q22() {
         {p,
          "brand1"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2228"))
     };
     auto p_pred_node_2 =
@@ -673,7 +673,7 @@ void SSB::q23() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("EUROPE"))
     };
     auto s_pred_node_1 =
@@ -687,7 +687,7 @@ void SSB::q23() {
         {p,
          "brand1"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2221"))
     };
     auto p_pred_node_1 =
@@ -758,7 +758,7 @@ void SSB::q31() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1992)
+        arrow::Datum((int64_t) 1992)
     };
 
     auto d_pred_node_1 =
@@ -769,7 +769,7 @@ void SSB::q31() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_2 =
@@ -789,7 +789,7 @@ void SSB::q31() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
     };
     auto s_pred_node_1 =
@@ -802,7 +802,7 @@ void SSB::q31() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
     };
     auto c_pred_node_1 =
@@ -870,7 +870,7 @@ void SSB::q32() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1992)
+        arrow::Datum((int64_t) 1992)
     };
 
     auto d_pred_node_1 =
@@ -881,7 +881,7 @@ void SSB::q32() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_2 =
@@ -901,7 +901,7 @@ void SSB::q32() {
         {s,
          "s nation"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
     };
     auto s_pred_node_1 =
@@ -914,7 +914,7 @@ void SSB::q32() {
         {c,
          "c nation"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
     };
     auto c_pred_node_1 =
@@ -981,7 +981,7 @@ void SSB::q33() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1992)
+        arrow::Datum((int64_t) 1992)
     };
 
     auto d_pred_node_1 =
@@ -992,7 +992,7 @@ void SSB::q33() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_2 =
@@ -1012,7 +1012,7 @@ void SSB::q33() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -1024,7 +1024,7 @@ void SSB::q33() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -1045,7 +1045,7 @@ void SSB::q33() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -1057,7 +1057,7 @@ void SSB::q33() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -1132,7 +1132,7 @@ void SSB::q34() {
         {d,
          "year month"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("Dec1997"))
     };
 
@@ -1146,7 +1146,7 @@ void SSB::q34() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -1158,7 +1158,7 @@ void SSB::q34() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -1179,7 +1179,7 @@ void SSB::q34() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -1191,7 +1191,7 @@ void SSB::q34() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -1266,7 +1266,7 @@ void SSB::q41() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto s_pred_node_1 =
@@ -1279,7 +1279,7 @@ void SSB::q41() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto c_pred_node_1 =
@@ -1292,7 +1292,7 @@ void SSB::q41() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#1"))
     };
     auto p_pred_node_1 =
@@ -1303,7 +1303,7 @@ void SSB::q41() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2"))
     };
     auto p_pred_node_2 =
@@ -1382,7 +1382,7 @@ void SSB::q42() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_1 =
@@ -1393,7 +1393,7 @@ void SSB::q42() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1998)
+        arrow::Datum((int64_t) 1998)
     };
 
     auto d_pred_node_2 =
@@ -1413,7 +1413,7 @@ void SSB::q42() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto s_pred_node_1 =
@@ -1426,7 +1426,7 @@ void SSB::q42() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto c_pred_node_1 =
@@ -1439,7 +1439,7 @@ void SSB::q42() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#1"))
     };
     auto p_pred_node_1 =
@@ -1450,7 +1450,7 @@ void SSB::q42() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2"))
     };
     auto p_pred_node_2 =
@@ -1529,7 +1529,7 @@ void SSB::q43() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_1 =
@@ -1540,7 +1540,7 @@ void SSB::q43() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1998)
+        arrow::Datum((int64_t) 1998)
     };
 
     auto d_pred_node_2 =
@@ -1560,7 +1560,7 @@ void SSB::q43() {
         {s,
          "s nation"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
     };
     auto s_pred_node_1 =
@@ -1573,7 +1573,7 @@ void SSB::q43() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto c_pred_node_1 =
@@ -1586,7 +1586,7 @@ void SSB::q43() {
         {p,
          "category"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#14"))
     };
     auto p_pred_node_1 =
