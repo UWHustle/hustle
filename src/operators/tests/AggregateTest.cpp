@@ -160,7 +160,7 @@ TEST_F(JoinTestFixture, SumWithSelectTest) {
     auto select_pred = Predicate{
         {R, "group"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R0"))
+        arrow::Datum(std::make_shared<arrow::StringScalar>("R0"))
     };
 
     auto select_pred_node =

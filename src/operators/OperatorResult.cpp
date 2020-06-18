@@ -22,8 +22,8 @@ namespace hustle::operators {
     void OperatorResult::append(std::shared_ptr<Table> table) {
         LazyTable lazy_table(
                 table,
-                arrow::compute::Datum(),
-                arrow::compute::Datum());
+                arrow::Datum(),
+                arrow::Datum());
         lazy_tables_.insert(lazy_tables_.begin(),lazy_table);
     }
 

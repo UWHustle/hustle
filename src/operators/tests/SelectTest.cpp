@@ -6,12 +6,9 @@
 
 #include <table/block.h>
 #include <table/util.h>
-//#include "operators/Aggregate.h"
-#include "operators/Join.h"
 #include "operators/Select.h"
 #include "execution/ExecutionPlan.hpp"
 
-#include <arrow/compute/kernels/filter.h>
 #include <fstream>
 #include <scheduler/Scheduler.hpp>
 
@@ -21,7 +18,7 @@ using namespace testing;
 using namespace hustle;
 using namespace hustle::operators;
 
-class JoinTestFixture : public testing::Test {
+class SelectTestFixture : public testing::Test {
 protected:
 
     std::shared_ptr<arrow::Schema> schema;
@@ -76,7 +73,7 @@ protected:
  * FROM R
  * WHERE R.group >= "R1"
  */
-TEST_F(JoinTestFixture, SingleSelectTest) {
+TEST_F(SelectTestFixture, SingleSelectTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
@@ -87,7 +84,7 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
     auto select_pred = Predicate{
             {R, "group"},
             arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R1"))
+            arrow::Datum(std::make_shared<arrow::StringScalar>("R1"))
     };
 
     auto select_pred_node =
@@ -134,7 +131,7 @@ TEST_F(JoinTestFixture, SingleSelectTest) {
  * WHERE R.group >= "R1" AND
  *       R.data <= 30
  */
-TEST_F(JoinTestFixture, AndSelectTest) {
+TEST_F(SelectTestFixture, AndSelectTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
@@ -145,7 +142,7 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     auto select_pred_1 = Predicate{
             {R, "group"},
             arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R1"))
+            arrow::Datum(std::make_shared<arrow::StringScalar>("R1"))
     };
 
     auto select_pred_node_1 =
@@ -157,7 +154,7 @@ TEST_F(JoinTestFixture, AndSelectTest) {
     auto select_pred_2 = Predicate{
             {R, "data"},
             arrow::compute::CompareOperator::LESS_EQUAL,
-            arrow::compute::Datum((int64_t) 30)
+            arrow::Datum((int64_t) 30)
     };
 
     auto select_pred_node_2 =
@@ -210,7 +207,7 @@ TEST_F(JoinTestFixture, AndSelectTest) {
  * WHERE R.group >= "R1" OR
  *       R.data == 0
  */
-TEST_F(JoinTestFixture, OrSelectTest) {
+TEST_F(SelectTestFixture, OrSelectTest) {
 
     R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
@@ -221,7 +218,7 @@ TEST_F(JoinTestFixture, OrSelectTest) {
     auto select_pred_1 = Predicate{
             {R, "group"},
             arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R1"))
+            arrow::Datum(std::make_shared<arrow::StringScalar>("R1"))
     };
 
     auto select_pred_node_1 =
@@ -233,7 +230,7 @@ TEST_F(JoinTestFixture, OrSelectTest) {
     auto select_pred_2 = Predicate{
             {R, "data"},
             arrow::compute::CompareOperator::EQUAL,
-            arrow::compute::Datum((int64_t) 0)
+            arrow::Datum((int64_t) 0)
     };
 
     auto select_pred_node_2 =
@@ -285,7 +282,7 @@ TEST_F(JoinTestFixture, OrSelectTest) {
  * FROM R
  * WHERE R.group >= "R1"
  */
-TEST_F(JoinTestFixture, SingleSelectManyBlocksTest) {
+TEST_F(SelectTestFixture, SingleSelectManyBlocksTest) {
 
     R = read_from_csv_file("S.csv", schema, BLOCK_SIZE);
 
@@ -296,7 +293,7 @@ TEST_F(JoinTestFixture, SingleSelectManyBlocksTest) {
     auto select_pred = Predicate{
             {R, "group"},
             arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R1"))
+            arrow::Datum(std::make_shared<arrow::StringScalar>("R1"))
     };
 
     auto select_pred_node =
@@ -344,7 +341,7 @@ TEST_F(JoinTestFixture, SingleSelectManyBlocksTest) {
  * WHERE R.group >= "R1" AND
  *       R.data <= 30
  */
-TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
+TEST_F(SelectTestFixture, AndSelectManyBlocksTest) {
 
     R = read_from_csv_file("S.csv", schema, BLOCK_SIZE);
 
@@ -355,7 +352,7 @@ TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
     auto select_pred_1 = Predicate{
             {R, "group"},
             arrow::compute::CompareOperator::GREATER_EQUAL,
-            arrow::compute::Datum(std::make_shared<arrow::StringScalar>("R1"))
+            arrow::Datum(std::make_shared<arrow::StringScalar>("R1"))
     };
 
     auto select_pred_node_1 =
@@ -367,7 +364,7 @@ TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
     auto select_pred_2 = Predicate{
             {R, "data"},
             arrow::compute::CompareOperator::LESS_EQUAL,
-            arrow::compute::Datum((int64_t) 30)
+            arrow::Datum((int64_t) 30)
     };
 
     auto select_pred_node_2 =

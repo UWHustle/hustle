@@ -83,7 +83,7 @@ private:
 
     // joined_indices[0] = new_left_indices_vector stored as an Array
     // joined_indices[1] = new_right_indices_vector stored as an Array
-    std::vector<arrow::compute::Datum> joined_indices_;
+    std::vector<arrow::Datum> joined_indices_;
 
 
     /**
@@ -138,7 +138,7 @@ private:
      */
     std::shared_ptr<OperatorResult> back_propogate_result
         (LazyTable left, LazyTable right,
-         std::vector<arrow::compute::Datum> joined_indices);
+         std::vector<arrow::Datum> joined_indices);
 
     /**
      * probe_hash_table() populates new_left_indices_vector

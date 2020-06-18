@@ -15,7 +15,7 @@ namespace hustle::operators {
 struct Predicate {
     ColumnReference col_ref_;
     arrow::compute::CompareOperator comparator_;
-    arrow::compute::Datum value_;
+    arrow::Datum value_;
 };
 
 struct JoinPredicate {

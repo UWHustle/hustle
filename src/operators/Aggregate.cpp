@@ -117,19 +117,17 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
     return result.ValueOrDie();
 }
 
-arrow::compute::Datum
+arrow::Datum
 Aggregate::get_group_filter(std::vector<int> group_id) {
 
     arrow::Status status;
-    arrow::compute::FunctionContext function_context(
-        arrow::default_memory_pool());
 
     // No Group By clause
     if (group_type_->num_children() == 0) {
-        return arrow::compute::Datum();
+        return arrow::Datum();
     }
 
-    arrow::compute::Datum value;
+    arrow::Datum value;
     std::shared_ptr<arrow::ChunkedArray> prev_filter;
 
     // TODO(nicholas): spawn a new task for each group by column
@@ -149,7 +147,7 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
                         (all_unique_values_[field_i]);
                 // Fetch a particular unique value from the array specified by
                 // the group_id
-                value = arrow::compute::Datum(
+                value = arrow::Datum(
                     std::make_shared<arrow::StringScalar>(
                         one_unique_value_casted->GetString(
                             group_id[field_i])));
@@ -165,7 +163,7 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
                         (all_unique_values_[field_i]);
                 // Fetch a particular unique value from the array specified by
                 // the group_id
-                value = arrow::compute::Datum(
+                value = arrow::Datum(
                     std::make_shared<arrow::Int64Scalar>(
                         one_unique_value_casted->Value(group_id[field_i])));
                 // Get the filter for this particular unique value.
@@ -178,16 +176,14 @@ Aggregate::get_group_filter(std::vector<int> group_id) {
             }
         }
 
-        arrow::compute::Datum temp_filter;
+        arrow::Datum temp_filter;
         arrow::ArrayVector filter_vector;
 
         // Perform a logical AND on all the unique value filters
         if (prev_filter != nullptr) {
             for (int j = 0; j < prev_filter->num_chunks(); j++) {
-                status = arrow::compute::And(&function_context,
-                                             prev_filter->chunk(j),
-                                             next_filter->chunk(j),
-                                             &temp_filter);
+                status = arrow::compute::And(prev_filter->chunk(j),
+                                             next_filter->chunk(j)).Value(&temp_filter);
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
                 filter_vector.push_back(temp_filter.make_array());
@@ -253,7 +249,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-void Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
+void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate) {
 
     arrow::Status status;
     // Append a group's aggregate to its builder.
@@ -295,22 +291,22 @@ void Aggregate::insert_group_aggregate(const arrow::compute::Datum& aggregate) {
 }
 
 
-arrow::compute::Datum Aggregate::get_unique_values(
+arrow::Datum Aggregate::get_unique_values(
     const ColumnReference& group_ref) {
 
     auto group_by_col = group_by_cols_[group_ref.col_name];
 
     // Get the unique values in group_by_col
-    arrow::compute::Datum unique_values;
+    arrow::Datum unique_values;
     unique(group_by_col, &unique_values);
 
     return unique_values;
 }
 
 std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
-    (const ColumnReference& group_ref, arrow::compute::Datum value) {
+    (const ColumnReference& group_ref, arrow::Datum value) {
 
-    arrow::compute::Datum out_filter;
+    arrow::Datum out_filter;
     arrow::ArrayVector filter_vector;
 
     auto group_by_col = group_by_cols_[group_ref.col_name];
@@ -360,18 +356,16 @@ void Aggregate::finish() {
     output_result_->append(output_table_);
 }
 
-arrow::compute::Datum Aggregate::compute_aggregate(
+arrow::Datum Aggregate::compute_aggregate(
     AggregateKernels kernel,
-    const arrow::compute::Datum& aggregate_col) {
+    const arrow::Datum& aggregate_col) {
 
     arrow::Status status;
-    arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
-    arrow::compute::Datum out_aggregate;
+    arrow::Datum out_aggregate;
 
     switch (kernel) {
         case SUM: {
-            status = arrow::compute::Sum(
-                &function_context, aggregate_col, &out_aggregate);
+            status = arrow::compute::Sum(aggregate_col).Value(&out_aggregate);
             break;
         }
         case COUNT: {
@@ -380,9 +374,7 @@ arrow::compute::Datum Aggregate::compute_aggregate(
         }
             // Note that Mean outputs a DOUBLE
         case MEAN: {
-            status = arrow::compute::Mean(
-                &function_context, aggregate_col, &out_aggregate
-            );
+            status = arrow::compute::Mean(aggregate_col).Value(&out_aggregate);
             break;
         }
     }
@@ -433,12 +425,12 @@ void Aggregate::initialize() {
 
 void Aggregate::compute_group_aggregate(
     const std::vector<int>& group_id,
-    arrow::compute::Datum agg_col) {
+    arrow::Datum agg_col) {
 
     auto group_filter = get_group_filter(group_id);
 
     // Apply group filter to the aggregate column
-    if (group_filter.kind() != arrow::compute::Datum::NONE) {
+    if (group_filter.kind() != arrow::Datum::NONE) {
         apply_filter(agg_col, group_filter, &agg_col);
     }
 
@@ -551,7 +543,7 @@ void Aggregate::sort() {
         }
     }
 
-    arrow::compute::Datum sorted_indices;
+    arrow::Datum sorted_indices;
 
     // If we are sorting after computing all aggregates, we evaluate the ORDER BY
     // clause in reverse order.

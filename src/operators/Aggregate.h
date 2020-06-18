@@ -144,9 +144,9 @@ private:
     std::vector<std::shared_ptr<arrow::ArrayData>> output_table_data_;
 
     // Group columns for the output table.
-    std::vector<arrow::compute::Datum> groups_;
+    std::vector<arrow::Datum> groups_;
     // Aggregate column for the output table.
-    arrow::compute::Datum aggregates_;
+    arrow::Datum aggregates_;
 
     // References denoting which columns we want to perform an aggregate on
     // and which aggregate to perform.
@@ -219,7 +219,7 @@ private:
      * values we want
      * @return the column's unique values as an Array.
      */
-    arrow::compute::Datum get_unique_values(const ColumnReference& group_ref);
+    arrow::Datum get_unique_values(const ColumnReference& group_ref);
 
     /**
      * Loop over all aggregate groups and compute the aggreate for each group.
@@ -240,7 +240,7 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    arrow::compute::Datum get_group_filter(std::vector<int> its);
+    arrow::Datum get_group_filter(std::vector<int> its);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -254,7 +254,7 @@ private:
      */
     std::shared_ptr<arrow::ChunkedArray> get_unique_value_filter(
         const ColumnReference& col_ref,
-        arrow::compute::Datum value);
+        arrow::Datum value);
 
     /**
      * Compute the aggregate over a single group. This calls compute_aggregate()
@@ -266,7 +266,7 @@ private:
      * @param agg_col aggregate column
      */
     void compute_group_aggregate(const std::vector<int>& group_id,
-                                 arrow::compute::Datum agg_col);
+                                 arrow::Datum agg_col);
 
     /**
      * Compute the aggregate over a column.
@@ -277,9 +277,9 @@ private:
      *
      * @return A Scalar Datum containing the aggregate
      */
-    arrow::compute::Datum compute_aggregate(
+    arrow::Datum compute_aggregate(
         AggregateKernels kernel,
-        const arrow::compute::Datum& aggregate_col);
+        const arrow::Datum& aggregate_col);
 
     /**
      * Insert a particular group into the group_builder_
@@ -295,7 +295,7 @@ private:
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    void insert_group_aggregate(const arrow::compute::Datum& aggregate);
+    void insert_group_aggregate(const arrow::Datum& aggregate);
 
     /**
      * Create the output result from data computed during operator execution.

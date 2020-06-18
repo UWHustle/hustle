@@ -24,9 +24,9 @@ namespace hustle {
  * @param out output datum. Will be the same Datum kind as values and filter.
  */
 void apply_filter(
-    const arrow::compute::Datum& values,
-    const arrow::compute::Datum& filter,
-    arrow::compute::Datum* out);
+    const arrow::Datum& values,
+    const arrow::Datum& filter,
+    arrow::Datum* out);
 
 /**
  * A wrapper around Arrow's arrow::compute::Take() function that take from an
@@ -40,9 +40,9 @@ void apply_filter(
  * @param out output datum
  */
 void apply_indices(
-    const arrow::compute::Datum& values,
-    const arrow::compute::Datum& indices,
-    arrow::compute::Datum* out);
+    const arrow::Datum& values,
+    const arrow::Datum& indices,
+    arrow::Datum* out);
 
 
 /**
@@ -55,7 +55,7 @@ void apply_indices(
  * @param values values to sort. Must be an Array
  * @param out indices that would sort values
  */
-void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum* out);
+void sort_to_indices(const arrow::Datum& values, arrow::Datum* out);
 
 /**
  * A wrapper around Arrow's arrow::compute::SortToIndices() and
@@ -67,7 +67,7 @@ void sort_to_indices(const arrow::compute::Datum& values, arrow::compute::Datum*
  * @param values Values to be sorted. Must be an Array.
  * @param out sorted values array.
  */
-void sort_datum(const arrow::compute::Datum& values, arrow::compute::Datum* out);
+void sort_datum(const arrow::Datum& values, arrow::Datum* out);
 
 /**
  * A wrapper around Arrow's arrow::compute::Compare() function that compare a
@@ -79,10 +79,10 @@ void sort_datum(const arrow::compute::Datum& values, arrow::compute::Datum* out)
  * @param out output filter
  */
 void compare(
-    const arrow::compute::Datum& left,
-    const arrow::compute::Datum& right,
+    const arrow::Datum& left,
+    const arrow::Datum& right,
     arrow::compute::CompareOperator compare_operator,
-    arrow::compute::Datum* out);
+    arrow::Datum* out);
 
 /**
  * A wrapper around Arrow's arrow::compute::Unique() function that computes the
@@ -91,7 +91,7 @@ void compare(
  * @param values Array or ChunkedArray of values.
  * @param out unique values of values as an Array.
  */
-void unique(const arrow::compute::Datum& values, arrow::compute::Datum* out);
+void unique(const arrow::Datum& values, arrow::Datum* out);
 
 
 

@@ -2,8 +2,6 @@
 
 #include <utility>
 #include <arrow/compute/api.h>
-#include <arrow/compute/kernels/compare.h>
-#include <arrow/compute/kernels/match.h>
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
@@ -128,15 +126,15 @@ void Join::finish_probe() {
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     // Store the index arrays.
-    joined_indices_[0] = (arrow::compute::Datum(new_left_indices));
-    joined_indices_[1] = (arrow::compute::Datum(new_right_indices));
+    joined_indices_[0] = (arrow::Datum(new_left_indices));
+    joined_indices_[1] = (arrow::Datum(new_right_indices));
 }
 
 std::shared_ptr<OperatorResult>
 Join::back_propogate_result(LazyTable left, LazyTable right,
-                            std::vector<arrow::compute::Datum> joined_indices) {
+                            std::vector<arrow::Datum> joined_indices) {
 
-    arrow::compute::Datum new_indices;
+    arrow::Datum new_indices;
     std::vector<LazyTable> output_lazy_tables;
 
     // The indices of the indices that were joined
@@ -147,7 +145,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
     // join on the left table, then left_indices_of_indices directly
     // corresponds to indices in the left table, and we do not need to
     // call Take.
-    if (left.indices.kind() != arrow::compute::Datum::NONE) {
+    if (left.indices.kind() != arrow::Datum::NONE) {
         apply_indices(left.indices, left_indices_of_indices, &new_indices);
     } else {
         new_indices = left_indices_of_indices;
@@ -159,7 +157,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
     // join on the right table, then right_indices_of_indices directly
     // corresponds to indices in the right table, and we do not need to
     // call Take.
-    if (right.indices.kind() != arrow::compute::Datum::NONE) {
+    if (right.indices.kind() != arrow::Datum::NONE) {
         apply_indices(right.indices, right_indices_of_indices, &new_indices);
     } else {
         new_indices = right_indices_of_indices;
@@ -172,7 +170,7 @@ Join::back_propogate_result(LazyTable left, LazyTable right,
     for (auto &lazy_table : prev_result_->lazy_tables_) {
         if (lazy_table.table != left.table &&
             lazy_table.table != right.table) {
-            if (lazy_table.indices.kind() != arrow::compute::Datum::NONE) {
+            if (lazy_table.indices.kind() != arrow::Datum::NONE) {
 
                 apply_indices(lazy_table.indices, left_indices_of_indices, &new_indices);
 
