@@ -25,11 +25,13 @@ add_library(hustle_src_utils_EventProfiler EventProfiler.cpp EventProfiler.hpp)
 add_library(hustle_src_utils_Macros ../empty_src.cpp Macros.hpp)
 add_library(hustle_src_utils_SyncStream ../empty_src.cpp SyncStream.hpp)
 add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hpp)
+add_library(hustle_src_utils_ArrowComputeWrappers arrow_compute_wrappers.cpp arrow_compute_wrappers.h)
 
 #add_library(hustle_src_utils_BloomFilter BloomFilter.cpp BloomFilter.h)
 
 # Include Arrow
 #target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})
+target_include_directories(hustle_src_utils_ArrowComputeWrappers PUBLIC ${ARROW_INCLUDE_DIR})
 
 
 # Link dependencies:
@@ -41,6 +43,9 @@ target_link_libraries(hustle_src_utils_SyncStream
         hustle_src_utils_Macros)
 target_link_libraries(hustle_src_utils_ThreadSafeQueue
         hustle_src_utils_Macros)
+target_link_libraries(hustle_src_utils_ArrowComputeWrappers
+        absl::hash
+        ${ARROW_SHARED_LIB})
 #target_link_libraries(hustle_src_utils_BloomFilter PUBLIC
 #        ${ARROW_SHARED_LIB}
 #        )
