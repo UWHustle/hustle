@@ -204,17 +204,18 @@ void Join::hash_join(int i, Task *ctx) {
     // anything going out of scope.
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, i](Task *internal) {
-            // Build phase
-            // TODO(nicholas):
             auto right = prev_result_->get_table(rights[i].table);
-            auto right_join_col = right.get_column_by_name(right_col_names[i]);
-            build_hash_table(right_join_col, internal);
+            right_join_col_ = right.get_column_by_name(right_col_names[i]);
+            auto left = prev_result_->get_table(lefts[i].table);
+            left_join_col_ = left.get_column_by_name(left_col_names[i]);
+        }),
+        CreateLambdaTask([this, i](Task *internal) {
+            // Build phase
+            build_hash_table(right_join_col_, internal);
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
-            auto left = prev_result_->get_table(lefts[i].table);
-            auto left_join_col = left.get_column_by_name(left_col_names[i]);
-            probe_hash_table(left_join_col, internal);
+            probe_hash_table(left_join_col_, internal);
         }),
         CreateLambdaTask([this, i](Task *internal) {
             finish_probe();

@@ -85,6 +85,9 @@ private:
     // joined_indices[1] = new_right_indices_vector stored as an Array
     std::vector<arrow::Datum> joined_indices_;
 
+    std::shared_ptr<arrow::ChunkedArray> left_join_col_;
+    std::shared_ptr<arrow::ChunkedArray> right_join_col_;
+
 
     /**
      * Build a hash table on a column. It is assumed that the column will be
