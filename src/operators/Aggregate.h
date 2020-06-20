@@ -163,6 +163,9 @@ private:
     // Map group by column names to the actual group column
     std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> group_by_cols_;
 
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> group_filters_;
+    std::vector<std::vector<std::shared_ptr<arrow::ChunkedArray>>> unique_value_filters_;
+
     // A vector of Arrays containing the unique values of each of the group
     // by columns.
     std::vector<std::shared_ptr<arrow::Array>> all_unique_values_;
@@ -178,6 +181,8 @@ private:
     // and aggregate_builder_, then it must grab this mutex to ensure that the
     // groups and its aggregates are inserted at the same row.
     std::mutex builder_mutex_;
+
+    std::mutex unique_value_filters_mutex_;
 
     /**
      * Initialize or pre-compute data members.
@@ -240,7 +245,7 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    arrow::Datum get_group_filter(std::vector<int> its);
+    arrow::Datum get_group_filter(int agg_index, std::vector<int> its);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -265,7 +270,7 @@ private:
      * unique_values_[3], and unique_values_[7], into group_builder_.
      * @param agg_col aggregate column
      */
-    void compute_group_aggregate(const std::vector<int>& group_id,
+    void compute_group_aggregate(int agg_index, const std::vector<int>& group_id,
                                  arrow::Datum agg_col);
 
     /**
