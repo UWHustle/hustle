@@ -5,6 +5,7 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include <scheduler/Task.hpp>
 
 namespace hustle::operators{
 
@@ -67,6 +68,16 @@ public:
     arrow::Datum filter; // filters are ChunkedArrays
     arrow::Datum indices; // indices are Arrays
     std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+
+
+
+
+    void get_column_by_name(
+        Task* ctx,
+        std::string col_name,
+        arrow::Datum& out);
+
+    void get_column(Task* ctx, int i, arrow::Datum& out);
 
 private:
 //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;

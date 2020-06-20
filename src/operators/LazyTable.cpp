@@ -56,4 +56,33 @@ namespace hustle::operators{
         return out_col;
     }
 
+void LazyTable::get_column_by_name(Task *ctx, std::string col_name, arrow::Datum &out) {
+
+    get_column(ctx,table->get_schema()->GetFieldIndex(col_name), out);
+
+}
+
+void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
+
+    arrow::Status status;
+
+    if (materialized_cols_.count(i) > 0) {
+        out = materialized_cols_[i];
+    }
+
+    auto col = arrow::Datum(table->get_column(i));
+
+    if (filter.kind() != arrow::Datum::NONE) {
+        status = arrow::compute::Filter(col, filter).Value(&col);
+    }
+    if (indices.kind() != arrow::Datum::NONE) {
+        status = arrow::compute::Take(col, indices).Value(&col);
+    }
+
+    std::shared_ptr<arrow::ChunkedArray> out_col = col.chunked_array();
+    materialized_cols_.emplace(i, out_col);
+
+    out = out_col;
+}
+
 }
