@@ -85,6 +85,9 @@ private:
      * Create the output result from the raw data computed during execution.
      */
     void finish();
+
+
+    void execute_block(int i);
 };
 
 } // namespace hustle

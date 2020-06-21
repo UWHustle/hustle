@@ -71,12 +71,9 @@ void Select::execute(Task *ctx) {
             filter_vector_.resize(table_->get_num_blocks());
 
             for (int i = 0; i < table_->get_num_blocks(); i++) {
-
                 // Each task gets the filter for one block and stores it in filter_vector
                 internal->spawnLambdaTask([this, i]() {
-                    auto block = table_->get_block(i);
-                    auto block_filter = this->get_filter(tree_->root_, block);
-                    filter_vector_[i] = block_filter.make_array();
+                    execute_block(i);
                 });
             }
         }),
@@ -84,8 +81,13 @@ void Select::execute(Task *ctx) {
         CreateLambdaTask([this]() {
             finish();
         })
-        ));
+    ));
+}
 
+void Select::execute_block(int i) {
+    auto block = table_->get_block(i);
+    auto block_filter = this->get_filter(tree_->root_, block);
+    filter_vector_[i] = block_filter.make_array();
 }
 
 void Select::finish() {
