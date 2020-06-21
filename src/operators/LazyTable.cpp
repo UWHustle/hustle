@@ -25,6 +25,8 @@ namespace hustle::operators{
         this->indices = indices;
 
         materialized_cols_.reserve(table->get_num_cols());
+        filtered_cols_.reserve(table->get_num_cols());
+
     }
 
     std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column_by_name
@@ -53,7 +55,7 @@ namespace hustle::operators{
         std::shared_ptr<arrow::ChunkedArray> out_col = col.chunked_array();
         materialized_cols_.emplace(i, out_col);
 
-        return out_col;
+        return col.chunked_array();
     }
 
 void LazyTable::get_column_by_name(Task *ctx, std::string col_name, arrow::Datum &out) {
@@ -62,27 +64,72 @@ void LazyTable::get_column_by_name(Task *ctx, std::string col_name, arrow::Datum
 
 }
 
-void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
+void LazyTable::get_column(Task* ctx, int i, arrow::Datum& out) {
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, i, &out](Task *internal) {
 
-    arrow::Status status;
+            if (materialized_cols_.count(i) > 0) {
+                out.value = materialized_cols_[i];
+            } else if (filtered_cols_.count(i) > 0) {
+                out.value = filtered_cols_[i];
+            } else {
+                out = table->get_column(i);
+                if (filter.kind() != arrow::Datum::NONE) {
+//                    context_.apply_filter(internal, out, filter, out);
+                    arrow::Status status;
 
-    if (materialized_cols_.count(i) > 0) {
-        out = materialized_cols_[i];
-    }
+                    status = arrow::compute::Filter(out, filter).Value(&out);
+                    filtered_cols_[i] = out.chunked_array();
+                }
+            }
+        }),
+        CreateLambdaTask([this, i, &out](Task *internal) {
+            if (indices.kind() != arrow::Datum::NONE) {
+//                std::cout << "BEFORE " << out.chunked_array()->ToString() << std::endl;
 
-    auto col = arrow::Datum(table->get_column(i));
+                context_.apply_indices(internal, out,indices, false, out);
+//                std::cout << "AFTER " << out.chunked_array()->ToString() << std::endl;
 
-    if (filter.kind() != arrow::Datum::NONE) {
-        status = arrow::compute::Filter(col, filter).Value(&col);
-    }
-    if (indices.kind() != arrow::Datum::NONE) {
-        status = arrow::compute::Take(col, indices).Value(&col);
-    }
-
-    std::shared_ptr<arrow::ChunkedArray> out_col = col.chunked_array();
-    materialized_cols_.emplace(i, out_col);
-
-    out = out_col;
+                arrow::Status status;
+//                status = arrow::compute::Take(out, indices).Value(&out);
+            }
+            materialized_cols_.emplace(i, out.chunked_array());
+        })
+    ));
 }
+
+//void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
+//
+//    ctx->spawnTask(CreateTaskChain(
+//        // Task 1 = Compute all aggregates
+//        CreateLambdaTask([this, &out, i](Task *internal) {
+//            if (materialized_cols_.count(i) > 0) {
+//                out = materialized_cols_[i];
+//                return;
+//            }
+//
+//            out = arrow::Datum(table->get_column(i));
+//
+//            arrow::Status status;
+//
+//            if (filter.kind() != arrow::Datum::NONE) {
+//                status = arrow::compute::Filter(out, filter).Value(&out);
+//            }
+//        }),
+//        CreateLambdaTask([this, &out, i](Task *internal) {
+//            arrow::Status status;
+//
+//            if (indices.kind() != arrow::Datum::NONE) {
+//                status = arrow::compute::Take(out, indices).Value(&out);
+//            }
+//        }),
+//        CreateLambdaTask([this, &out, i](Task *internal) {
+//            std::shared_ptr<arrow::ChunkedArray> out_col = out.chunked_array();
+//            materialized_cols_.emplace(i, out_col);
+//
+//            out = out_col;
+//        })
+//    ));
+//}
 
 }

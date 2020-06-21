@@ -161,7 +161,7 @@ private:
     bool sort_aggregate_col_;
 
     // Map group by column names to the actual group column
-    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> group_by_cols_;
+    std::vector<arrow::Datum> group_by_cols_;
 
     std::vector<std::shared_ptr<arrow::ChunkedArray>> group_filters_;
     std::vector<std::vector<std::shared_ptr<arrow::ChunkedArray>>> unique_value_filters_;
@@ -183,11 +183,18 @@ private:
     std::mutex builder_mutex_;
 
     std::mutex unique_value_filters_mutex_;
+    arrow::Datum agg_col_;
+    LazyTable agg_lazy_table_;
+    std::mutex mutex_;
+    std::mutex mutex2_;
+
+    std::unordered_map<std::string, int> group_by_col_names_to_index_;
+    std::vector<LazyTable> group_by_tables_;
 
     /**
      * Initialize or pre-compute data members.
      */
-    void initialize();
+    void initialize(Task* ctx);
 
     /**
      * Construct the schema for the output table.

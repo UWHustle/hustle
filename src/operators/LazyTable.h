@@ -6,6 +6,7 @@
 #include <table/table.h>
 #include <arrow/compute/api.h>
 #include <scheduler/Task.hpp>
+#include <utils/arrow_compute_wrappers.h>
 
 namespace hustle::operators{
 
@@ -68,6 +69,7 @@ public:
     arrow::Datum filter; // filters are ChunkedArrays
     arrow::Datum indices; // indices are Arrays
     std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
 
 
 
@@ -81,8 +83,9 @@ public:
 
 private:
 //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
-
 //    std::vector<bool> materialized_cols_bitmap_;
+    Context context_;
+
 };
 
 }
