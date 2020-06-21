@@ -195,7 +195,6 @@ void Context::apply_indices(
         CreateLambdaTask([this, values, indices, has_sorted_indices, &out](Task* internal)  {
 
             arrow::Status status;
-            std::shared_ptr<arrow::ChunkedArray> temp_chunked_array;
             std::shared_ptr<arrow::ChunkedArray> chunked_values;
 
             switch(values.kind()){
@@ -221,13 +220,8 @@ void Context::apply_indices(
             auto indices_data = indices_array->data()->GetMutableValues<int64_t>(1, 0);
 
             int num_chunks = chunked_values->num_chunks();
-
-            std::vector<int64_t> slice_offsets(num_chunks);
-            std::vector<int64_t> slice_length(num_chunks);
-            slice_offsets[0] = 0;
-
-
-            std::vector<int64_t> chunk_row_offsets(num_chunks+1);
+            std::vector<unsigned int> chunk_row_offsets;
+            chunk_row_offsets.resize(num_chunks+1);
             chunk_row_offsets[0] = 0;
             for (int i = 1; i < num_chunks; i++) {
                 chunk_row_offsets[i] =
@@ -236,27 +230,43 @@ void Context::apply_indices(
             chunk_row_offsets[num_chunks] = chunk_row_offsets[num_chunks-1] +
                                             chunked_values->chunk(num_chunks-1)->length();
 
-            array_vec_.resize(chunked_values->num_chunks());
+            arrow::Int64Builder b;
+            b.AppendValues(chunk_row_offsets.begin(), chunk_row_offsets.end());
+            std::shared_ptr<arrow::Array> offsets;
+            b.Finish(&offsets);
 
-            for (int i=0; i<chunked_values->num_chunks(); i++) {
-                if (slice_length[i] == 0) {
-                    array_vec_[i] = arrow::MakeArrayOfNull(chunked_values->type(), 0, arrow::default_memory_pool()).ValueOrDie();
-                    continue;
-                }
-                internal->spawnLambdaTask([this, indices_array, chunked_values, chunk_row_offsets, i]{
-                    auto sliced_indices = indices_array->Slice(chunk_row_offsets[i], chunk_row_offsets[i+1]-chunk_row_offsets[i]);
+            //TODO(nicholas): force each slice to be a fixed length (i.e. block size)
+//            int slice_length = indices_array->length()/num_chunks;
+            int slice_length = 10000;
+            int num_slices = indices_array->length()/slice_length + 1;
+            std::vector<int64_t> slice_offsets(num_slices+1);
+            slice_offsets[0] = 0;
+            for (int i = 1; i < num_slices; i++) {
+                if (i*slice_length < indices_array->length())
+                slice_offsets[i] = slice_offsets[i - 1] + slice_length;
+            }
+            slice_offsets[num_slices] = indices_array->length();
 
-                    auto chunk = chunked_values->chunk(i);
-                    std::shared_ptr<arrow::Array> temp_array;
 
+            array_vec_.resize(num_slices);
+
+            for (int i=0; i<num_slices; i++) {
+                internal->spawnLambdaTask([this, indices_array, chunked_values, slice_offsets, offsets, i]{
+                    auto sliced_indices = indices_array->Slice(slice_offsets[i], slice_offsets[i+1]-slice_offsets[i]);
+                    if (sliced_indices->length() == 0) {
+                        array_vec_[i] = arrow::MakeArrayOfNull(chunked_values->type(), 0, arrow::default_memory_pool()).ValueOrDie();
+                        return;
+                    }
+                    arrow::Datum temp;
                     arrow::Status status;
 
-                    status = arrow::compute::Take(
-                        *chunk,
-                        *sliced_indices).Value(&temp_array);
+                    status = arrow::compute::Take(*chunked_values, *sliced_indices, *offsets).Value(&temp);
 
                     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                    array_vec_[i] = temp_array;
+                    // TODO(nicholas):
+                    auto x = temp.chunked_array();
+
+                    array_vec_[i] = temp.chunked_array()->chunk(0);
                 });
             }
         }),
