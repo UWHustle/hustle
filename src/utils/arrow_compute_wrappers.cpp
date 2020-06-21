@@ -10,79 +10,30 @@ void Context::apply_filter_internal(
     const arrow::Datum& filter,
     arrow::ArrayVector& out) {
 
-    ctx->spawnLambdaTask([this, values, filter, &out](Task* internal) {
-        auto chunked_values = values.chunked_array();
-        auto chunked_filter = filter.chunked_array();
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, values, filter, &out](Task* internal) {
+            auto chunked_values = values.chunked_array();
+            auto chunked_filter = filter.chunked_array();
 
-        out.resize(chunked_values->num_chunks());
+            out.resize(chunked_values->num_chunks());
 
-    if (chunked_filter->num_chunks() != chunked_values->num_chunks()) {
-        int num_chunks = chunked_values->num_chunks();
+            for (int i=0; i<chunked_filter->num_chunks(); i++) {
+                internal->spawnLambdaTask([this, i, &out, chunked_filter, chunked_values] {
 
-        std::vector<int64_t> slice_offsets(num_chunks);
-        std::vector<int64_t> slice_length(num_chunks);
-        slice_offsets[0] = 0;
+                    arrow::Status status;
 
-        std::vector<int64_t> chunk_row_offsets(num_chunks+1);
-        chunk_row_offsets[0] = 0;
-        for (int i = 1; i < num_chunks; i++) {
-            chunk_row_offsets[i] =
-                chunk_row_offsets[i - 1] + chunked_values->chunk(i - 1)->length();
-        }
-        chunk_row_offsets[num_chunks] = chunk_row_offsets[num_chunks-1] +
-                                        chunked_values->chunk(num_chunks-1)->length();
-
-        arrow::ArrayVector vec;
-
-        std::shared_ptr<arrow::Array> array_filter;
-        auto status = arrow::Concatenate(chunked_filter->chunks(), arrow::default_memory_pool(), &array_filter);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-
-        for (int i=0; i<num_chunks; i++) {
-
-            auto x = (chunk_row_offsets[i]);
-            int y =  chunk_row_offsets[i+1]-chunk_row_offsets[i];
-//            if (int i=405) std::cout << array_filter->ToString() << std::endl;
-            auto slice = array_filter->Slice(chunk_row_offsets[i], chunk_row_offsets[i+1]-chunk_row_offsets[i]);
-            vec.push_back(slice);
-        }
-
-        chunked_filter = std::make_shared<arrow::ChunkedArray>(vec);
-
-//        std::shared_ptr<arrow::Array> array_filter;
-//        auto status = arrow::Concatenate(chunked_values->chunks(), arrow::default_memory_pool(), &array_filter);
-//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//        chunked_values = std::make_shared<arrow::ChunkedArray>(array_filter);
-//
-//        status = arrow::Concatenate(chunked_filter->chunks(), arrow::default_memory_pool(), &array_filter);
-//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//        chunked_filter = std::make_shared<arrow::ChunkedArray>(array_filter);
-//        std::cout << "was here" << std::endl;
-
-//        for (int i=0; i<chunked_values->num_chunks(); i++) {
-//            out[i] = chunked_values->chunk(i);
-//        }
-//        return;
-    }
-
-
-        for (int i=0; i<chunked_filter->num_chunks(); i++) {
-//            internal->spawnLambdaTask([this, i, &out, chunked_filter, chunked_values] {
-
-                arrow::Status status;
-
-                arrow::Datum block_filter;
-//                std::cout << "apply filter" << std::endl;
-//                std::cout << chunked_values->length() << " " << chunked_filter->length() << std::endl;
-//                std::cout << chunked_values->num_chunks() << " " << chunked_filter->num_chunks()<< std::endl;
-                status = arrow::compute::Filter(chunked_values->chunk(i),
-                                                chunked_filter->chunk(i)).Value(&block_filter);
-                evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-                out[i] = block_filter.make_array();
-//            });
-        }
-    });
+                    arrow::Datum block_filter;
+    //                std::cout << "apply filter" << std::endl;
+    //                std::cout << chunked_values->length() << " " << chunked_filter->length() << std::endl;
+    //                std::cout << chunked_values->num_chunks() << " " << chunked_filter->num_chunks()<< std::endl;
+                    status = arrow::compute::Filter(chunked_values->chunk(i),
+                                                    chunked_filter->chunk(i)).Value(&block_filter);
+                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                    out[i] = block_filter.make_array();
+                });
+            }
+        })
+    ));
 }
 
 void Context::apply_filter(
@@ -183,6 +134,15 @@ Context::Context() {
 
 }
 
+void Context::apply_indices_internal(
+    Task* ctx,
+    const arrow::Datum values,
+    const arrow::Datum indices,
+    arrow::Datum& out) {
+
+}
+
+
 void Context::apply_indices(
     Task* ctx,
     const arrow::Datum values,
@@ -237,22 +197,17 @@ void Context::apply_indices(
 
             //TODO(nicholas): force each slice to be a fixed length (i.e. block size)
 //            int slice_length = indices_array->length()/num_chunks;
-            int slice_length = 10000;
+            int slice_length = 100000;
             int num_slices = indices_array->length()/slice_length + 1;
-            std::vector<int64_t> slice_offsets(num_slices+1);
-            slice_offsets[0] = 0;
-            for (int i = 1; i < num_slices; i++) {
-                if (i*slice_length < indices_array->length())
-                slice_offsets[i] = slice_offsets[i - 1] + slice_length;
-            }
-            slice_offsets[num_slices] = indices_array->length();
-
 
             array_vec_.resize(num_slices);
 
             for (int i=0; i<num_slices; i++) {
-                internal->spawnLambdaTask([this, indices_array, chunked_values, slice_offsets, offsets, i]{
-                    auto sliced_indices = indices_array->Slice(slice_offsets[i], slice_offsets[i+1]-slice_offsets[i]);
+                internal->spawnLambdaTask([this, indices_array, chunked_values, offsets, num_slices, slice_length, i]{
+                    std::shared_ptr<arrow::Array> sliced_indices;
+                    if (i == num_slices-1) sliced_indices = indices_array->Slice(i*slice_length, indices_array->length() - (i-1)*slice_length);
+                    else sliced_indices = indices_array->Slice(i*slice_length, slice_length);
+
                     if (sliced_indices->length() == 0) {
                         array_vec_[i] = arrow::MakeArrayOfNull(chunked_values->type(), 0, arrow::default_memory_pool()).ValueOrDie();
                         return;

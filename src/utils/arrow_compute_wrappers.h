@@ -130,6 +130,8 @@ private:
     void clear_data();
 
     arrow::ArrayVector array_vec_;
+
+    void apply_indices_internal(Task *ctx, const arrow::Datum values, const arrow::Datum indices, arrow::Datum &out);
 };
 
 }
