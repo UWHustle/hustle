@@ -131,7 +131,10 @@ private:
 
     arrow::ArrayVector array_vec_;
 
-    void apply_indices_internal(Task *ctx, const arrow::Datum values, const arrow::Datum indices, arrow::Datum &out);
+
+    void apply_indices_internal(const std::shared_ptr<arrow::ChunkedArray> &chunked_values,
+                                const std::shared_ptr<arrow::Array> &indices_array,
+                                const std::shared_ptr<arrow::Array> &offsets, int i);
 };
 
 }
