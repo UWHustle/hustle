@@ -629,12 +629,6 @@ void SSB::q13() {
     container->endEvent("q1.3");
 
     if (print_) {
-        out_table = d_select_result_out->materialize({{d, "year"}});
-        out_table->print();
-
-//        out_table = lo_select_result_out->materialize({{lo, "discount"}, {lo, "quantity"}});
-//        out_table->print();
-
         out_table = agg_result_out->materialize({{nullptr, "revenue"}});
         out_table->print();
     }
