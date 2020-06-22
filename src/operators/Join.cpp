@@ -66,36 +66,47 @@ void Join::probe_hash_table
             chunk_row_offsets[i - 1] + probe_col->chunk(i - 1)->length();
     }
 
+    int batch_size = probe_col->num_chunks() / 8;
+    if (batch_size == 0) batch_size = probe_col->num_chunks();
+    int num_batches = probe_col->num_chunks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+    if (num_batches == 0) num_batches = 1;
+
     // Probe phase
-    for (int i = 0; i < probe_col->num_chunks(); i++) {
+    for (int batch_i=0; batch_i<num_batches; batch_i++) {
 
         // Each task probes one chunk
-        ctx->spawnLambdaTask([this, i, probe_col, chunk_row_offsets] {
-            arrow::Status status;
-            // The indices of the rows joined in chunk i
-            std::vector<int64_t> joined_left_indices;
-            std::vector<int64_t> joined_right_indices;
+        ctx->spawnLambdaTask([this, batch_i, batch_size, probe_col, chunk_row_offsets] {
 
-            // TODO(nicholas): for now, we assume the join column is INT64 type.
-            auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                probe_col->chunk(i));
+            int base_i = batch_i * batch_size;
 
-            int64_t row_offset = chunk_row_offsets[i];
+            for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); i++) {
 
-            for (int row = 0; row < left_join_chunk->length(); row++) {
-                auto key = left_join_chunk->Value(row);
+                arrow::Status status;
+                // The indices of the rows joined in chunk i
+                std::vector<int64_t> joined_left_indices;
+                std::vector<int64_t> joined_right_indices;
 
-                if (hash_table_.count(key)) {
-                    int64_t right_row_index = hash_table_[key];
-                    int64_t left_row_index = row_offset + row;
+                // TODO(nicholas): for now, we assume the join column is INT64 type.
+                auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
+                    probe_col->chunk(i));
 
-                    joined_left_indices.push_back(left_row_index);
-                    joined_right_indices.push_back(right_row_index);
+                int64_t row_offset = chunk_row_offsets[i];
+
+                for (int row = 0; row < left_join_chunk->length(); row++) {
+                    auto key = left_join_chunk->Value(row);
+
+                    if (hash_table_.count(key)) {
+                        int64_t right_row_index = hash_table_[key];
+                        int64_t left_row_index = row_offset + row;
+
+                        joined_left_indices.push_back(left_row_index);
+                        joined_right_indices.push_back(right_row_index);
+                    }
                 }
-            }
 
-            new_left_indices_vector[i] = joined_left_indices;
-            new_right_indices_vector[i] = joined_right_indices;
+                new_left_indices_vector[i] = joined_left_indices;
+                new_right_indices_vector[i] = joined_right_indices;
+            }
         });
     }
 }
