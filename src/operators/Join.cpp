@@ -16,9 +16,9 @@ Join::Join(
     JoinGraph graph) : Operator(query_id) {
 
     prev_result_ = std::make_shared<OperatorResult>();
-    prev_result_vec_ = prev_result;
-    output_result_ = output_result;
-    graph_ = graph;
+    prev_result_vec_ = std::move(prev_result);
+    output_result_ = std::move(output_result);
+    graph_ = std::move(graph);
     joined_indices_.resize(2);
 
 }
@@ -51,6 +51,38 @@ void Join::build_hash_table
     }
 }
 
+void Join::probe_hash_table_block
+    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size, std::vector<int64_t> chunk_row_offsets) {
+
+    int base_i = batch_i * batch_size;
+
+    for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); i++) {
+
+        arrow::Status status;
+        // The indices of the rows joined in chunk i
+        std::vector<int64_t> joined_left_indices;
+        std::vector<int64_t> joined_right_indices;
+
+        joined_left_indices.reserve(probe_col->num_chunks());
+        joined_right_indices.reserve(probe_col->num_chunks());
+
+        // TODO(nicholas): for now, we assume the join column is INT64 type.
+        auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(probe_col->chunk(i));
+
+        for (int row = 0; row < left_join_chunk->length(); row++) {
+            auto key = left_join_chunk->Value(row);
+
+            if (hash_table_.find(key) != hash_table_.end()) {
+                joined_left_indices.push_back(chunk_row_offsets[i] + row);  // insert left row index
+                joined_right_indices.push_back(hash_table_[key]); // insert right row index
+            }
+        }
+
+        new_left_indices_vector[i] = joined_left_indices;
+        new_right_indices_vector[i] = joined_right_indices;
+    }
+}
+
 void Join::probe_hash_table
     (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx) {
 
@@ -76,37 +108,7 @@ void Join::probe_hash_table
 
         // Each task probes one chunk
         ctx->spawnLambdaTask([this, batch_i, batch_size, probe_col, chunk_row_offsets] {
-
-            int base_i = batch_i * batch_size;
-
-            for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); i++) {
-
-                arrow::Status status;
-                // The indices of the rows joined in chunk i
-                std::vector<int64_t> joined_left_indices;
-                std::vector<int64_t> joined_right_indices;
-
-                // TODO(nicholas): for now, we assume the join column is INT64 type.
-                auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(
-                    probe_col->chunk(i));
-
-                int64_t row_offset = chunk_row_offsets[i];
-
-                for (int row = 0; row < left_join_chunk->length(); row++) {
-                    auto key = left_join_chunk->Value(row);
-
-                    if (hash_table_.count(key)) {
-                        int64_t right_row_index = hash_table_[key];
-                        int64_t left_row_index = row_offset + row;
-
-                        joined_left_indices.push_back(left_row_index);
-                        joined_right_indices.push_back(right_row_index);
-                    }
-                }
-
-                new_left_indices_vector[i] = joined_left_indices;
-                new_right_indices_vector[i] = joined_right_indices;
-            }
+            probe_hash_table_block(probe_col, batch_i, batch_size, chunk_row_offsets);
         });
     }
 }

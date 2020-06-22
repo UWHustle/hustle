@@ -5,6 +5,7 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include <utils/parallel_hashmap/phmap.h>
 #include "OperatorResult.h"
 #include "JoinGraph.h"
 #include "Operator.h"
@@ -66,7 +67,8 @@ private:
     JoinGraph graph_;
 
     // Hash table for the right table in each join
-    std::unordered_map<int64_t, int64_t> hash_table_;
+    phmap::flat_hash_map<int64_t, int64_t> hash_table_;
+//    std::unordered_map<int64_t, int64_t> hash_table_;
 
     // new_left_indices_vector[i] = the indices of rows joined in chunk i in
     // the left table
@@ -158,6 +160,8 @@ private:
      */
     void finish();
 
+    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
+                                std::vector<int64_t> chunk_row_offsets);
 };
 
 } // namespace hustle
