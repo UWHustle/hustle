@@ -127,10 +127,7 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
     }
 
     arrow::Datum value;
-    std::shared_ptr<arrow::ChunkedArray> prev_filter;
 
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> filters;
-    filters.resize(group_type_->num_fields());
     // TODO(nicholas): spawn a new task for each group by column
     // e.g. group_id = [4, 1, 2]
     // We get the filter for all_unique_values[0][4], all_unique_values[1][1],
@@ -181,13 +178,18 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
                 }
             }
         }
+    }
 
-        arrow::Datum temp_filter;
-        arrow::ArrayVector filter_vector;
+    arrow::Datum temp_filter;
+    arrow::ArrayVector filter_vector;
 
-        // Perform a logical AND on all the unique value filters
+    auto prev_filter = unique_value_filters_[0][group_id[0]];
+
+    // TODO(nicholas): multithreaded AND
+    // Perform a logical AND on all the unique value filters
+    for (int field_i=1; field_i<group_by_refs_.size(); field_i++) {
         if (prev_filter != nullptr) {
-            next_filter = unique_value_filters_[field_i][group_id[field_i]];
+            auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
             for (int j = 0; j < prev_filter->num_chunks(); j++) {
                 status = arrow::compute::And(prev_filter->chunk(j),
                                              next_filter->chunk(j)).Value(&temp_filter);
