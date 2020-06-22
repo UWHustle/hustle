@@ -166,6 +166,7 @@ private:
     std::vector<std::shared_ptr<arrow::ChunkedArray>> group_filters_;
     std::vector<std::vector<std::shared_ptr<arrow::ChunkedArray>>> unique_value_filters_;
     std::vector<arrow::Datum> filtered_agg_cols_;
+    std::vector<Context> contexts_;
 
 
     // A vector of Arrays containing the unique values of each of the group

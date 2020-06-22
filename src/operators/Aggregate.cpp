@@ -491,8 +491,9 @@ void Aggregate::compute_group_aggregate(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
             if (group_filters_[agg_index] != nullptr) {
                 arrow::Status status;
-                // TODO(nicholas): use multithreaded filter
-                status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
+                // TODO(nicholas): We don't need a Context for each aggregate; we just need num_threads number of Contexts
+                contexts_[agg_index].apply_filter(internal, agg_col_, group_filters_[agg_index], filtered_agg_cols_[agg_index]);
+//                status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
                 evaluate_status(status, __FUNCTION__, __LINE__);
             } else {
                 filtered_agg_cols_[agg_index] = agg_col_;
@@ -557,6 +558,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
             }
             group_filters_.resize(num_aggs);
             filtered_agg_cols_.resize(num_aggs);
+            contexts_.resize(num_aggs);
 
             int agg_index = 0;
 
