@@ -151,7 +151,7 @@ private:
      * and new_right_indices_vector. This function converts these into Arrow
      * Arrays.
      */
-    void finish_probe();
+    void finish_probe(Task* ctx);
 
     /*
      * Create the output result from the raw data computed during execution.

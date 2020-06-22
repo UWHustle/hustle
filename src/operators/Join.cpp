@@ -100,33 +100,57 @@ void Join::probe_hash_table
     }
 }
 
-void Join::finish_probe() {
-    arrow::Status status;
-    arrow::Int64Builder new_left_indices_builder;
-    arrow::Int64Builder new_right_indices_builder;
-    std::shared_ptr<arrow::Int64Array> new_left_indices;
-    std::shared_ptr<arrow::Int64Array> new_right_indices;
+void Join::finish_probe(Task* ctx) {
 
-    // Append all of the indices to an ArrayBuilder.
-    for (int i = 0; i < new_left_indices_vector.size(); i++) {
-        status = new_left_indices_builder.AppendValues(
-            new_left_indices_vector[i]);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-        status = new_right_indices_builder.AppendValues(
-            new_right_indices_vector[i]);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    int num_indices = 0;
+    for (auto& vec : new_left_indices_vector) {
+        num_indices += vec.size();
     }
 
-    // Construct left and right index arrays.
-    status = new_left_indices_builder.Finish(&new_left_indices);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    status = new_right_indices_builder.Finish(&new_right_indices);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    ctx->spawnLambdaTask([this, num_indices] {
+        arrow::Status status;
 
-    // Store the index arrays.
-    joined_indices_[0] = (arrow::Datum(new_left_indices));
-    joined_indices_[1] = (arrow::Datum(new_right_indices));
+        arrow::Int64Builder new_left_indices_builder;
+        std::shared_ptr<arrow::Int64Array> new_left_indices;
+
+        status = new_left_indices_builder.Reserve(num_indices);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        // TODO(nicholas): Use UnsafeAppend or index access
+        // Append all of the indices to an ArrayBuilder.
+        for (int i = 0; i < new_left_indices_vector.size(); i++) {
+            status = new_left_indices_builder.AppendValues(
+                new_left_indices_vector[i]);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        }
+
+        status = new_left_indices_builder.Finish(&new_left_indices);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        joined_indices_[0] = (arrow::Datum(new_left_indices));
+    });
+    ctx->spawnLambdaTask([this, num_indices] {
+        arrow::Status status;
+
+        arrow::Int64Builder new_right_indices_builder;
+        std::shared_ptr<arrow::Int64Array> new_right_indices;
+
+        status = new_right_indices_builder.Reserve(num_indices);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        // TODO(nicholas): Use UnsafeAppend or index access
+        // Append all of the indices to an ArrayBuilder.
+        for (int i = 0; i < new_right_indices_vector.size(); i++) {
+            status = new_right_indices_builder.AppendValues(
+                new_right_indices_vector[i]);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        }
+
+        status = new_right_indices_builder.Finish(&new_right_indices);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        joined_indices_[1] = (arrow::Datum(new_right_indices));
+    });
 }
 
 std::shared_ptr<OperatorResult>
@@ -218,7 +242,9 @@ void Join::hash_join(int i, Task *ctx) {
             probe_hash_table(left_join_col_.chunked_array(), internal);
         }),
         CreateLambdaTask([this, i](Task *internal) {
-            finish_probe();
+            finish_probe(internal);
+        }),
+        CreateLambdaTask([this, i](Task *internal) {
             auto left = prev_result_->get_table(lefts[i].table);
             auto right = prev_result_->get_table(rights[i].table);
             // Update indices of other LazyTables in the previous OperatorResult
