@@ -127,7 +127,6 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
             }
 
 
-            // TODO(nicholas): spawn a new task for each group by column
             // e.g. group_id = [4, 1, 2]
             // We get the filter for all_unique_values[0][4], all_unique_values[1][1],
             // and all_unique_values[3][2]. Recall that all_unique_values[i] is an array
@@ -313,9 +312,10 @@ arrow::Datum Aggregate::get_unique_values(
 
     arrow::Status status;
     auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]];
-    auto x = group_by_col.chunked_array();
+
     // Get the unique values in group_by_col
     arrow::Datum unique_values;
+    // TODO(nicholas): Is it worthwhile to make this multithreaded?
     status = arrow::compute::Unique(group_by_col).Value(&unique_values);
     auto y = unique_values.make_array();
 
