@@ -20,12 +20,12 @@ Aggregate::Aggregate(
     std::vector<ColumnReference> order_by_refs) :
     Operator(query_id) {
 
-    prev_result_ = prev_result;
-    output_result_ = output_result;
-    aggregate_refs_ = aggregate_refs;
+    prev_result_ = std::move(prev_result);
+    output_result_ = std::move(output_result);
+    aggregate_refs_ = std::move(aggregate_refs);
 
-    group_by_refs_ = group_refs;
-    order_by_refs_ = order_by_refs;
+    group_by_refs_ = std::move(group_refs);
+    order_by_refs_ = std::move(order_by_refs);
 
 }
 
@@ -117,7 +117,7 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
 }
 
 void
-Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id) {
+Aggregate::get_group_filter(Task *ctx, int agg_index, const std::vector<int>& group_id) {
 
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
@@ -326,7 +326,7 @@ arrow::Datum Aggregate::get_unique_values(
 }
 
 void Aggregate::get_unique_value_filter
-    (Task* ctx, int agg_index, int field_i, const ColumnReference& group_ref, arrow::Datum value, std::shared_ptr<arrow::ChunkedArray>& out) {
+    (Task* ctx, int agg_index, int field_i, const ColumnReference& group_ref, const arrow::Datum& value, std::shared_ptr<arrow::ChunkedArray>& out) {
 
 //    ctx->spawnTask(CreateTaskChain(
 //        CreateLambdaTask([this, group_ref, value](Task* internal) {
@@ -366,7 +366,7 @@ void Aggregate::finish() {
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     for (int i = 0; i < groups_temp->num_fields(); i++) {
-        groups_.push_back(groups_temp->field(i));
+        groups_.emplace_back(groups_temp->field(i));
     }
 
     std::shared_ptr<arrow::Array> agg_temp;
@@ -488,7 +488,7 @@ void Aggregate::compute_group_aggregate(
     Task* ctx,
     int agg_index,
     const std::vector<int>& group_id,
-    arrow::Datum agg_col) {
+    const arrow::Datum& agg_col) {
 
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {

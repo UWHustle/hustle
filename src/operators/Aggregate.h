@@ -260,7 +260,7 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    void get_group_filter(Task* ctx, int agg_index, std::vector<int> its);
+    void get_group_filter(Task* ctx, int agg_index, const std::vector<int>& its);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -277,7 +277,7 @@ private:
         int agg_index,
         int field_i,
         const ColumnReference& col_ref,
-        arrow::Datum value,
+        const arrow::Datum& value,
         std::shared_ptr<arrow::ChunkedArray>& out);
 
     /**
@@ -290,7 +290,7 @@ private:
      * @param agg_col aggregate column
      */
     void compute_group_aggregate(Task* ctx, int agg_index, const std::vector<int>& group_id,
-                                 arrow::Datum agg_col);
+                                 const arrow::Datum& agg_col);
 
     /**
      * Compute the aggregate over a column.
