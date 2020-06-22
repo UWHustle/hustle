@@ -14,15 +14,14 @@ class ContextPool {
 public:
 
     ContextPool();
-
+    Context get_context();
+    Context return_context(Context context);
 private:
 
     std::queue<Context> contexts_;
     std::mutex mutex_;
 
-    Context get_context();
 
-    Context return_context(Context context);
 };
 
 }
