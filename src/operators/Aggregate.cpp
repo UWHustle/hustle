@@ -185,32 +185,31 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
             }
         }),
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
+            if (group_id.empty()) {
+                return;
+            }
             arrow::Status status;
 
             arrow::Datum temp_filter;
             arrow::ArrayVector filter_vector;
 
             auto prev_filter = unique_value_filters_[0][group_id[0]];
+            filter_vector.resize(prev_filter->num_chunks());
 
             // TODO(nicholas): multithreaded AND
             // Perform a logical AND on all the unique value filters
             for (int field_i=1; field_i<group_by_refs_.size(); field_i++) {
-                if (prev_filter != nullptr) {
-                    auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
-                    for (int j = 0; j < prev_filter->num_chunks(); j++) {
-                        status = arrow::compute::And(prev_filter->chunk(j),
-                                                     next_filter->chunk(j)).Value(&temp_filter);
-                        evaluate_status(status, __FUNCTION__, __LINE__);
+                auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
+                for (int j = 0; j < prev_filter->num_chunks(); j++) {
+                    status = arrow::compute::And(prev_filter->chunk(j),
+                                                 next_filter->chunk(j)).Value(&temp_filter);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
 
-                        filter_vector.push_back(temp_filter.make_array());
-                    }
-
-                    prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
-                } else {
-                    prev_filter = unique_value_filters_[field_i][group_id[field_i]];
+                    filter_vector[j] = temp_filter.make_array();
                 }
-            }
 
+                prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
+            }
             group_filters_[agg_index] = prev_filter;
         })
     ));
