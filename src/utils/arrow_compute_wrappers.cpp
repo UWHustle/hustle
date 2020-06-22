@@ -131,7 +131,7 @@ void apply_indices(
 }
 
 Context::Context() {
-
+    slice_length_ = 10000;
 }
 
 void Context::apply_indices_internal(
@@ -140,12 +140,11 @@ void Context::apply_indices_internal(
     const std::shared_ptr<arrow::Array>& offsets,
     int i) {
 
-    int slice_length = 100000;
-    int num_slices = indices_array->length()/slice_length + 1;
+    int num_slices = indices_array->length()/slice_length_ + 1;
 
     std::shared_ptr<arrow::Array> sliced_indices;
-    if (i == num_slices-1) sliced_indices = indices_array->Slice(i*slice_length, indices_array->length() - (i-1)*slice_length);
-    else sliced_indices = indices_array->Slice(i*slice_length, slice_length);
+    if (i == num_slices-1) sliced_indices = indices_array->Slice(i*slice_length_, indices_array->length() - (i-1)*slice_length_);
+    else sliced_indices = indices_array->Slice(i*slice_length_, slice_length_);
 
     if (sliced_indices->length() == 0) {
         array_vec_[i] = arrow::MakeArrayOfNull(chunked_values->type(), 0, arrow::default_memory_pool()).ValueOrDie();
@@ -213,8 +212,7 @@ void Context::apply_indices(
             std::shared_ptr<arrow::Array> offsets;
             b.Finish(&offsets);
 
-            int slice_length = 100000;
-            int num_slices = indices_array->length()/slice_length + 1;
+            int num_slices = indices_array->length()/slice_length_ + 1;
 
             array_vec_.resize(num_slices);
 

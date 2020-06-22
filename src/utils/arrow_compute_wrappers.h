@@ -127,6 +127,7 @@ public:
 
 private:
 
+    int slice_length_;
     void clear_data();
 
     arrow::ArrayVector array_vec_;
