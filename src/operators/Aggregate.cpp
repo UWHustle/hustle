@@ -153,7 +153,7 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
                                             group_id[field_i])));
                                 // Get the filter for this particular unique value.
                                 std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                                get_unique_value_filter(internal,
+                                get_unique_value_filter(internal, agg_index, field_i,
                                                         group_by_refs_[field_i],
                                                         value, unique_value_filters_[field_i][group_id[field_i]]);
                                 break;
@@ -170,7 +170,7 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
                                         one_unique_value_casted->Value(group_id[field_i])));
                                 // Get the filter for this particular unique value.
                                 std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                                 get_unique_value_filter(internal,
+                                 get_unique_value_filter(internal, agg_index, field_i,
                                     group_by_refs_[field_i],
                                     value, unique_value_filters_[field_i][group_id[field_i]]);
                                 break;
@@ -326,10 +326,10 @@ arrow::Datum Aggregate::get_unique_values(
 }
 
 void Aggregate::get_unique_value_filter
-    (Task* ctx, const ColumnReference& group_ref, arrow::Datum value, std::shared_ptr<arrow::ChunkedArray>& out) {
+    (Task* ctx, int agg_index, int field_i, const ColumnReference& group_ref, arrow::Datum value, std::shared_ptr<arrow::ChunkedArray>& out) {
 
-//    ctx->spawnTask(CreateTaskChain(
-//        CreateLambdaTask([this, group_ref, value](Task* internal) {
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, group_ref, value, agg_index, field_i](Task* internal) {
             arrow::Status status;
             arrow::Datum out_filter;
             arrow::ArrayVector filter_vector;
@@ -337,21 +337,24 @@ void Aggregate::get_unique_value_filter
 
             auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]].chunked_array();
 
-            for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
-                auto block_col = group_by_col->chunk(i);
-                status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-
-                filter_vector.push_back(out_filter.make_array());
-            }
-
-            out = std::make_shared<arrow::ChunkedArray>(filter_vector);
-//        }),
-//        CreateLambdaTask([this, group_ref, value](Task* internal) {
+//            for (int i = 0; i < group_by_col->num_chunks(); i++) {
 //
-//        })
-//    ));
+//                auto block_col = group_by_col->chunk(i);
+//                status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
+                unique_value_filter_contexts_[agg_index][field_i].compare(internal, group_by_col, value, arrow::compute::EQUAL, &out_filter);
+
+//                evaluate_status(status, __FUNCTION__, __LINE__);
+
+//                filter_vector.push_back(out_filter.make_array());
+//            }
+
+        }),
+        CreateLambdaTask([this, &out, agg_index, field_i](Task* internal) {
+            out = unique_value_filter_contexts_[agg_index][field_i].out_.chunked_array();
+
+        })
+    ));
 }
 
 
@@ -564,6 +567,10 @@ void Aggregate::compute_aggregates(Task *ctx) {
             group_filters_.resize(num_aggs);
             filtered_agg_cols_.resize(num_aggs);
             contexts_.resize(num_aggs);
+            unique_value_filter_contexts_.resize(num_aggs);
+            for (auto& vec : unique_value_filter_contexts_) {
+                vec.resize(group_by_refs_.size());
+            }
 
             int agg_index = 0;
 

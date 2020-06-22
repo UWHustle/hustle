@@ -4,6 +4,50 @@
 
 namespace hustle {
 
+void Context::compare(
+    Task* ctx,
+    const arrow::Datum& left,
+    const arrow::Datum& right,
+    arrow::compute::CompareOperator compare_operator,
+    arrow::Datum* out) {
+
+    clear_data();
+
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, left, right, compare_operator, &out](Task* internal) {
+            auto chunked_values = left.chunked_array();
+
+            array_vec_.resize(chunked_values->num_chunks());
+
+            int batch_size = chunked_values->num_chunks() / 8;
+            if (batch_size == 0) batch_size = chunked_values->num_chunks();
+            int num_batches = chunked_values->num_chunks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+            if (num_batches == 0) num_batches = 1;
+
+            for (int batch_i=0; batch_i<num_batches; batch_i++) {
+                internal->spawnLambdaTask([this, batch_i, &out, right, chunked_values, compare_operator, batch_size] {
+                    int base_i = batch_i * batch_size;
+                    for (int i=base_i; i<base_i+batch_size && i<chunked_values->num_chunks(); i++) {
+
+                        arrow::Status status;
+                        arrow::compute::CompareOptions compare_options(compare_operator);
+                        arrow::Datum block_values;
+
+                        status = arrow::compute::Compare(chunked_values->chunk(i), right, compare_options).Value(&block_values);
+                        evaluate_status(status, __FUNCTION__, __LINE__);
+
+                        array_vec_[i] = block_values.make_array();
+                    }
+                });
+            }
+        }),
+        CreateLambdaTask([this, left, right, compare_operator, &out](Task* internal) {
+//            out->value = std::make_shared<arrow::ChunkedArray>(array_vec_);
+            out_.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
+        })
+    ));
+}
+
 arrow::Datum Context::apply_filter_block(
     const std::shared_ptr<arrow::Array>& values,
     const std::shared_ptr<arrow::Array>& filter,

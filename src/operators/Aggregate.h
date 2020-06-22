@@ -5,6 +5,7 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include <utils/ContextPool.h>
 
 #include "OperatorResult.h"
 #include "Operator.h"
@@ -167,6 +168,8 @@ private:
     std::vector<std::vector<std::shared_ptr<arrow::ChunkedArray>>> unique_value_filters_;
     std::vector<arrow::Datum> filtered_agg_cols_;
     std::vector<Context> contexts_;
+    std::vector<std::vector<Context>> unique_value_filter_contexts_;
+
 
 
     // A vector of Arrays containing the unique values of each of the group
@@ -193,6 +196,8 @@ private:
 
     std::unordered_map<std::string, int> group_by_col_names_to_index_;
     std::vector<LazyTable> group_by_tables_;
+
+    ContextPool context_pool_;
 
     /**
      * Initialize or pre-compute data members.
@@ -269,6 +274,8 @@ private:
      */
     void get_unique_value_filter(
         Task* ctx,
+        int agg_index,
+        int field_i,
         const ColumnReference& col_ref,
         arrow::Datum value,
         std::shared_ptr<arrow::ChunkedArray>& out);

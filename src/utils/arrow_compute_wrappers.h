@@ -124,7 +124,8 @@ public:
         arrow::ArrayVector &out);
 
     arrow::Datum out_;
-
+    void compare(Task *ctx, const arrow::Datum &left, const arrow::Datum &right,
+                 arrow::compute::CompareOperator compare_operator, arrow::Datum *out);
 private:
 
     int slice_length_;
@@ -142,6 +143,8 @@ private:
     arrow::Datum
     apply_filter_block(const std::shared_ptr<arrow::Array> &values, const std::shared_ptr<arrow::Array> &filter,
                        arrow::ArrayVector &out);
+
+
 };
 
 }
