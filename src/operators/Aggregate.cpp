@@ -117,7 +117,7 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
 }
 
 arrow::Datum
-Aggregate::get_group_filter(int agg_index, std::vector<int> group_id) {
+Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id) {
 
     arrow::Status status;
 
@@ -476,7 +476,7 @@ void Aggregate::compute_group_aggregate(
 
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-            auto group_filter = get_group_filter(agg_index, group_id);
+            auto group_filter = get_group_filter(internal, agg_index, group_id);
             group_filters_[agg_index] = group_filter.chunked_array();
         }),
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
