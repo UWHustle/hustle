@@ -32,10 +32,18 @@ void Context::apply_filter_internal(
 
             out.resize(chunked_values->num_chunks());
 
-            for (int i=0; i<chunked_filter->num_chunks(); i++) {
-                internal->spawnLambdaTask([this, i, &out, chunked_filter, chunked_values] {
-                    auto block_filter = apply_filter_block(chunked_values->chunk(i), chunked_filter->chunk(i), out);
-                    out[i] = block_filter.make_array();
+            int batch_size = chunked_values->num_chunks() / 8;
+            if (batch_size == 0) batch_size = chunked_values->num_chunks();
+            int num_batches = chunked_values->num_chunks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+            if (num_batches == 0) num_batches = 1;
+
+            for (int batch_i=0; batch_i<num_batches; batch_i++) {
+                internal->spawnLambdaTask([this, batch_i, &out, chunked_filter, chunked_values, batch_size] {
+                    int base_i = batch_i * batch_size;
+                    for (int i=base_i; i<base_i+batch_size && i<chunked_values->num_chunks(); i++) {
+                        auto block_filter = apply_filter_block(chunked_values->chunk(i), chunked_filter->chunk(i), out);
+                        out[i] = block_filter.make_array();
+                    }
                 });
             }
         })

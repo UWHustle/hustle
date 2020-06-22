@@ -70,10 +70,18 @@ void Select::execute(Task *ctx) {
         CreateLambdaTask([this](Task *internal){
             filter_vector_.resize(table_->get_num_blocks());
 
-            for (int i = 0; i < table_->get_num_blocks(); i++) {
+            int batch_size = table_->get_num_blocks() / 8;
+            if (batch_size == 0) batch_size = table_->get_num_blocks();
+            int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+            if (num_batches == 0) num_batches = 1;
+
+            for (int batch_i=0; batch_i<num_batches; batch_i++) {
                 // Each task gets the filter for one block and stores it in filter_vector
-                internal->spawnLambdaTask([this, i]() {
-                    execute_block(i);
+                internal->spawnLambdaTask([this, batch_i, batch_size]() {
+                    int base_i = batch_i * batch_size;
+                    for (int i=base_i; i<base_i+batch_size && i<table_->get_num_blocks(); i++) {
+                        execute_block(i);
+                    }
                 });
             }
         }),
