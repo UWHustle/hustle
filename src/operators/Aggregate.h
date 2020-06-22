@@ -165,6 +165,8 @@ private:
 
     std::vector<std::shared_ptr<arrow::ChunkedArray>> group_filters_;
     std::vector<std::vector<std::shared_ptr<arrow::ChunkedArray>>> unique_value_filters_;
+    std::vector<arrow::Datum> filtered_agg_cols_;
+
 
     // A vector of Arrays containing the unique values of each of the group
     // by columns.
@@ -277,7 +279,7 @@ private:
      * unique_values_[3], and unique_values_[7], into group_builder_.
      * @param agg_col aggregate column
      */
-    void compute_group_aggregate(int agg_index, const std::vector<int>& group_id,
+    void compute_group_aggregate(Task* ctx, int agg_index, const std::vector<int>& group_id,
                                  arrow::Datum agg_col);
 
     /**
@@ -324,6 +326,11 @@ private:
     void sort();
 
 
+    void initialize_variables(Task *ctx);
+
+    void initialize_group_by_column(Task *ctx, int i);
+
+    void initialize_agg_col(Task *ctx);
 };
 
 } // namespace operators

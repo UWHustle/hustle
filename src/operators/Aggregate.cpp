@@ -398,93 +398,114 @@ arrow::Datum Aggregate::compute_aggregate(
     return out_aggregate;
 }
 
+void Aggregate::initialize_variables(Task* ctx) {
+    // Fetch the fields associated with each groupby column.
+    std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
+    for (auto &group_by : group_by_refs_) {
+        group_by_fields.push_back(
+            group_by.table->get_schema()
+                ->GetFieldByName(group_by.col_name));
+    }
 
+    sort_aggregate_col_ = false;
+    for (auto &order_by : order_by_refs_) {
+        if (order_by.table == nullptr) {
+            sort_aggregate_col_ = true;
+        }
+    }
+
+    // Initialize a StructBuilder containing one builder for each group
+    // by column.
+    group_type_ = arrow::struct_(group_by_fields);
+    group_builder_ = std::make_shared<arrow::StructBuilder>(
+        group_type_, arrow::default_memory_pool(), get_group_builders());
+
+    // Initialize aggregate builder
+    aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
+
+    // Initialize output table schema. group_type_ must be initialized beforehand.
+    out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
+                                    aggregate_refs_[0].agg_name);
+    //Initialize output table.
+    output_table_ = std::make_shared<Table>("aggregate", out_schema_, BLOCK_SIZE);
+
+    all_unique_values_.resize(group_by_refs_.size());
+    unique_value_filters_.resize(group_by_refs_.size());
+    group_by_cols_.resize(group_by_refs_.size());
+
+    for (auto &group_by : group_by_refs_) {
+        group_by_tables_.push_back(prev_result_->get_table(group_by.table));
+    }
+}
+
+void Aggregate::initialize_group_by_column(Task* ctx, int i) {
+    std::scoped_lock<std::mutex> lock(mutex_);
+    group_by_col_names_to_index_.emplace(group_by_refs_[i].col_name, i);
+    group_by_tables_[i].get_column_by_name(ctx, group_by_refs_[i].col_name, group_by_cols_[i]);
+}
 
 void Aggregate::initialize(Task* ctx) {
 
-    ctx->spawnLambdaTask([this](Task* internal) {
-        // Fetch the fields associated with each groupby column.
-        std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
-        for (auto &group_by : group_by_refs_) {
-            group_by_fields.push_back(
-                group_by.table->get_schema()
-                    ->GetFieldByName(group_by.col_name));
-        }
-
-        sort_aggregate_col_ = false;
-        for (auto &order_by : order_by_refs_) {
-            if (order_by.table == nullptr) {
-                sort_aggregate_col_ = true;
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this](Task* internal) {
+            initialize_variables(internal);
+        }),
+        CreateLambdaTask([this](Task* internal) {
+            // Fetch unique values for all Group By columns.
+            for (int i=0; i<group_by_refs_.size(); i++) {
+                // TODO(nicholas): No need for a TaskChain here
+                internal->spawnTask(CreateTaskChain(
+                    CreateLambdaTask([this, i](Task* internal) {
+                        initialize_group_by_column(internal, i);
+                    }),
+                    CreateLambdaTask([this, i] {
+                        std::scoped_lock<std::mutex> lock(mutex2_);
+                        all_unique_values_[i] = get_unique_values(group_by_refs_[i]).make_array();
+                    })
+                ));
             }
-        }
-
-        // Initialize a StructBuilder containing one builder for each group
-        // by column.
-        group_type_ = arrow::struct_(group_by_fields);
-        group_builder_ = std::make_shared<arrow::StructBuilder>(
-            group_type_, arrow::default_memory_pool(), get_group_builders());
-
-        // Initialize aggregate builder
-        aggregate_builder_ = get_aggregate_builder(aggregate_refs_[0].kernel);
-
-        // Initialize output table schema. group_type_ must be initialized beforehand.
-        out_schema_ = get_output_schema(aggregate_refs_[0].kernel,
-                                        aggregate_refs_[0].agg_name);
-        //Initialize output table.
-        output_table_ = std::make_shared<Table>("aggregate", out_schema_, BLOCK_SIZE);
-
-        all_unique_values_.resize(group_by_refs_.size());
-        unique_value_filters_.resize(group_by_refs_.size());
-        group_by_cols_.resize(group_by_refs_.size());
-
-
-
-        for (auto &group_by : group_by_refs_) {
-            group_by_tables_.push_back(prev_result_->get_table(group_by.table));
-        }
-
-        // Fetch unique values for all Group By columns.
-        for (int i=0; i<group_by_refs_.size(); i++) {
-            internal->spawnTask(CreateTaskChain(
-                CreateLambdaTask([this, i](Task* internal) {
-                    std::scoped_lock<std::mutex> lock(mutex_);
-                    group_by_col_names_to_index_.emplace(group_by_refs_[i].col_name, i);
-                    group_by_tables_[i].get_column_by_name(internal, group_by_refs_[i].col_name, group_by_cols_[i]);
-                }),
-                CreateLambdaTask([this, i] {
-                    auto x = get_unique_values(group_by_refs_[i]).make_array();
-                    std::scoped_lock<std::mutex> lock(mutex2_);
-                    all_unique_values_[i] = get_unique_values(group_by_refs_[i]).make_array();
-                })
-            ));
-        }
-    });
+        })
+    ));
 }
 
 void Aggregate::compute_group_aggregate(
+    Task* ctx,
     int agg_index,
     const std::vector<int>& group_id,
     arrow::Datum agg_col) {
 
-    arrow::Status status;
-    auto group_filter = get_group_filter(agg_index, group_id);
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, agg_index, group_id](Task* internal) {
+            auto group_filter = get_group_filter(agg_index, group_id);
+            group_filters_[agg_index] = group_filter.chunked_array();
+        }),
+        CreateLambdaTask([this, agg_index, group_id](Task* internal) {
+            if (group_filters_[agg_index] != nullptr) {
+                arrow::Status status;
+                // TODO(nicholas): use multithreaded filter
+                status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
+                evaluate_status(status, __FUNCTION__, __LINE__);
+            } else {
+                filtered_agg_cols_[agg_index] = agg_col_;
+            }
+        }),
+        CreateLambdaTask([this, agg_index, group_id](Task* internal) {
+            if (filtered_agg_cols_[agg_index].length() > 0) {
+                // Compute the aggregate over the filtered agg_col
+                auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, filtered_agg_cols_[agg_index]);
+                // Acquire builder_mutex_ so that groups are correctly associated with
+                // their corresponding aggregates
+                std::unique_lock<std::mutex> lock(builder_mutex_);
+                insert_group_aggregate(aggregate);
+                insert_group(group_id);
+            }
+        })
+    ));
 
     // Apply group filter to the aggregate column
-    if (group_filter.kind() != arrow::Datum::NONE) {
-        status = arrow::compute::Filter(agg_col, group_filter).Value(&agg_col);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-    }
 
-    if (agg_col.length() > 0) {
-        // Compute the aggregate over the filtered agg_col
-        auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col);
 
-        // Acquire builder_mutex_ so that groups are correctly associated with
-        // their corresponding aggregates
-        std::unique_lock<std::mutex> lock(builder_mutex_);
-        insert_group_aggregate(aggregate);
-        insert_group(group_id);
-    }
+
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
@@ -531,6 +552,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 num_aggs *= maxes[i];
             }
             group_filters_.resize(num_aggs);
+            filtered_agg_cols_.resize(num_aggs);
 
             int agg_index = 0;
 
@@ -541,8 +563,8 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 // LOOP BODY START
                 // Task = compute the aggregate of one group.
                 internal->spawnLambdaTask(
-                    [this, agg_index, group_id] {
-                        compute_group_aggregate(agg_index, group_id, agg_col_);
+                    [this, agg_index, group_id](Task* internal) {
+                        compute_group_aggregate(internal, agg_index, group_id, agg_col_);
                     });
                 agg_index++;
                 // LOOP BODY END
