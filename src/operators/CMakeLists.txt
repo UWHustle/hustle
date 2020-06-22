@@ -18,6 +18,7 @@ target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
         hustle_src_utils_EventProfiler
         hustle_src_utils_ArrowComputeWrappers
+        hustle_src_utils_ContextPool
         ${ARROW_SHARED_LIB}
         )
 
