@@ -479,7 +479,6 @@ void Aggregate::compute_group_aggregate(
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
             get_group_filter(internal, agg_index, group_id);
-//            group_filters_[agg_index] = group_filter.chunked_array();
         }),
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
             if (group_filters_[agg_index] != nullptr) {
@@ -503,11 +502,6 @@ void Aggregate::compute_group_aggregate(
             }
         })
     ));
-
-    // Apply group filter to the aggregate column
-
-
-
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
