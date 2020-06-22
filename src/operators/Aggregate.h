@@ -267,9 +267,11 @@ private:
      * @return A filter corresponding to all rows of col_ref equal to value,
      * i.e. the filter corresponding to a single group of col_ref.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_unique_value_filter(
+    void get_unique_value_filter(
+        Task* ctx,
         const ColumnReference& col_ref,
-        arrow::Datum value);
+        arrow::Datum value,
+        std::shared_ptr<arrow::ChunkedArray>& out);
 
     /**
      * Compute the aggregate over a single group. This calls compute_aggregate()

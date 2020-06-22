@@ -133,7 +133,7 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
             // of all the unique values of the ith GROUP BY column
             for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
 
-                internal->spawnLambdaTask([this, agg_index, group_id, field_i] {
+                internal->spawnLambdaTask([this, agg_index, group_id, field_i](Task* internal) {
                     arrow::Datum value;
                     std::shared_ptr<arrow::ChunkedArray> next_filter;
                     if (unique_value_filters_[field_i][group_id[field_i]] != nullptr) {
@@ -153,9 +153,9 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
                                             group_id[field_i])));
                                 // Get the filter for this particular unique value.
                                 std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                                unique_value_filters_[field_i][group_id[field_i]] = get_unique_value_filter(
-                                    group_by_refs_[field_i],
-                                    value);
+                                get_unique_value_filter(internal,
+                                                        group_by_refs_[field_i],
+                                                        value, unique_value_filters_[field_i][group_id[field_i]]);
                                 break;
                             }
                             case arrow::Type::INT64: {
@@ -170,9 +170,9 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
                                         one_unique_value_casted->Value(group_id[field_i])));
                                 // Get the filter for this particular unique value.
                                 std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                                unique_value_filters_[field_i][group_id[field_i]] = get_unique_value_filter(
+                                 get_unique_value_filter(internal,
                                     group_by_refs_[field_i],
-                                    value);
+                                    value, unique_value_filters_[field_i][group_id[field_i]]);
                                 break;
                             }
                             default: {
@@ -325,28 +325,33 @@ arrow::Datum Aggregate::get_unique_values(
     return unique_values;
 }
 
-std::shared_ptr<arrow::ChunkedArray> Aggregate::get_unique_value_filter
-    (const ColumnReference& group_ref, arrow::Datum value) {
+void Aggregate::get_unique_value_filter
+    (Task* ctx, const ColumnReference& group_ref, arrow::Datum value, std::shared_ptr<arrow::ChunkedArray>& out) {
 
-    arrow::Status status;
-    arrow::Datum out_filter;
-    arrow::ArrayVector filter_vector;
-    arrow::compute::CompareOptions compare_options(arrow::compute::EQUAL);
+//    ctx->spawnTask(CreateTaskChain(
+//        CreateLambdaTask([this, group_ref, value](Task* internal) {
+            arrow::Status status;
+            arrow::Datum out_filter;
+            arrow::ArrayVector filter_vector;
+            arrow::compute::CompareOptions compare_options(arrow::compute::EQUAL);
 
-    auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]].chunked_array();
+            auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]].chunked_array();
 
+            for (int i = 0; i < group_by_col->num_chunks(); i++) {
 
-    // TODO(nicholas): spawn a new task for each block
-    for (int i = 0; i < group_by_col->num_chunks(); i++) {
+                auto block_col = group_by_col->chunk(i);
+                status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
-        auto block_col = group_by_col->chunk(i);
-        status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
-        evaluate_status(status, __FUNCTION__, __LINE__);
+                filter_vector.push_back(out_filter.make_array());
+            }
 
-        filter_vector.push_back(out_filter.make_array());
-    }
-
-    return std::make_shared<arrow::ChunkedArray>(filter_vector);
+            out = std::make_shared<arrow::ChunkedArray>(filter_vector);
+//        }),
+//        CreateLambdaTask([this, group_ref, value](Task* internal) {
+//
+//        })
+//    ));
 }
 
 
