@@ -4,6 +4,21 @@
 
 namespace hustle {
 
+arrow::Datum Context::apply_filter_block(
+    const std::shared_ptr<arrow::Array>& values,
+    const std::shared_ptr<arrow::Array>& filter,
+    arrow::ArrayVector& out) {
+
+    arrow::Status status;
+    arrow::Datum block_filter;
+    //                std::cout << "apply filter" << std::endl;
+    //                std::cout << chunked_values->length() << " " << chunked_filter->length() << std::endl;
+    //                std::cout << chunked_values->num_chunks() << " " << chunked_filter->num_chunks()<< std::endl;
+    status = arrow::compute::Filter(values, filter).Value(&block_filter);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    return block_filter.make_array();
+}
+
 void Context::apply_filter_internal(
     Task* ctx,
     const arrow::Datum& values,
@@ -19,16 +34,7 @@ void Context::apply_filter_internal(
 
             for (int i=0; i<chunked_filter->num_chunks(); i++) {
                 internal->spawnLambdaTask([this, i, &out, chunked_filter, chunked_values] {
-
-                    arrow::Status status;
-
-                    arrow::Datum block_filter;
-    //                std::cout << "apply filter" << std::endl;
-    //                std::cout << chunked_values->length() << " " << chunked_filter->length() << std::endl;
-    //                std::cout << chunked_values->num_chunks() << " " << chunked_filter->num_chunks()<< std::endl;
-                    status = arrow::compute::Filter(chunked_values->chunk(i),
-                                                    chunked_filter->chunk(i)).Value(&block_filter);
-                    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+                    auto block_filter = apply_filter_block(chunked_values->chunk(i), chunked_filter->chunk(i), out);
                     out[i] = block_filter.make_array();
                 });
             }

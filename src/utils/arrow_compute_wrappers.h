@@ -136,6 +136,12 @@ private:
     void apply_indices_internal(const std::shared_ptr<arrow::ChunkedArray> &chunked_values,
                                 const std::shared_ptr<arrow::Array> &indices_array,
                                 const std::shared_ptr<arrow::Array> &offsets, int i);
+
+    void apply_filter_block(Task *ctx, const arrow::Datum &values, const arrow::Datum &filter, arrow::ArrayVector &out);
+
+    arrow::Datum
+    apply_filter_block(const std::shared_ptr<arrow::Array> &values, const std::shared_ptr<arrow::Array> &filter,
+                       arrow::ArrayVector &out);
 };
 
 }
