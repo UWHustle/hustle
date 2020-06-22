@@ -254,7 +254,7 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    arrow::Datum get_group_filter(Task* ctx, int agg_index, std::vector<int> its);
+    void get_group_filter(Task* ctx, int agg_index, std::vector<int> its);
 
     /**
      * Get the filter corresponding to a single group of a single column.

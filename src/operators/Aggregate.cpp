@@ -116,14 +116,14 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
     return result.ValueOrDie();
 }
 
-arrow::Datum
+void
 Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id) {
 
     arrow::Status status;
 
     // No Group By clause
     if (group_type_->num_children() == 0) {
-        return arrow::Datum();
+        return;
     }
 
     arrow::Datum value;
@@ -204,7 +204,7 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, std::vector<int> group_id)
         }
     }
 
-    return prev_filter;
+    group_filters_[agg_index] = prev_filter;
 }
 
 void Aggregate::insert_group(std::vector<int> group_id) {
@@ -478,8 +478,8 @@ void Aggregate::compute_group_aggregate(
 
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-            auto group_filter = get_group_filter(internal, agg_index, group_id);
-            group_filters_[agg_index] = group_filter.chunked_array();
+            get_group_filter(internal, agg_index, group_id);
+//            group_filters_[agg_index] = group_filter.chunked_array();
         }),
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
             if (group_filters_[agg_index] != nullptr) {
