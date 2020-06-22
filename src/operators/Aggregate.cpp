@@ -328,8 +328,8 @@ arrow::Datum Aggregate::get_unique_values(
 void Aggregate::get_unique_value_filter
     (Task* ctx, int agg_index, int field_i, const ColumnReference& group_ref, arrow::Datum value, std::shared_ptr<arrow::ChunkedArray>& out) {
 
-    ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this, group_ref, value, agg_index, field_i](Task* internal) {
+//    ctx->spawnTask(CreateTaskChain(
+//        CreateLambdaTask([this, group_ref, value](Task* internal) {
             arrow::Status status;
             arrow::Datum out_filter;
             arrow::ArrayVector filter_vector;
@@ -338,23 +338,21 @@ void Aggregate::get_unique_value_filter
             auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]].chunked_array();
 
 
-//            for (int i = 0; i < group_by_col->num_chunks(); i++) {
+            for (int i = 0; i < group_by_col->num_chunks(); i++) {
+
+                auto block_col = group_by_col->chunk(i);
+                status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
+                evaluate_status(status, __FUNCTION__, __LINE__);
+
+                filter_vector.push_back(out_filter.make_array());
+            }
+
+            out = std::make_shared<arrow::ChunkedArray>(filter_vector);
+//        }),
+//        CreateLambdaTask([this, group_ref, value](Task* internal) {
 //
-//                auto block_col = group_by_col->chunk(i);
-//                status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
-                unique_value_filter_contexts_[agg_index][field_i].compare(internal, group_by_col, value, arrow::compute::EQUAL, &out_filter);
-
-//                evaluate_status(status, __FUNCTION__, __LINE__);
-
-//                filter_vector.push_back(out_filter.make_array());
-//            }
-
-        }),
-        CreateLambdaTask([this, &out, agg_index, field_i](Task* internal) {
-            out = unique_value_filter_contexts_[agg_index][field_i].out_.chunked_array();
-
-        })
-    ));
+//        })
+//    ));
 }
 
 
