@@ -71,8 +71,8 @@ void Context::apply_filter_internal(
 
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, values, filter, &out](Task* internal) {
-            auto chunked_values = values.chunked_array();
-            auto chunked_filter = filter.chunked_array();
+            const auto& chunked_values = values.chunked_array();
+            const auto& chunked_filter = filter.chunked_array();
 
             out.resize(chunked_values->num_chunks());
 
@@ -127,10 +127,7 @@ void Context::apply_filter(
         }),
         CreateLambdaTask([this, values, filter, &out](Task* internal) {
             if (values.kind() == arrow::Datum::CHUNKED_ARRAY) {
-                auto chunked_values = values.chunked_array();
-                auto chunked_filter = filter.chunked_array();
                 out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
-
             }
         })
     ));
