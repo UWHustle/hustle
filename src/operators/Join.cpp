@@ -72,9 +72,10 @@ void Join::probe_hash_table_block
         for (int row = 0; row < left_join_chunk->length(); row++) {
             auto key = left_join_chunk->Value(row);
 
-            if (hash_table_.find(key) != hash_table_.end()) {
+            auto key_value_pair = hash_table_.find(key);
+            if ( key_value_pair != hash_table_.end()) {
                 joined_left_indices.push_back(chunk_row_offsets[i] + row);  // insert left row index
-                joined_right_indices.push_back(hash_table_[key]); // insert right row index
+                joined_right_indices.push_back(key_value_pair->second); // insert right row index
             }
         }
 
