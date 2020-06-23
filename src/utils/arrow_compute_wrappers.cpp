@@ -208,7 +208,11 @@ void Context::apply_indices_internal(
     arrow::Datum temp;
     arrow::Status status;
 
-    status = arrow::compute::Take(*chunked_values, *sliced_indices, *offsets).Value(&temp);
+    // Assume that indices are correct and that boundschecking is unecessary.
+    // CHANGE TO TRUE IF YOU ARE DEBUGGING
+    arrow::compute::TakeOptions take_options(false);
+
+    status = arrow::compute::Take(*chunked_values, *sliced_indices, *offsets, take_options).Value(&temp);
 
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     array_vec_[i] = temp.chunked_array()->chunk(0);

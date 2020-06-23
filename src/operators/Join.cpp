@@ -60,12 +60,11 @@ void Join::probe_hash_table_block
 
         arrow::Status status;
 
-        // The indices of the rows joined in chunk i
-
         int num_joined_indices = 0;
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
 
+        // The indices of the rows joined in chunk i
         int64_t joined_left_indices[chunk_length];
         int64_t joined_right_indices[chunk_length];
 
@@ -183,12 +182,16 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
     auto left_indices_of_indices = joined_indices_[0];
     auto right_indices_of_indices = joined_indices_[1];
 
+    // Assume that indices are correct and that boundschecking is unecessary.
+    // CHANGE TO TRUE IF YOU ARE DEBUGGING
+    arrow::compute::TakeOptions take_options(false);
+
     // Update the indices of the left LazyTable. If there was no previous
     // join on the left table, then left_indices_of_indices directly
     // corresponds to indices in the left table, and we do not need to
     // call Take.
     if (left.indices.kind() != arrow::Datum::NONE) {
-        status = arrow::compute::Take(left.indices, left_indices_of_indices).Value(&new_indices);
+        status = arrow::compute::Take(left.indices, left_indices_of_indices, take_options).Value(&new_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     } else {
         new_indices = left_indices_of_indices;
@@ -201,7 +204,7 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
     // corresponds to indices in the right table, and we do not need to
     // call Take.
     if (right.indices.kind() != arrow::Datum::NONE) {
-        status = arrow::compute::Take(right.indices, right_indices_of_indices).Value(&new_indices);
+        status = arrow::compute::Take(right.indices, right_indices_of_indices, take_options).Value(&new_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     } else {
         new_indices = right_indices_of_indices;
@@ -216,7 +219,7 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
             lazy_table.table != right.table) {
             if (lazy_table.indices.kind() != arrow::Datum::NONE) {
 
-                status = arrow::compute::Take(lazy_table.indices, left_indices_of_indices).Value(&new_indices);
+                status = arrow::compute::Take(lazy_table.indices, left_indices_of_indices, take_options).Value(&new_indices);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
                 output_lazy_tables.emplace_back(

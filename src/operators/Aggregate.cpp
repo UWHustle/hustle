@@ -643,6 +643,11 @@ void Aggregate::sort() {
 
     arrow::Datum sorted_indices;
     arrow::Status status;
+
+    // Assume that indices are correct and that boundschecking is unecessary.
+    // CHANGE TO TRUE IF YOU ARE DEBUGGING
+    arrow::compute::TakeOptions take_options(false);
+
     // If we are sorting after computing all aggregates, we evaluate the ORDER BY
     // clause in reverse order.
     for (int i=order_by_refs_.size()-1; i>=0; i--) {
@@ -660,12 +665,12 @@ void Aggregate::sort() {
             evaluate_status(status, __FUNCTION__, __LINE__);
 
         }
-        status = arrow::compute::Take(aggregates_, sorted_indices).Value(&aggregates_);
+        status = arrow::compute::Take(aggregates_, sorted_indices, take_options).Value(&aggregates_);
         evaluate_status(status, __FUNCTION__, __LINE__);
 
 
         for (auto &group: groups_) {
-            status = arrow::compute::Take(group, sorted_indices).Value(&group);
+            status = arrow::compute::Take(group, sorted_indices, take_options).Value(&group);
             evaluate_status(status, __FUNCTION__, __LINE__);
 
         }
