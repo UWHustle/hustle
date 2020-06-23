@@ -27,6 +27,7 @@ add_library(hustle_src_utils_SyncStream ../empty_src.cpp SyncStream.hpp)
 add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hpp)
 add_library(hustle_src_utils_ArrowComputeWrappers arrow_compute_wrappers.cpp arrow_compute_wrappers.h)
 add_library(hustle_src_utils_ContextPool ContextPool.cpp ContextPool.h)
+add_library(hustle_src_utils_ParallelHashmap ../empty_src.cpp parallel_hashmap/phmap.h)
 
 
 #add_library(hustle_src_utils_BloomFilter BloomFilter.cpp BloomFilter.h)
