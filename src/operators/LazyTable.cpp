@@ -75,61 +75,19 @@ void LazyTable::get_column(Task* ctx, int i, arrow::Datum& out) {
             } else {
                 out = table->get_column(i);
                 if (filter.kind() != arrow::Datum::NONE) {
-//                    context_.apply_filter(internal, out, filter, out);
-                    arrow::Status status;
-
-                    status = arrow::compute::Filter(out, filter).Value(&out);
+                    context_.apply_filter(internal, out, filter, out);
                     filtered_cols_[i] = out.chunked_array();
                 }
             }
         }),
         CreateLambdaTask([this, i, &out](Task *internal) {
             if (indices.kind() != arrow::Datum::NONE) {
-//                std::cout << "BEFORE " << out.chunked_array()->ToString() << std::endl;
-
                 context_.apply_indices(internal, out,indices, false, out);
-//                std::cout << "AFTER " << out.chunked_array()->ToString() << std::endl;
-
                 arrow::Status status;
-//                status = arrow::compute::Take(out, indices).Value(&out);
             }
             materialized_cols_.emplace(i, out.chunked_array());
         })
     ));
 }
-
-//void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
-//
-//    ctx->spawnTask(CreateTaskChain(
-//        // Task 1 = Compute all aggregates
-//        CreateLambdaTask([this, &out, i](Task *internal) {
-//            if (materialized_cols_.count(i) > 0) {
-//                out = materialized_cols_[i];
-//                return;
-//            }
-//
-//            out = arrow::Datum(table->get_column(i));
-//
-//            arrow::Status status;
-//
-//            if (filter.kind() != arrow::Datum::NONE) {
-//                status = arrow::compute::Filter(out, filter).Value(&out);
-//            }
-//        }),
-//        CreateLambdaTask([this, &out, i](Task *internal) {
-//            arrow::Status status;
-//
-//            if (indices.kind() != arrow::Datum::NONE) {
-//                status = arrow::compute::Take(out, indices).Value(&out);
-//            }
-//        }),
-//        CreateLambdaTask([this, &out, i](Task *internal) {
-//            std::shared_ptr<arrow::ChunkedArray> out_col = out.chunked_array();
-//            materialized_cols_.emplace(i, out_col);
-//
-//            out = out_col;
-//        })
-//    ));
-//}
 
 }
