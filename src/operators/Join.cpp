@@ -55,6 +55,7 @@ void Join::probe_hash_table_block
     (const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size, std::vector<int64_t> chunk_row_offsets) {
 
     int base_i = batch_i * batch_size;
+    auto hash_table_end = hash_table_.end();
 
     for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); i++) {
 
@@ -66,14 +67,15 @@ void Join::probe_hash_table_block
         joined_left_indices.reserve(probe_col->num_chunks());
         joined_right_indices.reserve(probe_col->num_chunks());
 
-        // TODO(nicholas): for now, we assume the join column is INT64 type.
-        auto left_join_chunk = std::static_pointer_cast<arrow::Int64Array>(probe_col->chunk(i));
+        // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
+        auto chunk = probe_col->chunk(i);
+        auto left_join_chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
 
-        for (int row = 0; row < left_join_chunk->length(); row++) {
-            auto key = left_join_chunk->Value(row);
+        for (int row = 0; row < chunk->length(); row++) {
+            auto key = left_join_chunk_data[row];
 
             auto key_value_pair = hash_table_.find(key);
-            if ( key_value_pair != hash_table_.end()) {
+            if ( key_value_pair != hash_table_end) {
                 joined_left_indices.push_back(chunk_row_offsets[i] + row);  // insert left row index
                 joined_right_indices.push_back(key_value_pair->second); // insert right row index
             }
