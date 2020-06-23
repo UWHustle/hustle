@@ -70,18 +70,18 @@ void Join::probe_hash_table_block
 
         int num_joined_indices = 0;
         auto chunk = probe_col->chunk(i);
+        auto chunk_length = chunk->length();
 
-        int64_t joined_left_indices[chunk->length()];
-        int64_t joined_right_indices[chunk->length()];
+        int64_t joined_left_indices[chunk_length];
+        int64_t joined_right_indices[chunk_length];
 
         // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
 
         auto left_join_chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
 
-        for (int row = 0; row < chunk->length(); row++) {
-            auto key = left_join_chunk_data[row];
+        for (int row = 0; row < chunk_length; row++) {
 
-            auto key_value_pair = hash_table_.find(key);
+            auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
             if ( key_value_pair != hash_table_end) {
                 joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
                 joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
