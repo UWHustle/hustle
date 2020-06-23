@@ -145,8 +145,8 @@ private:
      *
      */
     std::shared_ptr<OperatorResult> back_propogate_result
-        (LazyTable left, LazyTable right,
-         std::vector<arrow::Datum> joined_indices);
+        (const LazyTable& left, LazyTable right,
+         const std::vector<arrow::Datum>& joined_indices);
 
     /**
      * probe_hash_table() populates new_left_indices_vector

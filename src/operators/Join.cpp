@@ -6,8 +6,7 @@
 #include <iostream>
 #include <arrow/scalar.h>
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators {
 
 Join::Join(
     const std::size_t query_id,
@@ -62,11 +61,6 @@ void Join::probe_hash_table_block
         arrow::Status status;
 
         // The indices of the rows joined in chunk i
-//        std::vector<int64_t> joined_left_indices;
-//        std::vector<int64_t> joined_right_indices;
-
-//        joined_left_indices.reserve(probe_col->num_chunks());
-//        joined_right_indices.reserve(probe_col->num_chunks());
 
         int num_joined_indices = 0;
         auto chunk = probe_col->chunk(i);
@@ -178,8 +172,8 @@ void Join::finish_probe(Task* ctx) {
 }
 
 std::shared_ptr<OperatorResult>
-Join::back_propogate_result(LazyTable left, LazyTable right,
-                            std::vector<arrow::Datum> joined_indices) {
+Join::back_propogate_result(const LazyTable& left, LazyTable right,
+                            const std::vector<arrow::Datum>& joined_indices) {
 
     arrow::Status status;
     arrow::Datum new_indices;
@@ -337,5 +331,4 @@ void Join::finish() {
 
 }
 
-} // namespace operators
 } // namespace hustle
