@@ -5,6 +5,7 @@
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
+//#include <arrow/util/hashing.h>
 //#include <arrow/compute/api_vector.h>
 
 namespace hustle::operators {
@@ -39,6 +40,9 @@ void Join::build_hash_table
             chunk_row_offsets[i - 1] + col->chunk(i - 1)->length();
     }
 
+//    arrow::internal::HashTable<int64_t> h(arrow::default_memory_pool(), right_join_col_.length());
+
+
     for (int i = 0; i < col->num_chunks(); i++) {
         // Each task inserts one chunk into the hash table
             // TODO(nicholas): for now, we assume the join column is INT64 type.
@@ -65,6 +69,10 @@ void Join::probe_hash_table_block
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
 
+        // The indices of the rows joined in chunk i
+        int64_t joined_left_indices[chunk_length];
+        int64_t joined_right_indices[chunk_length];
+
         arrow::Datum match_result;
         arrow::Datum not_null;
         arrow::Datum left_joined;
@@ -72,10 +80,24 @@ void Join::probe_hash_table_block
         arrow::Datum offset;
 
         // NOTE: This only makes sense if right_join_col_ does not contain duplicate values.
-//        status = arrow::compute::Match(chunk, right_join_col_).Value(&match_result);
-//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-////        std::cout << match_result.make_array()->ToString() << std::endl;
-////
+//        status = arrow::compute::Match(right_join_col_, chunk).Value(&match_result);
+        status = arrow::compute::Match(chunk, right_join_col_).Value(&match_result);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        // Result of match is INT32
+        auto match_result_array = std::static_pointer_cast<arrow::Int32Array>(match_result.make_array());
+        auto match_result_length = match_result_array->length();
+        for (int k=0; k<match_result_length; k++) {
+            if (!match_result_array->IsNull(k)){
+                joined_left_indices[num_joined_indices] = k + chunk_row_offsets[i];
+                joined_right_indices[num_joined_indices] = (uint64_t) match_result_array->Value(k);
+                ++num_joined_indices;
+            }
+        }
+
+
+
+
 //        status = arrow::compute::IsNull(match_result).Value(&not_null);
 //        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 //        status = arrow::compute::Invert(not_null).Value(&not_null);
@@ -86,34 +108,19 @@ void Join::probe_hash_table_block
 //
 //        status = arrow::compute::internal::GetTakeIndices(*not_null.array(), arrow::compute::FilterOptions::EMIT_NULL).Value(&left_joined);
 //        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+//        // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
+//        auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
 //
-//        arrow::Datum temp;
-//        auto s = arrow::Datum((uint64_t) chunk_row_offsets[i]);
+//        for (int row = 0; row < chunk_length; row++) {
 //
-//        status = arrow::compute::Add(left_joined, s).Value(&left_joined);
-//        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-//        arrow::Datum left_indices;
-//        status = arrow::compute::Take(match_result, temp).Value(&left_indices);
-//                std::cout << left_indices.make_array()->ToString() << std::endl;
-
-        // The indices of the rows joined in chunk i
-        uint64_t joined_left_indices[chunk_length];
-        uint64_t joined_right_indices[chunk_length];
-
-        // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
-        auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
-
-        for (int row = 0; row < chunk_length; row++) {
-
-            auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
-            if ( key_value_pair != hash_table_end) {
-                joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
-                joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
-                ++num_joined_indices;
-
-//                std::cout << chunk_row_offsets[i] + row << std::endl;
-            }
-        }
+//            auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
+//            if ( key_value_pair != hash_table_end) {
+//                joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
+//                joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
+//                ++num_joined_indices;
+//            }
+//        }
 
 //        auto l = left_joined.array()->GetValues<uint64_t>(1, 0);
 //        auto r = right_joined.array()->GetValues<uint64_t>(1, 0);
