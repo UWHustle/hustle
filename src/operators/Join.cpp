@@ -32,7 +32,7 @@ void Join::build_hash_table
 
     // Precompute the row offsets of each chunk. A multithreaded build phase
     // requires that we know all offsets beforehand.
-    std::vector<int64_t> chunk_row_offsets(col->num_chunks());
+    std::vector<uint64_t> chunk_row_offsets(col->num_chunks());
     chunk_row_offsets[0] = 0;
     for (int i = 1; i < col->num_chunks(); i++) {
         chunk_row_offsets[i] =
@@ -52,7 +52,7 @@ void Join::build_hash_table
 }
 
 void Join::probe_hash_table_block
-    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size, std::vector<int64_t> chunk_row_offsets) {
+    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size, std::vector<uint64_t> chunk_row_offsets) {
 
     int base_i = batch_i * batch_size;
     auto hash_table_end = hash_table_.end();
@@ -64,7 +64,7 @@ void Join::probe_hash_table_block
         int num_joined_indices = 0;
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
-        
+
         arrow::Datum match_result;
         arrow::Datum not_null;
         arrow::Datum left_joined;
@@ -88,7 +88,7 @@ void Join::probe_hash_table_block
 //        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 //
 //        arrow::Datum temp;
-//        auto s = arrow::Datum((int64_t) chunk_row_offsets[i]);
+//        auto s = arrow::Datum((uint64_t) chunk_row_offsets[i]);
 //
 //        status = arrow::compute::Add(left_joined, s).Value(&left_joined);
 //        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -97,11 +97,11 @@ void Join::probe_hash_table_block
 //                std::cout << left_indices.make_array()->ToString() << std::endl;
 
         // The indices of the rows joined in chunk i
-        int64_t joined_left_indices[chunk_length];
-        int64_t joined_right_indices[chunk_length];
+        uint64_t joined_left_indices[chunk_length];
+        uint64_t joined_right_indices[chunk_length];
 
         // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
-        auto left_join_chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
+        auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
 
         for (int row = 0; row < chunk_length; row++) {
 
@@ -115,14 +115,14 @@ void Join::probe_hash_table_block
             }
         }
 
-//        auto l = left_joined.array()->GetValues<int64_t>(1, 0);
-//        auto r = right_joined.array()->GetValues<int64_t>(1, 0);
+//        auto l = left_joined.array()->GetValues<uint64_t>(1, 0);
+//        auto r = right_joined.array()->GetValues<uint64_t>(1, 0);
 //
-//        new_left_indices_vector[i] = std::vector<int64_t>(l, l+left_joined.length());
-//        new_right_indices_vector[i] = std::vector<int64_t>(r, r+right_joined.length());
+//        new_left_indices_vector[i] = std::vector<uint64_t>(l, l+left_joined.length());
+//        new_right_indices_vector[i] = std::vector<uint64_t>(r, r+right_joined.length());
 
-        new_left_indices_vector[i] = std::vector<int64_t>(joined_left_indices, joined_left_indices + num_joined_indices);
-        new_right_indices_vector[i] = std::vector<int64_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+        new_left_indices_vector[i] = std::vector<uint64_t>(joined_left_indices, joined_left_indices + num_joined_indices);
+        new_right_indices_vector[i] = std::vector<uint64_t>(joined_right_indices, joined_right_indices + num_joined_indices);
     }
 }
 
@@ -134,7 +134,7 @@ void Join::probe_hash_table
 
     // Precompute row offsets. A multithreaded probe phase requires that we know
     // all offsets beforehand.
-    std::vector<int64_t> chunk_row_offsets(probe_col->num_chunks());
+    std::vector<uint64_t> chunk_row_offsets(probe_col->num_chunks());
     chunk_row_offsets[0] = 0;
     for (int i = 1; i < probe_col->num_chunks(); i++) {
         chunk_row_offsets[i] =
@@ -166,8 +166,8 @@ void Join::finish_probe(Task* ctx) {
     ctx->spawnLambdaTask([this, num_indices] {
         arrow::Status status;
 
-        arrow::Int64Builder new_left_indices_builder;
-        std::shared_ptr<arrow::Int64Array> new_left_indices;
+        arrow::UInt64Builder new_left_indices_builder;
+        std::shared_ptr<arrow::UInt64Array> new_left_indices;
 
         status = new_left_indices_builder.Reserve(num_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -188,8 +188,8 @@ void Join::finish_probe(Task* ctx) {
     ctx->spawnLambdaTask([this, num_indices] {
         arrow::Status status;
 
-        arrow::Int64Builder new_right_indices_builder;
-        std::shared_ptr<arrow::Int64Array> new_right_indices;
+        arrow::UInt64Builder new_right_indices_builder;
+        std::shared_ptr<arrow::UInt64Array> new_right_indices;
 
         status = new_right_indices_builder.Reserve(num_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);

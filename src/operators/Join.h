@@ -67,15 +67,15 @@ private:
     JoinGraph graph_;
 
     // Hash table for the right table in each join
-    phmap::flat_hash_map<int64_t, int64_t> hash_table_;
-//    std::unordered_map<int64_t, int64_t> hash_table_;
+    phmap::flat_hash_map<int64_t, uint64_t> hash_table_;
+//    std::unordered_map<int64_t, uint64_t> hash_table_;
 
     // new_left_indices_vector[i] = the indices of rows joined in chunk i in
     // the left table
-    std::vector<std::vector<int64_t>> new_left_indices_vector;
+    std::vector<std::vector<uint64_t>> new_left_indices_vector;
     // new_right_indices_vector[i] = the indices of rows joined in chunk i in
     // the right table
-    std::vector<std::vector<int64_t>> new_right_indices_vector;
+    std::vector<std::vector<uint64_t>> new_right_indices_vector;
 
     // It would make much more sense to use an ArrayVector instead of a vector of
     // vectors, since we can make a ChunkedArray out from an ArrayVector. But
@@ -161,7 +161,7 @@ private:
     void finish();
 
     void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
-                                std::vector<int64_t> chunk_row_offsets);
+                                std::vector<uint64_t> chunk_row_offsets);
 };
 
 } // namespace hustle
