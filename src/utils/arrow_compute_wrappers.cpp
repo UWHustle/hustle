@@ -58,6 +58,13 @@ arrow::Datum Context::apply_filter_block(
     //                std::cout << "apply filter" << std::endl;
     //                std::cout << chunked_values->length() << " " << chunked_filter->length() << std::endl;
     //                std::cout << chunked_values->num_chunks() << " " << chunked_filter->num_chunks()<< std::endl;
+
+//    arrow::Datum filter_indices;
+//    status = arrow::compute::internal::GetTakeIndices(*filter->data(), arrow::compute::FilterOptions::EMIT_NULL).Value(&filter_indices);
+//    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//    status = arrow::compute::Take(values, filter_indices).Value(&block_filter);
+//    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
     status = arrow::compute::Filter(values, filter).Value(&block_filter);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     return block_filter.make_array();
@@ -212,7 +219,7 @@ void Context::apply_indices_internal(
     // CHANGE TO TRUE IF YOU ARE DEBUGGING
     arrow::compute::TakeOptions take_options(false);
 
-    status = arrow::compute::Take(*chunked_values, *sliced_indices, *offsets, take_options).Value(&temp);
+    status = arrow::compute::Take(chunked_values, sliced_indices, offsets, take_options).Value(&temp);
 
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     array_vec_[i] = temp.chunked_array()->chunk(0);
