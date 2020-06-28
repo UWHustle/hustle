@@ -49,7 +49,10 @@ private:
     std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
     arrow::ArrayVector filter_vector_;
+    arrow::ArrayVector left_vector_;
+    arrow::ArrayVector right_vector_;
 
+    std::unordered_map<std::string, arrow::ArrayVector> select_col_map;
     /**
      * Perform the selection specified by a node in the predicate tree on
      * one block of the table. If the node is a not a leaf node, this
@@ -62,8 +65,10 @@ private:
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
-    arrow::Datum get_filter(const std::shared_ptr<Node> &node,
-                                     const std::shared_ptr<Block> &block);
+    arrow::Datum get_filter(
+        const std::shared_ptr<Node> &node,
+        const std::shared_ptr<Block> &block,
+        const std::shared_ptr<arrow::Array>& prev_filter);
 
     /**
      * Perform the selection specified by a predicate (i.e. leaf node) in the
@@ -80,6 +85,11 @@ private:
     arrow::Datum get_filter(
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
+
+    arrow::Datum get_filter(
+        const std::shared_ptr<Predicate> &predicate,
+        const std::shared_ptr<Block> &block,
+        const std::shared_ptr<arrow::Array>& prev_filter);
 
     /**
      * Create the output result from the raw data computed during execution.

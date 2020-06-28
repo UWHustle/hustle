@@ -93,6 +93,8 @@ private:
     LazyTable left_;
     LazyTable right_;
 
+    std::unordered_map<std::shared_ptr<Table>, bool> finished_;
+
 
     /**
      * Build a hash table on a column. It is assumed that the column will be

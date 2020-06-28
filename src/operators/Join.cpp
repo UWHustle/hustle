@@ -188,7 +188,7 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
 
     // Assume that indices are correct and that boundschecking is unecessary.
     // CHANGE TO TRUE IF YOU ARE DEBUGGING
-    arrow::compute::TakeOptions take_options(false);
+    arrow::compute::TakeOptions take_options(true);
 
     // Update the indices of the left LazyTable. If there was no previous
     // join on the left table, then left_indices_of_indices directly
@@ -221,7 +221,7 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
     for (auto &lazy_table : prev_result_->lazy_tables_) {
         if (lazy_table.table != left.table &&
             lazy_table.table != right.table) {
-            if (lazy_table.indices.kind() != arrow::Datum::NONE) {
+            if (finished_[lazy_table.table]) {
 
                 status = arrow::compute::Take(lazy_table.indices, left_indices_of_indices, take_options).Value(&new_indices);
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -268,12 +268,15 @@ void Join::hash_join(int i, Task *ctx) {
         }),
         CreateLambdaTask([this, i](Task *internal) {
             finish_probe(internal);
+            finished_[lefts[i].table] = true;
+            finished_[rights[i].table] = true;
         }),
         CreateLambdaTask([this, i](Task *internal) {
             auto left = prev_result_->get_table(lefts[i].table);
             auto right = prev_result_->get_table(rights[i].table);
             // Update indices of other LazyTables in the previous OperatorResult
             prev_result_ = back_propogate_result(left, right, joined_indices_);
+
         })
     ));
 }
@@ -305,6 +308,7 @@ void Join::execute(Task *ctx) {
         // LazyTables that we want to join.
         for (int i = 0; i < prev_result_->lazy_tables_.size(); i++) {
             auto lazy_table = prev_result_->get_table(i);
+            finished_[lazy_table.table] = false;
 
             if (left_ref.table == lazy_table.table) {
                 lefts.push_back(lazy_table);
