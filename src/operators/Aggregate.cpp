@@ -646,7 +646,7 @@ void Aggregate::sort() {
 
     // Assume that indices are correct and that boundschecking is unecessary.
     // CHANGE TO TRUE IF YOU ARE DEBUGGING
-    arrow::compute::TakeOptions take_options(false);
+    arrow::compute::TakeOptions take_options(true);
 
     // If we are sorting after computing all aggregates, we evaluate the ORDER BY
     // clause in reverse order.

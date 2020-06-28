@@ -217,7 +217,7 @@ void Context::apply_indices_internal(
 
     // Assume that indices are correct and that boundschecking is unecessary.
     // CHANGE TO TRUE IF YOU ARE DEBUGGING
-    arrow::compute::TakeOptions take_options(false);
+    arrow::compute::TakeOptions take_options(true);
 
     status = arrow::compute::Take(chunked_values, sliced_indices, offsets, take_options).Value(&temp);
 
