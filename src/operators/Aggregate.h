@@ -194,6 +194,9 @@ private:
     std::mutex mutex_;
     std::mutex mutex2_;
 
+    std::vector<std::vector<int>> group_id_vec_;
+    int num_aggs_;
+
     std::unordered_map<std::string, int> group_by_col_names_to_index_;
     std::vector<LazyTable> group_by_tables_;
 

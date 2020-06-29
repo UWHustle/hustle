@@ -531,9 +531,6 @@ void Aggregate::compute_aggregates(Task *ctx) {
         }),
         CreateLambdaTask([this](Task* internal) {
 
-//            std::cout << agg_col_.chunked_array()->ToString() << std::endl;
-//            std::cout << agg_col_.chunked_array()->chunk(754)->length() << std::endl;
-
             // Initialize the slots to hold the current iteration value for each depth
             int n = group_type_->num_children();
             int maxes[n];
@@ -552,7 +549,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
             // {1, 1}
             // {1, 2}
 
-            int num_aggs = 1;
+            num_aggs_ = 1;
 
             // initialize group_id = {0, 0, ..., 0} and initialize maxes[i] to the number
             // of unique values in group by column i.
@@ -560,28 +557,25 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 group_id[i] = 0;
                 maxes[i] = all_unique_values_[i]->length();
                 unique_value_filters_[i].resize(maxes[i]);
-                num_aggs *= maxes[i];
+                num_aggs_ *= maxes[i];
             }
-            group_filters_.resize(num_aggs);
-            filtered_agg_cols_.resize(num_aggs);
-            contexts_.resize(num_aggs);
-            unique_value_filter_contexts_.resize(num_aggs);
+            group_filters_.resize(num_aggs_);
+            filtered_agg_cols_.resize(num_aggs_);
+            contexts_.resize(num_aggs_);
+            unique_value_filter_contexts_.resize(num_aggs_);
             for (auto& vec : unique_value_filter_contexts_) {
                 vec.resize(group_by_refs_.size());
             }
 
             int agg_index = 0;
+            group_id_vec_.resize(num_aggs_);
 
             int index = n - 1; // loop index
             bool exit = false;
             while (!exit) {
 
                 // LOOP BODY START
-                // Task = compute the aggregate of one group.
-                internal->spawnLambdaTask(
-                    [this, agg_index, group_id](Task* internal) {
-                        compute_group_aggregate(internal, agg_index, group_id, agg_col_);
-                    });
+                group_id_vec_[agg_index] = group_id;
                 agg_index++;
                 // LOOP BODY END
 
@@ -601,6 +595,24 @@ void Aggregate::compute_aggregates(Task *ctx) {
                     group_id[index]++;
                 }
                 index = n - 1;
+            }
+        }),
+        CreateLambdaTask([this](Task* internal) {
+
+            int batch_size = num_aggs_ / 8;
+            if (batch_size == 0) batch_size = num_aggs_;
+            int num_batches = num_aggs_ / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+            if (num_batches == 0) num_batches = 1;
+
+            for (int batch_i = 0; batch_i < num_batches; batch_i++) {
+                // Each task gets the filter for one block and stores it in filter_vector
+                internal->spawnLambdaTask([this, batch_i, batch_size](Task *internal) {
+                    int base_i = batch_i * batch_size;
+                    for (int i = base_i; i < base_i + batch_size && i < num_aggs_; i++) {
+                        // i = agg_index
+                        compute_group_aggregate(internal, i, group_id_vec_[i], agg_col_);
+                    }
+                });
             }
         })
     ));
