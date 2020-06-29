@@ -180,8 +180,6 @@ void Select::finish(Task* ctx) {
             status = indices_builder_.Finish(&indices_);
             evaluate_status(status, __FUNCTION__, __LINE__);
 
-            std::cout << indices_->ToString() << std::endl;
-
             LazyTable lazy_table(table_, arrow::Datum(), indices_);
             output_result_->append(lazy_table);
         })
