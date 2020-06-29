@@ -16,8 +16,6 @@ LIP::LIP(const std::size_t query_id,
     prev_result_vec_ = prev_result_vec;
     output_result_ = std::move(output_result);
     graph_ = std::move(graph);
-
-    batch_size_ = 10;
 }
 
 void LIP::build_filters(Task* ctx) {
@@ -25,30 +23,32 @@ void LIP::build_filters(Task* ctx) {
     dim_filters_.resize(dim_tables_.size());
 
     for (int i=0; i<dim_tables_.size(); i++) {
-
+        auto dim_join_col_name = dim_pk_col_names_[i];
         // Task = build the Bloom filter for one dimension table.
-        ctx->spawnTask(CreateLambdaTask([this, i]() {
-            auto lazy_table = dim_tables_[i];
-            auto dim_join_col_name = dim_pk_col_names_[i];
-            auto pk_col = lazy_table.get_column_by_name(dim_join_col_name);
+        ctx->spawnTask(CreateTaskChain(
+            CreateLambdaTask([this, dim_join_col_name, i](Task* internal) {
+                dim_tables_[i].get_column_by_name(internal, dim_join_col_name, dim_pk_cols_[dim_join_col_name]);
+            }),
+            CreateLambdaTask([this, dim_join_col_name, i] {
+                auto pk_col = dim_pk_cols_[dim_join_col_name].chunked_array();
+                auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
 
-            auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
+                for (int j=0; j<pk_col->num_chunks(); j++) {
+                    // TODO(nicholas): For now, we assume the column is of INT64 type.
+                    auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
 
-            for (int j=0; j<pk_col->num_chunks(); j++) {
-                // TODO(nicholas): For now, we assume the column is of INT64 type.
-                auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
+                    for (int k=0; k<chunk->length(); k++) {
+                        auto val = chunk->Value(k);
 
-                for (int k=0; k<chunk->length(); k++) {
-                    auto val = chunk->Value(k);
-
-                    bloom_filter->insert(val);
+                        bloom_filter->insert(val);
+                    }
                 }
-            }
 
-            bloom_filter->set_memory(1000);
-            bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
-            dim_filters_[i] = (bloom_filter);
-        }));
+                bloom_filter->set_memory(1000);
+                bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
+                dim_filters_[i] = (bloom_filter);
+            })
+        ));
     }
 }
 
@@ -66,7 +66,7 @@ void LIP::probe_filters(Task *ctx, int chunk_i) {
             auto bloom_filter = dim_filters_[filter_j];
 
             auto fact_join_col_name = bloom_filter->get_fact_fk_name();
-            auto fact_fk_col = fact_fk_cols_[fact_join_col_name];
+            auto fact_fk_col = fact_fk_cols_[fact_join_col_name].chunked_array();
 
             // TODO(nicholas): For now, we assume the column is of INT64 type
             auto chunk = fact_fk_col->chunk(chunk_i);
@@ -82,7 +82,8 @@ void LIP::probe_filters(Task *ctx, int chunk_i) {
                     auto key = chunk_data[row];
 
                     if (bloom_filter->probe(key)) {
-                        indices[0].push_back(row + chunk_row_offsets_[chunk_i]);
+                        auto k = fact_indices_[row + chunk_row_offsets_[chunk_i]];
+                        indices[0].push_back(k);
                     }
                 }
             }
@@ -109,7 +110,14 @@ void LIP::probe_filters(Task *ctx, int chunk_i) {
 
 void LIP::probe_filters(Task *ctx) {
 
-    int num_batches = fact_table_.table->get_num_blocks()/batch_size_ + 1;
+    int num_chunks = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array()->num_chunks();
+
+    int batch_size = num_chunks / 8;
+    if (batch_size == 0) batch_size = num_chunks;
+    int num_batches = num_chunks / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+    if (num_batches == 0) num_batches = 1;
+
+    batch_size_ = batch_size;
     
     std::vector<Task *> tasks;
     tasks.reserve(num_batches);
@@ -118,9 +126,10 @@ void LIP::probe_filters(Task *ctx) {
 
         // Task 1 = probe all filters with one batch of blocks, where each batch
         // contains batch_num_ blocks.
-        auto probe_task = CreateLambdaTask([this, batch_i](Task *internal) {
-           for (int block_j=0; block_j<batch_size_ && batch_i*batch_size_+block_j<fact_table_.table->get_num_blocks(); block_j++) {
-               probe_filters(internal,batch_i*batch_size_ + block_j);
+        auto probe_task = CreateLambdaTask([this, batch_i, batch_size, num_chunks](Task *internal) {
+            int base_i = batch_i * batch_size;
+            for (int i=base_i; i<base_i + batch_size && i<num_chunks; i++) {
+               probe_filters(internal, i);
            }
         });
 
@@ -164,25 +173,16 @@ void LIP::finish() {
     }
 }
 
-void LIP::initialize() {
-    
+void LIP::initialize(Task* ctx) {
+
     // Pre-materialized and save fact table fk columns.
     for (int i=0; i<dim_tables_.size(); i++) {
-        auto fact_join_col_name = fact_fk_col_names_[i];
-        auto fact_fk_col = fact_table_.get_column_by_name(fact_join_col_name);
-        fact_fk_cols_.emplace(fact_join_col_name, fact_fk_col);
+        ctx->spawnLambdaTask([this, i](Task* internal) {
+            auto fact_join_col_name = fact_fk_col_names_[i];
+            fact_table_.get_column_by_name(internal, fact_join_col_name, fact_fk_cols_[fact_join_col_name]);
+//            fact_fk_cols_.emplace(fact_join_col_name, fact_fk_col);
+        });
     }
-
-    // Grab any fact table column so we can pre-compute chunk row offsets.
-    auto fact_col = fact_table_.get_column(0);
-    chunk_row_offsets_.resize(fact_col->num_chunks());
-    chunk_row_offsets_[0] = 0;
-    for (int i = 1; i < fact_col->num_chunks(); i++) {
-        chunk_row_offsets_[i] =
-            chunk_row_offsets_[i - 1] + fact_col->chunk(i - 1)->length();
-    }
-
-    lip_indices_.resize(fact_table_.table->get_num_blocks());
 }
 
 void LIP::execute(Task *ctx) {
@@ -210,6 +210,7 @@ void LIP::execute(Task *ctx) {
 
             if (left_ref.table == lazy_table.table) {
                 fact_table_ = lazy_table; // left table is always the same
+                fact_indices_ = lazy_table.indices.array()->GetValues<uint64_t>(1, 0);
             } else if (right_ref.table == lazy_table.table) {
                 dim_tables_.push_back(lazy_table);
             }
@@ -219,11 +220,22 @@ void LIP::execute(Task *ctx) {
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask(
         [this](Task *internal) {
-            initialize();
+            initialize(internal);
             build_filters(internal);
         }),
         CreateLambdaTask(
         [this](Task *internal) {
+            // Grab any fact table column so we can pre-compute chunk row offsets.
+            auto fact_col = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array();
+            lip_indices_.resize(fact_col->num_chunks());
+
+//            auto f = fact_table_.table->get_column(0);
+            chunk_row_offsets_.resize(fact_col->num_chunks());
+            chunk_row_offsets_[0] = 0;
+            for (int i = 1; i < fact_col->num_chunks(); i++) {
+                chunk_row_offsets_[i] =
+                    chunk_row_offsets_[i - 1] + fact_col->chunk(i - 1)->length();
+            }
             probe_filters(internal);
         }),
         CreateLambdaTask(

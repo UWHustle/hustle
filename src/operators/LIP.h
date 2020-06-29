@@ -49,6 +49,7 @@ public:
 private:
     // Row indices of the fact table that successfully probed all Bloom filters.
     std::vector<std::vector<int64_t>> lip_indices_;
+    const uint64_t* fact_indices_;
 
     // Number of blocks that are probed (in parallel) before sorting the the filters
     int batch_size_;
@@ -58,9 +59,10 @@ private:
     std::vector<int64_t> chunk_row_offsets_;
 
     // Map of (fact table foreign key col name, fact table foreign key col)
-    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols_;
+    std::unordered_map<std::string, arrow::Datum> fact_fk_cols_;
+    std::unordered_map<std::string, arrow::Datum> dim_pk_cols_;
+
     // Primary key cols of all dimension tables.
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_pk_cols_;
 
     // Bloom filters of all dimension tables.
     std::vector<std::shared_ptr<BloomFilter>> dim_filters_;
@@ -93,7 +95,7 @@ private:
      * chunk_row_offsets_, fetch the foreign key columns of the fact table,
      * and reserve space in lip_indices_.
      */
-    void initialize();
+    void initialize(Task* ctx);
 
     /**
      * Build Bloom filters for all dimension tables.
