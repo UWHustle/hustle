@@ -36,6 +36,8 @@ Select::Select(
     for (auto& chunk : select_col->chunks()) {
         left_vector_.push_back(chunk);
     }
+
+    num_indices_ = 0;
 }
 
 arrow::Datum
@@ -55,9 +57,9 @@ Select::get_filter(const std::shared_ptr<Node> &node,
     switch (node->connective_) {
         case AND: {
             auto left_child_filter = get_filter(node->left_child_, block, nullptr);
-            auto right_child_filter = get_filter(node->right_child_, block, nullptr);
-
 //            auto right_child_filter = get_filter(node->right_child_, block, left_child_filter.make_array());
+
+            auto right_child_filter = get_filter(node->right_child_, block, nullptr);
 //            block_filter = right_child_filter;
             status = arrow::compute::And(left_child_filter, right_child_filter).Value(&block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
@@ -101,8 +103,8 @@ void Select::execute(Task *ctx) {
             }
         }),
         // Task 2: create the output result
-        CreateLambdaTask([this]() {
-            finish();
+        CreateLambdaTask([this](Task* internal) {
+            finish(internal);
         })
     ));
 }
@@ -113,43 +115,77 @@ void Select::execute_block(int i) {
     filter_vector_[i] = block_filter.make_array();
 }
 
-void Select::finish() {
 
-    arrow::Status status;
+void Select::filter_to_indices(int i) {
 
-    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
-    auto length = chunked_filter->length();
+    int offset = table_->get_block_row_offset(i);
 
-    arrow::UInt64Builder indices_builder;
-    status = indices_builder.Resize(length);
+    arrow::Datum temp;
+    auto status = arrow::compute::internal::GetTakeIndices(*filter_vector_[i]->data(), arrow::compute::FilterOptions::EMIT_NULL).Value(&temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    int offset = 0;
-    for (int i=0; i<right_vector_.size(); i++) {
 
-        offset = table_->get_block_row_offset(i);
-        arrow::Datum temp;
-        status = arrow::compute::internal::GetTakeIndices(*chunked_filter->chunk(i)->data(), arrow::compute::FilterOptions::EMIT_NULL).Value(&temp);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        auto chunk_indices = temp.make_array();
-        auto indices_length = chunk_indices->length();
+    auto chunk_indices = temp.make_array();
+    auto indices_length = chunk_indices->length();
 
-        // TODO(nicholas): data will be of type uint32_t if block size is large!
-        auto data =chunk_indices->data()->GetMutableValues<uint16_t>(1);
+    // TODO(nicholas): data will be of type uint32_t if block size is large!
+    auto data =chunk_indices->data()->GetMutableValues<uint16_t>(1);
 
-        for (int j=0; j<indices_length; j++) {
-            indices_builder.UnsafeAppend(data[j] + offset);
-//            std::cout << "BEFORE " << data[j] << std::endl;
-//            std::cout << "AFTER " << data[j] << " " << offset2 << std::endl;
-        }
+    for (int j=0; j<indices_length; j++) {
+        indices_builder_[indices_offsets_[i] + j] = data[j] + offset;
     }
 
-    std::shared_ptr<arrow::Array> indices;
-    status = indices_builder.Finish(&indices);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+//    std::scoped_lock<std::mutex> add_lock(add_mutex_);
+//    num_indices_ += temp.length();
+}
 
-    LazyTable lazy_table(table_, arrow::Datum(), indices);
-    output_result_->append(lazy_table);
+
+void Select::finish(Task* ctx) {
+
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this](Task *internal) {
+
+            arrow::Status status;
+
+            indices_offsets_.resize(filter_vector_.size() + 1);
+            indices_offsets_[0] = 0;
+            for (int i = 0; i < filter_vector_.size(); i++) {
+                num_indices_ += arrow::compute::internal::GetFilterOutputSize(*filter_vector_[i]->data(),
+                                                                              arrow::compute::FilterOptions::EMIT_NULL);
+                indices_offsets_[i + 1] = num_indices_;
+            }
+
+            status = indices_builder_.Resize(num_indices_);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+
+            int batch_size = table_->get_num_blocks() / 8;
+            if (batch_size == 0) batch_size = table_->get_num_blocks();
+            int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+            if (num_batches == 0) num_batches = 1;
+            for (int batch_i = 0; batch_i < num_batches; batch_i++) {
+                // Each task gets the filter for one block and stores it in filter_vector
+                internal->spawnLambdaTask([this, batch_i, batch_size](Task *internal) {
+                    int base_i = batch_i * batch_size;
+                    for (int i = base_i; i < base_i + batch_size && i < table_->get_num_blocks(); i++) {
+                        filter_to_indices(i);
+                    }
+                });
+            }
+
+        }),
+        CreateLambdaTask([this] {
+
+            arrow::Status status;
+            status = indices_builder_.Advance(num_indices_);
+            status = indices_builder_.Finish(&indices_);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+
+            std::cout << indices_->ToString() << std::endl;
+
+            LazyTable lazy_table(table_, arrow::Datum(), indices_);
+            output_result_->append(lazy_table);
+        })
+    ));
 }
 
 arrow::Datum Select::get_filter(
@@ -184,7 +220,7 @@ arrow::Datum Select::get_filter(
     const std::shared_ptr<Block> &block) {
 
     arrow::Status status;
-    
+
     arrow::compute::CompareOptions compare_options(predicate->comparator_);
     arrow::Datum block_filter;
 

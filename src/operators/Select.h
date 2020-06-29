@@ -51,6 +51,14 @@ private:
     arrow::ArrayVector filter_vector_;
     arrow::ArrayVector left_vector_;
     arrow::ArrayVector right_vector_;
+    arrow::ArrayVector indices_vector_;
+    std::mutex add_mutex_;
+
+    std::vector<int> indices_offsets_;
+
+    arrow::UInt64Builder indices_builder_;
+    std::shared_ptr<arrow::Array> indices_;
+    int num_indices_;
 
     std::unordered_map<std::string, arrow::ArrayVector> select_col_map;
     /**
@@ -94,10 +102,12 @@ private:
     /**
      * Create the output result from the raw data computed during execution.
      */
-    void finish();
+    void finish(Task* ctx);
 
 
     void execute_block(int i);
+
+    void filter_to_indices(int i);
 };
 
 } // namespace hustle
