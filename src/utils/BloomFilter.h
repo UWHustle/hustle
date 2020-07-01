@@ -32,7 +32,9 @@ public:
      * false otherwise.
      */
     bool probe(long long val);
-
+    void probe(const uint64_t *vals, uint64_t num_vals, std::vector<uint64_t> &out, uint64_t offset, bool store_val);
+    void probe(const uint64_t *vals, std::vector<uint64_t> &indices, uint64_t num_vals, std::vector<uint64_t> &out,
+               uint64_t offset, bool store_val);
     /**
      * Return the ratio of the total of hits to the total number of probes
      * (from the memory_ previous batches).
@@ -78,14 +80,6 @@ public:
      */
     std::string get_fact_fk_name();
 
-
-private:
-
-    // Foreign key column name associated with the filter
-    std::string fk_name_;
-    // False positive rate
-    double eps_;
-
     // Number of bits in the Bloom filter
     int num_cells_;
     // Number of hash functions
@@ -94,6 +88,21 @@ private:
     int* seeds_;
     // The Bloom filter
     uint8_t *cells_;
+private:
+
+    // Foreign key column name associated with the filter
+    std::string fk_name_;
+    // False positive rate
+    double eps_;
+
+//    // Number of bits in the Bloom filter
+//    int num_cells_;
+//    // Number of hash functions
+//    int num_hash_;
+//    // Hash function seeds
+//    int* seeds_;
+//    // The Bloom filter
+//    uint8_t *cells_;
 
     // Keeps track of how many hits occured in each batch processed
     int* hit_count_queue_;
@@ -125,6 +134,7 @@ private:
     unsigned int hash(long long val, int seed);
 
     void Reset();
+
 
 
 };

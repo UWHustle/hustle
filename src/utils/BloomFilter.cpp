@@ -92,19 +92,77 @@ void BloomFilter::Reset() {
 }
 
 bool BloomFilter::probe(long long val){
-    probe_count_++;
+//    probe_count_++;
     int index;
     for(int i=0; i<num_hash_; i++){
 //        index = xxh::xxhash<64>(&val, sizeof(val), seeds_[i]) % num_cells_;
         index = hash(val, seeds_[i]) % num_cells_;
-        int bit = cells_[index/8] & (1u << (index % 8u));
-        if (!bit) {
+        if (!(cells_[index/8] & (1u << (index % 8u)))) {
             return false;
         }
     }
-    hit_count_++;
+//    hit_count_++;
     return true;
 }
+
+void BloomFilter::probe(const uint64_t* vals, std::vector<uint64_t>& indices, uint64_t num_vals, std::vector<uint64_t>& out, uint64_t offset, bool store_val) {
+
+    bool hit;
+    int hindex;
+    for (auto& index : indices) {
+        hit = true;
+        for (int j = 0; j < num_hash_; j++) {
+            hindex = hash(vals[index-offset], seeds_[j]) % num_cells_;
+            if (!(cells_[hindex / 8] & (1u << (hindex % 8u)))) {
+                hit = false;
+                break;
+            }
+        }
+//    hit_count_++;
+        if (hit) out.push_back(index);
+    }
+}
+
+void BloomFilter::probe(const uint64_t* vals, uint64_t num_vals, std::vector<uint64_t>& out, uint64_t offset, bool store_val){
+//    probe_count_++;
+    int index = -1;
+    bool hit;
+
+    for (int i=0; i<num_vals; i++) {
+
+        hit = true;
+//        hit = probe(vals[i]);
+        for (int j = 0; j < num_hash_; j++) {
+            index = hash(vals[i], seeds_[j]) % num_cells_;
+            if (!(cells_[index / 8] & (1u << (index % 8u)))) {
+                hit = false;
+                break;
+            }
+        }
+//    hit_count_++;
+        if (hit) out.push_back(i + offset);
+    }
+
+}
+//
+//bool BloomFilter::probe(const uint64_t* vals, int num_vals){
+////    probe_count_++;
+//    int index;
+//
+//    for (int j=0; j<num_vals; j++) {
+//
+//    }
+//    for(int i=0; i<num_hash_; i++){
+////        index = xxh::xxhash<64>(&val, sizeof(val), seeds_[i]) % num_cells_;
+//        index = hash(val, seeds_[i]) % num_cells_;
+//        int bit = cells_[index/8] & (1u << (index % 8u));
+//        if (!bit) {
+//            return false;
+//        }
+//    }
+////    hit_count_++;
+//    return true;
+//}
 
 double BloomFilter::get_hit_rate() {
     if (probe_count_queue_sum_ > 0)
