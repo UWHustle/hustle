@@ -31,10 +31,18 @@ public:
      * @return true if the probe was successful (i.e. val is likely in the filter),
      * false otherwise.
      */
-    bool probe(long long val);
-    void probe(const uint64_t *vals, uint64_t num_vals, std::vector<uint64_t> &out, uint64_t offset, bool store_val);
-    void probe(const uint64_t *vals, std::vector<uint64_t> &indices, uint64_t num_vals, std::vector<uint64_t> &out,
-               uint64_t offset, bool store_val);
+    inline bool probe(long long val) {
+//        probe_count_++;
+        uint64_t index;
+        for(int i=0; i<num_hash_; i++){
+            index = hash(val, seeds_[i]) % num_cells_;
+            if ((cells_[index/8] & (1u << (index % 8u))) != (1u << (index % 8u))) {
+                return false;
+            }
+        }
+//    hit_count_++;
+        return true;
+    }
     /**
      * Return the ratio of the total of hits to the total number of probes
      * (from the memory_ previous batches).
@@ -80,6 +88,13 @@ public:
      */
     std::string get_fact_fk_name();
 
+private:
+
+    // Foreign key column name associated with the filter
+    std::string fk_name_;
+    // False positive rate
+    double eps_;
+    uint64_t t;
     // Number of bits in the Bloom filter
     int num_cells_;
     // Number of hash functions
@@ -88,21 +103,6 @@ public:
     int* seeds_;
     // The Bloom filter
     uint8_t *cells_;
-private:
-
-    // Foreign key column name associated with the filter
-    std::string fk_name_;
-    // False positive rate
-    double eps_;
-
-//    // Number of bits in the Bloom filter
-//    int num_cells_;
-//    // Number of hash functions
-//    int num_hash_;
-//    // Hash function seeds
-//    int* seeds_;
-//    // The Bloom filter
-//    uint8_t *cells_;
 
     // Keeps track of how many hits occured in each batch processed
     int* hit_count_queue_;
@@ -123,19 +123,21 @@ private:
     // The number of batches the Bloom filter "remembers"
     int memory_;
 
-
-
     /**
      *
      * @param val value to hash
      * @param seed random seed
      * @return a 32-bit hash value
      */
-    unsigned int hash(long long val, int seed);
+    inline unsigned int hash(unsigned long long x, int seed) {
+        x = (x << 32) ^ seed;
+        x = ((x >> 16) ^ x) * 0x45d9f3b;
+        x = ((x >> 16) ^ x) * 0x45d9f3b;
+        x = (x >> 16) ^ x;
+        return x;
+    }
 
     void Reset();
-
-
 
 };
 

@@ -5,12 +5,14 @@
 #define MAX_SEED 65535
 
 BloomFilter::BloomFilter(int num_vals) {
-    eps_ = 1e-3;
+    eps_ = 1e-2;
 
     int n = num_vals;
     num_hash_ = int (round( - log(eps_) / log(2)));
     num_cells_ = int (n * num_hash_ / log(2));
     int num_bytes_ = sizeof(uint8_t) * num_cells_ / 8 + 1;
+
+    num_hash_ = 3;
 
     cells_ = (uint8_t *) malloc(num_bytes_);
 
@@ -59,7 +61,6 @@ void BloomFilter::insert(long long val) {
     // Hash the value using all hash functions
     int index;
     for (int k=0; k<num_hash_; k++) {
-//        index = xxh::xxhash<64>(&val, sizeof(val), seeds_[k]) % num_cells_;
         index = hash(val, seeds_[k]) % num_cells_;
         cells_[index/8] |= (1u << (index % 8u));
     }
@@ -91,79 +92,6 @@ void BloomFilter::Reset() {
     probe_count_queue_sum_ = 0;
 }
 
-bool BloomFilter::probe(long long val){
-//    probe_count_++;
-    int index;
-    for(int i=0; i<num_hash_; i++){
-//        index = xxh::xxhash<64>(&val, sizeof(val), seeds_[i]) % num_cells_;
-        index = hash(val, seeds_[i]) % num_cells_;
-        if (!(cells_[index/8] & (1u << (index % 8u)))) {
-            return false;
-        }
-    }
-//    hit_count_++;
-    return true;
-}
-
-void BloomFilter::probe(const uint64_t* vals, std::vector<uint64_t>& indices, uint64_t num_vals, std::vector<uint64_t>& out, uint64_t offset, bool store_val) {
-
-    bool hit;
-    int hindex;
-    for (auto& index : indices) {
-        hit = true;
-        for (int j = 0; j < num_hash_; j++) {
-            hindex = hash(vals[index-offset], seeds_[j]) % num_cells_;
-            if (!(cells_[hindex / 8] & (1u << (hindex % 8u)))) {
-                hit = false;
-                break;
-            }
-        }
-//    hit_count_++;
-        if (hit) out.push_back(index);
-    }
-}
-
-void BloomFilter::probe(const uint64_t* vals, uint64_t num_vals, std::vector<uint64_t>& out, uint64_t offset, bool store_val){
-//    probe_count_++;
-    int index = -1;
-    bool hit;
-
-    for (int i=0; i<num_vals; i++) {
-
-        hit = true;
-//        hit = probe(vals[i]);
-        for (int j = 0; j < num_hash_; j++) {
-            index = hash(vals[i], seeds_[j]) % num_cells_;
-            if (!(cells_[index / 8] & (1u << (index % 8u)))) {
-                hit = false;
-                break;
-            }
-        }
-//    hit_count_++;
-        if (hit) out.push_back(i + offset);
-    }
-
-}
-//
-//bool BloomFilter::probe(const uint64_t* vals, int num_vals){
-////    probe_count_++;
-//    int index;
-//
-//    for (int j=0; j<num_vals; j++) {
-//
-//    }
-//    for(int i=0; i<num_hash_; i++){
-////        index = xxh::xxhash<64>(&val, sizeof(val), seeds_[i]) % num_cells_;
-//        index = hash(val, seeds_[i]) % num_cells_;
-//        int bit = cells_[index/8] & (1u << (index % 8u));
-//        if (!bit) {
-//            return false;
-//        }
-//    }
-////    hit_count_++;
-//    return true;
-//}
-
 double BloomFilter::get_hit_rate() {
     if (probe_count_queue_sum_ > 0)
         return 1.0 * hit_count_queue_sum_ / probe_count_queue_sum_;
@@ -173,14 +101,5 @@ double BloomFilter::get_hit_rate() {
 
 bool BloomFilter::compare(std::shared_ptr<BloomFilter> lhs, std::shared_ptr<BloomFilter> rhs){
     return lhs->get_hit_rate() < rhs->get_hit_rate();
-}
-
-
-inline unsigned int BloomFilter::hash(long long x, int seed) {
-    x = (x<<32)^seed;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = (x >> 16) ^ x;
-    return x;
 }
 
