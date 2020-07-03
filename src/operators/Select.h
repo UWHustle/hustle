@@ -75,8 +75,7 @@ private:
      */
     arrow::Datum get_filter(
         const std::shared_ptr<Node> &node,
-        const std::shared_ptr<Block> &block,
-        const std::shared_ptr<arrow::Array>& prev_filter);
+        const std::shared_ptr<Block> &block);
 
     /**
      * Perform the selection specified by a predicate (i.e. leaf node) in the
@@ -94,16 +93,10 @@ private:
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
 
-    arrow::Datum get_filter(
-        const std::shared_ptr<Predicate> &predicate,
-        const std::shared_ptr<Block> &block,
-        const std::shared_ptr<arrow::Array>& prev_filter);
-
     /**
      * Create the output result from the raw data computed during execution.
      */
     void finish(Task* ctx);
-
 
     void execute_block(int i);
 

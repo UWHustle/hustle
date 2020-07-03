@@ -38,42 +38,35 @@ Select::Select(
     }
 
     num_indices_ = 0;
+    indices_vector_.resize(select_col->num_chunks());
 }
 
 arrow::Datum
 Select::get_filter(const std::shared_ptr<Node> &node,
-                   const std::shared_ptr<Block> &block,
-                   const std::shared_ptr<arrow::Array>& prev_filter) {
+                   const std::shared_ptr<Block> &block) {
 
     arrow::Status status;
 
     if (node->is_leaf()) {
-        return get_filter(node->predicate_, block, prev_filter);
+        return get_filter(node->predicate_, block);
     }
 
-
+    auto left_child_filter = get_filter(node->left_child_, block);
+    auto right_child_filter = get_filter(node->right_child_, block);
     arrow::Datum block_filter;
 
     switch (node->connective_) {
         case AND: {
-            auto left_child_filter = get_filter(node->left_child_, block, nullptr);
-//            auto right_child_filter = get_filter(node->right_child_, block, left_child_filter.make_array());
-
-            auto right_child_filter = get_filter(node->right_child_, block, nullptr);
-//            block_filter = right_child_filter;
             status = arrow::compute::And(left_child_filter, right_child_filter).Value(&block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case OR: {
-            auto left_child_filter = get_filter(node->left_child_, block, nullptr);
-            auto right_child_filter = get_filter(node->right_child_, block, nullptr);
             status = arrow::compute::Or(left_child_filter, right_child_filter).Value(&block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case NONE: {
-            auto left_child_filter = get_filter(node->left_child_, block, nullptr);
             block_filter = left_child_filter;
         }
     }
@@ -111,7 +104,7 @@ void Select::execute(Task *ctx) {
 
 void Select::execute_block(int i) {
     auto block = table_->get_block(i);
-    auto block_filter = this->get_filter(tree_->root_, block, nullptr);
+    auto block_filter = this->get_filter(tree_->root_, block);
     filter_vector_[i] = block_filter.make_array();
 }
 
@@ -134,9 +127,6 @@ void Select::filter_to_indices(int i) {
     for (int j=0; j<indices_length; j++) {
         indices_builder_[indices_offsets_[i] + j] = data[j] + offset;
     }
-
-//    std::scoped_lock<std::mutex> add_lock(add_mutex_);
-//    num_indices_ += temp.length();
 }
 
 
@@ -155,62 +145,46 @@ void Select::finish(Task* ctx) {
                 indices_offsets_[i + 1] = num_indices_;
             }
 
-            status = indices_builder_.Resize(num_indices_);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+            if (num_indices_ <= table_->get_num_rows() / 1000000000) {
+                status = indices_builder_.Resize(num_indices_);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
-            int batch_size = table_->get_num_blocks() / 8;
-            if (batch_size == 0) batch_size = table_->get_num_blocks();
-            int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
-            if (num_batches == 0) num_batches = 1;
-            for (int batch_i = 0; batch_i < num_batches; batch_i++) {
-                // Each task gets the filter for one block and stores it in filter_vector
-                internal->spawnLambdaTask([this, batch_i, batch_size](Task *internal) {
-                    int base_i = batch_i * batch_size;
-                    for (int i = base_i; i < base_i + batch_size && i < table_->get_num_blocks(); i++) {
-                        filter_to_indices(i);
-                    }
-                });
+                int batch_size = table_->get_num_blocks() / 8;
+                if (batch_size == 0) batch_size = table_->get_num_blocks();
+                int num_batches = table_->get_num_blocks() / batch_size +
+                                  1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+                if (num_batches == 0) num_batches = 1;
+                for (int batch_i = 0; batch_i < num_batches; batch_i++) {
+                    // Each task gets the filter for one block and stores it in filter_vector
+                    internal->spawnLambdaTask([this, batch_i, batch_size](Task *internal) {
+                        int base_i = batch_i * batch_size;
+                        for (int i = base_i; i < base_i + batch_size && i < table_->get_num_blocks(); i++) {
+                            filter_to_indices(i);
+                        }
+                    });
+                }
             }
 
         }),
         CreateLambdaTask([this] {
 
-            arrow::Status status;
-            status = indices_builder_.Advance(num_indices_);
-            status = indices_builder_.Finish(&indices_);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+            if (num_indices_ <= table_->get_num_rows() / 1000000000) {
+                std::cout << table_->get_num_rows() << std::endl;
+                arrow::Status status;
+                status = indices_builder_.Advance(num_indices_);
+                status = indices_builder_.Finish(&indices_);
+                evaluate_status(status, __FUNCTION__, __LINE__);
 
-            LazyTable lazy_table(table_, arrow::Datum(), indices_);
-            output_result_->append(lazy_table);
+                LazyTable lazy_table(table_, arrow::Datum(), indices_);
+                output_result_->append(lazy_table);
+            }
+            else {
+                auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
+                LazyTable lazy_table(table_, chunked_filter,arrow::Datum());
+                output_result_->append(lazy_table);
+            }
         })
     ));
-}
-
-arrow::Datum Select::get_filter(
-    const std::shared_ptr<Predicate> &predicate,
-    const std::shared_ptr<Block> &block,
-    const std::shared_ptr<arrow::Array>& prev_filter) {
-
-    arrow::Status status;
-
-    arrow::compute::CompareOptions compare_options(predicate->comparator_);
-    arrow::Datum block_filter;
-
-    auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
-
-    if (prev_filter != nullptr) {
-        arrow::Datum temp;
-        status = arrow::compute::Filter(select_col, prev_filter).Value(&temp);
-        select_col = temp.make_array();
-    }
-
-    auto value = predicate->value_;
-
-    status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-    return block_filter;
-
 }
 
 arrow::Datum Select::get_filter(
