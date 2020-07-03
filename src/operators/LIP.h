@@ -48,7 +48,7 @@ public:
 
 private:
     // Row indices of the fact table that successfully probed all Bloom filters.
-    std::vector<std::vector<int64_t>> lip_indices_;
+    std::vector<std::vector<uint64_t>> lip_indices_;
     const uint64_t* fact_indices_;
 
     // Number of blocks that are probed (in parallel) before sorting the the filters
@@ -115,13 +115,14 @@ private:
      * @param ctx A scheduler task
      * @param chunk_i Index of the block/chunk to be probed.
      */
-    void probe_filters(Task *ctx, int chunk_i);
+    void probe_filters(int chunk_i);
 
     /*
      * Create the output result from the raw data computed during execution.
      */
     void finish();
 
+    void probe_filters2(Task *ctx, int chunk_i);
 };
 
 } // namespace hustle
