@@ -9,7 +9,7 @@ add_library(
         LazyTable.cpp LazyTable.h
         Operator.h
         LIP.cpp LIP.h
-        ../utils/BloomFilter.cpp ../utils/BloomFilter.h
+        ../utils/BloomFilter.h
         ../utils/xxHash.h)
 
 

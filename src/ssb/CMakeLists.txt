@@ -13,7 +13,7 @@ target_link_libraries(hustle_src_ssb PUBLIC
         )
 
 add_executable(hustle_src_ssb_main main.cpp
-        ../utils/BloomFilter.cpp ../utils/BloomFilter.h
+        ../utils/BloomFilter.h
         ../utils/xxHash.h)
 target_link_libraries(hustle_src_ssb_main PUBLIC
         hustle_src_ssb

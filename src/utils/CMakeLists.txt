@@ -31,10 +31,10 @@ add_library(hustle_src_utils_ContextPool ContextPool.cpp ContextPool.h)
 add_library(hustle_src_utils_ParallelHashmap ../empty_src.cpp parallel_hashmap/phmap.h)
 
 
-#add_library(hustle_src_utils_BloomFilter BloomFilter.cpp BloomFilter.h)
+add_library(hustle_src_utils_BloomFilter ../empty_src.cpp BloomFilter.h)
 
 # Include Arrow
-#target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})
+target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})
 target_include_directories(hustle_src_utils_ArrowComputeWrappers PUBLIC ${ARROW_INCLUDE_DIR})
 target_include_directories(hustle_src_utils_ContextPool PUBLIC ${ARROW_INCLUDE_DIR})
 
