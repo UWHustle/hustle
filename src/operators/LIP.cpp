@@ -44,7 +44,7 @@ void LIP::build_filters(Task* ctx) {
                     }
                 }
 
-                bloom_filter->set_memory(1000);
+                bloom_filter->set_memory(10000);
                 bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
                 dim_filters_[i] = (bloom_filter);
             })
@@ -57,7 +57,7 @@ void LIP::probe_filters(int chunk_i) {
 
     // indices[i] stores the indices of fact table rows that passed the
     // ith filter.
-    std::vector<uint64_t> indices(dim_tables_.size());
+    std::vector<uint64_t> indices;
     int64_t last = -1;
     uint64_t offset = chunk_row_offsets_[chunk_i];
     uint64_t temp;
@@ -66,8 +66,7 @@ void LIP::probe_filters(int chunk_i) {
 
         auto bloom_filter = dim_filters_[filter_j];
 
-        auto fact_join_col_name = bloom_filter->get_fact_fk_name();
-        auto fact_fk_col = fact_fk_cols_[fact_join_col_name].chunked_array();
+        auto fact_fk_col = fact_fk_cols_[bloom_filter->get_fact_fk_name()].chunked_array();
         // TODO(nicholas): For now, we assume the column is of INT64 type
         auto chunk = fact_fk_col->chunk(chunk_i);
         auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
@@ -99,7 +98,7 @@ void LIP::probe_filters(int chunk_i) {
             int k=0;
             last = indices.size()-1;
 
-            while (k<last) {
+            while (k<=last) {
                 if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
                     ++k;
                 }
