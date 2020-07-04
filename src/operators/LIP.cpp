@@ -57,9 +57,10 @@ void LIP::probe_filters(int chunk_i) {
 
     // indices[i] stores the indices of fact table rows that passed the
     // ith filter.
-    std::vector<std::vector<uint64_t>> indices(dim_tables_.size());
+    std::vector<uint64_t> indices(dim_tables_.size());
+    uint64_t last = -1;
 
-    for (int filter_j = 0; filter_j < dim_tables_.size(); filter_j++) {
+    for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
 
         auto bloom_filter = dim_filters_[filter_j];
 
@@ -73,37 +74,44 @@ void LIP::probe_filters(int chunk_i) {
         // For the first filter, we must probe all rows of the block.
         if (filter_j == 0) {
             // Reserve space for the first index vector
-            indices[0].reserve(chunk_length);
+            indices.reserve(chunk_length);
 
-            for (int row = 0; row < chunk_length; row++) {
+            for (int row = 0; row < chunk_length; ++row) {
                 auto key = chunk_data[row];
 
                 if (bloom_filter->probe(key)) {
                     if (fact_indices_ == nullptr) {
-                        indices[0].push_back(row + chunk_row_offsets_[chunk_i]);
+                        indices.push_back(row + chunk_row_offsets_[chunk_i]);
                     } else {
-                        indices[0].push_back(fact_indices_[row + chunk_row_offsets_[chunk_i]]);
+                        indices.push_back(fact_indices_[row + chunk_row_offsets_[chunk_i]]);
                     }
                 }
             }
+
+            last = indices.size()-1;
         }
 
         // For the remaining filters, we only need to probe rows that passed
         // the previous filters.
         else {
             // Reserve space for the next index vector
-            indices[filter_j].reserve(
-                indices[filter_j - 1].size());
 
-            for (auto &index : indices[filter_j - 1]) {
+            int k=0;
 
-                if (bloom_filter->probe(chunk_data[index - chunk_row_offsets_[chunk_i]])) {
-                    indices[filter_j].push_back(index);
+            while (k<=last) {
+                if (bloom_filter->probe(chunk_data[indices[k] - chunk_row_offsets_[chunk_i]])) {
+                    ++k;
+                }
+                else {
+                    auto out = indices[k];
+                    indices[k] = indices[last];
+                    indices[last] = out;
+                    --last;
                 }
             }
         }
     }
-    lip_indices_[chunk_i] = indices[dim_tables_.size() - 1];
+    lip_indices_[chunk_i] = std::vector<uint64_t>(indices.begin(), indices.begin() + last+1);
 }
 
 void LIP::probe_filters(Task *ctx) {
