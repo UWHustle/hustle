@@ -62,6 +62,9 @@ private:
     std::unordered_map<std::string, arrow::Datum> fact_fk_cols_;
     std::unordered_map<std::string, arrow::Datum> dim_pk_cols_;
 
+    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols2_;
+
+
     // Primary key cols of all dimension tables.
 
     // Bloom filters of all dimension tables.
@@ -122,7 +125,7 @@ private:
      */
     void finish();
 
-    void probe_filters2(Task *ctx, int chunk_i);
+    void probe_filters2(int chunk_i);
 };
 
 } // namespace hustle

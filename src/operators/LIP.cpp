@@ -52,6 +52,58 @@ void LIP::build_filters(Task* ctx) {
     }
 }
 
+void LIP::probe_filters2(int chunk_i) {
+
+    // indices[i] stores the indices of fact table rows that passed the
+    // ith filter.
+    std::vector<uint64_t> indices;
+    int64_t last = -1;
+    uint64_t offset = chunk_row_offsets_[chunk_i];
+    uint64_t temp;
+    for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
+
+        auto bloom_filter = dim_filters_[filter_j];
+
+        auto fact_fk_col = fact_fk_cols2_[bloom_filter->get_fact_fk_name()];
+        // TODO(nicholas): For now, we assume the column is of INT64 type
+        auto chunk = fact_fk_col->chunk(chunk_i);
+        auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
+        auto chunk_length = chunk->length();
+
+        // For the first filter, we must probe all rows of the block.
+        if (filter_j == 0) {
+            // Reserve space for the first index vector
+            indices.reserve(chunk_length);
+
+            for (int row = 0; row < chunk_length; ++row) {
+                if (bloom_filter->probe(chunk_data[row])) {
+                    indices.push_back(fact_indices_[row + offset]);
+                }
+            }
+            last = indices.size()-1;
+        }
+
+        // For the remaining filters, we only need to probe rows that passed
+        // the previous filters.
+        else {
+            // Reserve space for the next index vector
+            int k=0;
+
+            while (k<=last) {
+                if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
+                    ++k;
+                }
+                else {
+                    temp = indices[k];
+                    indices[k] = indices[last];
+                    indices[last--] = temp;
+                }
+            }
+        }
+    }
+    indices.resize(last+1);
+    lip_indices_[chunk_i] = indices;
+}
 
 void LIP::probe_filters(int chunk_i) {
 
@@ -61,12 +113,11 @@ void LIP::probe_filters(int chunk_i) {
     int64_t last = -1;
     uint64_t offset = chunk_row_offsets_[chunk_i];
     uint64_t temp;
-
     for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
 
         auto bloom_filter = dim_filters_[filter_j];
 
-        auto fact_fk_col = fact_fk_cols_[bloom_filter->get_fact_fk_name()].chunked_array();
+        auto fact_fk_col = fact_fk_cols2_[bloom_filter->get_fact_fk_name()];
         // TODO(nicholas): For now, we assume the column is of INT64 type
         auto chunk = fact_fk_col->chunk(chunk_i);
         auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
@@ -80,14 +131,10 @@ void LIP::probe_filters(int chunk_i) {
             for (int row = 0; row < chunk_length; ++row) {
 
                 if (bloom_filter->probe(chunk_data[row])) {
-                    if (fact_indices_ == nullptr) {
-                        indices.push_back(row + offset);
-                    } else {
-                        indices.push_back(fact_indices_[row + offset]);
-                    }
+                    indices.push_back(row + offset);
                 }
             }
-
+            last = indices.size()-1;
         }
 
         // For the remaining filters, we only need to probe rows that passed
@@ -96,7 +143,7 @@ void LIP::probe_filters(int chunk_i) {
             // Reserve space for the next index vector
 
             int k=0;
-            last = indices.size()-1;
+
 
             while (k<=last) {
                 if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
@@ -133,7 +180,11 @@ void LIP::probe_filters(Task *ctx) {
             int base_i = batch_i * batch_size_;
             for (int i=base_i; i<base_i + batch_size_ && i<num_chunks; i++) {
                 internal->spawnLambdaTask([this, i] {
-                    probe_filters(i);
+                    if (fact_indices_ == nullptr) {
+                        probe_filters(i);
+                    }else {
+                        probe_filters2(i);
+                    }
                 });
            }
         });
@@ -236,6 +287,9 @@ void LIP::execute(Task *ctx) {
         CreateLambdaTask(
         [this](Task *internal) {
             // Grab any fact table column so we can pre-compute chunk row offsets.
+            for (auto& name: fact_fk_col_names_) {
+                fact_fk_cols2_[name] =fact_fk_cols_[name].chunked_array();
+            }
             auto fact_col = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array();
             lip_indices_.resize(fact_col->num_chunks());
 
