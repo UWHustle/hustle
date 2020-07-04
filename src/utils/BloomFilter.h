@@ -36,7 +36,7 @@ public:
         uint64_t index;
         for(int i=0; i<num_hash_; i++){
             index = hash(val, seeds_[i]) % num_cells_;
-            if ((cells_[index/8] & (1u << (index % 8u))) != (1u << (index % 8u))) {
+            if (!(cells_[index/8] & (1u << (index % 8u)))) {
                 return false;
             }
         }
