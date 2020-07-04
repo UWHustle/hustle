@@ -118,8 +118,10 @@ void SSB::q11_lip() {
     scheduler.join();
     container->endEvent("q1.1_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -251,8 +253,10 @@ void SSB::q12_lip() {
     scheduler.join();
     container->endEvent("q1.2_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -401,8 +405,10 @@ void SSB::q13_lip() {
     scheduler.join();
     container->endEvent("q1.3_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -487,14 +493,17 @@ void SSB::q21_lip() {
     scheduler.join();
     container->endEvent("q2.1_lip");
 
-    
-    out_table = agg_result_out->materialize({
-                                                {nullptr, "revenue"},
-                                                {nullptr, "year"},
-                                                {nullptr, "brand1"}
-                                            });
-    if (print_) out_table->print();
+
+    if (print_) {
+        out_table = agg_result_out->materialize({
+                                                    {nullptr, "revenue"},
+                                                    {nullptr, "year"},
+                                                    {nullptr, "brand1"}
+                                                });
+        out_table->print();
+    }
     hustle::simple_profiler.summarizeToStream(std::cout);
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -594,14 +603,17 @@ void SSB::q22_lip() {
     scheduler.join();
     container->endEvent("q2.2_lip");
 
-    
-    out_table = agg_result_out->materialize({
-                                                {nullptr, "revenue"},
-                                                {nullptr, "year"},
-                                                {nullptr, "brand1"}
-                                            });
-    if (print_) out_table->print();
+
+    if (print_) {
+        out_table = agg_result_out->materialize({
+                                                    {nullptr, "revenue"},
+                                                    {nullptr, "year"},
+                                                    {nullptr, "brand1"}
+                                                });
+        out_table->print();
+    }
     hustle::simple_profiler.summarizeToStream(std::cout);
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -683,14 +695,17 @@ void SSB::q23_lip() {
     scheduler.join();
     container->endEvent("q2.3_lip");
 
-    
-    out_table = agg_result_out->materialize({
-                                                {nullptr, "revenue"},
-                                                {nullptr, "year"},
-                                                {nullptr, "brand1"}
-                                            });
-    if (print_) out_table->print();
+
+    if (print_) {
+        out_table = agg_result_out->materialize({
+                                                    {nullptr, "revenue"},
+                                                    {nullptr, "year"},
+                                                    {nullptr, "brand1"}
+                                                });
+        out_table->print();
+    }
     hustle::simple_profiler.summarizeToStream(std::cout);
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -803,8 +818,10 @@ void SSB::q31_lip() {
     scheduler.join();
     container->endEvent("q3.1_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -920,8 +937,10 @@ void SSB::q32_lip() {
     scheduler.join();
     container->endEvent("q3.2_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1077,8 +1096,10 @@ void SSB::q33_lip() {
     scheduler.join();
     container->endEvent("q3.3_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1215,8 +1236,10 @@ void SSB::q34_lip() {
     scheduler.join();
     container->endEvent("q3.4_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
