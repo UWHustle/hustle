@@ -59,6 +59,7 @@ void LIP::probe_filters(int chunk_i) {
     // ith filter.
     std::vector<uint64_t> indices(dim_tables_.size());
     uint64_t last = -1;
+    uint64_t offset = chunk_row_offsets_[chunk_i];
 
     for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
 
@@ -77,13 +78,12 @@ void LIP::probe_filters(int chunk_i) {
             indices.reserve(chunk_length);
 
             for (int row = 0; row < chunk_length; ++row) {
-                auto key = chunk_data[row];
-
-                if (bloom_filter->probe(key)) {
+                
+                if (bloom_filter->probe(chunk_data[row])) {
                     if (fact_indices_ == nullptr) {
-                        indices.push_back(row + chunk_row_offsets_[chunk_i]);
+                        indices.push_back(row + offset);
                     } else {
-                        indices.push_back(fact_indices_[row + chunk_row_offsets_[chunk_i]]);
+                        indices.push_back(fact_indices_[row + offset]);
                     }
                 }
             }
@@ -99,7 +99,7 @@ void LIP::probe_filters(int chunk_i) {
             int k=0;
 
             while (k<=last) {
-                if (bloom_filter->probe(chunk_data[indices[k] - chunk_row_offsets_[chunk_i]])) {
+                if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
                     ++k;
                 }
                 else {
