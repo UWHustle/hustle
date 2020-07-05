@@ -109,7 +109,7 @@ void LIP::probe_filters(int chunk_i) {
 
     // indices[i] stores the indices of fact table rows that passed the
     // ith filter.
-    std::vector<uint64_t> indices;
+    uint64_t* indices = nullptr;
     int64_t last = -1;
     uint64_t offset = chunk_row_offsets_[chunk_i];
     uint64_t temp;
@@ -126,25 +126,22 @@ void LIP::probe_filters(int chunk_i) {
         // For the first filter, we must probe all rows of the block.
         if (filter_j == 0) {
             // Reserve space for the first index vector
-            indices.reserve(chunk_length);
+            int k=0;
+            indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
 
             for (int row = 0; row < chunk_length; ++row) {
 
                 if (bloom_filter->probe(chunk_data[row])) {
-                    indices.push_back(row + offset);
+                    indices[k++] = row + offset;
                 }
             }
-            last = indices.size()-1;
+            last = k-1;
         }
 
         // For the remaining filters, we only need to probe rows that passed
         // the previous filters.
         else {
-            // Reserve space for the next index vector
-
             int k=0;
-
-
             while (k<=last) {
                 if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
                     ++k;
@@ -157,15 +154,17 @@ void LIP::probe_filters(int chunk_i) {
             }
         }
     }
-    indices.resize(last+1);
-    lip_indices_[chunk_i] = indices;
+
+    lip_indices_[chunk_i] = std::vector<uint64_t>(indices, indices + last + 1);
 }
 
 void LIP::probe_filters(Task *ctx) {
 
     int num_chunks = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array()->num_chunks();
-    batch_size_ = 10;
+    batch_size_ = 30;
 
+    batch_size_ = num_chunks / 8;
+    if (batch_size_ == 0) batch_size_ = num_chunks;
     int num_batches = num_chunks / batch_size_ + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
     if (num_batches == 0) num_batches = 1;
 
