@@ -344,6 +344,8 @@ private:
     void initialize_group_by_column(Task *ctx, int i);
 
     void initialize_agg_col(Task *ctx);
+
+    void initialize_group_filters(Task *ctx);
 };
 
 } // namespace operators

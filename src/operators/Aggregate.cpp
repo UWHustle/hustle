@@ -116,100 +116,100 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
     return result.ValueOrDie();
 }
 
-void
-Aggregate::get_group_filter(Task *ctx, int agg_index, const std::vector<int>& group_id) {
+void Aggregate::initialize_group_filters(Task* ctx) {
+    if (group_type_->num_children() == 0) {
+        return;
+    }
 
     ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-            // No Group By clause
-            if (group_type_->num_children() == 0) {
-                return;
-            }
+        CreateLambdaTask([this](Task* internal) {
 
-
-            // e.g. group_id = [4, 1, 2]
-            // We get the filter for all_unique_values[0][4], all_unique_values[1][1],
-            // and all_unique_values[3][2]. Recall that all_unique_values[i] is an array
-            // of all the unique values of the ith GROUP BY column
-            for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
-
-                arrow::Datum value;
-                std::shared_ptr<arrow::ChunkedArray> next_filter;
-                if (unique_value_filters_[field_i][group_id[field_i]] != nullptr) {
-                    next_filter = unique_value_filters_[field_i][group_id[field_i]];
-                } else {
-                    switch (group_type_->child(field_i)->type()->id()) {
-                        case arrow::Type::STRING: {
-                            // Downcast an Array of unique values.
-                            auto one_unique_value_casted =
-                                std::static_pointer_cast<arrow::StringArray>
-                                    (all_unique_values_[field_i]);
-                            // Fetch a particular unique value from the array specified by
-                            // the group_id
-                            value = arrow::Datum(
-                                std::make_shared<arrow::StringScalar>(
-                                    one_unique_value_casted->GetString(
-                                        group_id[field_i])));
-                            // Get the filter for this particular unique value.
-                            std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                            get_unique_value_filter(internal, agg_index, field_i,
-                                                    group_by_refs_[field_i],
-                                                    value, unique_value_filters_[field_i][group_id[field_i]]);
-                            break;
-                        }
-                        case arrow::Type::INT64: {
-                            // Downcast an Array of unique values.
-                            auto one_unique_value_casted =
-                                std::static_pointer_cast<arrow::Int64Array>
-                                    (all_unique_values_[field_i]);
-                            // Fetch a particular unique value from the array specified by
-                            // the group_id
-                            value = arrow::Datum(
-                                std::make_shared<arrow::Int64Scalar>(
-                                    one_unique_value_casted->Value(group_id[field_i])));
-                            // Get the filter for this particular unique value.
-                            std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                             get_unique_value_filter(internal, agg_index, field_i,
-                                group_by_refs_[field_i],
-                                value, unique_value_filters_[field_i][group_id[field_i]]);
-                            break;
-                        }
-                        default: {
-                            std::cerr << "invalid type" << std::endl;
+            int agg_index = 0;
+            for (auto& group_id : group_id_vec_) {
+                for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
+                    arrow::Datum value;
+                    std::shared_ptr<arrow::ChunkedArray> next_filter;
+                    if (unique_value_filters_[field_i][group_id[field_i]] != nullptr) {
+                        next_filter = unique_value_filters_[field_i][group_id[field_i]];
+                    } else {
+                        switch (group_type_->child(field_i)->type()->id()) {
+                            case arrow::Type::STRING: {
+                                // Downcast an Array of unique values.
+                                auto one_unique_value_casted =
+                                    std::static_pointer_cast<arrow::StringArray>
+                                        (all_unique_values_[field_i]);
+                                // Fetch a particular unique value from the array specified by
+                                // the group_id
+                                value = arrow::Datum(
+                                    std::make_shared<arrow::StringScalar>(
+                                        one_unique_value_casted->GetString(
+                                            group_id[field_i])));
+                                // Get the filter for this particular unique value.
+                                std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
+                                get_unique_value_filter(internal, agg_index, field_i,
+                                                        group_by_refs_[field_i],
+                                                        value, unique_value_filters_[field_i][group_id[field_i]]);
+                                break;
+                            }
+                            case arrow::Type::INT64: {
+                                // Downcast an Array of unique values.
+                                auto one_unique_value_casted =
+                                    std::static_pointer_cast<arrow::Int64Array>
+                                        (all_unique_values_[field_i]);
+                                // Fetch a particular unique value from the array specified by
+                                // the group_id
+                                value = arrow::Datum(
+                                    std::make_shared<arrow::Int64Scalar>(
+                                        one_unique_value_casted->Value(group_id[field_i])));
+                                // Get the filter for this particular unique value.
+                                std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
+                                get_unique_value_filter(internal, agg_index, field_i,
+                                                        group_by_refs_[field_i],
+                                                        value, unique_value_filters_[field_i][group_id[field_i]]);
+                                break;
+                            }
+                            default: {
+                                std::cerr << "invalid type" << std::endl;
+                            }
                         }
                     }
                 }
+                ++agg_index;
             }
         }),
-        CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-            if (group_id.empty()) {
-                return;
-            }
-            arrow::Status status;
-
-            arrow::Datum temp_filter;
-            arrow::ArrayVector filter_vector;
-
-            auto prev_filter = unique_value_filters_[0][group_id[0]];
-            filter_vector.resize(prev_filter->num_chunks());
-
-            // TODO(nicholas): multithreaded AND
-            // Perform a logical AND on all the unique value filters
-            for (int field_i=1; field_i<group_by_refs_.size(); field_i++) {
-                auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
-                for (int j = 0; j < prev_filter->num_chunks(); j++) {
-                    status = arrow::compute::And(prev_filter->chunk(j),
-                                                 next_filter->chunk(j)).Value(&temp_filter);
-                    evaluate_status(status, __FUNCTION__, __LINE__);
-
-                    filter_vector[j] = temp_filter.make_array();
+        CreateLambdaTask([this](Task* internal) {
+            int agg_index = 0;
+            for (auto& group_id : group_id_vec_) {
+                if (group_id.empty()) {
+                    return;
                 }
+                arrow::Status status;
 
-                prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
+                arrow::Datum temp_filter;
+                arrow::ArrayVector filter_vector;
+
+                auto prev_filter = unique_value_filters_[0][group_id[0]];
+                filter_vector.resize(prev_filter->num_chunks());
+
+                // TODO(nicholas): multithreaded AND
+                // Perform a logical AND on all the unique value filters
+                for (int field_i = 1; field_i < group_by_refs_.size(); field_i++) {
+                    auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
+                    for (int j = 0; j < prev_filter->num_chunks(); j++) {
+                        status = arrow::compute::And(prev_filter->chunk(j),
+                                                     next_filter->chunk(j)).Value(&temp_filter);
+                        evaluate_status(status, __FUNCTION__, __LINE__);
+
+                        filter_vector[j] = temp_filter.make_array();
+                    }
+
+                    prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
+                }
+                group_filters_[agg_index] = prev_filter;
+                ++agg_index;
             }
-            group_filters_[agg_index] = prev_filter;
         })
-    ));
+     ));
 }
 
 void Aggregate::insert_group(std::vector<int> group_id) {
@@ -313,7 +313,6 @@ arrow::Datum Aggregate::get_unique_values(
 
     // Get the unique values in group_by_col
     arrow::Datum unique_values;
-    // TODO(nicholas): Is it worthwhile to make this multithreaded?
     status = arrow::compute::Unique(group_by_col).Value(&unique_values);
 
     evaluate_status(status, __FUNCTION__, __LINE__);
@@ -482,7 +481,7 @@ void Aggregate::compute_group_aggregate(
 
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-            get_group_filter(internal, agg_index, group_id);
+//            get_group_filter(internal, agg_index, group_id);
         }),
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
             if (group_filters_[agg_index] != nullptr) {
@@ -586,6 +585,9 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 }
                 index = n - 1;
             }
+        }),
+        CreateLambdaTask([this](Task* internal) {
+            initialize_group_filters(internal);
         }),
         CreateLambdaTask([this](Task* internal) {
 
