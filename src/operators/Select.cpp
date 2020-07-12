@@ -73,118 +73,57 @@ Select::get_filter(const std::shared_ptr<Node> &node,
     return block_filter;
 }
 
+template<typename Functor>
+void Select::for_each_batch(int batch_size, int num_batches, std::shared_ptr<arrow::ArrayVector> filter_vector, const Functor &functor) {
+    for (int batch_i=0; batch_i<num_batches; batch_i++) {
+        functor(filter_vector, batch_i, batch_size);
+    }
+}
+
 void Select::execute(Task *ctx) {
+
+    auto filter_vector = std::make_shared<arrow::ArrayVector>();
+    filter_vector->resize(table_->get_num_blocks());
 
     ctx->spawnTask(CreateTaskChain(
         // Task 1: perform selection on all blocks
-        CreateLambdaTask([this](Task *internal){
-            filter_vector_.resize(table_->get_num_blocks());
+        CreateLambdaTask([this, filter_vector](Task *internal){
 
             int batch_size = table_->get_num_blocks() / 8;
             if (batch_size == 0) batch_size = table_->get_num_blocks();
             int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;
 
-            for (int batch_i=0; batch_i<num_batches; batch_i++) {
-                // Each task gets the filter for one block and stores it in filter_vector
-                internal->spawnLambdaTask([this, batch_i, batch_size]() {
+            auto batch_functor = [&](auto filter_vector, auto batch_i, auto batch_size) {
+                internal->spawnLambdaTask([this, filter_vector, batch_i, batch_size]() {
                     int base_i = batch_i * batch_size;
                     for (int i=base_i; i<base_i+batch_size && i<table_->get_num_blocks(); i++) {
-                        execute_block(i);
+                        execute_block(*filter_vector, i);
                     }
                 });
-            }
+            };
+
+            filter_vector_.resize(table_->get_num_blocks());
+            for_each_batch(batch_size, num_batches, filter_vector, batch_functor);
         }),
         // Task 2: create the output result
-        CreateLambdaTask([this](Task* internal) {
-            finish(internal);
+        CreateLambdaTask([this, filter_vector](Task* internal) {
+            finish(filter_vector, internal);
         })
     ));
 }
 
-void Select::execute_block(int i) {
+void Select::execute_block(arrow::ArrayVector& filter_vector, int i) {
     auto block = table_->get_block(i);
     auto block_filter = this->get_filter(tree_->root_, block);
-    filter_vector_[i] = block_filter.make_array();
+    filter_vector[i] = block_filter.make_array();
 }
 
+void Select::finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task* ctx) {
 
-void Select::filter_to_indices(int i) {
-
-    int offset = table_->get_block_row_offset(i);
-
-    arrow::Datum temp;
-    auto status = arrow::compute::internal::GetTakeIndices(*filter_vector_[i]->data(), arrow::compute::FilterOptions::EMIT_NULL).Value(&temp);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-    auto chunk_indices = temp.make_array();
-    auto indices_length = chunk_indices->length();
-
-    // TODO(nicholas): data will be of type uint32_t if block size is large!
-    auto data =chunk_indices->data()->GetMutableValues<uint16_t>(1);
-
-    for (int j=0; j<indices_length; j++) {
-        indices_builder_[indices_offsets_[i] + j] = data[j] + offset;
-    }
-}
-
-
-void Select::finish(Task* ctx) {
-
-    ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this](Task *internal) {
-
-            arrow::Status status;
-
-            indices_offsets_.resize(filter_vector_.size() + 1);
-            indices_offsets_[0] = 0;
-            for (int i = 0; i < filter_vector_.size(); i++) {
-                num_indices_ += arrow::compute::internal::GetFilterOutputSize(*filter_vector_[i]->data(),
-                                                                              arrow::compute::FilterOptions::EMIT_NULL);
-                indices_offsets_[i + 1] = num_indices_;
-            }
-
-            if (num_indices_ <= table_->get_num_rows() / 1000000000) {
-                status = indices_builder_.Resize(num_indices_);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-
-                int batch_size = table_->get_num_blocks() / 8;
-                if (batch_size == 0) batch_size = table_->get_num_blocks();
-                int num_batches = table_->get_num_blocks() / batch_size +
-                                  1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
-                if (num_batches == 0) num_batches = 1;
-                for (int batch_i = 0; batch_i < num_batches; batch_i++) {
-                    // Each task gets the filter for one block and stores it in filter_vector
-                    internal->spawnLambdaTask([this, batch_i, batch_size](Task *internal) {
-                        int base_i = batch_i * batch_size;
-                        for (int i = base_i; i < base_i + batch_size && i < table_->get_num_blocks(); i++) {
-                            filter_to_indices(i);
-                        }
-                    });
-                }
-            }
-
-        }),
-        CreateLambdaTask([this] {
-
-            if (num_indices_ <= table_->get_num_rows() / 1000000000) {
-                std::cout << table_->get_num_rows() << std::endl;
-                arrow::Status status;
-                status = indices_builder_.Advance(num_indices_);
-                status = indices_builder_.Finish(&indices_);
-                evaluate_status(status, __FUNCTION__, __LINE__);
-
-                LazyTable lazy_table(table_, arrow::Datum(), indices_);
-                output_result_->append(lazy_table);
-            }
-            else {
-                auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
-                LazyTable lazy_table(table_, chunked_filter,arrow::Datum());
-                output_result_->append(lazy_table);
-            }
-        })
-    ));
+    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(*filter_vector);
+    LazyTable lazy_table(table_, chunked_filter,arrow::Datum());
+    output_result_->append(lazy_table);
 }
 
 arrow::Datum Select::get_filter(

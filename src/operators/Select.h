@@ -96,11 +96,13 @@ private:
     /**
      * Create the output result from the raw data computed during execution.
      */
-    void finish(Task* ctx);
+    void finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task* ctx);
 
-    void execute_block(int i);
+    void execute_block(arrow::ArrayVector& filter_vector, int i);
 
-    void filter_to_indices(int i);
+    template<typename Functor>
+    void for_each_batch(int batch_size, int num_batches, std::shared_ptr<arrow::ArrayVector> filter_vector,
+                        const Functor &functor);
 };
 
 } // namespace hustle
