@@ -16,7 +16,6 @@ Select::Select(
     std::shared_ptr<OperatorResult> output_result,
     std::shared_ptr<PredicateTree> tree) : Operator(query_id) {
 
-    prev_result_ = prev_result;
     output_result_ = output_result;
     tree_ = tree;
 
@@ -30,15 +29,6 @@ Select::Select(
     table_ = node->predicate_->col_ref_.table;
 
     auto select_col = table_->get_column_by_name(node->predicate_->col_ref_.col_name);
-
-    left_vector_.reserve(select_col->num_chunks());
-    right_vector_.resize(select_col->num_chunks());
-    for (auto& chunk : select_col->chunks()) {
-        left_vector_.push_back(chunk);
-    }
-
-    num_indices_ = 0;
-    indices_vector_.resize(select_col->num_chunks());
 }
 
 arrow::Datum
@@ -103,7 +93,6 @@ void Select::execute(Task *ctx) {
                 });
             };
 
-            filter_vector_.resize(table_->get_num_blocks());
             for_each_batch(batch_size, num_batches, filter_vector, batch_functor);
         }),
         // Task 2: create the output result

@@ -45,20 +45,8 @@ public:
 
 private:
     std::shared_ptr<PredicateTree> tree_;
-    std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
-    arrow::ArrayVector filter_vector_;
-    arrow::ArrayVector left_vector_;
-    arrow::ArrayVector right_vector_;
-    arrow::ArrayVector indices_vector_;
-    std::mutex add_mutex_;
-
-    std::vector<int> indices_offsets_;
-
-    arrow::UInt64Builder indices_builder_;
-    std::shared_ptr<arrow::Array> indices_;
-    int num_indices_;
 
     std::unordered_map<std::string, arrow::ArrayVector> select_col_map;
     /**
