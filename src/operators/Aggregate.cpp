@@ -121,7 +121,7 @@ void Aggregate::initialize_group_filters(Task* ctx) {
         return;
     }
 
-    CreateTaskChain(
+    ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this](Task* internal) {
 
             int agg_index = 0;
@@ -209,13 +209,13 @@ void Aggregate::initialize_group_filters(Task* ctx) {
                 ++agg_index;
             }
         })
-     );
+     ));
 }
 
 void
 Aggregate::get_group_filter(Task *ctx, int agg_index, const std::vector<int>& group_id) {
 
-    CreateTaskChain(
+    ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
             // No Group By clause
             if (group_type_->num_children() == 0) {
@@ -305,7 +305,7 @@ Aggregate::get_group_filter(Task *ctx, int agg_index, const std::vector<int>& gr
             }
             group_filters_[agg_index] = prev_filter;
         })
-    );
+    ));
 }
 
 void Aggregate::insert_group(std::vector<int> group_id) {
@@ -555,7 +555,7 @@ void Aggregate::initialize(Task* ctx) {
             // Fetch unique values for all Group By columns.
             for (int i=0; i<group_by_refs_.size(); i++) {
                 // TODO(nicholas): No need for a TaskChain here
-                CreateTaskChain(
+                internal->spawnTask(CreateTaskChain(
                     CreateLambdaTask([this, i](Task* internal) {
                         initialize_group_by_column(internal, i);
                     }),
@@ -563,7 +563,7 @@ void Aggregate::initialize(Task* ctx) {
                         std::scoped_lock<std::mutex> lock(mutex2_);
                         all_unique_values_[i] = get_unique_values(group_by_refs_[i]).make_array();
                     })
-                );
+                ));
             }
         })
     ));
@@ -575,7 +575,7 @@ void Aggregate::compute_group_aggregate(
     const std::vector<int>& group_id,
     const arrow::Datum& agg_col) {
 
-    CreateTaskChain(
+    ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, agg_index, group_id](Task* internal) {
             get_group_filter(internal, agg_index, group_id);
         }),
@@ -601,12 +601,12 @@ void Aggregate::compute_group_aggregate(
                 insert_group(group_id);
             }
         })
-    );
+    ));
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
 
-    CreateTaskChain(
+    ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this](Task* internal) {
             //TODO(nicholas): For now, we only perform one aggregate.
             auto table = aggregate_refs_[0].col_ref.table;
@@ -698,7 +698,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 });
             }
         })
-    );
+    ));
 }
 
 void Aggregate::execute(Task *ctx) {
