@@ -80,6 +80,7 @@ void Select::execute(Task *ctx) {
         CreateLambdaTask([this, filter_vector](Task *internal){
 
             int batch_size = table_->get_num_blocks() / 8;
+            batch_size = 1;
             if (batch_size == 0) batch_size = table_->get_num_blocks();
             int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;
