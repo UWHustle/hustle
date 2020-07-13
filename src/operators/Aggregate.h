@@ -5,7 +5,7 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
-#include <utils/ContextPool.h>
+//#include <utils/ContextPool.h>
 
 #include "OperatorResult.h"
 #include "Operator.h"
@@ -200,7 +200,7 @@ private:
     std::unordered_map<std::string, int> group_by_col_names_to_index_;
     std::vector<LazyTable> group_by_tables_;
 
-    ContextPool context_pool_;
+//    ContextPool context_pool_;
 
     /**
      * Initialize or pre-compute data members.
@@ -263,7 +263,7 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    void get_group_filter(Task* ctx, int agg_index, const std::vector<int>& its);
+    void get_group_filter(int agg_index, const std::vector<int>& its);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -276,9 +276,6 @@ private:
      * i.e. the filter corresponding to a single group of col_ref.
      */
     void get_unique_value_filter(
-        Task* ctx,
-        int agg_index,
-        int field_i,
         const ColumnReference& col_ref,
         const arrow::Datum& value,
         std::shared_ptr<arrow::ChunkedArray>& out);
