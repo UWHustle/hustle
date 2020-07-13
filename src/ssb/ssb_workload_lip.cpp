@@ -109,7 +109,7 @@ void SSB::q11_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -244,7 +244,7 @@ void SSB::q12_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -396,7 +396,7 @@ void SSB::q13_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -484,7 +484,7 @@ void SSB::q21_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
@@ -594,7 +594,7 @@ void SSB::q22_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
@@ -686,7 +686,7 @@ void SSB::q23_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
@@ -809,7 +809,7 @@ void SSB::q31_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -928,7 +928,7 @@ void SSB::q32_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1087,7 +1087,7 @@ void SSB::q33_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1227,7 +1227,7 @@ void SSB::q34_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1349,7 +1349,7 @@ void SSB::q41_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1500,7 +1500,7 @@ void SSB::q42_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1632,7 +1632,7 @@ void SSB::q43_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();

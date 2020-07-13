@@ -53,6 +53,7 @@ public:
 private:
 
     bool print_;
+    int num_threads_;
 
     std::shared_ptr<OperatorResult> lo_result_in;
     std::shared_ptr<OperatorResult> d_result_in;

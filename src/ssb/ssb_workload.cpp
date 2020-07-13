@@ -9,12 +9,6 @@
 #include <scheduler/SchedulerFlags.hpp>
 #include "ssb_workload.h"
 #include "table/util.h"
-#include "gandiva/tree_expr_builder.h"
-#include "gandiva/projector.h"
-#include "gandiva/configuration.h"
-#include "gandiva/filter.h"
-#include "gandiva/selection_vector.h"
-#include "gandiva/arrow.h"
 #include "utils/arrow_compute_wrappers.h"
 
 using namespace std::chrono;
@@ -24,6 +18,7 @@ namespace hustle::operators {
 SSB::SSB(int SF, bool print) {
 
     print_ = print;
+    num_threads_ = std::thread::hardware_concurrency();
 
     if (SF==0) {
         lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-small/lineorder.hsl");
@@ -47,7 +42,7 @@ SSB::SSB(int SF, bool print) {
         s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/supplier.hsl");
     }
     else if (SF==10) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/lineorder.hsl");
+        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10-20MB/lineorder.hsl");
         d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/date.hsl");
         p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/part.hsl");
         c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/customer.hsl");
@@ -340,7 +335,7 @@ void SSB::q11() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -471,7 +466,7 @@ void SSB::q12() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -619,7 +614,7 @@ void SSB::q13() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -704,7 +699,7 @@ void SSB::q21() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
@@ -811,7 +806,7 @@ void SSB::q22() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
@@ -898,7 +893,7 @@ void SSB::q23() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
@@ -1016,7 +1011,7 @@ void SSB::q31() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1129,7 +1124,7 @@ void SSB::q32() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1282,7 +1277,7 @@ void SSB::q33() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1418,7 +1413,7 @@ void SSB::q34() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1536,7 +1531,7 @@ void SSB::q41() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1685,7 +1680,7 @@ void SSB::q42() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
@@ -1815,7 +1810,7 @@ void SSB::q43() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
