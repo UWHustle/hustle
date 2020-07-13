@@ -106,7 +106,7 @@ void Join::probe_hash_table
             chunk_row_offsets[i - 1] + probe_col->chunk(i - 1)->length();
     }
 
-    int batch_size = probe_col->num_chunks() / 8;
+    int batch_size = probe_col->num_chunks() / std::thread::hardware_concurrency() / 2;
     if (batch_size == 0) batch_size = probe_col->num_chunks();
     int num_batches = probe_col->num_chunks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
     if (num_batches == 0) num_batches = 1;
