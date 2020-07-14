@@ -47,6 +47,7 @@ private:
     std::shared_ptr<PredicateTree> tree_;
     std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
+    arrow::ArrayVector filters_;
 
     std::unordered_map<std::string, arrow::ArrayVector> select_col_map;
     /**

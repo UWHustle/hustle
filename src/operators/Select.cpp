@@ -29,6 +29,7 @@ Select::Select(
     table_ = node->predicate_->col_ref_.table;
 
     auto select_col = table_->get_column_by_name(node->predicate_->col_ref_.col_name);
+    filters_.resize(table_->get_num_blocks());
 }
 
 arrow::Datum
@@ -43,24 +44,26 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 
     auto left_child_filter = get_filter(node->left_child_, block);
     auto right_child_filter = get_filter(node->right_child_, block);
-    arrow::Datum block_filter;
-
-    switch (node->connective_) {
-        case AND: {
-            status = arrow::compute::And(left_child_filter, right_child_filter).Value(&block_filter);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-            break;
-        }
-        case OR: {
-            status = arrow::compute::Or(left_child_filter, right_child_filter).Value(&block_filter);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-            break;
-        }
-        case NONE: {
-            block_filter = left_child_filter;
-        }
-    }
-    return block_filter;
+    return right_child_filter;
+//
+//    arrow::Datum block_filter;
+//
+//    switch (node->connective_) {
+//        case AND: {
+//            status = arrow::compute::And(left_child_filter, right_child_filter).Value(&block_filter);
+//            evaluate_status(status, __FUNCTION__, __LINE__);
+//            break;
+//        }
+//        case OR: {
+//            status = arrow::compute::Or(left_child_filter, right_child_filter).Value(&block_filter);
+//            evaluate_status(status, __FUNCTION__, __LINE__);
+//            break;
+//        }
+//        case NONE: {
+//            block_filter = left_child_filter;
+//        }
+//    }
+//    return block_filter;
 }
 
 template<typename Functor>
@@ -80,7 +83,7 @@ void Select::execute(Task *ctx) {
         CreateLambdaTask([this, filter_vector](Task *internal){
 
             int batch_size = table_->get_num_blocks() / 8;
-            batch_size = 1;
+//            batch_size = 1;
             if (batch_size == 0) batch_size = table_->get_num_blocks();
             int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;
@@ -127,9 +130,38 @@ arrow::Datum Select::get_filter(
 
     auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
     auto value = predicate->value_;
+//        std::cout << predicate->col_ref_.col_name << std::endl;
 
-    status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
-    evaluate_status(status, __FUNCTION__, __LINE__);
+    if ( filters_[block->get_id()] == nullptr) {
+
+        status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+
+        filters_[block->get_id()] = block_filter.make_array();
+    } else {
+
+        auto data = arrow::ArrayData::Make(select_col->type(), select_col->length(), {filters_[block->get_id()]->data()->buffers[1], select_col->data()->buffers[1]});
+        select_col = arrow::MakeArray(data);
+//        select_col->data()->buffers[0] = filters_[block->get_id()]->data()->buffers[1];
+//        std::cout << select_col->ToString() << std::endl;
+
+        status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+//        std::cout << block_filter.make_array()->ToString() << std::endl;
+
+//        status = arrow::compute::KleeneAnd(filters_[block->get_id()], block_filter).Value(&block_filter);
+//        evaluate_status(status, __FUNCTION__, __LINE__);
+
+        auto temp = block_filter.array();
+
+        auto is_true = std::make_shared<arrow::BooleanArray>(temp->length, temp->buffers[1]);
+        auto is_valid = std::make_shared<arrow::BooleanArray>(temp->length, temp->buffers[0]);
+        status = arrow::compute::And(is_true, is_valid).Value(&block_filter);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+//
+        filters_[block->get_id()] = block_filter.make_array();
+//
+    }
 
     return block_filter;
 
