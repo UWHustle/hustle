@@ -268,8 +268,8 @@ void SSB::q11() {
             std::make_shared<Predicate>(discount_pred_2));
 
     auto discount_connective_node = std::make_shared<ConnectiveNode>(
-        discount_pred_node_1,
         discount_pred_node_2,
+        discount_pred_node_1,
         FilterOperator::AND
     );
 
@@ -285,8 +285,8 @@ void SSB::q11() {
             std::make_shared<Predicate>(quantity_pred_1));
 
     auto lo_root_node = std::make_shared<ConnectiveNode>(
-        quantity_pred_node_1,
         discount_connective_node,
+        quantity_pred_node_1,
         FilterOperator::AND
     );
 
@@ -379,8 +379,8 @@ void SSB::q12() {
             std::make_shared<Predicate>(discount_pred_2));
 
     auto discount_connective_node = std::make_shared<ConnectiveNode>(
-        discount_pred_node_1,
         discount_pred_node_2,
+        discount_pred_node_1,
         FilterOperator::AND
     );
 
