@@ -75,8 +75,8 @@ void LazyTable::get_column(Task* ctx, int i, arrow::Datum& out) {
             } else {
                 out = table->get_column(i);
                 if (filter.kind() != arrow::Datum::NONE) {
-                    context_.apply_filter(internal, out, filter, out);
-                    filtered_cols_[i] = out.chunked_array();
+//                    context_.apply_filter(internal, out, filter, out);
+//                    filtered_cols_[i] = out.chunked_array();
                 }
             }
         }),

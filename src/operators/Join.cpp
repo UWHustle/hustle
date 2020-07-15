@@ -25,7 +25,7 @@ Join::Join(
 }
 
 void Join::build_hash_table
-    (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx) {
+    (const std::shared_ptr<arrow::ChunkedArray> &col, const std::shared_ptr<arrow::ChunkedArray> &filter, Task *ctx) {
 
     // NOTE: Do not forget to clear the hash table
     hash_table_.clear();
@@ -40,23 +40,26 @@ void Join::build_hash_table
             chunk_row_offsets[i - 1] + col->chunk(i - 1)->length();
     }
 
-//    arrow::internal::HashTable<int64_t> h(arrow::default_memory_pool(), right_join_col_.length());
-
-
     for (int i = 0; i < col->num_chunks(); i++) {
         // Each task inserts one chunk into the hash table
             // TODO(nicholas): for now, we assume the join column is INT64 type.
-            auto chunk = std::static_pointer_cast<arrow::Int64Array>(
-                col->chunk(i));
+            auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
+            auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(filter->chunk(i));
 
-            for (int row = 0; row < chunk->length(); row++) {
+        auto filter_data = filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
+
+
+        for (int row = 0; row < chunk->length(); row++) {
+//            if (filter_data[row / 8] == (1u << (row % 8u))) {
+            if (chunkf->Value(row) == 1) {
                 hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
             }
+        }
     }
 }
 
 void Join::probe_hash_table_block
-    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size, std::vector<uint64_t> chunk_row_offsets) {
+    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i, int batch_size, std::vector<uint64_t> chunk_row_offsets) {
 
     int base_i = batch_i * batch_size;
     auto hash_table_end = hash_table_.end();
@@ -71,18 +74,23 @@ void Join::probe_hash_table_block
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
         auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
+        auto filter_data = probe_filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
+        auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(probe_filter->chunk(i));
+
 
         // The indices of the rows joined in chunk i
-        int64_t joined_left_indices[chunk_length];
-        int64_t joined_right_indices[chunk_length];
+        auto * joined_left_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
+        auto * joined_right_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
 
         for (int row = 0; row < chunk_length; row++) {
-
-            auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
-            if ( key_value_pair != hash_table_end) {
-                joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
-                joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
-                ++num_joined_indices;
+//            if (filter_data[row/8] == (1u << (row % 8u))) {
+            if (chunkf->Value(row)) {
+                auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
+                if (key_value_pair != hash_table_end) {
+                    joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
+                    joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
+                    ++num_joined_indices;
+                }
             }
         }
 
@@ -92,7 +100,7 @@ void Join::probe_hash_table_block
 }
 
 void Join::probe_hash_table
-    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx) {
+    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, const std::shared_ptr<arrow::ChunkedArray> &probe_filter, Task *ctx) {
 
     new_left_indices_vector.resize(probe_col->num_chunks());
     new_right_indices_vector.resize(probe_col->num_chunks());
@@ -115,8 +123,8 @@ void Join::probe_hash_table
     for (int batch_i=0; batch_i<num_batches; batch_i++) {
 
         // Each task probes one chunk
-        ctx->spawnLambdaTask([this, batch_i, batch_size, probe_col, chunk_row_offsets] {
-            probe_hash_table_block(probe_col, batch_i, batch_size, chunk_row_offsets);
+        ctx->spawnLambdaTask([this, batch_i, batch_size, probe_col, probe_filter, chunk_row_offsets] {
+            probe_hash_table_block(probe_col, probe_filter, batch_i, batch_size, chunk_row_offsets);
         });
     }
 }
@@ -255,16 +263,21 @@ void Join::hash_join(int i, Task *ctx) {
         CreateLambdaTask([this, i](Task *internal) {
             left_ = prev_result_->get_table(lefts[i].table);
             right_ = prev_result_->get_table(rights[i].table);
-            left_.get_column_by_name(internal, left_col_names[i], left_join_col_);
-            right_.get_column_by_name(internal, right_col_names[i], right_join_col_);
+//            left_.get_column_by_name(internal, left_col_names[i], left_join_col_);
+//            right_.get_column_by_name(internal, right_col_names[i], right_join_col_);
+            left_join_col_ = left_.table->get_column_by_name(left_col_names[i]);
+            right_join_col_ = right_.table->get_column_by_name(right_col_names[i]);
+            probe_filter_ = left_.filter;
+            build_filter_ = right_.filter;
+
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Build phase
-            build_hash_table(right_join_col_.chunked_array(), internal);
+            build_hash_table(right_join_col_.chunked_array(), build_filter_.chunked_array(), internal);
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
-            probe_hash_table(left_join_col_.chunked_array(), internal);
+            probe_hash_table(left_join_col_.chunked_array(), probe_filter_.chunked_array(), internal);
         }),
         CreateLambdaTask([this, i](Task *internal) {
             finish_probe(internal);

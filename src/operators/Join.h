@@ -90,6 +90,11 @@ private:
     arrow::Datum left_join_col_;
     arrow::Datum right_join_col_;
 
+    arrow::Datum probe_filter_;
+    arrow::Datum build_filter_;
+
+
+
     LazyTable left_;
     LazyTable right_;
 
@@ -104,8 +109,8 @@ private:
      * @return a hash table mapping key values to their index location in the
      * table.
      */
-    void build_hash_table
-        (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx);
+//    void build_hash_table
+//        (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx);
 
     /**
      * Perform the probe phase of hash join.
@@ -114,8 +119,8 @@ private:
      * @return A pair of index arrays corresponding to rows of the left table
      * that join with rows of the right table.
      */
-    void probe_hash_table
-        (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx);
+//    void probe_hash_table
+//        (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx);
 
     /**
      * Perform a single hash join.
@@ -162,8 +167,20 @@ private:
      */
     void finish();
 
-    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
+//    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
+//                                std::vector<uint64_t> chunk_row_offsets);
+
+    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+                                const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i, int batch_size,
                                 std::vector<uint64_t> chunk_row_offsets);
+
+    void probe_hash_table(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+                          const std::shared_ptr<arrow::ChunkedArray> &probe_filter, Task *ctx);
+
+    void
+    build_hash_table(const std::shared_ptr<arrow::ChunkedArray> &col,
+                     const std::shared_ptr<arrow::ChunkedArray> &filter,
+                     Task *ctx);
 };
 
 } // namespace hustle
