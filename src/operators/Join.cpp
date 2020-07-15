@@ -40,19 +40,32 @@ void Join::build_hash_table
             chunk_row_offsets[i - 1] + col->chunk(i - 1)->length();
     }
 
-    for (int i = 0; i < col->num_chunks(); i++) {
-        // Each task inserts one chunk into the hash table
+    if (filter == nullptr) {
+        for (int i = 0; i < col->num_chunks(); i++) {
+            // Each task inserts one chunk into the hash table
+            // TODO(nicholas): for now, we assume the join column is INT64 type.
+            auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
+
+            for (int row = 0; row < chunk->length(); row++) {
+                hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
+            }
+        }
+    } else {
+        for (int i = 0; i < col->num_chunks(); i++) {
+            // Each task inserts one chunk into the hash table
             // TODO(nicholas): for now, we assume the join column is INT64 type.
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
             auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(filter->chunk(i));
 
-        auto filter_data = filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
+            auto filter_data = filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
 
-
-        for (int row = 0; row < chunk->length(); row++) {
+            for (int row = 0; row < chunk->length(); row++) {
 //            if (filter_data[row / 8] == (1u << (row % 8u))) {
-            if (chunkf->Value(row) == 1) {
-                hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
+                //TODO(nicholas): the filter might be null!
+                if (chunkf->Value(row)) {
+                    int x = 2;
+                    hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
+                }
             }
         }
     }
@@ -99,6 +112,42 @@ void Join::probe_hash_table_block
     }
 }
 
+void Join::probe_hash_table_block
+    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size, std::vector<uint64_t> chunk_row_offsets) {
+
+    int base_i = batch_i * batch_size;
+    auto hash_table_end = hash_table_.end();
+
+    // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
+
+    for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); i++) {
+
+        arrow::Status status;
+
+        int num_joined_indices = 0;
+        auto chunk = probe_col->chunk(i);
+        auto chunk_length = chunk->length();
+        auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
+
+
+        // The indices of the rows joined in chunk i
+        auto * joined_left_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
+        auto * joined_right_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
+
+        for (int row = 0; row < chunk_length; row++) {
+            auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
+            if (key_value_pair != hash_table_end) {
+                joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
+                joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
+                ++num_joined_indices;
+            }
+        }
+
+        new_left_indices_vector[i] = std::vector<uint64_t>(joined_left_indices, joined_left_indices + num_joined_indices);
+        new_right_indices_vector[i] = std::vector<uint64_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+    }
+}
+
 void Join::probe_hash_table
     (const std::shared_ptr<arrow::ChunkedArray> &probe_col, const std::shared_ptr<arrow::ChunkedArray> &probe_filter, Task *ctx) {
 
@@ -124,7 +173,12 @@ void Join::probe_hash_table
 
         // Each task probes one chunk
         ctx->spawnLambdaTask([this, batch_i, batch_size, probe_col, probe_filter, chunk_row_offsets] {
-            probe_hash_table_block(probe_col, probe_filter, batch_i, batch_size, chunk_row_offsets);
+            if (probe_filter == nullptr) {
+                probe_hash_table_block(probe_col, batch_i, batch_size, chunk_row_offsets);
+
+            } else {
+                probe_hash_table_block(probe_col, probe_filter, batch_i, batch_size, chunk_row_offsets);
+            }
         });
     }
 }
@@ -136,6 +190,7 @@ void Join::finish_probe(Task* ctx) {
         num_indices += vec.size();
     }
 
+//    std::cout << num_indices << std::endl;
     ctx->spawnLambdaTask([this, num_indices] {
         arrow::Status status;
 
@@ -202,6 +257,7 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
     // join on the left table, then left_indices_of_indices directly
     // corresponds to indices in the left table, and we do not need to
     // call Take.
+
     if (left.indices.kind() != arrow::Datum::NONE) {
         status = arrow::compute::Take(left.indices, left_indices_of_indices, take_options).Value(&new_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -237,7 +293,9 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
                 output_lazy_tables.emplace_back(
                     lazy_table.table, lazy_table.filter, new_indices);
             } else {
-                output_lazy_tables.emplace_back(
+//            std::cout << lazy_table.indices.length() << std::endl;
+
+            output_lazy_tables.emplace_back(
                     lazy_table.table, lazy_table.filter, lazy_table.indices);
             }
         }
@@ -263,21 +321,39 @@ void Join::hash_join(int i, Task *ctx) {
         CreateLambdaTask([this, i](Task *internal) {
             left_ = prev_result_->get_table(lefts[i].table);
             right_ = prev_result_->get_table(rights[i].table);
-//            left_.get_column_by_name(internal, left_col_names[i], left_join_col_);
-//            right_.get_column_by_name(internal, right_col_names[i], right_join_col_);
-            left_join_col_ = left_.table->get_column_by_name(left_col_names[i]);
-            right_join_col_ = right_.table->get_column_by_name(right_col_names[i]);
+            left_.get_column_by_name(internal, left_col_names[i], left_join_col_);
+            right_.get_column_by_name(internal, right_col_names[i], right_join_col_);
+//            std::cout << left_join_col_.length() << " " << right_join_col_.length() << std::endl;
+//            left_join_col_ = left_.table->get_column_by_name(left_col_names[i]);
+//            right_join_col_ = right_.table->get_column_by_name(right_col_names[i]);
             probe_filter_ = left_.filter;
             build_filter_ = right_.filter;
 
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Build phase
-            build_hash_table(right_join_col_.chunked_array(), build_filter_.chunked_array(), internal);
+            switch(build_filter_.kind()) {
+                case arrow::Datum::CHUNKED_ARRAY: {
+                    build_hash_table(right_join_col_.chunked_array(), build_filter_.chunked_array(), internal);
+                    break;
+                }
+                default: {
+                    build_hash_table(right_join_col_.chunked_array(), nullptr, internal);
+                }
+            }
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
-            probe_hash_table(left_join_col_.chunked_array(), probe_filter_.chunked_array(), internal);
+            switch(probe_filter_.kind()) {
+                case arrow::Datum::CHUNKED_ARRAY: {
+                    probe_hash_table(left_join_col_.chunked_array(), probe_filter_.chunked_array(), internal);
+                    break;
+                }
+                default: {
+                    probe_hash_table(left_join_col_.chunked_array(), nullptr, internal);
+
+                }
+            }
         }),
         CreateLambdaTask([this, i](Task *internal) {
             finish_probe(internal);

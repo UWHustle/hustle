@@ -181,6 +181,9 @@ private:
     build_hash_table(const std::shared_ptr<arrow::ChunkedArray> &col,
                      const std::shared_ptr<arrow::ChunkedArray> &filter,
                      Task *ctx);
+
+    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
+                                std::vector<uint64_t> chunk_row_offsets);
 };
 
 } // namespace hustle
