@@ -69,6 +69,7 @@ void LIP::probe_filters2(int chunk_i) {
         auto chunk = fact_fk_col->chunk(chunk_i);
         auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
         auto chunk_length = chunk->length();
+        auto max_row = chunk_length + offset;
 
         // For the first filter, we must probe all rows of the block.
         if (filter_j == 0) {
@@ -76,10 +77,11 @@ void LIP::probe_filters2(int chunk_i) {
             int k=0;
             indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
 
-            for (int row = 0; row < chunk_length; ++row) {
+            for (int row = offset; row < max_row; ++row) {
 
                 if (bloom_filter->probe(chunk_data[row])) {
-                    indices[k++] = fact_indices_[row + offset];
+                    indices[k] = fact_indices_[row];
+                    ++k;
                 }
             }
             indices_length = k-1;
@@ -96,7 +98,8 @@ void LIP::probe_filters2(int chunk_i) {
                 else {
                     temp = indices[k];
                     indices[k] = indices[indices_length];
-                    indices[indices_length--] = temp;
+                    indices[indices_length] = temp;
+                    --indices_length;
                 }
             }
         }
@@ -127,6 +130,8 @@ void LIP::probe_filters(int chunk_i) {
         if (filter_j == 0) {
             // Reserve space for the first index vector
             int k=0;
+//            uint64_t temp_indices[sizeof(uint64_t)*chunk_length];
+//            indices = temp_indices;
             indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
 
             for (int row = 0; row < chunk_length; ++row) {
