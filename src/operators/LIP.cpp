@@ -27,22 +27,41 @@ void LIP::build_filters(Task* ctx) {
         // Task = build the Bloom filter for one dimension table.
         ctx->spawnTask(CreateTaskChain(
             CreateLambdaTask([this, dim_join_col_name, i](Task* internal) {
-                dim_tables_[i].get_column_by_name(internal, dim_join_col_name, dim_pk_cols_[dim_join_col_name]);
+//                dim_tables_[i].get_column_by_name(internal, dim_join_col_name, dim_pk_cols_[dim_join_col_name]);
+                dim_pk_cols_[dim_join_col_name] = dim_tables_[i].table->get_column_by_name(dim_join_col_name);
             }),
             CreateLambdaTask([this, dim_join_col_name, i] {
                 auto pk_col = dim_pk_cols_[dim_join_col_name].chunked_array();
                 auto bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
+                auto filter_d = dim_tables_[i].filter;
+                // TODO(nicholas): consider indices as well. We don't have to worry about this for SSB, though.
+                auto indices_d = dim_tables_[i].indices;
 
-                for (int j=0; j<pk_col->num_chunks(); j++) {
-                    // TODO(nicholas): For now, we assume the column is of INT64 type.
-                    auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
+                if (filter_d.kind() == arrow::Datum::NONE) {
+                    for (int j=0; j<pk_col->num_chunks(); j++) {
+                        // TODO(nicholas): For now, we assume the column is of INT64 type.
+                        auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
+                        for (int k = 0; k < chunk->length(); k++) {
+                            auto val = chunk->Value(k);
+                            bloom_filter->insert(val);
+                        }
+                    }
+                } else {
+                    auto filter = filter_d.chunked_array();
+                    for (int j=0; j<pk_col->num_chunks(); j++) {
+                        // TODO(nicholas): For now, we assume the column is of INT64 type.
+                        auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
+                        auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(filter->chunk(j));
 
-                    for (int k=0; k<chunk->length(); k++) {
-                        auto val = chunk->Value(k);
-
-                        bloom_filter->insert(val);
+                        for (int k=0; k<chunk->length(); k++) {
+                            if (chunkf->Value(k)) {
+                                auto val = chunk->Value(k);
+                                bloom_filter->insert(val);
+                            }
+                        }
                     }
                 }
+
 
                 bloom_filter->set_memory(10000);
                 bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
