@@ -221,41 +221,23 @@ Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
     }
     arrow::Status status;
 
-    arrow::BooleanBuilder b;
-    status = b.Reserve(agg_col_.length());
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
     // e.g. group_id = [4, 1, 2]
     // We get the filter for all_unique_values[0][4], all_unique_values[1][1],
     // and all_unique_values[3][2]. Recall that all_unique_values[i] is an array
     // of all the unique values of the ith GROUP BY column
 
-//    auto agg_col = agg_col_.chunked_array();
-//    for (int i=0; i<agg_col->num_chunks(); ++i) {
-//
-//        for (int j=0; j<agg_col->chunk(i)->length(); ++j) {
-//
-//        }
-//    }
     for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
 
          arrow::Datum value;
          std::shared_ptr<arrow::ChunkedArray> next_filter;
-         if (unique_value_filters_[field_i][group_id[field_i]] != nullptr) {
-             next_filter = unique_value_filters_[field_i][group_id[field_i]];
-         } else {
+         if (unique_value_filters_[field_i][group_id[field_i]] == nullptr) {
              value = arrow::Datum(all_unique_values_[field_i]->GetScalar(group_id[field_i]).ValueOrDie());
 
              // Get the filter for this particular unique value.
-             std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
              get_unique_value_filter(group_by_refs_[field_i],
                                      value,
                                      unique_value_filters_[field_i][group_id[field_i]]);
         }
-    }
-
-    if (group_id.empty()) {
-     return;
     }
 
     arrow::Datum temp_filter;
@@ -266,9 +248,9 @@ Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
 
     // TODO(nicholas): multithreaded AND
     // Perform a logical AND on all the unique value filters
-    for (int field_i = 1; field_i < group_by_refs_.size(); field_i++) {
+    for (int field_i = 1; field_i < group_by_refs_.size(); ++field_i) {
      auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
-     for (int j = 0; j < prev_filter->num_chunks(); j++) {
+     for (int j = 0; j < prev_filter->num_chunks(); ++j) {
          status = arrow::compute::And(prev_filter->chunk(j),
                                       next_filter->chunk(j)).Value(&temp_filter);
          evaluate_status(status, __FUNCTION__, __LINE__);
@@ -286,7 +268,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     arrow::Status status;
     // Loop over columns in group builder, and append one of its unique values to
     // its builder.
-    for (int i = 0; i < group_type_->num_children(); i++) {
+    for (int i = 0; i < group_type_->num_children(); ++i) {
         switch (group_type_->child(i)->type()->id()) {
 
             case arrow::Type::STRING: {
@@ -401,10 +383,9 @@ void Aggregate::get_unique_value_filter
     auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]].chunked_array();
 
 
-    for (int i = 0; i < group_by_col->num_chunks(); i++) {
+    for (int i = 0; i < group_by_col->num_chunks(); ++i) {
 
-        auto block_col = group_by_col->chunk(i);
-        status = arrow::compute::Compare(block_col, value, compare_options).Value(&out_filter);
+        status = arrow::compute::Compare(group_by_col->chunk(i), value, compare_options).Value(&out_filter);
         evaluate_status(status, __FUNCTION__, __LINE__);
 
         filter_vector.push_back(out_filter.make_array());
@@ -423,7 +404,7 @@ void Aggregate::finish() {
     status = group_builder_->Finish(&groups_temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    for (int i = 0; i < groups_temp->num_fields(); i++) {
+    for (int i = 0; i < groups_temp->num_fields(); ++i) {
         groups_.emplace_back(groups_temp->field(i));
     }
 
@@ -657,7 +638,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
 
                 // LOOP BODY START
                 group_id_vec_[agg_index] = group_id;
-                agg_index++;
+                ++agg_index;
                 // LOOP BODY END
 
                 if (n == 0)
@@ -673,7 +654,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
                         break;
                     }
                     group_id[index--] = 0;
-                    group_id[index]++;
+                    ++group_id[index];
                 }
                 index = n - 1;
             }
