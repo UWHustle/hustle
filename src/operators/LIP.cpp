@@ -42,8 +42,7 @@ void LIP::build_filters(Task* ctx) {
                         // TODO(nicholas): For now, we assume the column is of INT64 type.
                         auto chunk = std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
                         for (int k = 0; k < chunk->length(); k++) {
-                            auto val = chunk->Value(k);
-                            bloom_filter->insert(val);
+                            bloom_filter->insert(chunk->Value(k));
                         }
                     }
                 } else {
@@ -55,8 +54,7 @@ void LIP::build_filters(Task* ctx) {
 
                         for (int k=0; k<chunk->length(); k++) {
                             if (chunkf->Value(k)) {
-                                auto val = chunk->Value(k);
-                                bloom_filter->insert(val);
+                                bloom_filter->insert(chunk->Value(k));
                             }
                         }
                     }
