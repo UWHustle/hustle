@@ -63,7 +63,6 @@ void Join::build_hash_table
 //            if (filter_data[row / 8] == (1u << (row % 8u))) {
                 //TODO(nicholas): the filter might be null!
                 if (chunkf->Value(row)) {
-                    int x = 2;
                     hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
                 }
             }
