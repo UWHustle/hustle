@@ -108,6 +108,8 @@ void Join::probe_hash_table_block
 
         new_left_indices_vector[i] = std::vector<uint64_t>(joined_left_indices, joined_left_indices + num_joined_indices);
         new_right_indices_vector[i] = std::vector<uint64_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+        free(joined_left_indices);
+        free(joined_right_indices);
     }
 }
 
@@ -144,6 +146,9 @@ void Join::probe_hash_table_block
 
         new_left_indices_vector[i] = std::vector<uint64_t>(joined_left_indices, joined_left_indices + num_joined_indices);
         new_right_indices_vector[i] = std::vector<uint64_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+        free(joined_left_indices);
+        free(joined_right_indices);
+
     }
 }
 
