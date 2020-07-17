@@ -634,8 +634,7 @@ void SSB::q13() {
 }
 
 void SSB::q21() {
-
-    FLAGS_num_threads = 1;
+    
     auto s_pred_1 = Predicate{
         {s,
          "s region"},
