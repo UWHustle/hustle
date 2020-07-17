@@ -9,6 +9,10 @@
 
 #define MAX_SEED 65535
 
+static inline bool get_bit(const uint8_t* bits, uint64_t i) {
+    return (bits[i >> 3] >> (i & 0x07)) & 1;
+}
+
 class BloomFilter {
 public:
 
@@ -69,7 +73,7 @@ public:
         uint64_t index;
         for(int i=0; i<num_hash_; i++){
             index = hash(val, seeds_[i]) % num_cells_;
-            if (!(cells_[index/8] & (1u << (index % 8u)))) {
+            if (!get_bit(cells_, index)) {
                 return false;
             }
         }
