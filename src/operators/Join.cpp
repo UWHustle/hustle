@@ -5,6 +5,7 @@
 #include <table/util.h>
 #include <iostream>
 #include <arrow/scalar.h>
+#include <utils/BloomFilter.h>
 //#include <arrow/util/hashing.h>
 //#include <arrow/compute/api_vector.h>
 
@@ -83,23 +84,24 @@ void Join::probe_hash_table_block
         arrow::Status status;
 
         int num_joined_indices = 0;
+        auto offset = chunk_row_offsets[i];
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
         auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
-        auto filter_data = probe_filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
+        auto filter_data = probe_filter->chunk(i)->data()->GetValues<uint8_t>(1, 0); //@bug
         auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(probe_filter->chunk(i));
-
 
         // The indices of the rows joined in chunk i
         auto * joined_left_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
         auto * joined_right_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
 
         for (int row = 0; row < chunk_length; row++) {
-//            if (filter_data[row/8] == (1u << (row % 8u))) {
+//            std::cout << get_bit(filter_data, row) << " " << chunkf->Value(i) << std::endl;
+//            if (get_bit(filter_data, row)) {
             if (chunkf->Value(row)) {
                 auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
                 if (key_value_pair != hash_table_end) {
-                    joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
+                    joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
                     joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
                     ++num_joined_indices;
                 }
@@ -126,6 +128,7 @@ void Join::probe_hash_table_block
         arrow::Status status;
 
         int num_joined_indices = 0;
+        auto offset = chunk_row_offsets[i];
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
         auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
@@ -135,10 +138,10 @@ void Join::probe_hash_table_block
         auto * joined_left_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
         auto * joined_right_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
 
-        for (int row = 0; row < chunk_length; row++) {
+        for (int row = 0; row < chunk_length; ++row) {
             auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
             if (key_value_pair != hash_table_end) {
-                joined_left_indices[num_joined_indices] = chunk_row_offsets[i] + row;  // insert left row index
+                joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
                 joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
                 ++num_joined_indices;
             }
