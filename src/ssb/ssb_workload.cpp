@@ -19,6 +19,7 @@ SSB::SSB(int SF, bool print) {
 
     print_ = print;
     num_threads_ = std::thread::hardware_concurrency();
+//    num_threads_ = 1;
 
     if (SF==0) {
         lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-small/lineorder.hsl");
@@ -634,7 +635,7 @@ void SSB::q13() {
 }
 
 void SSB::q21() {
-    
+
     auto s_pred_1 = Predicate{
         {s,
          "s region"},
