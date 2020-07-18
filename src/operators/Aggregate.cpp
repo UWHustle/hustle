@@ -251,6 +251,7 @@ Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
     auto prev_filter = unique_value_filters_[0][group_id[0]]; // @bug: this sometimes gets deallocated when j=2, causing error at And() or creation of the
     filter_vector.resize(prev_filter->num_chunks());
 
+    uint64_t filter_output_size = 0;
     // TODO(nicholas): multithreaded AND
     // Perform a logical AND on all the unique value filters
     for (int field_i = 1; field_i < group_by_refs_.size(); ++field_i) {
@@ -261,11 +262,14 @@ Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
          evaluate_status(status, __FUNCTION__, __LINE__);
 
          filter_vector[j] = temp_filter.make_array();
+         filter_output_size += arrow::compute::internal::GetFilterOutputSize(*filter_vector[j]->data(), arrow::compute::FilterOptions::NullSelectionBehavior::DROP);
      }
 
      prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
     }
-    group_filters_[agg_index] = prev_filter;
+    if (filter_output_size > 0) {
+        group_filters_[agg_index] = prev_filter;
+    }
 }
 
 void Aggregate::insert_group(std::vector<int> group_id) {
