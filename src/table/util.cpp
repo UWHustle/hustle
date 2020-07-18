@@ -300,9 +300,23 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
                 byte_widths[i] = sizeof(int64_t);
                 break;
             }
+            case arrow::Type::UINT32: {
+                byte_widths[i] = sizeof(uint32_t);
+                break;
+            }
+            case arrow::Type::UINT16: {
+                byte_widths[i] = sizeof(uint16_t);
+                break;
+            }
             case arrow::Type::UINT8: {
                 byte_widths[i] = sizeof(uint8_t);
                 break;
+            }
+            default: {
+                throw std::logic_error(
+                    std::string(
+                        "Cannot get byte width. Unsupported type: ") +
+                    schema->field(i)->type()->ToString());
             }
         }
     }
