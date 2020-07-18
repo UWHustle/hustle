@@ -27,44 +27,38 @@ Select::Select(
         node = node->left_child_;
     }
     table_ = node->predicate_->col_ref_.table;
-
-    auto select_col = table_->get_column_by_name(node->predicate_->col_ref_.col_name);
-    filters_.resize(table_->get_num_blocks());
 }
 
 arrow::Datum
 Select::get_filter(const std::shared_ptr<Node> &node,
-                   const std::shared_ptr<Block> &block,
-                   bool is_and) {
+                   const std::shared_ptr<Block> &block) {
 
     arrow::Status status;
 
     if (node->is_leaf()) {
-        return get_filter(node->predicate_, block, is_and);
+        return get_filter(node->predicate_, block);
     }
 
+    auto left_child_filter = get_filter(node->left_child_, block);
+    auto right_child_filter = get_filter(node->right_child_, block);
     arrow::Datum block_filter;
 
     switch (node->connective_) {
         case AND: {
-            auto left_child_filter = get_filter(node->left_child_, block, true);
-            auto right_child_filter = get_filter(node->right_child_, block, true);
-            return right_child_filter;
+            status = arrow::compute::And(left_child_filter, right_child_filter).Value(&block_filter);
+            evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
         case OR: {
-            auto left_child_filter = get_filter(node->left_child_, block, false);
-            auto right_child_filter = get_filter(node->right_child_, block, false);
             status = arrow::compute::Or(left_child_filter, right_child_filter).Value(&block_filter);
             evaluate_status(status, __FUNCTION__, __LINE__);
-            return block_filter;
             break;
         }
         case NONE: {
-            auto left_child_filter = get_filter(node->left_child_, block, false);
-            return left_child_filter;
+            block_filter = left_child_filter;
         }
     }
+    return block_filter;
 }
 
 template<typename Functor>
@@ -109,7 +103,7 @@ void Select::execute(Task *ctx) {
 
 void Select::execute_block(arrow::ArrayVector& filter_vector, int i) {
     auto block = table_->get_block(i);
-    auto block_filter = this->get_filter(tree_->root_, block, false);
+    auto block_filter = this->get_filter(tree_->root_, block);
     filter_vector[i] = block_filter.make_array();
 }
 
@@ -122,8 +116,7 @@ void Select::finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task* ctx
 
 arrow::Datum Select::get_filter(
     const std::shared_ptr<Predicate> &predicate,
-    const std::shared_ptr<Block> &block,
-    bool is_and) {
+    const std::shared_ptr<Block> &block) {
 
     arrow::Status status;
 
@@ -132,49 +125,9 @@ arrow::Datum Select::get_filter(
 
     auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
     auto value = predicate->value_;
-//        std::cout << predicate->col_ref_.col_name << std::endl;
 
-    if (is_and){
-        if (filters_[block->get_id()] == nullptr) {
-
-            status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-
-            filters_[block->get_id()] = block_filter.make_array();
-        } else {
-            switch(select_col->type_id()){
-                case arrow::Type::INT64: {
-                    auto data = arrow::ArrayData::Make(select_col->type(), select_col->length(),
-                                                       {filters_[block->get_id()]->data()->buffers[1],
-                                                        select_col->data()->buffers[1]});
-                    select_col = arrow::MakeArray(data);
-                    break;
-                }
-                case arrow::Type::STRING: {
-                    auto data = arrow::ArrayData::Make(select_col->type(), select_col->length(),
-                                                       {filters_[block->get_id()]->data()->buffers[1],
-                                                        select_col->data()->buffers[1],
-                                                        select_col->data()->buffers[2]});
-                    select_col = arrow::MakeArray(data);
-                }
-            }
-
-            status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-
-            auto temp = block_filter.array();
-
-            auto is_true = std::make_shared<arrow::BooleanArray>(temp->length, temp->buffers[1]);
-            auto is_valid = std::make_shared<arrow::BooleanArray>(temp->length, temp->buffers[0]);
-            status = arrow::compute::And(is_true, is_valid).Value(&block_filter);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-
-            filters_[block->get_id()] = block_filter.make_array();
-        }
-    } else {
-        status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-    }
+    status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
+    evaluate_status(status, __FUNCTION__, __LINE__);
     
     return block_filter;
 

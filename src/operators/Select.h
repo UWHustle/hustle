@@ -64,8 +64,7 @@ private:
      */
     arrow::Datum get_filter(
         const std::shared_ptr<Node> &node,
-        const std::shared_ptr<Block> &block,
-        bool is_and);
+        const std::shared_ptr<Block> &block);
 
     /**
      * Perform the selection specified by a predicate (i.e. leaf node) in the
@@ -81,8 +80,7 @@ private:
      */
     arrow::Datum get_filter(
         const std::shared_ptr<Predicate> &predicate,
-        const std::shared_ptr<Block> &block,
-        bool is_and);
+        const std::shared_ptr<Block> &block);
 
     /**
      * Create the output result from the raw data computed during execution.
@@ -95,7 +93,6 @@ private:
     void for_each_batch(int batch_size, int num_batches, std::shared_ptr<arrow::ArrayVector> filter_vector,
                         const Functor &functor);
 
-    arrow::Datum get_filter2(const std::shared_ptr<Predicate> &predicate, const std::shared_ptr<Block> &block);
 };
 
 } // namespace hustle
