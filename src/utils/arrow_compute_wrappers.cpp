@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <thread>
 #include "arrow_compute_wrappers.h"
 #include "../table/util.h"
 
@@ -19,7 +20,7 @@ void Context::compare(
 
             array_vec_.resize(chunked_values->num_chunks());
 
-            int batch_size = chunked_values->num_chunks() / 8;
+            int batch_size = chunked_values->num_chunks() / std::thread::hardware_concurrency() / 20;
             if (batch_size == 0) batch_size = chunked_values->num_chunks();
             int num_batches = chunked_values->num_chunks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;
@@ -83,7 +84,7 @@ void Context::apply_filter_internal(
 
             out.resize(chunked_values->num_chunks());
 
-            int batch_size = chunked_values->num_chunks() / 8;
+            int batch_size = chunked_values->num_chunks() /  std::thread::hardware_concurrency() / 20;
             if (batch_size == 0) batch_size = chunked_values->num_chunks();
             int num_batches = chunked_values->num_chunks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;
