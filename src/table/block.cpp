@@ -788,12 +788,13 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                 }
 
 
-                uint8_t out = *record[i].data();
-//                auto result = absl::SimpleAtoi(record[i], &out);
-
+                int out;
+                uint32_t temp;
+                auto result = absl::SimpleAtoi(record[i], &temp);
+                out = (int) temp;
                 auto *dest = columns[i]->GetMutableValues<uint8_t>(
                     1, num_rows);
-                std::memcpy(dest, &out, sizeof(uint8_t));
+                dest[0] = out;
 
                 head += sizeof(uint8_t);
                 column_sizes[i] += sizeof(uint8_t);
