@@ -194,7 +194,7 @@ void apply_indices(
 }
 
 Context::Context() {
-    slice_length_ = 10000;
+    slice_length_ = 30000;
 }
 
 void Context::apply_indices_internal(
