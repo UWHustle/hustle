@@ -279,7 +279,7 @@ void SSB::q11() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS,
-        arrow::Datum((int64_t) 25)
+        arrow::Datum((uint8_t) 25)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -390,7 +390,7 @@ void SSB::q12() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 26)
+        arrow::Datum((uint8_t) 26)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -401,7 +401,7 @@ void SSB::q12() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum((int64_t) 35)
+        arrow::Datum((uint8_t) 35)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -521,7 +521,7 @@ void SSB::q13() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 36)
+        arrow::Datum((uint8_t) 36)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -532,7 +532,7 @@ void SSB::q13() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum((int64_t) 40)
+        arrow::Datum((uint8_t) 40)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
