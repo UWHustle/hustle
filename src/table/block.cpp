@@ -92,6 +92,19 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
                                                          {nullptr, data}));
                 break;
             }
+            case arrow::Type::UINT8: {
+
+                result = arrow::AllocateResizableBuffer
+                    (sizeof(uint8_t) * init_rows);
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = std::move(result.ValueOrDie());
+                data->ZeroPadding();
+
+                // Initialize null bitmap buffer to nullptr, since we currently don't use it.
+                columns.push_back(arrow::ArrayData::Make(field->type(), 0,
+                                                         {nullptr, data}));
+                break;
+            }
             default: {
                 throw std::logic_error(
                         std::string("Block created with unsupported type: ") +
@@ -118,6 +131,13 @@ void Block::compute_num_bytes() {
             case arrow::Type::INT64: {
                 // buffer at index 1 is the data buffer.
                 int byte_width = sizeof(int64_t);
+                column_sizes[i] = byte_width * columns[i]->length;
+                num_bytes += byte_width * columns[i]->length;
+                break;
+            }
+            case arrow::Type::UINT8: {
+                // buffer at index 1 is the data buffer.
+                int byte_width = sizeof(uint8_t);
                 column_sizes[i] = byte_width * columns[i]->length;
                 num_bytes += byte_width * columns[i]->length;
                 break;
@@ -268,6 +288,12 @@ void Block::print() {
                 case arrow::Type::type::INT64: {
                     auto col = std::static_pointer_cast<arrow::Int64Array>(
                             arrays[i]);
+                    std::cout << col->Value(row) << "\t";
+                    break;
+                }
+                case arrow::Type::type::UINT8: {
+                    auto col = std::static_pointer_cast<arrow::UInt8Array>(
+                        arrays[i]);
                     std::cout << col->Value(row) << "\t";
                     break;
                 }
@@ -432,6 +458,29 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 increment_num_bytes(n * sizeof(int64_t));
                 break;
             }
+            case arrow::Type::UINT8: {
+
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                    columns[i]->buffers[1]);
+
+                if (column_sizes[i] + sizeof(uint8_t) * n >
+                    data_buffer->capacity()) {
+                    status = data_buffer->Resize(
+                        data_buffer->capacity() + sizeof(uint8_t) * n,
+                        false);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                }
+
+                auto *dest = columns[i]->GetMutableValues<uint8_t>(
+                    1, num_rows);
+                std::memcpy(dest, column_data[i]->GetMutableValues<uint8_t>
+                    (1, offset), sizeof(uint8_t) * n);
+
+                columns[i]->length += n;
+                column_sizes[i] += sizeof(uint8_t) * n;
+                increment_num_bytes(n * sizeof(uint8_t));
+                break;
+            }
             case arrow::Type::DOUBLE: {
                 auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
                         columns[i]->buffers[1]);
@@ -556,7 +605,25 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 columns[i]->length++;
                 break;
             }
+            case arrow::Type::UINT8: {
 
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                    columns[i]->buffers[1]);
+
+                status = data_buffer->Resize(
+                    data_buffer->size() + byte_widths[i], false);
+                evaluate_status(status, __FUNCTION__, __LINE__);
+
+
+                auto *dest = columns[i]->GetMutableValues<uint8_t>(
+                    1, num_rows);
+                std::memcpy(dest, &record[head], byte_widths[i]);
+
+                head += byte_widths[i];
+                column_sizes[i] += byte_widths[i];
+                columns[i]->length++;
+                break;
+            }
             default:
                 throw std::logic_error(
                         std::string(
@@ -705,6 +772,34 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                 columns[i]->length++;
                 break;
             }
+            case arrow::Type::UINT8: {
+
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                    columns[i]->buffers[1]);
+
+                if (column_sizes[i] + sizeof(uint8_t) > data_buffer->capacity
+                    ()) {
+                    // Resize will not resize the buffer if the inputted size
+                    // equals the current size of the buffer. To force
+                    // resizing in this case, we add +1.
+                    status = data_buffer->Resize(
+                        data_buffer->capacity() + sizeof(uint8_t)+1, false);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                }
+
+
+                uint8_t out = *record[i].data();
+//                auto result = absl::SimpleAtoi(record[i], &out);
+
+                auto *dest = columns[i]->GetMutableValues<uint8_t>(
+                    1, num_rows);
+                std::memcpy(dest, &out, sizeof(uint8_t));
+
+                head += sizeof(uint8_t);
+                column_sizes[i] += sizeof(uint8_t);
+                columns[i]->length++;
+                break;
+            }
 
             default:
                 throw std::logic_error(
@@ -759,7 +854,15 @@ void Block::truncate_buffers() {
                 evaluate_status(status, __FUNCTION__, __LINE__);
                 break;
             }
+            case arrow::Type::UINT8: {
 
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                    columns[i]->buffers[1]);
+
+                status = data_buffer->Resize(num_rows * sizeof(uint8_t), true);
+                evaluate_status(status, __FUNCTION__, __LINE__);
+                break;
+            }
             default:
                 throw std::logic_error(
                         std::string(

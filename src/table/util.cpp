@@ -194,6 +194,10 @@ int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema) {
                 fixed_width += sizeof(int64_t);
                 break;
             }
+            case arrow::Type::UINT8: {
+                fixed_width += sizeof(uint8_t);
+                break;
+            }
             default: {
                 throw std::logic_error(
                         std::string(
@@ -245,9 +249,13 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
                 byte_widths[i] = -1;
                 break;
             }
-            default: {
-                // TODO(nicholas) this will not properly handle boolean values!
+            case arrow::Type::INT64: {
                 byte_widths[i] = sizeof(int64_t);
+                break;
+            }
+            case arrow::Type::UINT8: {
+                byte_widths[i] = sizeof(uint8_t);
+                break;
             }
         }
     }
