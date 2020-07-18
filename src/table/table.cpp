@@ -173,6 +173,16 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                     record_size += byte_width;
                     break;
                 }
+                case arrow::Type::UINT32: {
+                    int byte_width = sizeof(uint32_t);
+                    record_size += byte_width;
+                    break;
+                }
+                case arrow::Type::UINT16: {
+                    int byte_width = sizeof(uint16_t);
+                    record_size += byte_width;
+                    break;
+                }
                 case arrow::Type::UINT8: {
                     int byte_width = sizeof(uint8_t);
                     record_size += byte_width;

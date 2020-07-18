@@ -194,6 +194,10 @@ int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema) {
                 fixed_width += sizeof(int64_t);
                 break;
             }
+            case arrow::Type::UINT32: {
+                fixed_width += sizeof(uint32_t);
+                break;
+            }
             case arrow::Type::UINT8: {
                 fixed_width += sizeof(uint8_t);
                 break;
@@ -207,6 +211,49 @@ int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema) {
         }
     }
     return fixed_width;
+}
+
+std::vector<int32_t> get_field_sizes(const std::shared_ptr<arrow::Schema>& schema) {
+
+    std::vector<int32_t> field_sizes;
+
+    for (auto &field : schema->fields()) {
+
+        switch (field->type()->id()) {
+            case arrow::Type::STRING: {
+                field_sizes.push_back(-1);
+                break;
+            }
+            case arrow::Type::BOOL: {
+                field_sizes.push_back(-1);
+                break;
+            }
+            case arrow::Type::DOUBLE:
+            case arrow::Type::INT64: {
+                field_sizes.push_back(sizeof(int64_t));
+                break;
+            }
+            case arrow::Type::UINT32: {
+                field_sizes.push_back(sizeof(uint32_t));
+                break;
+            }
+            case arrow::Type::UINT16: {
+                field_sizes.push_back(sizeof(uint16_t));
+                break;
+            }
+            case arrow::Type::UINT8: {
+                field_sizes.push_back(sizeof(uint8_t));
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                    std::string(
+                        "Cannot get field size. Unsupported type: ") +
+                    field->type()->ToString());
+            }
+        }
+    }
+    return field_sizes;
 }
 
 std::shared_ptr<Table> read_from_csv_file(const char* path,
