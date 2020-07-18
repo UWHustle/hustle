@@ -43,6 +43,11 @@ Aggregate::get_group_builders() {
                     std::make_shared<arrow::StringBuilder>());
                 break;
             }
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                group_builders.push_back(
+                    std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
+                break;
+            }
             case arrow::Type::INT64: {
                 group_builders.push_back(
                     std::make_shared<arrow::Int64Builder>());
@@ -243,7 +248,7 @@ Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
     arrow::Datum temp_filter;
     arrow::ArrayVector filter_vector;
 
-    auto prev_filter = unique_value_filters_[0][group_id[0]];
+    auto prev_filter = unique_value_filters_[0][group_id[0]]; // @bug: this sometimes gets deallocated when j=2, causing error at And() or creation of the
     filter_vector.resize(prev_filter->num_chunks());
 
     // TODO(nicholas): multithreaded AND
