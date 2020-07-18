@@ -167,6 +167,11 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                     record_size += offsets[row+1] - offsets[row];
                     break;
                 }
+                case arrow::Type::FIXED_SIZE_BINARY: {
+                    int byte_width = schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+                    record_size += byte_width;
+                    break;
+                }
                 case arrow::Type::DOUBLE:
                 case arrow::Type::INT64: {
                     int byte_width = sizeof(int64_t);

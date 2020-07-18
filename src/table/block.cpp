@@ -78,7 +78,17 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
                                                           data}));
                 break;
             }
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                auto field_size = field->type()->layout().FixedWidth(1).byte_width;
 
+                result = arrow::AllocateResizableBuffer(field_size * init_rows);
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = std::move(result.ValueOrDie());
+                data->ZeroPadding();
+
+                columns.push_back(arrow::ArrayData::Make(field->type(), 0,{nullptr, data}));
+                break;
+            }
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 columns.push_back(allocate_column_data<int64_t>(field->type(), init_rows));
@@ -129,6 +139,12 @@ void Block::compute_num_bytes() {
                 auto *offsets = columns[i]->GetValues<int32_t>(1, 0);
                 column_sizes[i] = offsets[num_rows];
                 num_bytes += offsets[num_rows];
+                break;
+            }
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                int byte_width = schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+                column_sizes[i] = byte_width * columns[i]->length;
+                num_bytes += byte_width * columns[i]->length;
                 break;
             }
             case arrow::Type::DOUBLE:
@@ -465,6 +481,28 @@ bool Block::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                 increment_num_bytes(string_size);
                 break;
             }
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                auto field_size = schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+                int data_size = field_size * n;
+
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                    columns[i]->buffers[1]);
+
+                if (column_sizes[i] + data_size > data_buffer->capacity()) {
+                    status = data_buffer->Resize(
+                        data_buffer->capacity() + data_size,
+                        false);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                }
+
+                auto *dest = columns[i]->GetMutableValues<uint8_t>(1, num_rows * field_size);
+                std::memcpy(dest, column_data[i]->GetValues<int64_t>(1, offset), data_size);
+
+                columns[i]->length += n;
+                column_sizes[i] += data_size;
+                increment_num_bytes(data_size);
+                break;
+            }
             case arrow::Type::INT64: {
                 insert_values_in_column<int64_t>(i, offset, column_data[i], n);
                 break;
@@ -588,7 +626,6 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
                 head += byte_widths[i];
                 break;
             }
-                // This works with any fixed-width type, but for now, I specify INT64
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 insert_value_in_column<int64_t>(i, head, &record[head], byte_widths[i]);
@@ -629,7 +666,7 @@ void Block::insert_value_in_column(int i, int& head, uint8_t* record_value, int 
     auto status = data_buffer->Resize(data_buffer->size() + byte_width, false);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-    auto *dest = columns[i]->GetMutableValues<uint8_t>(1, num_rows);
+    auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
     std::memcpy(dest, record_value, byte_width);
 
     head += byte_width;
@@ -734,7 +771,29 @@ bool Block::insert_record(std::vector<std::string_view> record, int32_t
                 column_sizes[i] += record[i].length();
                 break;
             }
-                // This works with any fixed-width type, but for now, I specify INT64
+            case arrow::Type::FIXED_SIZE_BINARY: {
+
+                auto field_size = record[i].length();
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                    columns[i]->buffers[1]);
+
+                if (column_sizes[i] + field_size > data_buffer->capacity()) {
+                    // Resize will not resize the buffer if the inputted size
+                    // equals the current size of the buffer. To force
+                    // resizing in this case, we add +1.
+                    auto status = data_buffer->Resize(
+                        data_buffer->capacity() + field_size+1, false);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                }
+
+                auto *dest = columns[i]->GetMutableValues<uint8_t >(1, num_rows);
+                std::memcpy(dest, &record[i].front(), field_size);
+
+                head += field_size;
+                column_sizes[i] += field_size;
+                columns[i]->length++;
+                break;
+            }
             case arrow::Type::INT64: {
                 insert_csv_value_in_column<int64_t>(i, head, record[i], byte_widths[i]);
                 break;
@@ -818,6 +877,14 @@ void Block::truncate_buffers() {
                 evaluate_status(status, __FUNCTION__, __LINE__);
 
                 break;
+            }
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                auto field_size = schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+                auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+                    columns[i]->buffers[1]);
+
+                status = data_buffer->Resize(num_rows * field_size, true);
+                evaluate_status(status, __FUNCTION__, __LINE__);
             }
                 // This works with any fixed-width type, but for now, I specify INT64
             case arrow::Type::DOUBLE:
