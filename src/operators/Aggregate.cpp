@@ -187,17 +187,12 @@ void Aggregate::initialize_group_filters(Task* ctx) {
             auto agg_col = agg_col_.chunked_array();
             auto num_chunks = agg_col->num_chunks();
 
-//            std::vector<arrow::ArrayVector> filter_vectors;
             filter_vectors.resize(num_aggs_);
             for (int i=0; i<num_aggs_; ++i) {
                 arrow::ArrayVector filter_vector;
                 filter_vector.resize(agg_col->num_chunks());
                 filter_vectors[i] = std::move(filter_vector);
             }
-
-
-//            std::vector<const uint32_t *> group_map;
-//            group_map.resize(num_children);
 
             int batch_size = num_chunks / 8 /2;
             if (batch_size == 0) batch_size = num_chunks;
