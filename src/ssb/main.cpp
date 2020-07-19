@@ -205,9 +205,9 @@ int main(int argc, char *argv[]) {
     while (input != "exit") {
         for (int i = 0; i < 1; i++) {
             auto t1 = high_resolution_clock::now();
-//            workload.q11();
-//            workload.q12();
-//            workload.q13();
+            workload.q11();
+            workload.q12();
+            workload.q13();
 //
 //            workload.q21();
 //            workload.q22();
@@ -226,18 +226,18 @@ int main(int argc, char *argv[]) {
 //            workload.q12_lip();
 //            workload.q13_lip();
 
-//            workload.q21_lip();
+            workload.q21_lip();
             workload.q22_lip();
-//            workload.q23_lip();
-//
-//            workload.q31_lip();
-//            workload.q32_lip();
-//            workload.q33_lip();
-//            workload.q34_lip();
-//
-//            workload.q41_lip();
-//            workload.q42_lip();
-//            workload.q43_lip();
+            workload.q23_lip();
+
+            workload.q31_lip();
+            workload.q32_lip();
+            workload.q33_lip();
+            workload.q34_lip();
+
+            workload.q41_lip();
+            workload.q42_lip();
+            workload.q43_lip();
 
             auto t2 = high_resolution_clock::now();
             std::cout << duration_cast<milliseconds>(t2 - t1).count() << std::endl;
