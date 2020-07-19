@@ -172,40 +172,57 @@ void Aggregate::initialize_group_filters(Task* ctx) {
         return;
     }
 
-    auto num_children = group_by_cols_.size();
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this](Task* internal) {
+            auto num_children = group_by_cols_.size();
 
-    std::vector<arrow::Type::type> field_types;
-    std::vector<const uint32_t*> uniq_index_maps;
+            std::vector<arrow::Type::type> field_types;
+            std::vector<const uint32_t*> uniq_index_maps;
 
-    for (int field_i = 0; field_i < num_children; field_i++) {
-        auto data = all_unique_values_[field_i]->data();
-        field_types.push_back(data->type->id());
-    }
+            for (int field_i = 0; field_i < num_children; field_i++) {
+                auto data = all_unique_values_[field_i]->data();
+                field_types.push_back(data->type->id());
+            }
 
-    auto agg_col = agg_col_.chunked_array();
-    auto num_chunks = agg_col->num_chunks();
+            auto agg_col = agg_col_.chunked_array();
+            auto num_chunks = agg_col->num_chunks();
 
-    std::vector<arrow::ArrayVector> filter_vectors;
-    filter_vectors.resize(num_aggs_);
-    for (int i=0; i<num_aggs_; ++i) {
-        arrow::ArrayVector filter_vector;
-        filter_vector.resize(agg_col->num_chunks());
-        filter_vectors[i] = std::move(filter_vector);
-    }
+//            std::vector<arrow::ArrayVector> filter_vectors;
+            filter_vectors.resize(num_aggs_);
+            for (int i=0; i<num_aggs_; ++i) {
+                arrow::ArrayVector filter_vector;
+                filter_vector.resize(agg_col->num_chunks());
+                filter_vectors[i] = std::move(filter_vector);
+            }
 
 
-    std::vector<const uint32_t *> group_map;
-    group_map.resize(num_children);
+//            std::vector<const uint32_t *> group_map;
+//            group_map.resize(num_children);
 
-    for (int chunk_i = 0; chunk_i < num_chunks; ++chunk_i) {
-        auto chunk_length = agg_col->chunk(chunk_i)->length();
-        scan_block(group_map, chunk_i, filter_vectors);
-    }
+            int batch_size = num_chunks / 8 /2;
+            if (batch_size == 0) batch_size = num_chunks;
+            int num_batches = num_chunks / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+            if (num_batches == 0) num_batches = 1;
 
-    for (int i=0; i<num_aggs_; ++i) {
-        group_filters_[i] = std::make_shared<arrow::ChunkedArray>(filter_vectors[i]);
-    }
+            for (int batch_i = 0; batch_i < num_batches; batch_i++) {
+                // Each task gets the filter for one block and stores it in filter_vector
+                internal->spawnLambdaTask([this, num_chunks, num_children, batch_i, batch_size](Task *internal) {
+                std::vector<const uint32_t *> group_map;
+                group_map.resize(num_children);
 
+                    int base_i = batch_i * batch_size;
+                    for (int i = base_i; i < base_i + batch_size && i < num_chunks; i++) {
+                        scan_block(group_map, i, filter_vectors);
+                    }
+                });
+            }
+        }),
+        CreateLambdaTask([this] {
+            for (int i=0; i<num_aggs_; ++i) {
+                group_filters_[i] = std::make_shared<arrow::ChunkedArray>(filter_vectors[i]);
+            }
+        })
+    ));
 }
 //void
 //Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
