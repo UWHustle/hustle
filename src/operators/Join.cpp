@@ -61,9 +61,7 @@ void Join::build_hash_table
             auto filter_data = filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
 
             for (int row = 0; row < chunk->length(); row++) {
-//            if (filter_data[row / 8] == (1u << (row % 8u))) {
-                //TODO(nicholas): the filter might be null!
-                if (chunkf->Value(row)) {
+                if (arrow::BitUtil::GetBit(filter_data, row)) {
                     hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
                 }
             }
@@ -96,9 +94,7 @@ void Join::probe_hash_table_block
         auto * joined_right_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
 
         for (int row = 0; row < chunk_length; row++) {
-//            std::cout << get_bit(filter_data, row) << " " << chunkf->Value(i) << std::endl;
-//            if (get_bit(filter_data, row)) {
-            if (chunkf->Value(row)) {
+            if (arrow::BitUtil::GetBit(filter_data, row)) {
                 auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
                 if (key_value_pair != hash_table_end) {
                     joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
