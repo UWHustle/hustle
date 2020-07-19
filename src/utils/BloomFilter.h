@@ -10,7 +10,7 @@
 #define MAX_SEED 65535
 
 static inline bool get_bit(const uint8_t* bits, uint64_t i) {
-    return (bits[i >> 3] >> (i & 0x07));
+    return (bits[i >> 3] >> (i & 0x07)) & 1;
 }
 
 class BloomFilter {
