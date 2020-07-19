@@ -345,6 +345,9 @@ private:
     void initialize_agg_col(Task *ctx);
 
     void initialize_group_filters(Task *ctx);
+
+    void
+    scan_block(std::vector<const uint32_t *> &group_map, int chunk_i, std::vector<arrow::ArrayVector> &filter_vectors);
 };
 
 } // namespace operators

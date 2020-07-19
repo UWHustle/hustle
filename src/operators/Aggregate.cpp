@@ -121,6 +121,52 @@ std::shared_ptr<arrow::Schema> Aggregate::get_output_schema(
     return result.ValueOrDie();
 }
 
+void Aggregate::scan_block(std::vector<const uint32_t *>& group_map, int chunk_i, std::vector<arrow::ArrayVector>& filter_vectors) {
+
+    auto chunk_length = agg_col_.chunked_array()->chunk(chunk_i)->length();
+    auto num_children = group_by_refs_.size();
+
+    std::vector<std::shared_ptr<arrow::TypedBufferBuilder<bool>>> group_filter_buffers;
+    std::vector<uint8_t*> group_filter_buffers_data;
+
+    group_filter_buffers.resize(num_aggs_);
+    group_filter_buffers_data.resize(num_aggs_);
+    for (int i=0; i<num_aggs_; ++i) {
+        auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
+        auto status = buf->Resize(chunk_length);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        group_filter_buffers[i] = std::move(buf);
+        group_filter_buffers_data[i] = group_filter_buffers[i]->mutable_data();
+    }
+
+    for (int field_i = 0; field_i < num_children; ++field_i) {
+        group_map[field_i] = uniq_val_maps_[field_i].chunked_array()->chunk(chunk_i)->data()->GetValues<uint32_t>(1, 0);
+    }
+
+
+    for (int row_j = 0; row_j < chunk_length; ++row_j) {
+
+        auto key = 0;
+        for (int group_k = 0; group_k < num_children; ++group_k) {
+            // @TODO(nicholas): save time by precomputing 10^(k+1)
+            key += group_map[group_k][row_j]*pow(10, group_k);
+        }
+
+        auto agg_index = group_id_to_agg_index_map_[key];
+        auto filter_buf = group_filter_buffers_data[agg_index];
+        filter_buf[row_j >> 3] |= (1u << (row_j & 0x07));
+    }
+
+    for (int i=0; i<num_aggs_; ++i) {
+        std::shared_ptr<arrow::Buffer> temp;
+        auto status = group_filter_buffers[i]->Finish(&temp);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        auto test = arrow::ArrayData::Make(arrow::boolean(), chunk_length, {nullptr, temp});
+
+        filter_vectors[i][chunk_i] = arrow::MakeArray(test);
+    }
+}
+
 void Aggregate::initialize_group_filters(Task* ctx) {
     if (group_type_->num_children() == 0) {
         return;
@@ -152,48 +198,8 @@ void Aggregate::initialize_group_filters(Task* ctx) {
     group_map.resize(num_children);
 
     for (int chunk_i = 0; chunk_i < num_chunks; ++chunk_i) {
-
         auto chunk_length = agg_col->chunk(chunk_i)->length();
-
-        std::vector<std::shared_ptr<arrow::TypedBufferBuilder<bool>>> group_filter_buffers;
-        std::vector<uint8_t*> group_filter_buffers_data;
-
-        group_filter_buffers.resize(num_aggs_);
-        group_filter_buffers_data.resize(num_aggs_);
-        for (int i=0; i<num_aggs_; ++i) {
-            auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
-            auto status = buf->Resize(chunk_length);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-            group_filter_buffers[i] = std::move(buf);
-            group_filter_buffers_data[i] = group_filter_buffers[i]->mutable_data();
-        }
-
-        for (int field_i = 0; field_i < num_children; ++field_i) {
-            group_map[field_i] = uniq_val_maps_[field_i].chunked_array()->chunk(chunk_i)->data()->GetValues<uint32_t>(1, 0);
-        }
-
-
-        for (int row_j = 0; row_j < chunk_length; ++row_j) {
-
-            auto key = 0;
-            for (int group_k = 0; group_k < num_children; ++group_k) {
-                // @TODO(nicholas): save time by precomputing 10^(k+1)
-                key += group_map[group_k][row_j]*pow(10, group_k);
-            }
-
-            auto agg_index = group_id_to_agg_index_map_[key];
-            auto filter_buf = group_filter_buffers_data[agg_index];
-            filter_buf[row_j >> 3] |= (1u << (row_j & 0x07));
-        }
-
-        for (int i=0; i<num_aggs_; ++i) {
-            std::shared_ptr<arrow::Buffer> temp;
-            auto status = group_filter_buffers[i]->Finish(&temp);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-            auto test = arrow::ArrayData::Make(arrow::boolean(), chunk_length, {nullptr, temp});
-
-            filter_vectors[i][chunk_i] = arrow::MakeArray(test);
-        }
+        scan_block(group_map, chunk_i, filter_vectors);
     }
 
     for (int i=0; i<num_aggs_; ++i) {
