@@ -169,6 +169,8 @@ private:
     std::vector<arrow::Datum> filtered_agg_cols_;
     std::vector<Context> contexts_;
     std::vector<std::vector<Context>> unique_value_filter_contexts_;
+    std::unordered_map<int, int> group_id_to_agg_index_map_;
+    std::vector<arrow::Datum> uniq_val_maps_;
 
 
 

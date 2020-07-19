@@ -126,103 +126,143 @@ void Aggregate::initialize_group_filters(Task* ctx) {
         return;
     }
 
-    ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this](Task* internal) {
+    auto num_children = group_by_cols_.size();
 
-            int agg_index = 0;
-            for (auto& group_id : group_id_vec_) {
-                for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
-                    arrow::Datum value;
-                    std::shared_ptr<arrow::ChunkedArray> next_filter;
-                    if (unique_value_filters_[field_i][group_id[field_i]] != nullptr) {
-                        next_filter = unique_value_filters_[field_i][group_id[field_i]];
-                    } else {
-                        switch (group_type_->child(field_i)->type()->id()) {
-                            case arrow::Type::STRING: {
-                                // Downcast an Array of unique values.
-                                auto one_unique_value_casted =
-                                    std::static_pointer_cast<arrow::StringArray>
-                                        (all_unique_values_[field_i]);
-                                // Fetch a particular unique value from the array specified by
-                                // the group_id
-                                value = arrow::Datum(
-                                    std::make_shared<arrow::StringScalar>(
-                                        one_unique_value_casted->GetString(
-                                            group_id[field_i])));
-                                // Get the filter for this particular unique value.
-                                std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                                get_unique_value_filter(
-                                                        group_by_refs_[field_i],
-                                                        value, unique_value_filters_[field_i][group_id[field_i]]);
-                                break;
-                            }
-                            case arrow::Type::INT64: {
-                                // Downcast an Array of unique values.
-                                auto one_unique_value_casted =
-                                    std::static_pointer_cast<arrow::Int64Array>
-                                        (all_unique_values_[field_i]);
-                                // Fetch a particular unique value from the array specified by
-                                // the group_id
-                                value = arrow::Datum(
-                                    std::make_shared<arrow::Int64Scalar>(
-                                        one_unique_value_casted->Value(group_id[field_i])));
-                                // Get the filter for this particular unique value.
-                                std::scoped_lock<std::mutex> filter_maps_lock(unique_value_filters_mutex_);
-                                get_unique_value_filter(
-                                                        group_by_refs_[field_i],
-                                                        value, unique_value_filters_[field_i][group_id[field_i]]);
-                                break;
-                            }
-                            default: {
-                                std::cerr << "invalid type" << std::endl;
-                            }
-                        }
-                    }
-                }
-                ++agg_index;
+    std::vector<arrow::Type::type> field_types;
+    std::vector<const uint32_t*> uniq_index_maps;
+
+    for (int field_i = 0; field_i < num_children; field_i++) {
+        auto data = all_unique_values_[field_i]->data();
+        field_types.push_back(data->type->id());
+    }
+
+    auto agg_col = agg_col_.chunked_array();
+    auto num_chunks = agg_col->num_chunks();
+
+    std::vector<arrow::ArrayVector> filter_vectors;
+    filter_vectors.resize(num_aggs_);
+    for (int i=0; i<num_aggs_; ++i) {
+        arrow::ArrayVector filter_vector;
+        filter_vector.resize(agg_col->num_chunks());
+        filter_vectors[i] = std::move(filter_vector);
+    }
+
+
+    std::vector<const uint32_t *> group_map;
+    group_map.resize(num_children);
+
+    for (int chunk_i = 0; chunk_i < num_chunks; ++chunk_i) {
+
+        auto chunk_length = agg_col->chunk(chunk_i)->length();
+
+        std::vector<std::shared_ptr<arrow::TypedBufferBuilder<bool>>> group_filter_buffers;
+        std::vector<uint8_t*> group_filter_buffers_data;
+
+        group_filter_buffers.resize(num_aggs_);
+        group_filter_buffers_data.resize(num_aggs_);
+        for (int i=0; i<num_aggs_; ++i) {
+            auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
+            auto status = buf->Resize(chunk_length);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+            group_filter_buffers[i] = std::move(buf);
+            group_filter_buffers_data[i] = group_filter_buffers[i]->mutable_data();
+        }
+
+        for (int field_i = 0; field_i < num_children; ++field_i) {
+            group_map[field_i] = uniq_val_maps_[field_i].chunked_array()->chunk(chunk_i)->data()->GetValues<uint32_t>(1, 0);
+        }
+
+
+        for (int row_j = 0; row_j < chunk_length; ++row_j) {
+
+            auto key = 0;
+            for (int group_k = 0; group_k < num_children; ++group_k) {
+                // @TODO(nicholas): save time by precomputing 10^(k+1)
+                key += group_map[group_k][row_j]*pow(10, group_k);
             }
-        }),
-        CreateLambdaTask([this](Task* internal) {
-            int agg_index = 0;
-            for (auto& group_id : group_id_vec_) {
-                if (group_id.empty()) {
-                    return;
-                }
-                arrow::Status status;
 
-                arrow::Datum temp_filter;
-                arrow::ArrayVector filter_vector;
+            auto agg_index = group_id_to_agg_index_map_[key];
+            auto filter_buf = group_filter_buffers_data[agg_index];
+            filter_buf[row_j >> 3] |= (1u << (row_j & 0x07));
+        }
 
-                auto prev_filter = unique_value_filters_[0][group_id[0]];
-                filter_vector.resize(prev_filter->num_chunks());
+        for (int i=0; i<num_aggs_; ++i) {
+            std::shared_ptr<arrow::Buffer> temp;
+            auto status = group_filter_buffers[i]->Finish(&temp);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+            auto test = arrow::ArrayData::Make(arrow::boolean(), chunk_length, {nullptr, temp});
 
-                // TODO(nicholas): multithreaded AND
-                // Perform a logical AND on all the unique value filters
-                for (int field_i = 1; field_i < group_by_refs_.size(); field_i++) {
-                    auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
-                    for (int j = 0; j < prev_filter->num_chunks(); j++) {
-                        status = arrow::compute::And(prev_filter->chunk(j),
-                                                     next_filter->chunk(j)).Value(&temp_filter);
-                        evaluate_status(status, __FUNCTION__, __LINE__);
+            filter_vectors[i][chunk_i] = arrow::MakeArray(test);
+        }
+    }
 
-                        filter_vector[j] = temp_filter.make_array();
-                    }
+    for (int i=0; i<num_aggs_; ++i) {
+        group_filters_[i] = std::make_shared<arrow::ChunkedArray>(filter_vectors[i]);
+    }
 
-                    prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
-                }
-                group_filters_[agg_index] = prev_filter;
-                ++agg_index;
-            }
-        })
-     ));
 }
+//void
+//Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
+//
+//    // No Group By clause
+//    if (group_type_->num_children() == 0) {
+//     return;
+//    }
+//    arrow::Status status;
+//
+//    // e.g. group_id = [4, 1, 2]
+//    // We get the filter for all_unique_values[0][4], all_unique_values[1][1],
+//    // and all_unique_values[3][2]. Recall that all_unique_values[i] is an array
+//    // of all the unique values of the ith GROUP BY column
+//
+//    for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
+//
+//         arrow::Datum value;
+//         std::shared_ptr<arrow::ChunkedArray> next_filter;
+//         if (unique_value_filters_[field_i][group_id[field_i]] == nullptr) {
+//             value = arrow::Datum(all_unique_values_[field_i]->GetScalar(group_id[field_i]).ValueOrDie());
+//
+//             // Get the filter for this particular unique value.
+//             get_unique_value_filter(group_by_refs_[field_i],
+//                                     value,
+//                                     unique_value_filters_[field_i][group_id[field_i]]);
+//        }
+//    }
+//
+//    arrow::Datum temp_filter;
+//    arrow::ArrayVector filter_vector;
+//
+//    auto prev_filter = unique_value_filters_[0][group_id[0]]; // @bug: this sometimes gets deallocated when j=2, causing error at And() or creation of the
+//    filter_vector.resize(prev_filter->num_chunks());
+//
+//    uint64_t filter_output_size = 0;
+//    // TODO(nicholas): multithreaded AND
+//    // Perform a logical AND on all the unique value filters
+//    for (int field_i = 1; field_i < group_by_refs_.size(); ++field_i) {
+//     auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
+//     for (int j = 0; j < prev_filter->num_chunks(); ++j) {
+//         status = arrow::compute::And(prev_filter->chunk(j),
+//                                      next_filter->chunk(j)).Value(&temp_filter);
+//         evaluate_status(status, __FUNCTION__, __LINE__);
+//
+//         filter_vector[j] = temp_filter.make_array();
+//         filter_output_size += arrow::compute::internal::GetFilterOutputSize(*filter_vector[j]->data(), arrow::compute::FilterOptions::NullSelectionBehavior::DROP);
+//     }
+//
+//     prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
+//    }
+//    if (filter_output_size > 0) {
+//        group_filters_[agg_index] = prev_filter;
+//    }
+//}
 
 void
 Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
 
+
     // No Group By clause
     if (group_type_->num_children() == 0) {
-     return;
+        return;
     }
     arrow::Status status;
 
@@ -231,45 +271,113 @@ Aggregate::get_group_filter(int agg_index, const std::vector<int>& group_id) {
     // and all_unique_values[3][2]. Recall that all_unique_values[i] is an array
     // of all the unique values of the ith GROUP BY column
 
-    for (int field_i = 0; field_i < group_type_->num_children(); field_i++) {
+    auto num_children = group_type_->num_children();
+    std::vector<arrow::Type::type> field_types;
 
-         arrow::Datum value;
-         std::shared_ptr<arrow::ChunkedArray> next_filter;
-         if (unique_value_filters_[field_i][group_id[field_i]] == nullptr) {
-             value = arrow::Datum(all_unique_values_[field_i]->GetScalar(group_id[field_i]).ValueOrDie());
-
-             // Get the filter for this particular unique value.
-             get_unique_value_filter(group_by_refs_[field_i],
-                                     value,
-                                     unique_value_filters_[field_i][group_id[field_i]]);
+    std::vector<const uint8_t *> uniq_data;
+    std::vector<const uint32_t*> uniq_offsets;
+    for (int field_i = 0; field_i < num_children; field_i++) {
+        auto data = all_unique_values_[field_i]->data();
+        field_types.push_back(data->type->id());
+        switch(data->type->id()) {
+            case arrow::Type::INT64: {
+                uniq_data.push_back(data->GetValues<uint8_t>(1, 0));
+                uniq_offsets.push_back(nullptr);
+                break;
+            }
+            case arrow::Type::STRING: {
+                uniq_data.push_back(data->GetValues<uint8_t>(2, 0));
+                uniq_offsets.push_back(data->GetValues<uint32_t>(1, 0));
+                break;
+            }
+            default: {
+                break;
+            }
         }
     }
 
-    arrow::Datum temp_filter;
+    bool is_group = true;
+    auto agg_col = agg_col_.chunked_array();
+
     arrow::ArrayVector filter_vector;
+    filter_vector.resize(agg_col->num_chunks());
 
-    auto prev_filter = unique_value_filters_[0][group_id[0]]; // @bug: this sometimes gets deallocated when j=2, causing error at And() or creation of the
-    filter_vector.resize(prev_filter->num_chunks());
+    std::vector<const uint8_t *> group_data;
+    std::vector<const uint32_t*> group_offsets;
+    group_data.resize(num_children);
+    group_offsets.resize(num_children);
 
-    uint64_t filter_output_size = 0;
-    // TODO(nicholas): multithreaded AND
-    // Perform a logical AND on all the unique value filters
-    for (int field_i = 1; field_i < group_by_refs_.size(); ++field_i) {
-     auto next_filter = unique_value_filters_[field_i][group_id[field_i]];
-     for (int j = 0; j < prev_filter->num_chunks(); ++j) {
-         status = arrow::compute::And(prev_filter->chunk(j),
-                                      next_filter->chunk(j)).Value(&temp_filter);
-         evaluate_status(status, __FUNCTION__, __LINE__);
+    for (int chunk_i=0; chunk_i<agg_col->num_chunks(); ++chunk_i) {
 
-         filter_vector[j] = temp_filter.make_array();
-         filter_output_size += arrow::compute::internal::GetFilterOutputSize(*filter_vector[j]->data(), arrow::compute::FilterOptions::NullSelectionBehavior::DROP);
-     }
+        for (int field_i = 0; field_i < num_children; ++field_i) {
+            auto data = group_by_cols_[field_i].chunked_array()->chunk(chunk_i)->data();
+            switch(field_types[field_i]) {
+                case arrow::Type::INT64: {
+                    group_data[field_i] = (data->GetValues<uint8_t>(1, 0));
+                    group_offsets[field_i] = (nullptr);
+                    break;
+                }
+                case arrow::Type::STRING: {
+                    group_data[field_i] = (data->GetValues<uint8_t>(2, 0));
+                    group_offsets[field_i] = (data->GetValues<uint32_t>(1, 0));
+                    break;
+                }
+                default: {
+                    std::cerr << "Aggregate does not support group by columns of type " + data->type->ToString() << std::endl;
+                    break;
+                }
+            }
+        }
+        auto chunk_length = agg_col->chunk(chunk_i)->length();
 
-     prev_filter = std::make_shared<arrow::ChunkedArray>(filter_vector);
+        auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
+        buf->Resize(chunk_length);
+        auto buf_data = buf->mutable_data();
+
+        for (int j=0; j<chunk_length; ++j) {
+
+            is_group = true;
+
+            for (int field_i = 0; is_group && field_i < num_children; ++field_i) {
+                switch(field_types[field_i]) {
+                    case arrow::Type::INT64: {
+                        // TODO(nicholas): you can view everything as uint8_t* and then use memcmp()
+                        auto val = ((int64_t*) uniq_data[field_i])[group_id[field_i]];
+                        auto col_val = ((int64_t*) group_data[field_i])[j];
+                        is_group = (val == col_val);
+                        break;
+                    }
+                    case arrow::Type::STRING: {
+
+                        auto offsets = uniq_offsets[field_i] + group_id[field_i];
+                        auto val_length = offsets[1] - offsets[0];
+                        auto val = uniq_data[field_i] + offsets[0];
+
+//                        auto col_val_length = group_offsets[field_i][j+1] - group_offsets[field_i][j];
+                        auto col_val = group_data[field_i] + group_offsets[field_i][j];
+
+//                        if (col_val_length > val_length) val_length = col_val_length;
+
+                        is_group = (memcmp(val, col_val, val_length) == 0);
+                        break;
+                    }
+                    default: {
+
+                    }
+                }
+            }
+            if(is_group) buf_data[j >> 3] |= (1u << (j & 0x07));
+        }
+
+        std::shared_ptr<arrow::Buffer> test2;
+        status = buf->Finish(&test2);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        auto test = arrow::ArrayData::Make(arrow::boolean(),chunk_length,{test2,test2});
+
+        filter_vector[chunk_i] = arrow::MakeArray(test);
     }
-    if (filter_output_size > 0) {
-        group_filters_[agg_index] = prev_filter;
-    }
+
+    group_filters_[agg_index] = std::make_shared<arrow::ChunkedArray>(filter_vector);
 }
 
 void Aggregate::insert_group(std::vector<int> group_id) {
@@ -500,6 +608,9 @@ void Aggregate::initialize_variables(Task* ctx) {
     for (auto &group_by : group_by_refs_) {
         group_by_tables_.push_back(prev_result_->get_table(group_by.table));
     }
+
+    auto num_children = group_by_refs_.size();
+    uniq_val_maps_.resize(num_children);
 }
 
 void Aggregate::initialize_group_by_column(Task* ctx, int i) {
@@ -528,6 +639,13 @@ void Aggregate::initialize(Task* ctx) {
                     })
                 ));
             }
+        }),
+        CreateLambdaTask([this] {
+            auto num_children = group_by_refs_.size();
+            for (int i = 0; i < num_children; ++i) {
+                auto status = arrow::compute::Match(group_by_cols_[i], all_unique_values_[i]).Value(&uniq_val_maps_[i]);
+                evaluate_status(status, __FUNCTION__, __LINE__);
+            }
         })
     ));
 }
@@ -541,7 +659,7 @@ void Aggregate::compute_group_aggregate(
     if (num_aggs_ == 1) {
         ctx->spawnTask(CreateTaskChain(
             CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-                get_group_filter(agg_index, group_id);
+//                get_group_filter(agg_index, group_id);
 
                 if (group_filters_[agg_index] != nullptr) {
                     arrow::Status status;
@@ -567,7 +685,7 @@ void Aggregate::compute_group_aggregate(
         ));
     }
     else {
-        get_group_filter(agg_index, group_id);
+//        get_group_filter(agg_index, group_id);
 
         if (group_filters_[agg_index] != nullptr) {
             arrow::Status status;
@@ -630,6 +748,10 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 unique_value_filters_[i].resize(maxes[i]);
                 num_aggs_ *= maxes[i];
             }
+//
+//            group_filter_buffers_.resize(num_aggs_);
+//
+            group_id_to_agg_index_map_.reserve(num_aggs_);
             group_filters_.resize(num_aggs_);
             filtered_agg_cols_.resize(num_aggs_);
             contexts_.resize(num_aggs_);
@@ -647,6 +769,16 @@ void Aggregate::compute_aggregates(Task *ctx) {
 
                 // LOOP BODY START
                 group_id_vec_[agg_index] = group_id;
+                auto key = 0;
+                for (int k=0; k<group_id.size(); ++k) {
+                    key += group_id[k]*pow(10, k);
+                }
+                group_id_to_agg_index_map_[key] = agg_index;
+//                auto agg_col = agg_col_.chunked_array();
+//                auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
+//                buf->Resize(agg_col->c);
+//                auto buf_data = buf->mutable_data();
+//                group_filter_buffers_[agg_index] =
                 ++agg_index;
                 // LOOP BODY END
 
@@ -667,7 +799,9 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 }
                 index = n - 1;
             }
-
+            initialize_group_filters(internal);
+        }),
+        CreateLambdaTask([this](Task* internal) {
             int batch_size = num_aggs_ / 8 /2;
             if (batch_size == 0) batch_size = num_aggs_;
             int num_batches = num_aggs_ / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
@@ -696,6 +830,9 @@ void Aggregate::execute(Task *ctx) {
         }),
         CreateLambdaTask([this](Task *internal) {
             compute_aggregates(internal);
+        }),
+        CreateLambdaTask([this](Task *internal) {
+//            initialize_group_filters(internal);
         }),
         // Task 2 = Create the output result
         CreateLambdaTask([this](Task *internal) {
