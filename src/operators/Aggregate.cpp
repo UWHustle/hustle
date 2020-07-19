@@ -659,15 +659,12 @@ void Aggregate::initialize(Task* ctx) {
                     CreateLambdaTask([this, i] {
                         std::scoped_lock<std::mutex> lock(mutex2_);
                         all_unique_values_[i] = get_unique_values(group_by_refs_[i]).make_array();
+                    }),
+                    CreateLambdaTask([this, i] {
+                        auto status = arrow::compute::Match(group_by_cols_[i], all_unique_values_[i]).Value(&uniq_val_maps_[i]);
+                        evaluate_status(status, __FUNCTION__, __LINE__);
                     })
                 ));
-            }
-        }),
-        CreateLambdaTask([this] {
-            auto num_children = group_by_refs_.size();
-            for (int i = 0; i < num_children; ++i) {
-                auto status = arrow::compute::Match(group_by_cols_[i], all_unique_values_[i]).Value(&uniq_val_maps_[i]);
-                evaluate_status(status, __FUNCTION__, __LINE__);
             }
         })
     ));
