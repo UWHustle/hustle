@@ -150,52 +150,42 @@ void Aggregate::initialize_group_filters(Task* ctx) {
     }
 
     ctx->spawnLambdaTask([this](Task* internal) {
-            auto num_children = group_by_cols_.size();
+        auto num_children = group_by_cols_.size();
 
-            std::vector<arrow::Type::type> field_types;
-            std::vector<const uint32_t*> uniq_index_maps;
+        std::vector<arrow::Type::type> field_types;
+        std::vector<const uint32_t*> uniq_index_maps;
 
-            for (int field_i = 0; field_i < num_children; field_i++) {
-                auto data = all_unique_values_[field_i]->data();
-                field_types.push_back(data->type->id());
-            }
-
-
-
-            auto agg_col = agg_col_.chunked_array();
-            auto num_chunks = agg_col->num_chunks();
-            agg_col_data_.resize(num_chunks);
-            for (int i=0; i<num_chunks; ++i) {
-                agg_col_data_[i] = agg_col->chunk(i)->data()->GetValues<int64_t>(1, 0);
-            }
-
-
-            filter_vectors.resize(num_aggs_);
-            for (int i=0; i<num_aggs_; ++i) {
-                arrow::ArrayVector filter_vector;
-                filter_vector.resize(agg_col->num_chunks());
-                filter_vectors[i] = std::move(filter_vector);
-            }
-
-            int batch_size = num_chunks / 8 /2;
-            if (batch_size == 0) batch_size = num_chunks;
-            int num_batches = num_chunks / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
-            if (num_batches == 0) num_batches = 1;
-
-            for (int batch_i = 0; batch_i < num_batches; batch_i++) {
-                // Each task gets the filter for one block and stores it in filter_vector
-                internal->spawnLambdaTask([this, num_chunks, num_children, batch_i, batch_size](Task *internal) {
-                std::vector<const uint32_t *> group_map;
-                group_map.resize(num_children);
-
-                    int base_i = batch_i * batch_size;
-                    for (int i = base_i; i < base_i + batch_size && i < num_chunks; i++) {
-                        scan_block(group_map, i, filter_vectors);
-                    }
-                });
-            }
+        for (int field_i = 0; field_i < num_children; field_i++) {
+            auto data = all_unique_values_[field_i]->data();
+            field_types.push_back(data->type->id());
         }
-    );
+
+        auto agg_col = agg_col_.chunked_array();
+        auto num_chunks = agg_col->num_chunks();
+        agg_col_data_.resize(num_chunks);
+        for (int i=0; i<num_chunks; ++i) {
+            agg_col_data_[i] = agg_col->chunk(i)->data()->GetValues<int64_t>(1, 0);
+        }
+
+
+        int batch_size = num_chunks / 8 /2;
+        if (batch_size == 0) batch_size = num_chunks;
+        int num_batches = num_chunks / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+        if (num_batches == 0) num_batches = 1;
+
+        for (int batch_i = 0; batch_i < num_batches; batch_i++) {
+            // Each task gets the filter for one block and stores it in filter_vector
+            internal->spawnLambdaTask([this, num_chunks, num_children, batch_i, batch_size](Task *internal) {
+            std::vector<const uint32_t *> group_map;
+            group_map.resize(num_children);
+
+                int base_i = batch_i * batch_size;
+                for (int i = base_i; i < base_i + batch_size && i < num_chunks; i++) {
+                    scan_block(group_map, i, filter_vectors);
+                }
+            });
+        }
+    });
 }
 
 void Aggregate::insert_group(std::vector<int> group_id, int agg_index) {
@@ -264,7 +254,6 @@ void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate, int agg_in
                 std::static_pointer_cast<arrow::Int64Scalar>
                     (aggregate.scalar());
             // Append the group's aggregate to its builder.
-//            status = aggregate_builder_casted->Append(aggregate_casted->value);
             status = aggregate_builder_casted->Append(aggregates_vec_[agg_index]);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
@@ -308,29 +297,6 @@ arrow::Datum Aggregate::get_unique_values(
     return unique_values;
 }
 
-void Aggregate::get_unique_value_filter
-    (const ColumnReference& group_ref, const arrow::Datum& value, std::shared_ptr<arrow::ChunkedArray>& out) {
-
-    arrow::Status status;
-    arrow::Datum out_filter;
-    arrow::ArrayVector filter_vector;
-    arrow::compute::CompareOptions compare_options(arrow::compute::EQUAL);
-
-    auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]].chunked_array();
-
-
-    for (int i = 0; i < group_by_col->num_chunks(); ++i) {
-
-        status = arrow::compute::Compare(group_by_col->chunk(i), value, compare_options).Value(&out_filter);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-
-        filter_vector.push_back(out_filter.make_array());
-    }
-
-    out = std::make_shared<arrow::ChunkedArray>(filter_vector);
-}
-
-
 void Aggregate::finish() {
 
     arrow::Status status;
@@ -343,10 +309,7 @@ void Aggregate::finish() {
     for (int i = 0; i < groups_temp->num_fields(); ++i) {
         groups_.emplace_back(groups_temp->field(i));
     }
-//    aggregates_vec_[0]
     std::shared_ptr<arrow::Array> agg_temp;
-//    auto b = std::static_pointer_cast<arrow::Int64Builder>(aggregate_builder_);
-//    status = b->AppendValues(aggregates_vec_, aggregates_vec_ + num_aggs_);
     status = aggregate_builder_->Finish(&agg_temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
     aggregates_.value = agg_temp->data();
@@ -663,10 +626,8 @@ void Aggregate::sort() {
             evaluate_status(status, __FUNCTION__, __LINE__);
 
         }
-//        std::cout << aggregates_.make_array()->ToString() << std::endl;
         status = arrow::compute::Take(aggregates_, sorted_indices, take_options).Value(&aggregates_);
         evaluate_status(status, __FUNCTION__, __LINE__);
-//        std::cout << aggregates_.make_array()->ToString() << std::endl;
 
 
         for (auto &group: groups_) {

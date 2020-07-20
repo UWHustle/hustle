@@ -271,7 +271,6 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    void get_group_filter(int agg_index, const std::vector<int>& its);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -347,8 +346,6 @@ private:
     void initialize_variables(Task *ctx);
 
     void initialize_group_by_column(Task *ctx, int i);
-
-    void initialize_agg_col(Task *ctx);
 
     void initialize_group_filters(Task *ctx);
 
