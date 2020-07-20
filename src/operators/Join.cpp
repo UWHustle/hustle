@@ -42,6 +42,8 @@ void Join::build_hash_table
     }
 
     if (filter == nullptr) {
+//        hash_table_.reserve(col->length());
+
         for (int i = 0; i < col->num_chunks(); i++) {
             // Each task inserts one chunk into the hash table
             // TODO(nicholas): for now, we assume the join column is INT64 type.
@@ -52,6 +54,14 @@ void Join::build_hash_table
             }
         }
     } else {
+
+//        uint32_t length_after_filtering = 0;
+//
+//        for (int j=0; j<col->num_chunks(); ++j) {
+//            length_after_filtering += arrow::compute::internal::GetFilterOutputSize(*filter->chunk(j)->data(),arrow::compute::FilterOptions::NullSelectionBehavior::DROP);
+//        }
+//        hash_table_.reserve(length_after_filtering);
+
         for (int i = 0; i < col->num_chunks(); i++) {
             // Each task inserts one chunk into the hash table
             // TODO(nicholas): for now, we assume the join column is INT64 type.
@@ -90,8 +100,8 @@ void Join::probe_hash_table_block
         auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(probe_filter->chunk(i));
 
         // The indices of the rows joined in chunk i
-        auto * joined_left_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
-        auto * joined_right_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
+        auto * joined_left_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
+        auto * joined_right_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
 
         for (int row = 0; row < chunk_length; row++) {
             if (arrow::BitUtil::GetBit(filter_data, row)) {
@@ -104,8 +114,8 @@ void Join::probe_hash_table_block
             }
         }
 
-        new_left_indices_vector[i] = std::vector<uint64_t>(joined_left_indices, joined_left_indices + num_joined_indices);
-        new_right_indices_vector[i] = std::vector<uint64_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+        new_left_indices_vector[i] = std::vector<uint32_t>(joined_left_indices, joined_left_indices + num_joined_indices);
+        new_right_indices_vector[i] = std::vector<uint32_t>(joined_right_indices, joined_right_indices + num_joined_indices);
         free(joined_left_indices);
         free(joined_right_indices);
     }
@@ -131,8 +141,8 @@ void Join::probe_hash_table_block
 
 
         // The indices of the rows joined in chunk i
-        auto * joined_left_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
-        auto * joined_right_indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
+        auto * joined_left_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
+        auto * joined_right_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
 
         for (int row = 0; row < chunk_length; ++row) {
             auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
@@ -143,8 +153,8 @@ void Join::probe_hash_table_block
             }
         }
 
-        new_left_indices_vector[i] = std::vector<uint64_t>(joined_left_indices, joined_left_indices + num_joined_indices);
-        new_right_indices_vector[i] = std::vector<uint64_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+        new_left_indices_vector[i] = std::vector<uint32_t>(joined_left_indices, joined_left_indices + num_joined_indices);
+        new_right_indices_vector[i] = std::vector<uint32_t>(joined_right_indices, joined_right_indices + num_joined_indices);
         free(joined_left_indices);
         free(joined_right_indices);
 
@@ -197,8 +207,8 @@ void Join::finish_probe(Task* ctx) {
     ctx->spawnLambdaTask([this, num_indices] {
         arrow::Status status;
 
-        arrow::UInt64Builder new_left_indices_builder;
-        std::shared_ptr<arrow::UInt64Array> new_left_indices;
+        arrow::UInt32Builder new_left_indices_builder;
+        std::shared_ptr<arrow::UInt32Array> new_left_indices;
 
         status = new_left_indices_builder.Reserve(num_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -219,8 +229,8 @@ void Join::finish_probe(Task* ctx) {
     ctx->spawnLambdaTask([this, num_indices] {
         arrow::Status status;
 
-        arrow::UInt64Builder new_right_indices_builder;
-        std::shared_ptr<arrow::UInt64Array> new_right_indices;
+        arrow::UInt32Builder new_right_indices_builder;
+        std::shared_ptr<arrow::UInt32Array> new_right_indices;
 
         status = new_right_indices_builder.Reserve(num_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);

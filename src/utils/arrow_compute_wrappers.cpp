@@ -261,7 +261,7 @@ void Context::apply_indices(
             else {
                 indices_array = indices.make_array();
             }
-            auto indices_data = indices_array->data()->GetMutableValues<int64_t>(1, 0);
+            auto indices_data = indices_array->data()->GetMutableValues<int32_t>(1, 0);
 
             int num_chunks = chunked_values->num_chunks();
             std::vector<unsigned int> chunk_row_offsets;

@@ -81,10 +81,10 @@ void LIP::probe_filters2(int chunk_i) {
 
     // indices[i] stores the indices of fact table rows that passed the
     // ith filter.
-    uint64_t* indices = nullptr;
-    int64_t indices_length = -1;
-    uint64_t offset = chunk_row_offsets_[chunk_i];
-    uint64_t temp;
+    uint32_t* indices = nullptr;
+    int32_t indices_length = -1;
+    uint32_t offset = chunk_row_offsets_[chunk_i];
+    uint32_t temp;
     for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
 
         auto bloom_filter = dim_filters_[filter_j];
@@ -99,7 +99,7 @@ void LIP::probe_filters2(int chunk_i) {
         if (filter_j == 0) {
             // Reserve space for the first index vector
             int k=0;
-            indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
+            indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
 
             for (int row = 0; row < chunk_length; ++row) {
 
@@ -127,17 +127,17 @@ void LIP::probe_filters2(int chunk_i) {
         }
     }
 
-    lip_indices_[chunk_i] = std::vector<uint64_t>(indices, indices + indices_length+1 );
+    lip_indices_[chunk_i] = std::vector<uint32_t>(indices, indices + indices_length+1 );
 }
 
 void LIP::probe_filters(int chunk_i) {
 
     // indices[i] stores the indices of fact table rows that passed the
     // ith filter.
-    uint64_t* indices = nullptr;
-    int64_t indices_length = -1;
-    uint64_t offset = chunk_row_offsets_[chunk_i];
-    uint64_t temp;
+    uint32_t* indices = nullptr;
+    int32_t indices_length = -1;
+    uint32_t offset = chunk_row_offsets_[chunk_i];
+    uint32_t temp;
     for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
 
         auto bloom_filter = dim_filters_[filter_j];
@@ -152,7 +152,7 @@ void LIP::probe_filters(int chunk_i) {
         if (filter_j == 0) {
             // Reserve space for the first index vector
             int k=0;
-            indices = (uint64_t*) malloc(sizeof(uint64_t)*chunk_length);
+            indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
 
             for (int row = 0; row < chunk_length; ++row) {
 
@@ -180,7 +180,7 @@ void LIP::probe_filters(int chunk_i) {
         }
     }
 
-    lip_indices_[chunk_i] = std::vector<uint64_t>(indices, indices + indices_length+1);
+    lip_indices_[chunk_i] = std::vector<uint32_t>(indices, indices + indices_length+1);
 }
 
 void LIP::probe_filters(Task *ctx) {
@@ -229,8 +229,8 @@ void LIP::probe_filters(Task *ctx) {
 
 void LIP::finish() {
     arrow::Status status;
-    arrow::UInt64Builder new_indices_builder;
-    std::shared_ptr<arrow::UInt64Array> new_indices;
+    arrow::UInt32Builder new_indices_builder;
+    std::shared_ptr<arrow::UInt32Array> new_indices;
 
     // Append all of the LIP indices to an ArrayBuilder.
     for (int i = 0; i < lip_indices_.size(); i++) {
@@ -294,7 +294,7 @@ void LIP::execute(Task *ctx) {
 
             if (left_ref.table == lazy_table.table) {
                 fact_table_ = lazy_table; // left table is always the same
-                if (lazy_table.indices.kind() != arrow::Datum::NONE) fact_indices_ = lazy_table.indices.array()->GetValues<uint64_t>(1, 0);
+                if (lazy_table.indices.kind() != arrow::Datum::NONE) fact_indices_ = lazy_table.indices.array()->GetValues<uint32_t>(1, 0);
                 else fact_indices_ = nullptr;
             } else if (right_ref.table == lazy_table.table) {
                 dim_tables_.push_back(lazy_table);
