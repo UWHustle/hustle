@@ -242,20 +242,24 @@ void Aggregate::insert_group(std::vector<int> group_id, int agg_index) {
 void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate, int agg_index) {
 
     arrow::Status status;
+
+    auto aggregate_builder_casted =
+        std::static_pointer_cast<arrow::Int64Builder>
+            (aggregate_builder_);
+    status = aggregate_builder_casted->Append(aggregates_vec_[agg_index]);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    return;
     // Append a group's aggregate to its builder.
     switch (aggregate.type()->id()) {
         case arrow::Type::INT64: {
             // Downcast the aggregate builder
-            auto aggregate_builder_casted =
-                std::static_pointer_cast<arrow::Int64Builder>
-                    (aggregate_builder_);
-            // Downcast the group aggregate
-            auto aggregate_casted =
-                std::static_pointer_cast<arrow::Int64Scalar>
-                    (aggregate.scalar());
+
+//            // Downcast the group aggregate
+//            auto aggregate_casted =
+//                std::static_pointer_cast<arrow::Int64Scalar>
+//                    (aggregate.scalar());
             // Append the group's aggregate to its builder.
-            status = aggregate_builder_casted->Append(aggregates_vec_[agg_index]);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+
             break;
         }
         case arrow::Type::DOUBLE: {
@@ -445,17 +449,18 @@ void Aggregate::compute_group_aggregate(
     const std::vector<int>& group_id,
     const arrow::Datum agg_col) {
 
-    auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col.chunked_array());
 
     if (num_aggs_ == 1) {
+        auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col.chunked_array());
         aggregates_vec_[agg_index] = std::static_pointer_cast<arrow::Int64Scalar>(aggregate.scalar())->value;
     }
     if (aggregates_vec_[agg_index] > 0) {
+        arrow::Datum dummy;
         // Compute the aggregate over the filtered agg_col
         // Acquire builder_mutex_ so that groups are correctly associated with
         // their corresponding aggregates
         std::unique_lock<std::mutex> lock(builder_mutex_);
-        insert_group_aggregate(aggregate, agg_index);
+        insert_group_aggregate(dummy, agg_index);
         insert_group(group_id, agg_index);
     }
 }
