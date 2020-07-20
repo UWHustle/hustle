@@ -125,6 +125,7 @@ void Aggregate::scan_block(std::vector<const uint32_t *>& group_map, int chunk_i
 
     auto chunk_length = agg_col_.chunked_array()->chunk(chunk_i)->length();
     auto num_children = group_by_refs_.size();
+    auto agg_col_chunk_data = agg_col_data_[chunk_i];
 
     std::vector<std::shared_ptr<arrow::TypedBufferBuilder<bool>>> group_filter_buffers;
     std::vector<uint8_t*> group_filter_buffers_data;
@@ -155,6 +156,7 @@ void Aggregate::scan_block(std::vector<const uint32_t *>& group_map, int chunk_i
         auto agg_index = group_id_to_agg_index_map_[key];
         auto filter_buf = group_filter_buffers_data[agg_index];
         filter_buf[row_j >> 3] |= (1u << (row_j & 0x07));
+        aggregates_vec_[agg_index] += agg_col_chunk_data[row_j];
     }
 
     for (int i=0; i<num_aggs_; ++i) {
@@ -184,8 +186,19 @@ void Aggregate::initialize_group_filters(Task* ctx) {
                 field_types.push_back(data->type->id());
             }
 
+//            aggregates_vec_.resize(num_aggs_);
+            aggregates_vec_ = (std::atomic<int64_t>*) malloc(sizeof(std::atomic<int64_t>)*num_aggs_);
+            for (int i=0; i<num_aggs_; ++i) {
+                aggregates_vec_[i] = 0;
+            }
+
             auto agg_col = agg_col_.chunked_array();
             auto num_chunks = agg_col->num_chunks();
+            agg_col_data_.resize(num_chunks);
+            for (int i=0; i<num_chunks; ++i) {
+                agg_col_data_[i] = agg_col->chunk(i)->data()->GetValues<int64_t>(1, 0);
+            }
+
 
             filter_vectors.resize(num_aggs_);
             for (int i=0; i<num_aggs_; ++i) {
@@ -220,7 +233,7 @@ void Aggregate::initialize_group_filters(Task* ctx) {
     ));
 }
 
-void Aggregate::insert_group(std::vector<int> group_id) {
+void Aggregate::insert_group(std::vector<int> group_id, int agg_index) {
 
     arrow::Status status;
     // Loop over columns in group builder, and append one of its unique values to
@@ -238,6 +251,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
                         (all_unique_values_[i]);
 
                 // Append one of the unique values to the column's builder.
+//                col_group_builder[agg_index] = col_unique_values->GetString(group_id[i]);
                 status = col_group_builder->Append(
                     col_unique_values->GetString(group_id[i]));
                 evaluate_status(status, __FUNCTION__, __LINE__);
@@ -253,6 +267,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
                         (all_unique_values_[i]);
 
                 // Append one of the unique values to the column's builder.
+//                col_group_builder[agg_index] = col_unique_values->Value(group_id[i]);
                 status = col_group_builder->Append(
                     col_unique_values->Value(group_id[i]));
                 evaluate_status(status, __FUNCTION__, __LINE__);
@@ -271,7 +286,7 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate) {
+void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate, int agg_index) {
 
     arrow::Status status;
     // Append a group's aggregate to its builder.
@@ -286,7 +301,8 @@ void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate) {
                 std::static_pointer_cast<arrow::Int64Scalar>
                     (aggregate.scalar());
             // Append the group's aggregate to its builder.
-            status = aggregate_builder_casted->Append(aggregate_casted->value);
+//            status = aggregate_builder_casted->Append(aggregate_casted->value);
+            status = aggregate_builder_casted->Append(aggregates_vec_[agg_index]);
             evaluate_status(status, __FUNCTION__, __LINE__);
             break;
         }
@@ -364,8 +380,10 @@ void Aggregate::finish() {
     for (int i = 0; i < groups_temp->num_fields(); ++i) {
         groups_.emplace_back(groups_temp->field(i));
     }
-
+//    aggregates_vec_[0]
     std::shared_ptr<arrow::Array> agg_temp;
+//    auto b = std::static_pointer_cast<arrow::Int64Builder>(aggregate_builder_);
+//    status = b->AppendValues(aggregates_vec_, aggregates_vec_ + num_aggs_);
     status = aggregate_builder_->Finish(&agg_temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
     aggregates_.value = agg_temp->data();
@@ -513,8 +531,8 @@ void Aggregate::compute_group_aggregate(
                     // Acquire builder_mutex_ so that groups are correctly associated with
                     // their corresponding aggregates
                     std::unique_lock<std::mutex> lock(builder_mutex_);
-                    insert_group_aggregate(aggregate);
-                    insert_group(group_id);
+                    insert_group_aggregate(aggregate, agg_index);
+                    insert_group(group_id, agg_index);
                 }
             })
         ));
@@ -529,14 +547,14 @@ void Aggregate::compute_group_aggregate(
         } else {
             filtered_agg_cols_[agg_index] = agg_col_;
         }
-        if (filtered_agg_cols_[agg_index].length() > 0) {
+        if (filtered_agg_cols_[agg_index].length() > 0 && aggregates_vec_[agg_index] > 0) {
             // Compute the aggregate over the filtered agg_col
             auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, filtered_agg_cols_[agg_index]);
             // Acquire builder_mutex_ so that groups are correctly associated with
             // their corresponding aggregates
             std::unique_lock<std::mutex> lock(builder_mutex_);
-            insert_group_aggregate(aggregate);
-            insert_group(group_id);
+            insert_group_aggregate(aggregate, agg_index);
+            insert_group(group_id, agg_index);
         }
     }
 
@@ -583,11 +601,19 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 unique_value_filters_[i].resize(maxes[i]);
                 num_aggs_ *= maxes[i];
             }
+            gbs_.resize(n);
+            for (int i = 0; i < n; i++) {
+                gbs_[i].resize(num_aggs_);
+            }
+//            auto status = group_builder_->Resize(num_aggs_);
+//            evaluate_status(status, __FUNCTION__, __LINE__);
+
             group_id_to_agg_index_map_.reserve(num_aggs_);
             group_filters_.resize(num_aggs_);
             filtered_agg_cols_.resize(num_aggs_);
             contexts_.resize(num_aggs_);
             unique_value_filter_contexts_.resize(num_aggs_);
+
             for (auto& vec : unique_value_filter_contexts_) {
                 vec.resize(group_by_refs_.size());
             }
@@ -710,8 +736,10 @@ void Aggregate::sort() {
             evaluate_status(status, __FUNCTION__, __LINE__);
 
         }
+//        std::cout << aggregates_.make_array()->ToString() << std::endl;
         status = arrow::compute::Take(aggregates_, sorted_indices, take_options).Value(&aggregates_);
         evaluate_status(status, __FUNCTION__, __LINE__);
+//        std::cout << aggregates_.make_array()->ToString() << std::endl;
 
 
         for (auto &group: groups_) {
