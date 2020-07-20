@@ -496,13 +496,11 @@ void Aggregate::compute_group_aggregate(
     if (num_aggs_ == 1) {
         ctx->spawnTask(CreateTaskChain(
             CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-//                get_group_filter(agg_index, group_id);
 
                 if (group_filters_[agg_index] != nullptr) {
                     arrow::Status status;
                     // TODO(nicholas): We don't need a Context for each aggregate; we just need num_threads number of Contexts
                         contexts_[agg_index].apply_filter(internal, agg_col_, group_filters_[agg_index], filtered_agg_cols_[agg_index]);
-        //            status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
                     evaluate_status(status, __FUNCTION__, __LINE__);
                 } else {
                     filtered_agg_cols_[agg_index] = agg_col_;
@@ -585,9 +583,6 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 unique_value_filters_[i].resize(maxes[i]);
                 num_aggs_ *= maxes[i];
             }
-//
-//            group_filter_buffers_.resize(num_aggs_);
-//
             group_id_to_agg_index_map_.reserve(num_aggs_);
             group_filters_.resize(num_aggs_);
             filtered_agg_cols_.resize(num_aggs_);
@@ -611,11 +606,6 @@ void Aggregate::compute_aggregates(Task *ctx) {
                     key += group_id[k]*pow(10, k);
                 }
                 group_id_to_agg_index_map_[key] = agg_index;
-//                auto agg_col = agg_col_.chunked_array();
-//                auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
-//                buf->Resize(agg_col->c);
-//                auto buf_data = buf->mutable_data();
-//                group_filter_buffers_[agg_index] =
                 ++agg_index;
                 // LOOP BODY END
 
