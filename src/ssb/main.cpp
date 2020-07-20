@@ -11,10 +11,10 @@ void read_from_csv() {
 
     auto field1 = arrow::field("order key", arrow::uint32());
     auto field2 = arrow::field("line number", arrow::int64());
-    auto field3 = arrow::field("cust key", arrow::int64());
-    auto field4 = arrow::field("part key", arrow::int64());
-    auto field5 = arrow::field("supp key", arrow::int64());
-    auto field6 = arrow::field("order date", arrow::int64());
+    auto field3 = arrow::field("cust key", arrow::uint32());
+    auto field4 = arrow::field("part key", arrow::uint32());
+    auto field5 = arrow::field("supp key", arrow::uint32());
+    auto field6 = arrow::field("order date", arrow::uint32());
     auto field7 = arrow::field("ord priority", arrow::utf8());
     auto field8 = arrow::field("ship priority", arrow::int64());
     auto field9 = arrow::field("quantity", arrow::uint8());
@@ -33,7 +33,7 @@ void read_from_csv() {
 
 
     std::shared_ptr<arrow::Field>s_field1=arrow::field("s supp key",
-    arrow::int64());
+    arrow::uint32());
     std::shared_ptr<arrow::Field>s_field2=arrow::field("s name",
     arrow::utf8());
     std::shared_ptr<arrow::Field>s_field3=arrow::field("s address",
@@ -53,7 +53,7 @@ void read_from_csv() {
 
 
     std::shared_ptr<arrow::Field>c_field1=arrow::field("c cust key",
-    arrow::int64());
+    arrow::uint32());
     std::shared_ptr<arrow::Field>c_field2=arrow::field("c name",
     arrow::utf8());
     std::shared_ptr<arrow::Field>c_field3=arrow::field("c address",
@@ -73,7 +73,7 @@ void read_from_csv() {
             c_field5,c_field6,c_field7,c_field8});
 
     std::shared_ptr<arrow::Field>d_field1=arrow::field("date key",
-    arrow::int64());
+    arrow::uint32());
     std::shared_ptr<arrow::Field>d_field2=arrow::field("date",
     arrow::utf8());
     std::shared_ptr<arrow::Field>d_field3=arrow::field("day of week",
@@ -122,7 +122,7 @@ void read_from_csv() {
 
 
     std::shared_ptr<arrow::Field>p_field1=arrow::field("part key",
-    arrow::int64());
+    arrow::uint32());
     std::shared_ptr<arrow::Field>p_field2=arrow::field("name",
     arrow::utf8());
     std::shared_ptr<arrow::Field>p_field3=arrow::field("mfgr",
@@ -150,22 +150,22 @@ void read_from_csv() {
     t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl", c_schema, BLOCK_SIZE);
     write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl", *t);
     std::cout << "c" << std::endl;
-//
-//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01-10MB/supplier.tbl", s_schema, BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl", *t);
-//    std::cout << "s" << std::endl;
-//
-//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01-10MB/date.tbl", d_schema, BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl", *t);
-//    std::cout << "d" << std::endl;
-//
-//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01-10MB/part.tbl", p_schema, BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl", *t);
-//    std::cout << "p" << std::endl;
 
-//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.tbl", lo_schema, BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl", *t);
-//    std::cout << "lo" << std::endl;
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01-10MB/supplier.tbl", s_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl", *t);
+    std::cout << "s" << std::endl;
+
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01-10MB/date.tbl", d_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl", *t);
+    std::cout << "d" << std::endl;
+
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01-10MB/part.tbl", p_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl", *t);
+    std::cout << "p" << std::endl;
+
+    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.tbl", lo_schema, BLOCK_SIZE);
+    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl", *t);
+    std::cout << "lo" << std::endl;
 
 //    auto t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl", c_schema, 20*BLOCK_SIZE);
 //    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01-20MB/customer.hsl", *t);
@@ -193,11 +193,11 @@ int main(int argc, char *argv[]) {
 //    read_from_csv();
 //    return 0;
 
-//    SSB workload(1, true);
+    SSB workload(1, true);
 //        workload.c->get_block(0)->print();
 //    workload.lo->get_block(0)->print();
 //    SSB workload(1, false);
-    SSB workload(10, false);
+//    SSB workload(10, false);
     std::cout << workload.lo->get_num_blocks() << std::endl;
     std::string input;
     std::cout << ">> ";
@@ -226,18 +226,18 @@ int main(int argc, char *argv[]) {
 //            workload.q12_lip();
 //            workload.q13_lip();
 
-            workload.q21_lip();
-            workload.q22_lip();
-            workload.q23_lip();
-
-            workload.q31_lip();
-            workload.q32_lip();
-            workload.q33_lip();
-            workload.q34_lip();
-
-            workload.q41_lip();
-            workload.q42_lip();
-            workload.q43_lip();
+//            workload.q21_lip();
+//            workload.q22_lip();
+//            workload.q23_lip();
+//
+//            workload.q31_lip();
+//            workload.q32_lip();
+//            workload.q33_lip();
+//            workload.q34_lip();
+//
+//            workload.q41_lip();
+//            workload.q42_lip();
+//            workload.q43_lip();
 
             auto t2 = high_resolution_clock::now();
             std::cout << duration_cast<milliseconds>(t2 - t1).count() << std::endl;

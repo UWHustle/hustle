@@ -67,7 +67,7 @@ private:
     JoinGraph graph_;
 
     // Hash table for the right table in each join
-    phmap::flat_hash_map<int64_t, uint64_t> hash_table_;
+    phmap::flat_hash_map<uint32_t, uint64_t> hash_table_;
 //    std::unordered_map<int64_t, uint64_t> hash_table_;
 
     // new_left_indices_vector[i] = the indices of rows joined in chunk i in

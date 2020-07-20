@@ -75,16 +75,15 @@ SSB::SSB(int SF, bool print) {
     c_join_pred = {lo_c_ref, arrow::compute::EQUAL, c_ref};
 
     reset_results();
-
     auto field1 = arrow::field("order key", arrow::uint32());
     auto field2 = arrow::field("line number", arrow::int64());
-    auto field3 = arrow::field("cust key", arrow::int64());
-    auto field4 = arrow::field("part key", arrow::int64());
-    auto field5 = arrow::field("supp key", arrow::int64());
-    auto field6 = arrow::field("order date", arrow::int64());
+    auto field3 = arrow::field("cust key", arrow::uint32());
+    auto field4 = arrow::field("part key", arrow::uint32());
+    auto field5 = arrow::field("supp key", arrow::uint32());
+    auto field6 = arrow::field("order date", arrow::uint32());
     auto field7 = arrow::field("ord priority", arrow::utf8());
     auto field8 = arrow::field("ship priority", arrow::int64());
-    auto field9 = arrow::field("quantity", arrow::int64());
+    auto field9 = arrow::field("quantity", arrow::uint8());
     auto field10 = arrow::field("extended price", arrow::int64());
     auto field11 = arrow::field("ord total price", arrow::int64());
     auto field12 = arrow::field("discount", arrow::uint8());
@@ -93,7 +92,6 @@ SSB::SSB(int SF, bool print) {
     auto field15 = arrow::field("tax", arrow::int64());
     auto field16 = arrow::field("commit date", arrow::int64());
     auto field17 = arrow::field("ship mode", arrow::utf8());
-
     lo_schema=arrow::schema({field1,field2,field3,field4,field5,
                              field6,field7,field8,field9,field10,
                              field11,field12,field13,field14,field15,
@@ -101,7 +99,7 @@ SSB::SSB(int SF, bool print) {
 
 
     std::shared_ptr<arrow::Field>s_field1=arrow::field("s supp key",
-                                                       arrow::int64());
+                                                       arrow::uint32());
     std::shared_ptr<arrow::Field>s_field2=arrow::field("s name",
                                                        arrow::utf8());
     std::shared_ptr<arrow::Field>s_field3=arrow::field("s address",
@@ -121,7 +119,7 @@ SSB::SSB(int SF, bool print) {
 
 
     std::shared_ptr<arrow::Field>c_field1=arrow::field("c cust key",
-                                                       arrow::int64());
+                                                       arrow::uint32());
     std::shared_ptr<arrow::Field>c_field2=arrow::field("c name",
                                                        arrow::utf8());
     std::shared_ptr<arrow::Field>c_field3=arrow::field("c address",
@@ -141,7 +139,7 @@ SSB::SSB(int SF, bool print) {
                             c_field5,c_field6,c_field7,c_field8});
 
     std::shared_ptr<arrow::Field>d_field1=arrow::field("date key",
-                                                       arrow::int64());
+                                                       arrow::uint32());
     std::shared_ptr<arrow::Field>d_field2=arrow::field("date",
                                                        arrow::utf8());
     std::shared_ptr<arrow::Field>d_field3=arrow::field("day of week",
@@ -190,7 +188,7 @@ SSB::SSB(int SF, bool print) {
 
 
     std::shared_ptr<arrow::Field>p_field1=arrow::field("part key",
-                                                       arrow::int64());
+                                                       arrow::uint32());
     std::shared_ptr<arrow::Field>p_field2=arrow::field("name",
                                                        arrow::utf8());
     std::shared_ptr<arrow::Field>p_field3=arrow::field("mfgr",
@@ -212,7 +210,6 @@ SSB::SSB(int SF, bool print) {
                             p_field5,
                             p_field6,p_field7,p_field8,
                             p_field9});
-
 }
 
 void SSB::reset_results() {
