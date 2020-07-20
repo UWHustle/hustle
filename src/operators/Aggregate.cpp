@@ -474,36 +474,19 @@ void Aggregate::compute_group_aggregate(
     const std::vector<int>& group_id,
     const arrow::Datum agg_col) {
 
+    auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col.chunked_array());
+
     if (num_aggs_ == 1) {
-                auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col.chunked_array());
-                auto temp = std::static_pointer_cast<arrow::Int64Scalar>(aggregate.scalar())->value;
-                aggregates_vec_[agg_index] = temp;
-                // Acquire builder_mutex_ so that groups are correctly associated with
-                // their corresponding aggregates
-                std::unique_lock<std::mutex> lock(builder_mutex_);
-                insert_group_aggregate(aggregate, agg_index);
-                insert_group(group_id, agg_index);
+        aggregates_vec_[agg_index] = std::static_pointer_cast<arrow::Int64Scalar>(aggregate.scalar())->value;
     }
-    else {
-        if (group_filters_[agg_index] != nullptr) {
-            arrow::Status status;
-            status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        } else {
-            filtered_agg_cols_[agg_index] = agg_col_;
-        }
-        if (aggregates_vec_[agg_index] > 0) {
-            // Compute the aggregate over the filtered agg_col
-            auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, filtered_agg_cols_[agg_index]);
-            // Acquire builder_mutex_ so that groups are correctly associated with
-            // their corresponding aggregates
-            std::unique_lock<std::mutex> lock(builder_mutex_);
-            insert_group_aggregate(aggregate, agg_index);
-            insert_group(group_id, agg_index);
-        }
+    if (aggregates_vec_[agg_index] > 0) {
+        // Compute the aggregate over the filtered agg_col
+        // Acquire builder_mutex_ so that groups are correctly associated with
+        // their corresponding aggregates
+        std::unique_lock<std::mutex> lock(builder_mutex_);
+        insert_group_aggregate(aggregate, agg_index);
+        insert_group(group_id, agg_index);
     }
-
-
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
