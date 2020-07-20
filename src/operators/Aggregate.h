@@ -298,7 +298,7 @@ private:
      * @param agg_col aggregate column
      */
     void compute_group_aggregate(Task* ctx, int agg_index, const std::vector<int>& group_id,
-                                 const arrow::Datum& agg_col);
+                                 const arrow::Datum agg_col);
 
     /**
      * Compute the aggregate over a column.

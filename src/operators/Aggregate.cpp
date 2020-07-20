@@ -127,23 +127,9 @@ void Aggregate::scan_block(std::vector<const uint32_t *>& group_map, int chunk_i
     auto num_children = group_by_refs_.size();
     auto agg_col_chunk_data = agg_col_data_[chunk_i];
 
-    std::vector<std::shared_ptr<arrow::TypedBufferBuilder<bool>>> group_filter_buffers;
-    std::vector<uint8_t*> group_filter_buffers_data;
-
-    group_filter_buffers.resize(num_aggs_);
-    group_filter_buffers_data.resize(num_aggs_);
-    for (int i=0; i<num_aggs_; ++i) {
-        auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
-        auto status = buf->Resize(chunk_length);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        group_filter_buffers[i] = std::move(buf);
-        group_filter_buffers_data[i] = group_filter_buffers[i]->mutable_data();
-    }
-
     for (int field_i = 0; field_i < num_children; ++field_i) {
         group_map[field_i] = uniq_val_maps_[field_i].chunked_array()->chunk(chunk_i)->data()->GetValues<uint32_t>(1, 0);
     }
-
 
     for (int row_j = 0; row_j < chunk_length; ++row_j) {
 
@@ -154,18 +140,7 @@ void Aggregate::scan_block(std::vector<const uint32_t *>& group_map, int chunk_i
         }
 
         auto agg_index = group_id_to_agg_index_map_[key];
-        auto filter_buf = group_filter_buffers_data[agg_index];
-        filter_buf[row_j >> 3] |= (1u << (row_j & 0x07));
         aggregates_vec_[agg_index] += agg_col_chunk_data[row_j];
-    }
-
-    for (int i=0; i<num_aggs_; ++i) {
-        std::shared_ptr<arrow::Buffer> temp;
-        auto status = group_filter_buffers[i]->Finish(&temp);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        auto test = arrow::ArrayData::Make(arrow::boolean(), chunk_length, {nullptr, temp});
-
-        filter_vectors[i][chunk_i] = arrow::MakeArray(test);
     }
 }
 
@@ -174,8 +149,7 @@ void Aggregate::initialize_group_filters(Task* ctx) {
         return;
     }
 
-    ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this](Task* internal) {
+    ctx->spawnLambdaTask([this](Task* internal) {
             auto num_children = group_by_cols_.size();
 
             std::vector<arrow::Type::type> field_types;
@@ -186,11 +160,7 @@ void Aggregate::initialize_group_filters(Task* ctx) {
                 field_types.push_back(data->type->id());
             }
 
-//            aggregates_vec_.resize(num_aggs_);
-            aggregates_vec_ = (std::atomic<int64_t>*) malloc(sizeof(std::atomic<int64_t>)*num_aggs_);
-            for (int i=0; i<num_aggs_; ++i) {
-                aggregates_vec_[i] = 0;
-            }
+
 
             auto agg_col = agg_col_.chunked_array();
             auto num_chunks = agg_col->num_chunks();
@@ -224,13 +194,8 @@ void Aggregate::initialize_group_filters(Task* ctx) {
                     }
                 });
             }
-        }),
-        CreateLambdaTask([this] {
-            for (int i=0; i<num_aggs_; ++i) {
-                group_filters_[i] = std::make_shared<arrow::ChunkedArray>(filter_vectors[i]);
-            }
-        })
-    ));
+        }
+    );
 }
 
 void Aggregate::insert_group(std::vector<int> group_id, int agg_index) {
@@ -251,7 +216,6 @@ void Aggregate::insert_group(std::vector<int> group_id, int agg_index) {
                         (all_unique_values_[i]);
 
                 // Append one of the unique values to the column's builder.
-//                col_group_builder[agg_index] = col_unique_values->GetString(group_id[i]);
                 status = col_group_builder->Append(
                     col_unique_values->GetString(group_id[i]));
                 evaluate_status(status, __FUNCTION__, __LINE__);
@@ -267,7 +231,6 @@ void Aggregate::insert_group(std::vector<int> group_id, int agg_index) {
                         (all_unique_values_[i]);
 
                 // Append one of the unique values to the column's builder.
-//                col_group_builder[agg_index] = col_unique_values->Value(group_id[i]);
                 status = col_group_builder->Append(
                     col_unique_values->Value(group_id[i]));
                 evaluate_status(status, __FUNCTION__, __LINE__);
@@ -509,37 +472,19 @@ void Aggregate::compute_group_aggregate(
     Task* ctx,
     int agg_index,
     const std::vector<int>& group_id,
-    const arrow::Datum& agg_col) {
+    const arrow::Datum agg_col) {
 
     if (num_aggs_ == 1) {
-        ctx->spawnTask(CreateTaskChain(
-            CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-
-                if (group_filters_[agg_index] != nullptr) {
-                    arrow::Status status;
-                    // TODO(nicholas): We don't need a Context for each aggregate; we just need num_threads number of Contexts
-                        contexts_[agg_index].apply_filter(internal, agg_col_, group_filters_[agg_index], filtered_agg_cols_[agg_index]);
-                    evaluate_status(status, __FUNCTION__, __LINE__);
-                } else {
-                    filtered_agg_cols_[agg_index] = agg_col_;
-                }
-            }),
-            CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-                if (filtered_agg_cols_[agg_index].length() > 0) {
-                    // Compute the aggregate over the filtered agg_col
-                    auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, filtered_agg_cols_[agg_index]);
-                    // Acquire builder_mutex_ so that groups are correctly associated with
-                    // their corresponding aggregates
-                    std::unique_lock<std::mutex> lock(builder_mutex_);
-                    insert_group_aggregate(aggregate, agg_index);
-                    insert_group(group_id, agg_index);
-                }
-            })
-        ));
+                auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col.chunked_array());
+                auto temp = std::static_pointer_cast<arrow::Int64Scalar>(aggregate.scalar())->value;
+                aggregates_vec_[agg_index] = temp;
+                // Acquire builder_mutex_ so that groups are correctly associated with
+                // their corresponding aggregates
+                std::unique_lock<std::mutex> lock(builder_mutex_);
+                insert_group_aggregate(aggregate, agg_index);
+                insert_group(group_id, agg_index);
     }
     else {
-//        get_group_filter(agg_index, group_id);
-
         if (group_filters_[agg_index] != nullptr) {
             arrow::Status status;
             status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
@@ -547,7 +492,7 @@ void Aggregate::compute_group_aggregate(
         } else {
             filtered_agg_cols_[agg_index] = agg_col_;
         }
-        if (filtered_agg_cols_[agg_index].length() > 0 && aggregates_vec_[agg_index] > 0) {
+        if (aggregates_vec_[agg_index] > 0) {
             // Compute the aggregate over the filtered agg_col
             auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, filtered_agg_cols_[agg_index]);
             // Acquire builder_mutex_ so that groups are correctly associated with
@@ -601,18 +546,17 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 unique_value_filters_[i].resize(maxes[i]);
                 num_aggs_ *= maxes[i];
             }
-            gbs_.resize(n);
-            for (int i = 0; i < n; i++) {
-                gbs_[i].resize(num_aggs_);
-            }
-//            auto status = group_builder_->Resize(num_aggs_);
-//            evaluate_status(status, __FUNCTION__, __LINE__);
 
             group_id_to_agg_index_map_.reserve(num_aggs_);
             group_filters_.resize(num_aggs_);
             filtered_agg_cols_.resize(num_aggs_);
             contexts_.resize(num_aggs_);
             unique_value_filter_contexts_.resize(num_aggs_);
+
+            aggregates_vec_ = (std::atomic<int64_t>*) malloc(sizeof(std::atomic<int64_t>)*num_aggs_);
+            for (int i=0; i<num_aggs_; ++i) {
+                aggregates_vec_[i] = 0;
+            }
 
             for (auto& vec : unique_value_filter_contexts_) {
                 vec.resize(group_by_refs_.size());
