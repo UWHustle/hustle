@@ -405,11 +405,16 @@ void Aggregate::initialize_group_by_column(Task* ctx, int i) {
 
 void Aggregate::initialize(Task* ctx) {
 
+    std::vector<std::shared_ptr<Context>> contexts;
+    for(int i=0; i<group_by_refs_.size(); ++i) {
+        contexts.push_back(std::make_shared<Context>());
+    }
+
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this](Task* internal) {
             initialize_variables(internal);
         }),
-        CreateLambdaTask([this](Task* internal) {
+        CreateLambdaTask([this, contexts](Task* internal) {
             // Fetch unique values for all Group By columns.
             for (int i=0; i<group_by_refs_.size(); i++) {
                 // TODO(nicholas): No need for a TaskChain here
@@ -420,9 +425,13 @@ void Aggregate::initialize(Task* ctx) {
                     CreateLambdaTask([this, i] {
                         all_unique_values_[i] = get_unique_values(group_by_refs_[i]).make_array();
                     }),
-                    CreateLambdaTask([this, i] {
-                        auto status = arrow::compute::Match(group_by_cols_[i], all_unique_values_[i]).Value(&uniq_val_maps_[i]);
-                        evaluate_status(status, __FUNCTION__, __LINE__);
+                    CreateLambdaTask([this, i, contexts](Task* internal) {
+
+                        arrow::Datum out;
+                        contexts[i]->match(internal, group_by_cols_[i], all_unique_values_[i], out);
+                    }),
+                    CreateLambdaTask([this, contexts, i] {
+                        uniq_val_maps_[i] = contexts[i]->out_.chunked_array();
                     })
                 ));
             }

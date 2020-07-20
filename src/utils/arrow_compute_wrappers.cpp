@@ -366,4 +366,40 @@ void unique(const arrow::Datum& values, arrow::Datum* out) {
     out->value = temp_array->data();
 }
 
+
+void Context::match(
+    Task* ctx,
+    const arrow::Datum& values,
+    const arrow::Datum& keys,
+    arrow::Datum& out) {
+
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, values, keys, &out](Task* internal) {
+            clear_data();
+
+            auto vals = values.chunked_array();
+            array_vec_.resize(values.chunked_array()->num_chunks());
+
+
+            for (int j=0; j<vals->num_chunks(); ++j) {
+                internal->spawnLambdaTask([this, j, vals, keys]{
+                    arrow::Status status;
+                    arrow::Datum temp;
+                    status = arrow::compute::Match(vals->chunk(j), keys).Value(&temp);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+
+                    array_vec_[j] = temp.make_array();
+                });
+            }
+        }),
+        CreateLambdaTask([this, &out](Task* internal) {
+//            out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
+            out_.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
+        })
+    ));
+
+}
+
+
+
 }

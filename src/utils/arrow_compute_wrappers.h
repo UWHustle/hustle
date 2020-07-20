@@ -126,6 +126,9 @@ public:
     arrow::Datum out_;
     void compare(Task *ctx, const arrow::Datum &left, const arrow::Datum &right,
                  arrow::compute::CompareOperator compare_operator, arrow::Datum *out);
+
+    void match(Task *ctx, const arrow::Datum &values, const arrow::Datum &keys, arrow::Datum &out);
+
 private:
 
     int slice_length_;
