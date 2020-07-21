@@ -202,10 +202,7 @@ private:
      * @return a 32-bit hash value
      */
     inline unsigned int hash(unsigned long long x, int seed) {
-        x = (x << 32) ^ seed;
-        x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = (x >> 16) ^ x;
+        x *= 0x9e3779b1;
         return x;
     }
 
