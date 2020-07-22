@@ -48,8 +48,8 @@ public:
 
 private:
     // Row indices of the fact table that successfully probed all Bloom filters.
-    std::vector<std::vector<uint64_t>> lip_indices_;
-    const uint64_t* fact_indices_;
+    std::vector<std::vector<uint32_t>> lip_indices_;
+    const uint32_t* fact_indices_;
 
     // Number of blocks that are probed (in parallel) before sorting the the filters
     int batch_size_;

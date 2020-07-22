@@ -17,37 +17,39 @@ namespace hustle::operators {
 
 SSB::SSB(int SF, bool print) {
 
+    auto current_dir = std::filesystem::current_path().string();
+    std::cout << current_dir << std::endl;
     print_ = print;
     num_threads_ = std::thread::hardware_concurrency();
 //    num_threads_ = 1;
 
     if (SF==0) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-small/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-small/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-01/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-01/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-01/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-01/supplier.hsl");
     }
     if (SF==1) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-01/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-01/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-01/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-01/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-01/supplier.hsl");
     }
     else if (SF==5) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-05/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-05/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-05/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-05/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-05/supplier.hsl");
     }
     else if (SF==10) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10-20MB/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-10-20MB/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-10/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-10/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-10/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
     }
 
     lo_d_ref = {lo, "order date"};
@@ -337,10 +339,10 @@ void SSB::q11() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q1.1");
+    container->startEvent("1.1");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q1.1");
+    container->endEvent("1.1");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}});
@@ -468,10 +470,10 @@ void SSB::q12() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q1.2");
+    container->startEvent("1.2");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q1.2");
+    container->endEvent("1.2");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}});
@@ -616,10 +618,10 @@ void SSB::q13() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q1.3");
+    container->startEvent("1.3");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q1.3");
+    container->endEvent("1.3");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}});
@@ -700,10 +702,10 @@ void SSB::q21() {
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("q2.1");
+    container->startEvent("2.1");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q2.1");
+    container->endEvent("2.1");
 
 
 
@@ -807,10 +809,10 @@ void SSB::q22() {
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("q2.2");
+    container->startEvent("2.2");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q2.2");
+    container->endEvent("2.2");
 
     if (print_) {
         out_table = agg_result_out->materialize({
@@ -894,10 +896,10 @@ void SSB::q23() {
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("q2.3");
+    container->startEvent("2.3");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q2.3");
+    container->endEvent("2.3");
 
 
     if (print_) {
@@ -1012,10 +1014,10 @@ void SSB::q31() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.1");
+    container->startEvent("3.1");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.1");
+    container->endEvent("3.1");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
@@ -1125,10 +1127,10 @@ void SSB::q32() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.2");
+    container->startEvent("3.2");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.2");
+    container->endEvent("3.2");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
@@ -1278,10 +1280,10 @@ void SSB::q33() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.3");
+    container->startEvent("3.3");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.3");
+    container->endEvent("3.3");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
@@ -1414,10 +1416,10 @@ void SSB::q34() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.4");
+    container->startEvent("3.4");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.4");
+    container->endEvent("3.4");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
@@ -1532,10 +1534,10 @@ void SSB::q41() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q4.1");
+    container->startEvent("4.1");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q4.1");
+    container->endEvent("4.1");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}});
@@ -1681,10 +1683,10 @@ void SSB::q42() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q4.2");
+    container->startEvent("4.2");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q4.2");
+    container->endEvent("4.2");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "s nation"}, {nullptr, "category"}});
@@ -1811,10 +1813,10 @@ void SSB::q43() {
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q4.3");
+    container->startEvent("4.3");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q4.3");
+    container->endEvent("4.3");
 
     if (print_) {
         out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"},  {nullptr, "s city"}, {nullptr, "brand1"}});

@@ -150,6 +150,9 @@ private:
     // Aggregate column for the output table.
     arrow::Datum aggregates_;
 
+    std::atomic<int64_t>* aggregates_vec_;
+    std::vector<const int64_t*> agg_col_data_;
+
     // References denoting which columns we want to perform an aggregate on
     // and which aggregate to perform.
     std::vector<AggregateReference> aggregate_refs_;
@@ -175,6 +178,7 @@ private:
 //    std::vector<const uint32_t *> group_map;
     std::vector<arrow::ArrayVector> filter_vectors;
 
+    std::vector<std::vector<int64_t>> gbs_;
 
     // A vector of Arrays containing the unique values of each of the group
     // by columns.
@@ -267,7 +271,6 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    void get_group_filter(int agg_index, const std::vector<int>& its);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -294,7 +297,7 @@ private:
      * @param agg_col aggregate column
      */
     void compute_group_aggregate(Task* ctx, int agg_index, const std::vector<int>& group_id,
-                                 const arrow::Datum& agg_col);
+                                 const arrow::Datum agg_col);
 
     /**
      * Compute the aggregate over a column.
@@ -316,14 +319,14 @@ private:
      * passing in group_id = [0, 3, 7] would insert unique_values_[0],
      * unique_values_[3], and unique_values_[7], into group_builder_.
      */
-    void insert_group(std::vector<int> grooup_id);
+//    void insert_group(std::vector<int> grooup_id);
 
     /**
      * Insert the aggregate of a single group into aggregate_builder_.
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    void insert_group_aggregate(const arrow::Datum& aggregate);
+//    void insert_group_aggregate(const arrow::Datum& aggregate);
 
     /**
      * Create the output result from data computed during operator execution.
@@ -344,12 +347,14 @@ private:
 
     void initialize_group_by_column(Task *ctx, int i);
 
-    void initialize_agg_col(Task *ctx);
-
     void initialize_group_filters(Task *ctx);
 
     void
     scan_block(std::vector<const uint32_t *> &group_map, int chunk_i, std::vector<arrow::ArrayVector> &filter_vectors);
+
+    void insert_group(std::vector<int> group_id, int agg_index);
+
+    void insert_group_aggregate(const arrow::Datum &aggregate, int agg_index);
 };
 
 } // namespace operators

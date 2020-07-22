@@ -68,7 +68,7 @@ public:
     std::shared_ptr<Table> table;
     arrow::Datum filter; // filters are ChunkedArrays
     arrow::Datum indices; // indices are Arrays
-    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
     std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
 
 

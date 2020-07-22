@@ -125,24 +125,11 @@ void Aggregate::scan_block(std::vector<const uint32_t *>& group_map, int chunk_i
 
     auto chunk_length = agg_col_.chunked_array()->chunk(chunk_i)->length();
     auto num_children = group_by_refs_.size();
-
-    std::vector<std::shared_ptr<arrow::TypedBufferBuilder<bool>>> group_filter_buffers;
-    std::vector<uint8_t*> group_filter_buffers_data;
-
-    group_filter_buffers.resize(num_aggs_);
-    group_filter_buffers_data.resize(num_aggs_);
-    for (int i=0; i<num_aggs_; ++i) {
-        auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
-        auto status = buf->Resize(chunk_length);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        group_filter_buffers[i] = std::move(buf);
-        group_filter_buffers_data[i] = group_filter_buffers[i]->mutable_data();
-    }
+    auto agg_col_chunk_data = agg_col_data_[chunk_i];
 
     for (int field_i = 0; field_i < num_children; ++field_i) {
         group_map[field_i] = uniq_val_maps_[field_i].chunked_array()->chunk(chunk_i)->data()->GetValues<uint32_t>(1, 0);
     }
-
 
     for (int row_j = 0; row_j < chunk_length; ++row_j) {
 
@@ -153,17 +140,7 @@ void Aggregate::scan_block(std::vector<const uint32_t *>& group_map, int chunk_i
         }
 
         auto agg_index = group_id_to_agg_index_map_[key];
-        auto filter_buf = group_filter_buffers_data[agg_index];
-        filter_buf[row_j >> 3] |= (1u << (row_j & 0x07));
-    }
-
-    for (int i=0; i<num_aggs_; ++i) {
-        std::shared_ptr<arrow::Buffer> temp;
-        auto status = group_filter_buffers[i]->Finish(&temp);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        auto test = arrow::ArrayData::Make(arrow::boolean(), chunk_length, {nullptr, temp});
-
-        filter_vectors[i][chunk_i] = arrow::MakeArray(test);
+        aggregates_vec_[agg_index] += agg_col_chunk_data[row_j];
     }
 }
 
@@ -172,55 +149,46 @@ void Aggregate::initialize_group_filters(Task* ctx) {
         return;
     }
 
-    ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this](Task* internal) {
-            auto num_children = group_by_cols_.size();
+    ctx->spawnLambdaTask([this](Task* internal) {
+        auto num_children = group_by_cols_.size();
 
-            std::vector<arrow::Type::type> field_types;
-            std::vector<const uint32_t*> uniq_index_maps;
+        std::vector<arrow::Type::type> field_types;
+        std::vector<const uint32_t*> uniq_index_maps;
 
-            for (int field_i = 0; field_i < num_children; field_i++) {
-                auto data = all_unique_values_[field_i]->data();
-                field_types.push_back(data->type->id());
-            }
+        for (int field_i = 0; field_i < num_children; field_i++) {
+            auto data = all_unique_values_[field_i]->data();
+            field_types.push_back(data->type->id());
+        }
 
-            auto agg_col = agg_col_.chunked_array();
-            auto num_chunks = agg_col->num_chunks();
+        auto agg_col = agg_col_.chunked_array();
+        auto num_chunks = agg_col->num_chunks();
+        agg_col_data_.resize(num_chunks);
+        for (int i=0; i<num_chunks; ++i) {
+            agg_col_data_[i] = agg_col->chunk(i)->data()->GetValues<int64_t>(1, 0);
+        }
 
-            filter_vectors.resize(num_aggs_);
-            for (int i=0; i<num_aggs_; ++i) {
-                arrow::ArrayVector filter_vector;
-                filter_vector.resize(agg_col->num_chunks());
-                filter_vectors[i] = std::move(filter_vector);
-            }
 
-            int batch_size = num_chunks / 8 /2;
-            if (batch_size == 0) batch_size = num_chunks;
-            int num_batches = num_chunks / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
-            if (num_batches == 0) num_batches = 1;
+        int batch_size = num_chunks / std::thread::hardware_concurrency() /2;
+        if (batch_size == 0) batch_size = num_chunks;
+        int num_batches = num_chunks / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+        if (num_batches == 0) num_batches = 1;
 
-            for (int batch_i = 0; batch_i < num_batches; batch_i++) {
-                // Each task gets the filter for one block and stores it in filter_vector
-                internal->spawnLambdaTask([this, num_chunks, num_children, batch_i, batch_size](Task *internal) {
-                std::vector<const uint32_t *> group_map;
-                group_map.resize(num_children);
+        for (int batch_i = 0; batch_i < num_batches; batch_i++) {
+            // Each task gets the filter for one block and stores it in filter_vector
+            internal->spawnLambdaTask([this, num_chunks, num_children, batch_i, batch_size](Task *internal) {
+            std::vector<const uint32_t *> group_map;
+            group_map.resize(num_children);
 
-                    int base_i = batch_i * batch_size;
-                    for (int i = base_i; i < base_i + batch_size && i < num_chunks; i++) {
-                        scan_block(group_map, i, filter_vectors);
-                    }
-                });
-            }
-        }),
-        CreateLambdaTask([this] {
-            for (int i=0; i<num_aggs_; ++i) {
-                group_filters_[i] = std::make_shared<arrow::ChunkedArray>(filter_vectors[i]);
-            }
-        })
-    ));
+                int base_i = batch_i * batch_size;
+                for (int i = base_i; i < base_i + batch_size && i < num_chunks; i++) {
+                    scan_block(group_map, i, filter_vectors);
+                }
+            });
+        }
+    });
 }
 
-void Aggregate::insert_group(std::vector<int> group_id) {
+void Aggregate::insert_group(std::vector<int> group_id, int agg_index) {
 
     arrow::Status status;
     // Loop over columns in group builder, and append one of its unique values to
@@ -271,23 +239,27 @@ void Aggregate::insert_group(std::vector<int> group_id) {
     evaluate_status(status, __FUNCTION__, __LINE__);
 }
 
-void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate) {
+void Aggregate::insert_group_aggregate(const arrow::Datum& aggregate, int agg_index) {
 
     arrow::Status status;
+
+    auto aggregate_builder_casted =
+        std::static_pointer_cast<arrow::Int64Builder>
+            (aggregate_builder_);
+    status = aggregate_builder_casted->Append(aggregates_vec_[agg_index]);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    return;
     // Append a group's aggregate to its builder.
     switch (aggregate.type()->id()) {
         case arrow::Type::INT64: {
             // Downcast the aggregate builder
-            auto aggregate_builder_casted =
-                std::static_pointer_cast<arrow::Int64Builder>
-                    (aggregate_builder_);
-            // Downcast the group aggregate
-            auto aggregate_casted =
-                std::static_pointer_cast<arrow::Int64Scalar>
-                    (aggregate.scalar());
+
+//            // Downcast the group aggregate
+//            auto aggregate_casted =
+//                std::static_pointer_cast<arrow::Int64Scalar>
+//                    (aggregate.scalar());
             // Append the group's aggregate to its builder.
-            status = aggregate_builder_casted->Append(aggregate_casted->value);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+
             break;
         }
         case arrow::Type::DOUBLE: {
@@ -329,29 +301,6 @@ arrow::Datum Aggregate::get_unique_values(
     return unique_values;
 }
 
-void Aggregate::get_unique_value_filter
-    (const ColumnReference& group_ref, const arrow::Datum& value, std::shared_ptr<arrow::ChunkedArray>& out) {
-
-    arrow::Status status;
-    arrow::Datum out_filter;
-    arrow::ArrayVector filter_vector;
-    arrow::compute::CompareOptions compare_options(arrow::compute::EQUAL);
-
-    auto group_by_col = group_by_cols_[group_by_col_names_to_index_[group_ref.col_name]].chunked_array();
-
-
-    for (int i = 0; i < group_by_col->num_chunks(); ++i) {
-
-        status = arrow::compute::Compare(group_by_col->chunk(i), value, compare_options).Value(&out_filter);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-
-        filter_vector.push_back(out_filter.make_array());
-    }
-
-    out = std::make_shared<arrow::ChunkedArray>(filter_vector);
-}
-
-
 void Aggregate::finish() {
 
     arrow::Status status;
@@ -364,7 +313,6 @@ void Aggregate::finish() {
     for (int i = 0; i < groups_temp->num_fields(); ++i) {
         groups_.emplace_back(groups_temp->field(i));
     }
-
     std::shared_ptr<arrow::Array> agg_temp;
     status = aggregate_builder_->Finish(&agg_temp);
     evaluate_status(status, __FUNCTION__, __LINE__);
@@ -461,11 +409,16 @@ void Aggregate::initialize_group_by_column(Task* ctx, int i) {
 
 void Aggregate::initialize(Task* ctx) {
 
+    std::vector<std::shared_ptr<Context>> contexts;
+    for(int i=0; i<group_by_refs_.size(); ++i) {
+        contexts.push_back(std::make_shared<Context>());
+    }
+
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this](Task* internal) {
             initialize_variables(internal);
         }),
-        CreateLambdaTask([this](Task* internal) {
+        CreateLambdaTask([this, contexts](Task* internal) {
             // Fetch unique values for all Group By columns.
             for (int i=0; i<group_by_refs_.size(); i++) {
                 // TODO(nicholas): No need for a TaskChain here
@@ -474,12 +427,15 @@ void Aggregate::initialize(Task* ctx) {
                         initialize_group_by_column(internal, i);
                     }),
                     CreateLambdaTask([this, i] {
-                        std::scoped_lock<std::mutex> lock(mutex2_);
                         all_unique_values_[i] = get_unique_values(group_by_refs_[i]).make_array();
                     }),
-                    CreateLambdaTask([this, i] {
-                        auto status = arrow::compute::Match(group_by_cols_[i], all_unique_values_[i]).Value(&uniq_val_maps_[i]);
-                        evaluate_status(status, __FUNCTION__, __LINE__);
+                    CreateLambdaTask([this, i, contexts](Task* internal) {
+
+                        arrow::Datum out;
+                        contexts[i]->match(internal, group_by_cols_[i], all_unique_values_[i], out);
+                    }),
+                    CreateLambdaTask([this, contexts, i] {
+                        uniq_val_maps_[i] = contexts[i]->out_.chunked_array();
                     })
                 ));
             }
@@ -491,58 +447,22 @@ void Aggregate::compute_group_aggregate(
     Task* ctx,
     int agg_index,
     const std::vector<int>& group_id,
-    const arrow::Datum& agg_col) {
+    const arrow::Datum agg_col) {
+
 
     if (num_aggs_ == 1) {
-        ctx->spawnTask(CreateTaskChain(
-            CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-//                get_group_filter(agg_index, group_id);
-
-                if (group_filters_[agg_index] != nullptr) {
-                    arrow::Status status;
-                    // TODO(nicholas): We don't need a Context for each aggregate; we just need num_threads number of Contexts
-                        contexts_[agg_index].apply_filter(internal, agg_col_, group_filters_[agg_index], filtered_agg_cols_[agg_index]);
-        //            status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
-                    evaluate_status(status, __FUNCTION__, __LINE__);
-                } else {
-                    filtered_agg_cols_[agg_index] = agg_col_;
-                }
-            }),
-            CreateLambdaTask([this, agg_index, group_id](Task* internal) {
-                if (filtered_agg_cols_[agg_index].length() > 0) {
-                    // Compute the aggregate over the filtered agg_col
-                    auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, filtered_agg_cols_[agg_index]);
-                    // Acquire builder_mutex_ so that groups are correctly associated with
-                    // their corresponding aggregates
-                    std::unique_lock<std::mutex> lock(builder_mutex_);
-                    insert_group_aggregate(aggregate);
-                    insert_group(group_id);
-                }
-            })
-        ));
+        auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, agg_col.chunked_array());
+        aggregates_vec_[agg_index] = std::static_pointer_cast<arrow::Int64Scalar>(aggregate.scalar())->value;
     }
-    else {
-//        get_group_filter(agg_index, group_id);
-
-        if (group_filters_[agg_index] != nullptr) {
-            arrow::Status status;
-            status = arrow::compute::Filter(agg_col_, group_filters_[agg_index]).Value(&filtered_agg_cols_[agg_index]);
-            evaluate_status(status, __FUNCTION__, __LINE__);
-        } else {
-            filtered_agg_cols_[agg_index] = agg_col_;
-        }
-        if (filtered_agg_cols_[agg_index].length() > 0) {
-            // Compute the aggregate over the filtered agg_col
-            auto aggregate = compute_aggregate(aggregate_refs_[0].kernel, filtered_agg_cols_[agg_index]);
-            // Acquire builder_mutex_ so that groups are correctly associated with
-            // their corresponding aggregates
-            std::unique_lock<std::mutex> lock(builder_mutex_);
-            insert_group_aggregate(aggregate);
-            insert_group(group_id);
-        }
+    if (aggregates_vec_[agg_index] > 0) {
+        arrow::Datum dummy;
+        // Compute the aggregate over the filtered agg_col
+        // Acquire builder_mutex_ so that groups are correctly associated with
+        // their corresponding aggregates
+        std::unique_lock<std::mutex> lock(builder_mutex_);
+        insert_group_aggregate(dummy, agg_index);
+        insert_group(group_id, agg_index);
     }
-
-
 }
 
 void Aggregate::compute_aggregates(Task *ctx) {
@@ -585,14 +505,18 @@ void Aggregate::compute_aggregates(Task *ctx) {
                 unique_value_filters_[i].resize(maxes[i]);
                 num_aggs_ *= maxes[i];
             }
-//
-//            group_filter_buffers_.resize(num_aggs_);
-//
+
             group_id_to_agg_index_map_.reserve(num_aggs_);
             group_filters_.resize(num_aggs_);
             filtered_agg_cols_.resize(num_aggs_);
             contexts_.resize(num_aggs_);
             unique_value_filter_contexts_.resize(num_aggs_);
+
+            aggregates_vec_ = (std::atomic<int64_t>*) malloc(sizeof(std::atomic<int64_t>)*num_aggs_);
+            for (int i=0; i<num_aggs_; ++i) {
+                aggregates_vec_[i] = 0;
+            }
+
             for (auto& vec : unique_value_filter_contexts_) {
                 vec.resize(group_by_refs_.size());
             }
@@ -611,11 +535,6 @@ void Aggregate::compute_aggregates(Task *ctx) {
                     key += group_id[k]*pow(10, k);
                 }
                 group_id_to_agg_index_map_[key] = agg_index;
-//                auto agg_col = agg_col_.chunked_array();
-//                auto buf = std::make_shared<arrow::TypedBufferBuilder<bool>>();
-//                buf->Resize(agg_col->c);
-//                auto buf_data = buf->mutable_data();
-//                group_filter_buffers_[agg_index] =
                 ++agg_index;
                 // LOOP BODY END
 
@@ -639,7 +558,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
             initialize_group_filters(internal);
         }),
         CreateLambdaTask([this](Task* internal) {
-            int batch_size = num_aggs_ / 8 /2;
+            int batch_size = num_aggs_ / std::thread::hardware_concurrency() /2;
             if (batch_size == 0) batch_size = num_aggs_;
             int num_batches = num_aggs_ / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;

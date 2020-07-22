@@ -24,7 +24,7 @@ namespace hustle::operators{
         this->filter = filter;
         this->indices = indices;
 
-        materialized_cols_.reserve(table->get_num_cols());
+        materialized_cols_.resize(table->get_num_cols());
         filtered_cols_.reserve(table->get_num_cols());
 
     }
@@ -39,7 +39,7 @@ namespace hustle::operators{
 
         arrow::Status status;
 
-        if (materialized_cols_.count(i) > 0) {
+        if (materialized_cols_[i] != nullptr) {
             return materialized_cols_[i];
         }
 
@@ -53,7 +53,7 @@ namespace hustle::operators{
         }
 
         std::shared_ptr<arrow::ChunkedArray> out_col = col.chunked_array();
-        materialized_cols_.emplace(i, out_col);
+        materialized_cols_[i] = out_col;
 
         return col.chunked_array();
     }
@@ -68,7 +68,7 @@ void LazyTable::get_column(Task* ctx, int i, arrow::Datum& out) {
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, i, &out](Task *internal) {
 
-            if (materialized_cols_.count(i) > 0) {
+            if (materialized_cols_[i] != nullptr) {
                 out.value = materialized_cols_[i];
             } else if (filtered_cols_.count(i) > 0) {
                 out.value = filtered_cols_[i];
@@ -85,7 +85,7 @@ void LazyTable::get_column(Task* ctx, int i, arrow::Datum& out) {
                 context_.apply_indices(internal, out,indices, false, out);
                 arrow::Status status;
             }
-            materialized_cols_.emplace(i, out.chunked_array());
+            materialized_cols_[i] = out.chunked_array();
         })
     ));
 }
