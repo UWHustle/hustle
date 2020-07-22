@@ -188,7 +188,7 @@ void LIP::probe_filters(Task *ctx) {
     int num_chunks = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array()->num_chunks();
     batch_size_ = 60;
 
-    batch_size_ = num_chunks / 8;
+    batch_size_ = num_chunks / std::thread::hardware_concurrency() /2;
     if (batch_size_ == 0) batch_size_ = num_chunks;
     int num_batches = num_chunks / batch_size_ + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
     if (num_batches == 0) num_batches = 1;
