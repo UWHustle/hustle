@@ -17,37 +17,39 @@ namespace hustle::operators {
 
 SSB::SSB(int SF, bool print) {
 
+    auto current_dir = std::filesystem::current_path().string();
+    std::cout << current_dir << std::endl;
     print_ = print;
     num_threads_ = std::thread::hardware_concurrency();
 //    num_threads_ = 1;
 
     if (SF==0) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-small/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-small/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-01/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-01/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-01/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-01/supplier.hsl");
     }
     if (SF==1) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-01/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-01/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-01/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-01/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-01/supplier.hsl");
     }
     else if (SF==5) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-05/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-05/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-05/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-05/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-05/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-05/supplier.hsl");
     }
     else if (SF==10) {
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10-20MB/lineorder.hsl");
-        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/date.hsl");
-        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/part.hsl");
-        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/customer.hsl");
-        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/supplier.hsl");
+        lo = read_from_file("../../../src/ssb/data/ssb-10-20MB/lineorder.hsl");
+        d = read_from_file("../../../src/ssb/data/ssb-10/date.hsl");
+        p = read_from_file("../../../src/ssb/data/ssb-10/part.hsl");
+        c = read_from_file("../../../src/ssb/data/ssb-10/customer.hsl");
+        s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
     }
 
     lo_d_ref = {lo, "order date"};
