@@ -188,62 +188,69 @@ void read_from_csv() {
 //    std::cout << "lo" << std::endl;
 }
 
+void run_experiment(int num_trials) {
+
+    SSB workload(10, false);
+    sleep(20);
+    for (int i = 0; i < num_trials; i++) {
+        std::cout << "batch start" << std::endl;
+
+        workload.q11();
+        workload.q12();
+        workload.q13();
+
+//        workload.q21();
+//        workload.q22();
+//        workload.q23();
+//
+//        workload.q31();
+//        workload.q32();
+//        workload.q33();
+//        workload.q34();
+//
+//        workload.q41();
+//        workload.q42();
+//        workload.q43();
+
+        workload.q21_lip();
+        workload.q22_lip();
+        workload.q23_lip();
+
+        workload.q31_lip();
+        workload.q32_lip();
+        workload.q33_lip();
+        workload.q34_lip();
+
+        workload.q41_lip();
+        workload.q42_lip();
+        workload.q43_lip();
+    }
+
+}
+
 int main(int argc, char *argv[]) {
 
 //    read_from_csv();
 //    return 0;
 
+    run_experiment(20);
+
 //    SSB workload(1, true);
-//        workload.c->get_block(0)->print();
-//    workload.lo->get_block(0)->print();
 //    SSB workload(1, false);
-    SSB workload(10, false);
-    std::cout << workload.lo->get_num_blocks() << std::endl;
-    std::string input;
-    std::cout << ">> ";
-    std::getline(std::cin, input);
-    while (input != "exit") {
-        for (int i = 0; i < 1; i++) {
-            auto t1 = high_resolution_clock::now();
-            workload.q11();
-            workload.q12();
-            workload.q13();
+//    SSB workload(10, false);
+
+//    std::string input;
+//    std::cout << ">> ";
+//    std::getline(std::cin, input);
+
+//    while (input != "exit") {
+//        auto t1 = high_resolution_clock::now();
+
+
+//        auto t2 = high_resolution_clock::now();
+//        std::cout << duration_cast<milliseconds>(t2 - t1).count() << std::endl;
 //
-//            workload.q21();
-//            workload.q22();
-//            workload.q23();
-//
-//            workload.q31();
-//            workload.q32();
-//            workload.q33();
-//            workload.q34();
-//
-//            workload.q41();
-//            workload.q42();
-//            workload.q43();
-//
-//            workload.q11_lip();
-//            workload.q12_lip();
-//            workload.q13_lip();
-
-            workload.q21_lip();
-            workload.q22_lip();
-            workload.q23_lip();
-
-            workload.q31_lip();
-            workload.q32_lip();
-            workload.q33_lip();
-            workload.q34_lip();
-
-            workload.q41_lip();
-            workload.q42_lip();
-            workload.q43_lip();
-
-            auto t2 = high_resolution_clock::now();
-            std::cout << duration_cast<milliseconds>(t2 - t1).count() << std::endl;
-
-            std::cout << ">> ";
-            std::getline(std::cin, input);
-        }
-    }
+//        std::cout << ">> ";
+//        std::getline(std::cin, input);
+//    }
 }
