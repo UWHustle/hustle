@@ -168,7 +168,7 @@ void Aggregate::initialize_group_filters(Task* ctx) {
         }
 
 
-        int batch_size = num_chunks / 8 /2;
+        int batch_size = num_chunks / std::thread::hardware_concurrency() /2;
         if (batch_size == 0) batch_size = num_chunks;
         int num_batches = num_chunks / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
         if (num_batches == 0) num_batches = 1;
@@ -558,7 +558,7 @@ void Aggregate::compute_aggregates(Task *ctx) {
             initialize_group_filters(internal);
         }),
         CreateLambdaTask([this](Task* internal) {
-            int batch_size = num_aggs_ / 8 /2;
+            int batch_size = num_aggs_ / std::thread::hardware_concurrency() /2;
             if (batch_size == 0) batch_size = num_aggs_;
             int num_batches = num_aggs_ / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;
