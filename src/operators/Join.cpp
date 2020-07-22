@@ -30,7 +30,7 @@ void Join::build_hash_table
 
     // NOTE: Do not forget to clear the hash table
     hash_table_.clear();
-//    hash_table_.reserve(col->length());
+    hash_table_.reserve(col->length());
 
     // Precompute the row offsets of each chunk. A multithreaded build phase
     // requires that we know all offsets beforehand.
@@ -42,7 +42,7 @@ void Join::build_hash_table
     }
 
     if (filter == nullptr) {
-        hash_table_.reserve(col->length());
+//        hash_table_.reserve(col->length());
 
         for (int i = 0; i < col->num_chunks(); i++) {
             // Each task inserts one chunk into the hash table
@@ -55,12 +55,12 @@ void Join::build_hash_table
         }
     } else {
 
-        uint32_t length_after_filtering = 0;
-
-        for (int j=0; j<col->num_chunks(); ++j) {
-            length_after_filtering += arrow::compute::internal::GetFilterOutputSize(*filter->chunk(j)->data(),arrow::compute::FilterOptions::NullSelectionBehavior::DROP);
-        }
-        hash_table_.reserve(length_after_filtering);
+//        uint32_t length_after_filtering = 0;
+//
+//        for (int j=0; j<col->num_chunks(); ++j) {
+//            length_after_filtering += arrow::compute::internal::GetFilterOutputSize(*filter->chunk(j)->data(),arrow::compute::FilterOptions::NullSelectionBehavior::DROP);
+//        }
+//        hash_table_.reserve(length_after_filtering);
 
         for (int i = 0; i < col->num_chunks(); i++) {
             // Each task inserts one chunk into the hash table
