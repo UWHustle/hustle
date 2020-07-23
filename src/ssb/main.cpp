@@ -50,19 +50,19 @@ void read_from_csv() {
     std::cout << "lo" << std::endl;
 }
 
-void run_experiment(int num_trials) {
+void run_experiment(int num_trials, int sf, bool load) {
 
-//    read_from_csv();
+    if (load) read_from_csv();
 //    SSB workload(10, false);
-    SSB workload(1, true);
+    SSB workload(sf, true);
     std::cout << "sleeping..." << std::endl;
     sleep(0);
     for (int i = 0; i < num_trials; i++) {
         std::cout << "batch start" << std::endl;
 
         workload.q11();
-//        workload.q12();
-//        workload.q13();
+        workload.q12();
+        workload.q13();
 
 //        workload.q21();
 //        workload.q22();
@@ -77,17 +77,17 @@ void run_experiment(int num_trials) {
 //        workload.q42();
 //        workload.q43();
 //
-//        workload.q21_lip();
-//        workload.q22_lip();
-//        workload.q23_lip();
-//
-//        workload.q31_lip();
-//        workload.q32_lip();
-//        workload.q33_lip();
-//        workload.q34_lip();
-//
-//        workload.q41_lip();
-//        workload.q42_lip();
+        workload.q21_lip();
+        workload.q22_lip();
+        workload.q23_lip();
+
+        workload.q31_lip();
+        workload.q32_lip();
+        workload.q33_lip();
+        workload.q34_lip();
+
+        workload.q41_lip();
+        workload.q42_lip();
         workload.q43_lip();
     }
 
@@ -97,8 +97,15 @@ int main(int argc, char *argv[]) {
 
 //    read_from_csv();
 //    return 0;
-
-    run_experiment(1);
+    if (argc == 4) {
+        run_experiment(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]));
+    }
+    else if (argc == 3) {
+        run_experiment(std::stoi(argv[1]), std::stoi(argv[2]), false);
+    }
+    else {
+        run_experiment(1, 1, false);
+    }
 
 //    SSB workload(1, true);
 //    SSB workload(1, false);

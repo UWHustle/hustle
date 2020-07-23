@@ -17,8 +17,6 @@ namespace hustle::operators {
 
 SSB::SSB(int SF, bool print) {
 
-    auto current_dir = std::filesystem::current_path().string();
-    std::cout << current_dir << std::endl;
     print_ = print;
     num_threads_ = std::thread::hardware_concurrency();
 //    num_threads_ = 1;
@@ -50,6 +48,20 @@ SSB::SSB(int SF, bool print) {
         p = read_from_file("../../../src/ssb/data/ssb-10/part.hsl");
         c = read_from_file("../../../src/ssb/data/ssb-10/customer.hsl");
         s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
+    }
+    else if (SF==100) {
+        lo = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/lineorder.hsl");
+        d = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/date.hsl");
+        p = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/part.hsl");
+        c = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/customer.hsl");
+        s = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/supplier.hsl");
+    }
+    else if (SF==101) {
+        lo = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/lineorder.hsl");
+        d = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/date.hsl");
+        p = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/part.hsl");
+        c = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/customer.hsl");
+        s = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/supplier.hsl");
     }
 
     lo_d_ref = {lo, "order date"};
