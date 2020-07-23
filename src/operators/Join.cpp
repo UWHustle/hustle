@@ -66,7 +66,7 @@ void Join::build_hash_table
         for (int i = 0; i < col->num_chunks(); i++) {
             // Each task inserts one chunk into the hash table
             // TODO(nicholas): for now, we assume the join column is INT64 type.
-            auto chunk = std::static_pointer_cast<arrow::Int32Array>(col->chunk(i));
+            auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
             auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(filter->chunk(i));
 
             auto filter_data = filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
@@ -96,7 +96,7 @@ void Join::probe_hash_table_block
         auto offset = chunk_row_offsets[i];
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
-        auto left_join_chunk_data = chunk->data()->GetValues<uint32_t>(1, 0);
+        auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
         auto filter_data = probe_filter->chunk(i)->data()->GetValues<uint8_t>(1, 0); //@bug
         auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(probe_filter->chunk(i));
 
@@ -138,7 +138,7 @@ void Join::probe_hash_table_block
         auto offset = chunk_row_offsets[i];
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
-        auto left_join_chunk_data = chunk->data()->GetValues<uint32_t>(1, 0);
+        auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
 
 
         // The indices of the rows joined in chunk i
