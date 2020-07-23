@@ -9,45 +9,45 @@ void read_from_csv() {
     
     std::shared_ptr<Table> t;
 
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgencustomer.tbl", workload.c_schema, BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.hsl", *t);
-//    std::cout << "c" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.tbl", workload.s_schema, BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.hsl", *t);
-//    std::cout << "s" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.tbl", workload.d_schema, BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.hsl", *t);
-//    std::cout << "d" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.tbl", workload.p_schema, BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.hsl", *t);
-//    std::cout << "p" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgenlineorder.tbl", workload.lo_schema, 20*BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.hsl", *t);
-//    std::cout << "lo" << std::endl;
-
-    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl", workload.c_schema, 20*BLOCK_SIZE);
-    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl", *t);
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.tbl", workload.c_schema, BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.hsl", *t);
     std::cout << "c" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.tbl", workload.s_schema, 20*BLOCK_SIZE);
-    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl", *t);
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.tbl", workload.s_schema, BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.hsl", *t);
     std::cout << "s" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.tbl", workload.d_schema, 20*BLOCK_SIZE);
-    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl", *t);
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.tbl", workload.d_schema, BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.hsl", *t);
     std::cout << "d" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.tbl", workload.p_schema, 20*BLOCK_SIZE);
-    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl", *t);
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.tbl", workload.p_schema, BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.hsl", *t);
     std::cout << "p" << std::endl;
 
-    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.tbl", workload.lo_schema, 20*BLOCK_SIZE);
-    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl", *t);
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.tbl", workload.lo_schema, 20*BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.hsl", *t);
     std::cout << "lo" << std::endl;
+
+//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl", workload.c_schema, 20*BLOCK_SIZE);
+//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl", *t);
+//    std::cout << "c" << std::endl;
+//
+//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.tbl", workload.s_schema, 20*BLOCK_SIZE);
+//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl", *t);
+//    std::cout << "s" << std::endl;
+//
+//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.tbl", workload.d_schema, 20*BLOCK_SIZE);
+//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl", *t);
+//    std::cout << "d" << std::endl;
+//
+//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.tbl", workload.p_schema, 20*BLOCK_SIZE);
+//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl", *t);
+//    std::cout << "p" << std::endl;
+//
+//    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.tbl", workload.lo_schema, 20*BLOCK_SIZE);
+//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl", *t);
+//    std::cout << "lo" << std::endl;
 }
 
 void run_experiment(int num_trials, int sf, bool load) {
