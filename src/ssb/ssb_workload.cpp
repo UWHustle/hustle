@@ -50,18 +50,37 @@ SSB::SSB(int SF, bool print) {
         s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
     }
     else if (SF==100) {
-        lo = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/lineorder.hsl");
         d = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/date.hsl");
+        std::cout << "d" << std::endl;
+
         p = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/part.hsl");
+        std::cout << "p" << std::endl;
+
         c = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/customer.hsl");
+        std::cout << "d" << std::endl;
+
         s = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/supplier.hsl");
+        std::cout << "s" << std::endl;
+
+        lo = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-100/lineorder.hsl");
+        std::cout << "lo" << std::endl;
+
     }
     else if (SF==101) {
-        lo = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/lineorder.hsl");
         d = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/date.hsl");
+        std::cout << "d" << std::endl;
+
         p = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/part.hsl");
+        std::cout << "p" << std::endl;
+
         c = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/customer.hsl");
+        std::cout << "d" << std::endl;
+
         s = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/supplier.hsl");
+        std::cout << "s" << std::endl;
+
+        lo = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/lineorder.hsl");
+        std::cout << "lo" << std::endl;
     }
 
     lo_d_ref = {lo, "order date"};
