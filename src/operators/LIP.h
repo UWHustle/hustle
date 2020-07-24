@@ -48,6 +48,7 @@ public:
 
 private:
     // Row indices of the fact table that successfully probed all Bloom filters.
+    std::vector<uint32_t*> lip_indices_raw_;
     std::vector<std::vector<uint32_t>> lip_indices_;
     const uint32_t* fact_indices_;
 
@@ -129,6 +130,10 @@ private:
     void finish();
 
     void probe_filters2(int chunk_i);
+
+//    void probe_filters(int chunk_start, int chunk_end, int filter_j);
+
+    void probe_filters(int chunk_start, int chunk_end, int filter_j, Task *ctx);
 };
 
 } // namespace hustle
