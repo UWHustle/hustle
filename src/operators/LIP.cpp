@@ -27,7 +27,6 @@ void LIP::build_filters(Task* ctx) {
         // Task = build the Bloom filter for one dimension table.
         ctx->spawnTask(CreateTaskChain(
             CreateLambdaTask([this, dim_join_col_name, i](Task* internal) {
-//                dim_tables_[i].get_column_by_name(internal, dim_join_col_name, dim_pk_cols_[dim_join_col_name]);
                 dim_pk_cols_[dim_join_col_name] = dim_tables_[i].table->get_column_by_name(dim_join_col_name);
             }),
             CreateLambdaTask([this, dim_join_col_name, i] {
@@ -69,7 +68,7 @@ void LIP::build_filters(Task* ctx) {
                     }
                 }
 
-                bloom_filter->set_memory(10000);
+                bloom_filter->set_memory(100);
                 bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
                 dim_filters_[i] = (bloom_filter);
             })
@@ -166,6 +165,11 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                     }
                     indices_length = k - 1;
                     lip_indices_[chunk_i] = std::vector<uint32_t>(indices, indices + indices_length + 1);
+
+                    bloom_filter->probe_count_ += chunk_length;
+                    bloom_filter->hit_count_ += indices_length+1;
+
+                    free(indices);
                 }
 
                     // For the remaining filters, we only need to probe rows that passed
@@ -173,6 +177,8 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                 else {
                     indices = lip_indices_[chunk_i].data();
                     indices_length = lip_indices_[chunk_i].size()-1;
+                    bloom_filter->probe_count_ += indices_length+1;
+
                     int k = 0;
                     while (k <= indices_length) {
                         if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
@@ -184,6 +190,7 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                         }
                     }
                     lip_indices_[chunk_i].resize(indices_length+1);
+                    bloom_filter->hit_count_ += indices_length+1;
                 }
             });
         }
@@ -192,9 +199,8 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
 void LIP::probe_filters(Task *ctx) {
 
     int num_chunks = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array()->num_chunks();
-    batch_size_ = 60;
+    batch_size_ = std::thread::hardware_concurrency();
 
-    batch_size_ = num_chunks / std::thread::hardware_concurrency() /2;
     if (batch_size_ == 0) batch_size_ = num_chunks;
     int num_batches = num_chunks / batch_size_ + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
     if (num_batches == 0) num_batches = 1;
@@ -228,7 +234,11 @@ void LIP::probe_filters(Task *ctx) {
 
         // Task 2 = update Bloom filter statistics and sort filters accordingly
         auto update_and_sort_task = CreateLambdaTask([this] {
-            for (auto &bloom_filter: dim_filters_) bloom_filter->update();
+            for (auto &bloom_filter: dim_filters_) {
+//                std::cout << bloom_filter->get_fact_fk_name() << " " << bloom_filter->get_hit_rate() << " ";
+                bloom_filter->update();
+            }
+//            std::cout << std::endl;
             std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
         });
 
@@ -330,7 +340,6 @@ void LIP::execute(Task *ctx) {
                 auto fact_col = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array();
                 lip_indices_.resize(fact_col->num_chunks());
 
-//            auto f = fact_table_.table->get_column(0);
                 chunk_row_offsets_.resize(fact_col->num_chunks());
                 chunk_row_offsets_[0] = 0;
                 for (int i = 1; i < fact_col->num_chunks(); i++) {
