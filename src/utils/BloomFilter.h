@@ -47,6 +47,13 @@ public:
         probe_count_queue_sum_ = 0;
     }
 
+    ~BloomFilter() {
+        free(cells_);
+        free(seeds_);
+        free(hit_count_queue_);
+        free(probe_count_queue_);
+    }
+
     /**
      * Insert a value into the Bloom filter
      *
@@ -160,6 +167,11 @@ public:
      */
     inline std::string get_fact_fk_name() { return fk_name_;}
 
+    // Number of times a probe passed in a given batch
+    std::atomic<int> hit_count_;
+    // Total number of probes in a given batch
+    std::atomic<int> probe_count_;
+
 private:
 
     // Foreign key column name associated with the filter
@@ -183,10 +195,7 @@ private:
     // The index of the oldest queue member
     int queue_index_;
 
-    // Number of times a probe passed in a given batch
-    int hit_count_;
-    // Total number of probes in a given batch
-    int probe_count_;
+
     // Total number of times a probe passed across all batches processed
     int hit_count_queue_sum_;
     // Total number of probes across all batches processed

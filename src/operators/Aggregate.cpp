@@ -330,6 +330,8 @@ void Aggregate::finish() {
 
     output_table_->insert_records(output_table_data_);
     output_result_->append(output_table_);
+
+    free(aggregates_vec_);
 }
 
 arrow::Datum Aggregate::compute_aggregate(
