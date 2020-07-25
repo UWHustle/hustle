@@ -20,7 +20,7 @@ void SSB::q11_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 1)
+        arrow::Datum((uint8_t) 1)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -31,7 +31,7 @@ void SSB::q11_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum((int64_t) 3)
+        arrow::Datum((uint8_t) 3)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -48,7 +48,7 @@ void SSB::q11_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS,
-        arrow::Datum((int64_t) 25)
+        arrow::Datum((uint8_t) 25)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -135,7 +135,7 @@ void SSB::q12_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 4)
+        arrow::Datum((uint8_t) 4)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -146,7 +146,7 @@ void SSB::q12_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum((int64_t) 6)
+        arrow::Datum((uint8_t) 6)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -163,7 +163,7 @@ void SSB::q12_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 26)
+        arrow::Datum((uint8_t) 26)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -174,7 +174,7 @@ void SSB::q12_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum((int64_t) 35)
+        arrow::Datum((uint8_t) 35)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -270,7 +270,7 @@ void SSB::q13_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 5)
+        arrow::Datum((uint8_t) 5)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -281,7 +281,7 @@ void SSB::q13_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum((int64_t) 7)
+        arrow::Datum((uint8_t) 7)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -298,7 +298,7 @@ void SSB::q13_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 26)
+        arrow::Datum((uint8_t) 26)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -309,7 +309,7 @@ void SSB::q13_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum((int64_t) 35)
+        arrow::Datum((uint8_t) 35)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
