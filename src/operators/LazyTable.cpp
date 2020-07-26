@@ -82,6 +82,7 @@ void LazyTable::get_column(Task* ctx, int i, arrow::Datum& out) {
         }),
         CreateLambdaTask([this, i, &out](Task *internal) {
             if (indices.kind() != arrow::Datum::NONE) {
+                // BUG:
                 context_.apply_indices(internal, out,indices, false, out);
                 arrow::Status status;
             }

@@ -169,6 +169,10 @@ private:
                                 const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i, int batch_size,
                                 std::vector<uint64_t> chunk_row_offsets);
 
+    void probe_hash_table_block_indices(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+                                const std::shared_ptr<arrow::ChunkedArray> &probe_indices, int batch_i, int batch_size,
+                                std::vector<uint64_t> chunk_row_offsets);
+
     void
     build_hash_table(const std::shared_ptr<arrow::ChunkedArray> &col,
                      const std::shared_ptr<arrow::ChunkedArray> &filter,
@@ -180,6 +184,9 @@ private:
 
     void probe_hash_table(const std::shared_ptr<arrow::ChunkedArray> &probe_col, const arrow::Datum &probe_filter,
                           const arrow::Datum &probe_indices, Task *ctx);
+
+    std::shared_ptr<OperatorResult>
+    back_propogate_result2(const LazyTable &left, LazyTable right, const std::vector<arrow::Datum> &joined_indices);
 };
 
 } // namespace hustle

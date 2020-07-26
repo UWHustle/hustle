@@ -81,4 +81,6 @@ schema, int block_size);
 
 std::shared_ptr<arrow::Schema> make_schema(const hustle::catalog::TableSchema& schema);
 
+std::shared_ptr<arrow::ChunkedArray> array_to_chunkedarray(std::shared_ptr<arrow::Array> array, int num_chunks);
+
 #endif //HUSTLE_OFFLINE_UTIL_H

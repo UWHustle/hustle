@@ -1,5 +1,4 @@
 #include <arrow/api.h>
-#include <arrow/csv/api.h>
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
 #include <iostream>
@@ -11,6 +10,7 @@
 #include "table.h"
 #include "block.h"
 #include "util.h"
+#include <scheduler/Scheduler.hpp>
 
 void evaluate_status(const arrow::Status &status, const char *function_name,
                      int line_no) {
@@ -93,6 +93,8 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 // reading blocks we do not intend to mutate.
 std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
 
+    auto& scheduler = hustle::Scheduler::GlobalInstance();
+
     arrow::Status status;
     int x = 0;
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -124,6 +126,24 @@ std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
     }
 
     return std::make_shared<Table>("table", record_batches, BLOCK_SIZE);
+
+//    record_batches.resize(record_batch_reader->num_record_batches());
+//
+//    for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
+//        scheduler.addTask(hustle::CreateLambdaTask([i, read_only, record_batch_reader]() {
+//            auto result3 = record_batch_reader->ReadRecordBatch(i);
+//            evaluate_status(result3.status(), __FUNCTION__, __LINE__);
+//            auto in_batch = result3.ValueOrDie();
+//            if (in_batch != nullptr) {
+//                if (read_only) {
+//                    record_batches[i] = in_batch;
+//                }
+//                else {
+//                    auto batch_copy = copy_record_batch(in_batch);
+//                    record_batches[i] = batch_copy;
+//                }
+//            }
+//        }));
 }
 
 std::vector<std::shared_ptr<arrow::Array>>
@@ -383,4 +403,56 @@ std::shared_ptr<arrow::Schema> make_schema(
 
     return result.ValueOrDie();
 
+}
+
+
+void skew_column(std::shared_ptr<arrow::ChunkedArray>& col) {
+
+    auto num_chunks =  col->num_chunks();
+
+    for (int i=0; i<num_chunks; ++i) {
+
+        auto chunk = col->chunk(i);
+        auto chunk_data = chunk->data()->GetMutableValues<uint32_t>(1, 0);
+        auto chunk_length = chunk->length();
+
+        for (int j=0; j<chunk_length; ++j) {
+            chunk_data[j] = 0;
+        }
+    }
+}
+
+std::shared_ptr<arrow::ChunkedArray> array_to_chunkedarray(std::shared_ptr<arrow::Array> array, int num_chunks) {
+
+    arrow::ArrayVector vec;
+    vec.resize(num_chunks);
+
+    int slice_length = -1;
+    if (array->length() <= num_chunks) {
+        slice_length = array->length();
+        for (int i=1; i<num_chunks; ++i) {
+            vec[i] = arrow::MakeArrayOfNull(array->type(), 0, arrow::default_memory_pool()).ValueOrDie();
+        }
+        num_chunks = 1;
+
+    } else{
+        slice_length = array->length()/num_chunks;
+    }
+
+
+
+    std::shared_ptr<arrow::Array> sliced_array;
+    for (int i=0; i<num_chunks-1; ++i) {
+        sliced_array = array->Slice(i*slice_length, slice_length);
+        vec[i] = sliced_array;
+    }
+
+    if (num_chunks > 1) {
+        sliced_array = array->Slice(vec[num_chunks-2]->offset()+slice_length, array->length() - vec[num_chunks-2]->offset());
+        vec[num_chunks-1] = sliced_array;
+    } else {
+        vec[0] = array;
+    }
+
+    return std::make_shared<arrow::ChunkedArray>(vec);
 }

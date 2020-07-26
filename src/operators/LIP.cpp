@@ -284,7 +284,7 @@ void LIP::initialize(Task* ctx) {
     dim_histograms_.resize(dim_tables_.size());
     for (int i=0; i<dim_tables_.size(); i++) {
         auto fact_join_col_name = fact_fk_col_names_[i];
-        fact_fk_cols_[fact_join_col_name] = arrow::Datum();
+        fact_fk_cols_.emplace(fact_join_col_name, arrow::Datum());
         dim_histograms_[i] = std::make_shared<Histogram>(100, 0, 1);
     }
 
