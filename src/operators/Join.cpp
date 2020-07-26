@@ -338,15 +338,13 @@ void Join::hash_join(int i, Task *ctx) {
 //            std::cout << left_join_col_.length() << " " << right_join_col_.length() << std::endl;
 //            left_join_col_ = left_.table->get_column_by_name(left_col_names[i]);
 //            right_join_col_ = right_.table->get_column_by_name(right_col_names[i]);
-            probe_filter_ = left_.filter;
-            build_filter_ = right_.filter;
 
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Build phase
-            switch(build_filter_.kind()) {
+            switch(right_.filter.kind()) {
                 case arrow::Datum::CHUNKED_ARRAY: {
-                    build_hash_table(right_join_col_.chunked_array(), build_filter_.chunked_array(), internal);
+                    build_hash_table(right_join_col_.chunked_array(), right_.filter.chunked_array(), internal);
                     break;
                 }
                 default: {
@@ -356,9 +354,9 @@ void Join::hash_join(int i, Task *ctx) {
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
-            switch(probe_filter_.kind()) {
+            switch(left_.filter.kind()) {
                 case arrow::Datum::CHUNKED_ARRAY: {
-                    probe_hash_table(left_join_col_.chunked_array(), probe_filter_.chunked_array(), internal);
+                    probe_hash_table(left_join_col_.chunked_array(), left_.filter.chunked_array(), internal);
                     break;
                 }
                 default: {

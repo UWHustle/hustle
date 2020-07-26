@@ -90,11 +90,6 @@ private:
     arrow::Datum left_join_col_;
     arrow::Datum right_join_col_;
 
-    arrow::Datum probe_filter_;
-    arrow::Datum build_filter_;
-
-
-
     LazyTable left_;
     LazyTable right_;
 
