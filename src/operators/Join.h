@@ -169,9 +169,6 @@ private:
                                 const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i, int batch_size,
                                 std::vector<uint64_t> chunk_row_offsets);
 
-    void probe_hash_table(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
-                          const std::shared_ptr<arrow::ChunkedArray> &probe_filter, Task *ctx);
-
     void
     build_hash_table(const std::shared_ptr<arrow::ChunkedArray> &col,
                      const std::shared_ptr<arrow::ChunkedArray> &filter,
@@ -179,6 +176,10 @@ private:
 
     void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
                                 std::vector<uint64_t> chunk_row_offsets);
+
+
+    void probe_hash_table(const std::shared_ptr<arrow::ChunkedArray> &probe_col, const arrow::Datum &probe_filter,
+                          const arrow::Datum &probe_indices, Task *ctx);
 };
 
 } // namespace hustle

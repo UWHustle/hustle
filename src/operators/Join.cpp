@@ -161,7 +161,7 @@ void Join::probe_hash_table_block
 }
 
 void Join::probe_hash_table
-    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, const std::shared_ptr<arrow::ChunkedArray> &probe_filter, Task *ctx) {
+    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, const arrow::Datum &probe_filter, const arrow::Datum &probe_indices, Task *ctx) {
 
     new_left_indices_vector.resize(probe_col->num_chunks());
     new_right_indices_vector.resize(probe_col->num_chunks());
@@ -185,11 +185,11 @@ void Join::probe_hash_table
 
         // Each task probes one chunk
         ctx->spawnLambdaTask([this, batch_i, batch_size, probe_col, probe_filter, chunk_row_offsets] {
-            if (probe_filter == nullptr) {
+            if (probe_filter.kind() == arrow::Datum::NONE) {
                 probe_hash_table_block(probe_col, batch_i, batch_size, chunk_row_offsets);
 
             } else {
-                probe_hash_table_block(probe_col, probe_filter, batch_i, batch_size, chunk_row_offsets);
+                probe_hash_table_block(probe_col, probe_filter.chunked_array(), batch_i, batch_size, chunk_row_offsets);
             }
         });
     }
@@ -354,16 +354,17 @@ void Join::hash_join(int i, Task *ctx) {
         }),
         CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
-            switch(left_.filter.kind()) {
-                case arrow::Datum::CHUNKED_ARRAY: {
-                    probe_hash_table(left_join_col_.chunked_array(), left_.filter.chunked_array(), internal);
-                    break;
-                }
-                default: {
-                    probe_hash_table(left_join_col_.chunked_array(), nullptr, internal);
+            probe_hash_table(left_join_col_.chunked_array(), left_.filter, left_.indices, internal);
 
-                }
-            }
+//            switch(left_.filter.kind()) {
+//                case arrow::Datum::CHUNKED_ARRAY: {
+//                    break;
+//                }
+//                default: {
+//                    probe_hash_table(left_join_col_.chunked_array(), nullptr, internal);
+//
+//                }
+//            }
         }),
         CreateLambdaTask([this, i](Task *internal) {
             finish_probe(internal);
