@@ -147,7 +147,7 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                 uint32_t temp;
 
                 // TODO(nicholas): For now, we assume the column is of INT64 type
-                auto chunk = fact_fk_col->chunk(chunk_i);
+                auto chunk = fact_fk_col->chunk(chunk_i); // @bug: fact_fk_col is nullptr
                 auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
                 auto chunk_length = chunk->length();
 
@@ -234,9 +234,13 @@ void LIP::probe_filters(Task *ctx) {
 
         // Task 2 = update Bloom filter statistics and sort filters accordingly
         auto update_and_sort_task = CreateLambdaTask([this] {
-            for (auto &bloom_filter: dim_filters_) {
-//                std::cout << bloom_filter->get_fact_fk_name() << " " << bloom_filter->get_hit_rate() << " ";
-                bloom_filter->update();
+            for (int i=0; i<dim_filters_.size(); ++i) {
+                dim_filters_[i]->update();
+                dim_histograms_[i]->insert(dim_filters_[i]->get_hit_rate());
+//                std::cout << dim_filters_[i]->get_fact_fk_name() << " " << dim_filters_[i]->get_hit_rate() << " ";
+//                auto v = std::vector<int>(dim_histograms_[i]->get_cumulative(), dim_histograms_[i]->get_cumulative()+100);
+//                std::cout << "risk = " << dim_histograms_[i]->get_risk(75) << " ";
+//                int x = 0;
             }
 //            std::cout << std::endl;
             std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
@@ -277,9 +281,11 @@ void LIP::finish() {
 }
 
 void LIP::initialize(Task* ctx) {
+    dim_histograms_.resize(dim_tables_.size());
     for (int i=0; i<dim_tables_.size(); i++) {
         auto fact_join_col_name = fact_fk_col_names_[i];
         fact_fk_cols_[fact_join_col_name] = arrow::Datum();
+        dim_histograms_[i] = std::make_shared<Histogram>(100, 0, 1);
     }
 
     // Pre-materialized and save fact table fk columns.

@@ -31,7 +31,7 @@ add_library(hustle_src_utils_ArrowComputeWrappers arrow_compute_wrappers.cpp arr
 add_library(hustle_src_utils_ParallelHashmap ../empty_src.cpp parallel_hashmap/phmap.h)
 
 
-add_library(hustle_src_utils_BloomFilter ../empty_src.cpp BloomFilter.h)
+add_library(hustle_src_utils_BloomFilter ../empty_src.cpp BloomFilter.h Histogram.h)
 
 # Include Arrow
 target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})

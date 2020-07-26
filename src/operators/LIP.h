@@ -5,6 +5,7 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include <utils/Histogram.h>
 #include "BloomFilter.h"
 #include "OperatorResult.h"
 #include "JoinGraph.h"
@@ -70,6 +71,7 @@ private:
 
     // Bloom filters of all dimension tables.
     std::vector<std::shared_ptr<BloomFilter>> dim_filters_;
+    std::vector<std::shared_ptr<Histogram>> dim_histograms_;
 
     std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_col_filters_;
     std::vector<std::shared_ptr<arrow::ChunkedArray>> fact_col_filters_;
