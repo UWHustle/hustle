@@ -236,7 +236,7 @@ void LIP::probe_filters(Task *ctx) {
         auto update_and_sort_task = CreateLambdaTask([this] {
             for (int i=0; i<dim_filters_.size(); ++i) {
                 dim_filters_[i]->update();
-                dim_histograms_[i]->insert(dim_filters_[i]->get_hit_rate());
+//                dim_histograms_[i]->insert(dim_filters_[i]->get_hit_rate());
 //                std::cout << dim_filters_[i]->get_fact_fk_name() << " " << dim_filters_[i]->get_hit_rate() << " ";
 //                auto v = std::vector<int>(dim_histograms_[i]->get_cumulative(), dim_histograms_[i]->get_cumulative()+100);
 //                std::cout << "risk = " << dim_histograms_[i]->get_risk(75) << " ";
@@ -281,11 +281,11 @@ void LIP::finish() {
 }
 
 void LIP::initialize(Task* ctx) {
-    dim_histograms_.resize(dim_tables_.size());
+//    dim_histograms_.resize(dim_tables_.size());
     for (int i=0; i<dim_tables_.size(); i++) {
         auto fact_join_col_name = fact_fk_col_names_[i];
         fact_fk_cols_.emplace(fact_join_col_name, arrow::Datum());
-        dim_histograms_[i] = std::make_shared<Histogram>(100, 0, 1);
+//        dim_histograms_[i] = std::make_shared<Histogram>(100, 0, 1);
     }
 
     // Pre-materialized and save fact table fk columns.
