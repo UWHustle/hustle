@@ -96,7 +96,6 @@ std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
     auto& scheduler = hustle::Scheduler::GlobalInstance();
 
     arrow::Status status;
-    int x = 0;
     std::shared_ptr<arrow::io::ReadableFile> infile;
     auto result = arrow::io::ReadableFile::Open(path);
     evaluate_status(result.status(), __FUNCTION__, __LINE__);
@@ -109,41 +108,28 @@ std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
 
     std::shared_ptr<arrow::RecordBatch> in_batch;
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
+    record_batches.resize(record_batch_reader->num_record_batches());
 
     for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
-        auto result3 = record_batch_reader->ReadRecordBatch(i);
-        evaluate_status(result3.status(), __FUNCTION__, __LINE__);
-        in_batch = result3.ValueOrDie();
-        if (in_batch != nullptr) {
-            if (read_only) {
-                record_batches.push_back(in_batch);
+        scheduler.addTask(hustle::CreateLambdaTask([i, read_only, record_batch_reader, &record_batches]() {
+            auto result3 = record_batch_reader->ReadRecordBatch(i);
+            evaluate_status(result3.status(), __FUNCTION__, __LINE__);
+            auto in_batch = result3.ValueOrDie();
+            if (in_batch != nullptr) {
+                if (read_only) {
+                    record_batches[i] = in_batch;
+                } else {
+                    auto batch_copy = copy_record_batch(in_batch);
+                    record_batches[i] = batch_copy;
+                }
             }
-            else {
-                auto batch_copy = copy_record_batch(in_batch);
-                record_batches.push_back(batch_copy);
-            }
-        }
+        }));
     }
 
-    return std::make_shared<Table>("table", record_batches, BLOCK_SIZE);
+    scheduler.start();
+    scheduler.join();
 
-//    record_batches.resize(record_batch_reader->num_record_batches());
-//
-//    for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
-//        scheduler.addTask(hustle::CreateLambdaTask([i, read_only, record_batch_reader]() {
-//            auto result3 = record_batch_reader->ReadRecordBatch(i);
-//            evaluate_status(result3.status(), __FUNCTION__, __LINE__);
-//            auto in_batch = result3.ValueOrDie();
-//            if (in_batch != nullptr) {
-//                if (read_only) {
-//                    record_batches[i] = in_batch;
-//                }
-//                else {
-//                    auto batch_copy = copy_record_batch(in_batch);
-//                    record_batches[i] = batch_copy;
-//                }
-//            }
-//        }));
+    return std::make_shared<Table>("table", record_batches, BLOCK_SIZE);
 }
 
 std::vector<std::shared_ptr<arrow::Array>>
