@@ -228,7 +228,7 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
         workload.q42_lip();
         workload.q43_lip();
     std::cout << "sleeping..." << std::endl;
-    sleep(3);
+    sleep(0);
     }
 
 }
