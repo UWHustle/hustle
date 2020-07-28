@@ -1,0 +1,1 @@
+/Users/corrado/hustle/src/ssb/monetdb/all.sh

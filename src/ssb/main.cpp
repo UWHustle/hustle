@@ -193,14 +193,14 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
     SSB workload(sf, print);
 
     std::cout << "sleeping after loading tables..." << std::endl;
-    sleep(0);
+    sleep(10);
     for (int i = 0; i < num_trials; i++) {
         std::cout << "batch start" << std::endl;
 //
 //        workload.q11();
-//        workload.q11();
-//        workload.q12();
-//        workload.q13();
+        workload.q11();
+        workload.q12();
+        workload.q13();
 
 //        workload.q21();
 //        workload.q22();
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         run_experiment(std::stoi(argv[1]));
     } else {
-        run_experiment(1, 1, false, true);
+        run_experiment(1, 1, false, 1);
     }
 
 //    SSB workload(1, true);
