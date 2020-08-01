@@ -6,6 +6,7 @@
 #include <vector>
 #include <arrow/api.h>
 #include "EventProfiler.hpp"
+#include "Histogram.h"
 
 #define MAX_SEED 65535
 
@@ -45,6 +46,8 @@ public:
         probe_count_ = 0;
         hit_count_queue_sum_ = 0;
         probe_count_queue_sum_ = 0;
+
+        hist_ = std::make_shared<Histogram>(100,0,1);
     }
 
     ~BloomFilter() {
@@ -100,6 +103,15 @@ public:
             return 1;
     }
 
+    inline double get_hit_rate_q(int q) {
+        return hist_->get_quantile(q);
+    }
+
+    inline double get_hit_rate_estimate(int q) {
+        double frac = ((double) q)/100;
+        return frac * get_hit_rate() + (1 - frac) * get_hit_rate_q(q);
+    }
+
     /**
      * Set the number of batches the Bloom filter should "remember" while keeping
      * hit/probe statistics.
@@ -139,6 +151,8 @@ public:
 
         hit_count_ = 0;
         probe_count_ = 0;
+
+        hist_->insert(get_hit_rate());
     }
 
     /**
@@ -151,6 +165,10 @@ public:
      */
     static inline bool compare(const std::shared_ptr<BloomFilter>& lhs, const std::shared_ptr<BloomFilter>& rhs) {
         return lhs->get_hit_rate() < rhs->get_hit_rate();
+    }
+
+    static inline bool compare2(const std::shared_ptr<BloomFilter>& lhs, const std::shared_ptr<BloomFilter>& rhs) {
+        return lhs->get_hit_rate_estimate(75) < rhs->get_hit_rate_estimate(75);
     }
 
     /**
@@ -171,6 +189,8 @@ public:
     std::atomic<int> hit_count_;
     // Total number of probes in a given batch
     std::atomic<int> probe_count_;
+
+    std::shared_ptr<Histogram> hist_;
 
 private:
 
