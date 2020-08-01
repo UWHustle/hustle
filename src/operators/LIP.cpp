@@ -5,6 +5,12 @@
 #include "LIP.h"
 #include "../table/util.h"
 
+#define DEBUG 1
+uint64_t PROBE_COUNT = 0;
+uint64_t HIT_COUNT = 0;
+uint64_t OPT_PROBE_COUNT = 0;
+
+
 namespace hustle::operators {
 
 LIP::LIP(const std::size_t query_id,
@@ -68,7 +74,7 @@ void LIP::build_filters(Task* ctx) {
                     }
                 }
 
-                bloom_filter->set_memory(100);
+                bloom_filter->set_memory(1);
                 bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
                 dim_filters_[i] = (bloom_filter);
             })
@@ -168,6 +174,10 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
 
                     bloom_filter->probe_count_ += chunk_length;
                     bloom_filter->hit_count_ += indices_length+1;
+                    if (DEBUG) {
+                        PROBE_COUNT += chunk_length;
+                        HIT_COUNT += indices_length+1;
+                    }
 
                     free(indices);
                 }
@@ -178,6 +188,7 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                     indices = lip_indices_[chunk_i].data();
                     indices_length = lip_indices_[chunk_i].size()-1;
                     bloom_filter->probe_count_ += indices_length+1;
+                    if (DEBUG) PROBE_COUNT += indices_length+1;
 
                     int k = 0;
                     while (k <= indices_length) {
@@ -191,6 +202,7 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                     }
                     lip_indices_[chunk_i].resize(indices_length+1);
                     bloom_filter->hit_count_ += indices_length+1;
+                    if (DEBUG) HIT_COUNT += indices_length+1;
                 }
             });
         }
@@ -236,14 +248,10 @@ void LIP::probe_filters(Task *ctx) {
         auto update_and_sort_task = CreateLambdaTask([this] {
             for (int i=0; i<dim_filters_.size(); ++i) {
                 dim_filters_[i]->update();
-//                dim_histograms_[i]->insert(dim_filters_[i]->get_hit_rate());
-//                std::cout << dim_filters_[i]->get_fact_fk_name() << " " << dim_filters_[i]->get_hit_rate() << " ";
-//                auto v = std::vector<int>(dim_histograms_[i]->get_cumulative(), dim_histograms_[i]->get_cumulative()+100);
-//                std::cout << "risk = " << dim_histograms_[i]->get_risk(75) << " ";
-//                int x = 0;
+                std::cout << dim_filters_[i]->get_fact_fk_name() << " " << dim_filters_[i]->get_hit_rate() << " " << dim_filters_[i]->get_hit_rate_q(75) << " " << dim_filters_[i]->get_hit_rate_estimate(75) << " ";
             }
-//            std::cout << std::endl;
-            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
+            std::cout << std::endl;
+            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare2);
         });
 
         // Require that Task 2 start only after Task 1 is finished. Each task
@@ -263,7 +271,19 @@ void LIP::finish() {
     for (int i = 0; i < lip_indices_.size(); i++) {
         status = new_indices_builder.AppendValues(lip_indices_[i]);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        if (DEBUG) OPT_PROBE_COUNT += lip_indices_[i].size();
     }
+
+    if (DEBUG) {
+        int num_lip_indices = 0;
+        for (int i = 0; i < lip_indices_.size(); i++) {
+            num_lip_indices += lip_indices_[i].size();
+        }
+
+        OPT_PROBE_COUNT = num_lip_indices*dim_filters_.size(); // A hit will pass all filters
+        OPT_PROBE_COUNT += fact_table_.table->get_num_rows() - num_lip_indices; // opt scenario: we eliminate bad tuples with one probe.
+    }
+
 
     // Construct new fact table index array
     status = new_indices_builder.Finish(&new_indices);
@@ -281,11 +301,9 @@ void LIP::finish() {
 }
 
 void LIP::initialize(Task* ctx) {
-//    dim_histograms_.resize(dim_tables_.size());
     for (int i=0; i<dim_tables_.size(); i++) {
         auto fact_join_col_name = fact_fk_col_names_[i];
         fact_fk_cols_.emplace(fact_join_col_name, arrow::Datum());
-//        dim_histograms_[i] = std::make_shared<Histogram>(100, 0, 1);
     }
 
     // Pre-materialized and save fact table fk columns.
@@ -357,6 +375,15 @@ void LIP::execute(Task *ctx) {
         CreateLambdaTask(
             [this]() {
                 finish();
+                if (DEBUG) {
+                    std::cout << "LIP DEBUG:" << std::endl;
+                    std::cout << "\t hit count:\t\t\t\t\t\t" <<  HIT_COUNT << std::endl;
+                    std::cout << "\t probe count:\t\t\t\t\t" <<  PROBE_COUNT << std::endl;
+                    std::cout << "\t hit count / probe count:\t\t" << ((double) HIT_COUNT)/PROBE_COUNT << std::endl;
+                    std::cout << "\t opt hit count:\t\t\t\t\t" <<  OPT_PROBE_COUNT << std::endl;
+                    std::cout << "\t probe count / opt probe count:\t" << ((double) PROBE_COUNT)/OPT_PROBE_COUNT << std::endl;
+
+                }
             })
     ));
 
