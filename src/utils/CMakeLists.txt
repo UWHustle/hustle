@@ -29,6 +29,7 @@ add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hp
 add_library(hustle_src_utils_ArrowComputeWrappers arrow_compute_wrappers.cpp arrow_compute_wrappers.h)
 #add_library(hustle_src_utils_ContextPool ContextPool.cpp ContextPool.h)
 add_library(hustle_src_utils_ParallelHashmap ../empty_src.cpp parallel_hashmap/phmap.h)
+add_library(hustle_src_utils_skew ../empty_src.cpp skew.h)
 
 
 add_library(hustle_src_utils_BloomFilter ../empty_src.cpp BloomFilter.h Histogram.h)

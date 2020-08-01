@@ -9,6 +9,7 @@ target_link_libraries(hustle_src_ssb PUBLIC
         hustle_src_scheduler_Scheduler
         hustle_src_optimizer_ExecutionPlan
         hustle_src_utils_EventProfiler
+        hustle_src_utils_skew
         ${ARROW_SHARED_LIB}
         )
 
