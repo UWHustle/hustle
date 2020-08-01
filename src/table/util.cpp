@@ -76,6 +76,42 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
                                 {nullptr, data}));
                 break;
             }
+            case arrow::Type::UINT32: {
+                std::shared_ptr<arrow::Buffer> data;
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
+
+                arraydatas.push_back(
+                    arrow::ArrayData::Make(
+                        arrow::uint32(), column->length(),
+                        {nullptr, data}));
+                break;
+            }
+            case arrow::Type::UINT16: {
+                std::shared_ptr<arrow::Buffer> data;
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
+
+                arraydatas.push_back(
+                    arrow::ArrayData::Make(
+                        arrow::uint16(), column->length(),
+                        {nullptr, data}));
+                break;
+            }
+            case arrow::Type::UINT8: {
+                std::shared_ptr<arrow::Buffer> data;
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
+
+                arraydatas.push_back(
+                    arrow::ArrayData::Make(
+                        arrow::uint8(), column->length(),
+                        {nullptr, data}));
+                break;
+            }
             default: {
                 throw std::logic_error(
                         std::string("Cannot copy data of type ") +
