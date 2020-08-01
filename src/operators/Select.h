@@ -10,6 +10,9 @@
 #include "Predicate.h"
 #include "Operator.h"
 
+// Bitmask selecting the k-th bit in a byte
+static constexpr uint8_t kBitmask[] = {1, 2, 4, 8, 16, 32, 64, 128};
+
 namespace hustle::operators {
 
 /**
@@ -48,6 +51,7 @@ private:
     std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
     arrow::ArrayVector filters_;
+    std::vector<bool> filter_exists_;
 
     std::unordered_map<std::string, arrow::ArrayVector> select_col_map;
     /**
@@ -93,6 +97,9 @@ private:
     void for_each_batch(int batch_size, int num_batches, std::shared_ptr<arrow::ArrayVector> filter_vector,
                         const Functor &functor);
 
+
+    template<typename T, typename Op>
+    arrow::Datum get_filter(const ColumnReference &col_ref, Op comparator, const T &value, const std::shared_ptr<Block> &block);
 };
 
 } // namespace hustle

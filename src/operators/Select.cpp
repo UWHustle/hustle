@@ -72,12 +72,14 @@ void Select::execute(Task *ctx) {
 
     auto filter_vector = std::make_shared<arrow::ArrayVector>();
     filter_vector->resize(table_->get_num_blocks());
+    filters_.resize(table_->get_num_blocks());
+    filter_exists_.resize(table_->get_num_blocks());
 
     ctx->spawnTask(CreateTaskChain(
         // Task 1: perform selection on all blocks
         CreateLambdaTask([this, filter_vector](Task *internal){
 
-            int batch_size = table_->get_num_blocks() / 8;
+            int batch_size = table_->get_num_blocks() / std::thread::hardware_concurrency();
 //            batch_size = 1;
             if (batch_size == 0) batch_size = table_->get_num_blocks();
             int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
@@ -102,14 +104,30 @@ void Select::execute(Task *ctx) {
 }
 
 void Select::execute_block(arrow::ArrayVector& filter_vector, int i) {
+
     auto block = table_->get_block(i);
+
+    std::shared_ptr<arrow::Buffer> filter_buffer;
+    auto status = arrow::AllocateBitmap(block->get_num_rows()).Value(&filter_buffer);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+//    auto filter_array_data = arrow::ArrayData::Make(arrow::boolean(), block->get_num_rows(), {nullptr, filter_buffer});
+//    filters_[i] = arrow::MakeArray(filter_array_data);
+
     auto block_filter = this->get_filter(tree_->root_, block);
-    filter_vector[i] = block_filter.make_array();
+//    filter_vector[i] = block_filter.make_array();
+    filters_[i] = block_filter.make_array();
+
 }
 
 void Select::finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task* ctx) {
 
-    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(*filter_vector);
+
+    for (auto& a: filters_) {
+//        std::cout << a->ToString() << std::endl;
+
+    }
+    auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filters_);
     LazyTable lazy_table(table_, chunked_filter,arrow::Datum());
     output_result_->append(lazy_table);
 }
@@ -118,20 +136,87 @@ arrow::Datum Select::get_filter(
     const std::shared_ptr<Predicate> &predicate,
     const std::shared_ptr<Block> &block) {
 
-    arrow::Status status;
+    switch(predicate->value_.type()->id()) {
 
-    arrow::compute::CompareOptions compare_options(predicate->comparator_);
+        case arrow::Type::UINT8: {
+
+            uint8_t val = std::static_pointer_cast<arrow::UInt8Scalar>(predicate->value_.scalar())->value;
+
+            switch(predicate->comparator_) {
+                case arrow::compute::CompareOperator::LESS: {
+                    return get_filter<uint8_t>(predicate->col_ref_, std::less(), val, block);
+
+                    break;
+                }
+                case arrow::compute::CompareOperator::LESS_EQUAL: {
+                    std::less_equal op;
+                    return get_filter<uint8_t>(predicate->col_ref_, op, val, block);
+                    break;
+                }
+                case arrow::compute::CompareOperator::GREATER_EQUAL: {
+                    std::greater_equal op;
+                    return get_filter<uint8_t>(predicate->col_ref_, op, val, block);
+                    break;
+
+                }
+                case arrow::compute::CompareOperator::EQUAL: {
+                    std::equal_to op;
+                    return get_filter<uint8_t>(predicate->col_ref_, op, val, block);
+                    break;
+                }
+                default : {
+                    std::cerr << "No supprt for comparator" << std::endl;
+                }
+            }
+            break;
+        }
+        default : {
+            arrow::Status status;
+
+            arrow::compute::CompareOptions compare_options(predicate->comparator_);
+            arrow::Datum block_filter;
+
+            auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
+            auto value = predicate->value_;
+
+            status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
+            evaluate_status(status, __FUNCTION__, __LINE__);
+
+            filters_[block->get_id()] = block_filter.make_array();
+            return block_filter;
+        }
+    }
+}
+
+
+template<typename T, typename Op>
+arrow::Datum Select::get_filter(const ColumnReference &col_ref, Op comparator, const T &value, const std::shared_ptr<Block> &block) {
+
     arrow::Datum block_filter;
+    auto num_rows = block->get_num_rows();
 
-    auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
-    auto value = predicate->value_;
+    auto i = block->get_id();
+//    auto filter_data = filters_[block->get_id()]->data()->GetMutableValues<T>(1);
+    auto col_data = block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
 
-    status = arrow::compute::Compare(select_col, value, compare_options).Value(&block_filter);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-    
-    return block_filter;
+
+    std::shared_ptr<arrow::Buffer> filter_buffer;
+    auto status = arrow::AllocateEmptyBitmap(num_rows).Value(&filter_buffer);
+    auto filter_data = filter_buffer->mutable_data();
+
+    for (uint32_t i=0; i<num_rows; ++i) {
+        filter_data[i >> 3u] |= (comparator(col_data[i], value)) << (i & 0x07u);
+    }
+
+
+//    std::cout << filters_[block->get_id()]->ToString() << std::endl;
+
+    auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
+    return arrow::Datum(filter_arraydata);
 
 }
+
+
 
 } // namespace operators
 } // namespace hustle

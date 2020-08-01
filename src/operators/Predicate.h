@@ -11,6 +11,22 @@
 
 namespace hustle::operators {
 
+enum CompareOperator {
+    EQUAL,
+    NOT_EQUAL,
+    LESS,
+    LESS_EQUAL,
+    GREATER,
+    GREATER_EQUAL,
+    BETWEEN
+};
+
+template <typename T>
+struct Predicate2 {
+    ColumnReference col_ref_;
+    CompareOperator comparator_;
+    T value_;
+};
 
 struct Predicate {
     ColumnReference col_ref_;
