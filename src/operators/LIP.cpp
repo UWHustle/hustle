@@ -5,7 +5,7 @@
 #include "LIP.h"
 #include "../table/util.h"
 
-#define DEBUG 1
+#define DEBUG 0
 uint64_t PROBE_COUNT = 0;
 uint64_t HIT_COUNT = 0;
 uint64_t OPT_PROBE_COUNT = 0;
@@ -248,9 +248,9 @@ void LIP::probe_filters(Task *ctx) {
         auto update_and_sort_task = CreateLambdaTask([this] {
             for (int i=0; i<dim_filters_.size(); ++i) {
                 dim_filters_[i]->update();
-                std::cout << dim_filters_[i]->get_fact_fk_name() << " " << dim_filters_[i]->get_hit_rate() << " " << dim_filters_[i]->get_hit_rate_q(75) << " " << dim_filters_[i]->get_hit_rate_estimate(75) << " ";
+//                std::cout << dim_filters_[i]->get_fact_fk_name() << " " << dim_filters_[i]->get_hit_rate() << " " << dim_filters_[i]->get_hit_rate_q(75) << " " << dim_filters_[i]->get_hit_rate_estimate(75) << " ";
             }
-            std::cout << std::endl;
+//            std::cout << std::endl;
             std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare2);
         });
 
