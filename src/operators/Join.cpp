@@ -108,7 +108,6 @@ void Join::probe_hash_table_block_indices
         for (int row = 0; row < indices_chunk_length; row++) {
             auto index = indices_data[row];
             auto chunk_j = (upper_bound(chunk_row_offsets.begin(), chunk_row_offsets.end(), index) - chunk_row_offsets.begin()) - 1;
-            auto y = values_data_vec[chunk_j][index - chunk_row_offsets[chunk_j]];
             auto key_value_pair = hash_table_.find(values_data_vec[chunk_j][index - chunk_row_offsets[chunk_j]]);
             if (key_value_pair != hash_table_end) {
                 joined_left_indices[num_joined_indices] = indices_data[row];  // insert left row index
@@ -133,7 +132,7 @@ void Join::probe_hash_table_block
 
     // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
 
-    for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); i++) {
+    for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); ++i) {
 
         arrow::Status status;
 
@@ -142,14 +141,14 @@ void Join::probe_hash_table_block
         auto chunk = probe_col->chunk(i);
         auto chunk_length = chunk->length();
         auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
-        auto filter_data = probe_filter->chunk(i)->data()->GetValues<uint8_t>(1, 0); //@bug
+        auto filter_data = probe_filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
         auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(probe_filter->chunk(i));
 
         // The indices of the rows joined in chunk i
         auto * joined_left_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
         auto * joined_right_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
 
-        for (int row = 0; row < chunk_length; row++) {
+        for (int row = 0; row < chunk_length; ++row) {
             if (arrow::BitUtil::GetBit(filter_data, row)) {
                 auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
                 if (key_value_pair != hash_table_end) {
@@ -175,7 +174,7 @@ void Join::probe_hash_table_block
 
     // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
 
-    for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); i++) {
+    for (int i=base_i; i<base_i+batch_size && i<probe_col->num_chunks(); ++i) {
 
         arrow::Status status;
 
