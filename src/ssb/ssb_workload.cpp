@@ -29,7 +29,7 @@ SSB::SSB(int SF, bool print) {
         s = read_from_file("../../../src/ssb/data/ssb-01/supplier.hsl");
     }
     if (SF==1) {
-        lo = read_from_file("../../../src/ssb/data/ssb-01/lineorder.hsl", false);
+        lo = read_from_file("../../../src/ssb/data/ssb-01/lineorder.hsl");
         d = read_from_file("../../../src/ssb/data/ssb-01/date.hsl");
         p = read_from_file("../../../src/ssb/data/ssb-01/part.hsl");
         c = read_from_file("../../../src/ssb/data/ssb-01/customer.hsl");
@@ -43,11 +43,16 @@ SSB::SSB(int SF, bool print) {
         s = read_from_file("../../../src/ssb/data/ssb-05/supplier.hsl");
     }
     else if (SF==10) {
-        lo = read_from_file("../../../src/ssb/data/ssb-10-20MB/lineorder.hsl", false);
-        d = read_from_file("../../../src/ssb/data/ssb-10/date.hsl");
-        p = read_from_file("../../../src/ssb/data/ssb-10/part.hsl");
-        c = read_from_file("../../../src/ssb/data/ssb-10/customer.hsl");
-        s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
+//        lo = read_from_file("../../../src/ssb/data/ssb-10-20MB/lineorder.hsl");
+//        d = read_from_file("../../../src/ssb/data/ssb-10/date.hsl");
+//        p = read_from_file("../../../src/ssb/data/ssb-10/part.hsl");
+//        c = read_from_file("../../../src/ssb/data/ssb-10/customer.hsl");
+//        s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
+        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10-20MB/lineorder.hsl");
+        d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/date.hsl");
+        p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/part.hsl");
+        c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/customer.hsl");
+        s = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/supplier.hsl");
     }
     else if (SF==100) {
         d = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.hsl");
@@ -141,33 +146,16 @@ void SSB::execute(ExecutionPlan &plan, std::shared_ptr<OperatorResult> &final_re
 
 void SSB::q11() {
 
-    //discount >= 1
-    auto discount_pred_1 = Predicate{
-        {lo,
-         "discount"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((uint8_t) 1)
-    };
-    auto discount_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(discount_pred_1));
-
-    //discount <= 3
-    auto discount_pred_2 = Predicate{
-        {lo,
-         "discount"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+    auto discount_pred = Predicate{
+        lo, "discount",
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((uint8_t) 1),
         arrow::Datum((uint8_t) 3)
     };
-    auto discount_pred_node_2 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(discount_pred_2));
 
-    auto discount_connective_node = std::make_shared<ConnectiveNode>(
-        discount_pred_node_2,
-        discount_pred_node_1,
-        FilterOperator::AND
-    );
+    auto discount_node =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(discount_pred));
 
     //quantity < 25
     auto quantity_pred_1 = Predicate{
@@ -181,7 +169,7 @@ void SSB::q11() {
             std::make_shared<Predicate>(quantity_pred_1));
 
     auto lo_root_node = std::make_shared<ConnectiveNode>(
-        discount_connective_node,
+        discount_node,
         quantity_pred_node_1,
         FilterOperator::AND
     );
@@ -252,65 +240,32 @@ void SSB::q11() {
 
 void SSB::q12() {
 
-    //discount >= 4
-    auto discount_pred_1 = Predicate{
-        {lo,
-         "discount"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((uint8_t) 4)
-    };
-    auto discount_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(discount_pred_1));
-
-    //discount <= 6
-    auto discount_pred_2 = Predicate{
-        {lo,
-         "discount"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+    auto discount_pred_bt = Predicate{
+        lo, "discount",
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((uint8_t) 4),
         arrow::Datum((uint8_t) 6)
     };
-    auto discount_pred_node_2 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(discount_pred_2));
 
-    auto discount_connective_node = std::make_shared<ConnectiveNode>(
-        discount_pred_node_2,
-        discount_pred_node_1,
-        FilterOperator::AND
-    );
+    auto discount_node =
+    std::make_shared<PredicateNode>(
+        std::make_shared<Predicate>(discount_pred_bt));
 
-    //quantity >= 26
-    auto quantity_pred_1 = Predicate{
+    auto quantity_pred_bt = Predicate{
         {lo,
          "quantity"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((uint8_t) 26)
-    };
-    auto quantity_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(quantity_pred_1));
-
-    //quantity <= 35
-    auto quantity_pred_2 = Predicate{
-        {lo,
-         "quantity"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((uint8_t) 26),
         arrow::Datum((uint8_t) 35)
     };
-    auto quantity_pred_node_2 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(quantity_pred_2));
 
-    auto quantity_connective_node = std::make_shared<ConnectiveNode>(
-        quantity_pred_node_1,
-        quantity_pred_node_2,
-        FilterOperator::AND
-    );
+    auto quantity_node =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_bt));
 
     auto lo_root_node = std::make_shared<ConnectiveNode>(
-        quantity_connective_node,
-        discount_connective_node,
+        quantity_node,
+        discount_node,
         FilterOperator::AND
     );
 
@@ -383,65 +338,32 @@ void SSB::q12() {
 
 void SSB::q13() {
 
-    //discount >= 5
-    auto discount_pred_1 = Predicate{
-        {lo,
-         "discount"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((uint8_t) 5)
-    };
-    auto discount_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(discount_pred_1));
-
-    //discount <= 7
-    auto discount_pred_2 = Predicate{
-        {lo,
-         "discount"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+    auto discount_pred_bt = Predicate{
+        lo, "discount",
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((uint8_t) 5),
         arrow::Datum((uint8_t) 7)
     };
-    auto discount_pred_node_2 =
+
+    auto discount_node =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(discount_pred_2));
+            std::make_shared<Predicate>(discount_pred_bt));
 
-    auto discount_connective_node = std::make_shared<ConnectiveNode>(
-        discount_pred_node_1,
-        discount_pred_node_2,
-        FilterOperator::AND
-    );
-
-    //quantity >= 26
-    auto quantity_pred_1 = Predicate{
+    auto quantity_pred_bt = Predicate{
         {lo,
          "quantity"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((uint8_t) 36)
-    };
-    auto quantity_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(quantity_pred_1));
-
-    //quantity <= 35
-    auto quantity_pred_2 = Predicate{
-        {lo,
-         "quantity"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((uint8_t) 36),
         arrow::Datum((uint8_t) 40)
     };
-    auto quantity_pred_node_2 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(quantity_pred_2));
 
-    auto quantity_connective_node = std::make_shared<ConnectiveNode>(
-        quantity_pred_node_1,
-        quantity_pred_node_2,
-        FilterOperator::AND
-    );
+    auto quantity_node =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(quantity_pred_bt));
 
     auto lo_root_node = std::make_shared<ConnectiveNode>(
-        quantity_connective_node,
-        discount_connective_node,
+        quantity_node,
+        discount_node,
         FilterOperator::AND
     );
 
@@ -634,36 +556,19 @@ void SSB::q22() {
     auto s_pred_tree = std::make_shared<PredicateTree>(s_pred_node_1);
 
 
-    auto p_pred_1 = Predicate{
+    auto p_pred = Predicate{
         {p,
          "brand1"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum(std::make_shared<arrow::StringScalar>
-                                  ("MFGR#2221"))
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2221")),
+        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2228"))
     };
-    auto p_pred_node_1 =
+
+    auto p_node =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(p_pred_1));
+            std::make_shared<Predicate>(p_pred));
 
-    auto p_pred_2 = Predicate{
-        {p,
-         "brand1"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::Datum(std::make_shared<arrow::StringScalar>
-                                  ("MFGR#2228"))
-    };
-    auto p_pred_node_2 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(p_pred_2));
-
-    auto p_connective_node =
-        std::make_shared<ConnectiveNode>(
-            p_pred_node_1,
-            p_pred_node_2,
-            FilterOperator::AND
-        );
-
-    auto p_pred_tree = std::make_shared<PredicateTree>(p_connective_node);
+    auto p_pred_tree = std::make_shared<PredicateTree>(p_node);
 
     ////////////////////////////////////////////////////////////////////////////
 
@@ -813,36 +718,20 @@ void SSB::q23() {
 
 void SSB::q31() {
 
-    auto d_pred_1 = Predicate{
+    auto d_pred = Predicate{
         {d,
          "year"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 1992)
-    };
-
-    auto d_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_1));
-
-    auto d_pred_2 = Predicate{
-        {d,
-         "year"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((int64_t) 1992),
         arrow::Datum((int64_t) 1997)
+
     };
 
-    auto d_pred_node_2 =
+    auto d_node =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_2));
+            std::make_shared<Predicate>(d_pred));
 
-    auto d_connective_node =
-        std::make_shared<ConnectiveNode>(
-            d_pred_node_1,
-            d_pred_node_2,
-            FilterOperator::AND
-        );
-
-    auto d_pred_tree = std::make_shared<PredicateTree>(d_connective_node);
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_node);
 
     auto s_pred_1 = Predicate{
         {s,
@@ -927,36 +816,20 @@ void SSB::q31() {
 
 void SSB::q32() {
 
-    auto d_pred_1 = Predicate{
+    auto d_pred = Predicate{
         {d,
          "year"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 1992)
-    };
-
-    auto d_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_1));
-
-    auto d_pred_2 = Predicate{
-        {d,
-         "year"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((int64_t) 1992),
         arrow::Datum((int64_t) 1997)
+
     };
 
-    auto d_pred_node_2 =
+    auto d_node =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_2));
+            std::make_shared<Predicate>(d_pred));
 
-    auto d_connective_node =
-        std::make_shared<ConnectiveNode>(
-            d_pred_node_1,
-            d_pred_node_2,
-            FilterOperator::AND
-        );
-
-    auto d_pred_tree = std::make_shared<PredicateTree>(d_connective_node);
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_node);
 
     auto s_pred_1 = Predicate{
         {s,
@@ -1040,36 +913,20 @@ void SSB::q32() {
 
 void SSB::q33() {
 
-    auto d_pred_1 = Predicate{
+    auto d_pred = Predicate{
         {d,
          "year"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 1992)
-    };
-
-    auto d_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_1));
-
-    auto d_pred_2 = Predicate{
-        {d,
-         "year"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((int64_t) 1992),
         arrow::Datum((int64_t) 1997)
+
     };
 
-    auto d_pred_node_2 =
+    auto d_node =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_2));
+            std::make_shared<Predicate>(d_pred));
 
-    auto d_connective_node =
-        std::make_shared<ConnectiveNode>(
-            d_pred_node_1,
-            d_pred_node_2,
-            FilterOperator::AND
-        );
-
-    auto d_pred_tree = std::make_shared<PredicateTree>(d_connective_node);
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_node);
 
     auto s_pred_1 = Predicate{
         {s,
@@ -1447,36 +1304,19 @@ void SSB::q41() {
 
 void SSB::q42() {
 
-    auto d_pred_1 = Predicate{
+    auto d_pred = Predicate{
         {d,
          "year"},
-        arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::Datum((int64_t) 1997)
-    };
-
-    auto d_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_1));
-
-    auto d_pred_2 = Predicate{
-        {d,
-         "year"},
-        arrow::compute::CompareOperator::LESS_EQUAL,
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((int64_t) 1997),
         arrow::Datum((int64_t) 1998)
     };
 
-    auto d_pred_node_2 =
+    auto d_node =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_2));
+            std::make_shared<Predicate>(d_pred));
 
-    auto d_connective_node =
-        std::make_shared<ConnectiveNode>(
-            d_pred_node_1,
-            d_pred_node_2,
-            FilterOperator::AND
-        );
-
-    auto d_pred_tree = std::make_shared<PredicateTree>(d_connective_node);
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_node);
 
     auto s_pred_1 = Predicate{
         {s,
@@ -1596,36 +1436,20 @@ void SSB::q42() {
 
 void SSB::q43() {
 
-    auto d_pred_1 = Predicate{
+    auto d_pred = Predicate{
         {d,
          "year"},
-        arrow::compute::CompareOperator::EQUAL,
-        arrow::Datum((int64_t) 1997)
-    };
-
-    auto d_pred_node_1 =
-        std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_1));
-
-    auto d_pred_2 = Predicate{
-        {d,
-         "year"},
-        arrow::compute::CompareOperator::EQUAL,
+        arrow::compute::CompareOperator::NOT_EQUAL,
+        arrow::Datum((int64_t) 1997),
         arrow::Datum((int64_t) 1998)
+
     };
 
-    auto d_pred_node_2 =
+    auto d_node =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(d_pred_2));
+            std::make_shared<Predicate>(d_pred));
 
-    auto d_connective_node =
-        std::make_shared<ConnectiveNode>(
-            d_pred_node_1,
-            d_pred_node_2,
-            FilterOperator::OR
-        );
-
-    auto d_pred_tree = std::make_shared<PredicateTree>(d_connective_node);
+    auto d_pred_tree = std::make_shared<PredicateTree>(d_node);
 
     auto s_pred_1 = Predicate{
         {s,
