@@ -86,13 +86,34 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 
     switch (node->connective_) {
         case AND: {
-            status = arrow::compute::And(left_child_filter, right_child_filter).Value(&block_filter);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+            auto left_data = left_child_filter.array()->GetMutableValues<uint8_t>(1);
+            auto right_data = right_child_filter.array()->GetValues<uint8_t>(1);
+
+            auto num_bits = left_child_filter.length();
+            auto num_bytes = num_bits / 8;
+            if (num_bits % 8 > 0) ++num_bytes;
+
+            for (int i=0; i<num_bytes; ++i) {
+                left_data[i] = left_data[i] & right_data[i];
+            }
+
+            block_filter = left_child_filter;
             break;
         }
         case OR: {
-            status = arrow::compute::Or(left_child_filter, right_child_filter).Value(&block_filter);
-            evaluate_status(status, __FUNCTION__, __LINE__);
+
+            auto left_data = left_child_filter.array()->GetMutableValues<uint8_t>(1);
+            auto right_data = right_child_filter.array()->GetValues<uint8_t>(1);
+
+            auto num_bits = left_child_filter.length();
+            auto num_bytes = num_bits / 8;
+            if (num_bits % 8 > 0) ++num_bytes;
+
+            for (int i=0; i<num_bytes; ++i) {
+                left_data[i] = left_data[i] | right_data[i];
+            }
+
+            block_filter = left_child_filter;
             break;
         }
         case NONE: {
