@@ -169,7 +169,6 @@ arrow::Datum Select::get_filter(
                     break;
                 }
                 case arrow::compute::CompareOperator::NOT_EQUAL: {
-                    auto f = [](uint8_t lo, uint8_t hi, uint8_t val) -> bool  {return (lo <= val) & (val <= hi); };
                     auto f2 = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
 
                     arrow::Datum block_filter;
@@ -186,8 +185,8 @@ arrow::Datum Select::get_filter(
                     uint8_t diff = hi - lo;
 
                     for (uint32_t i=0; i<num_rows; ++i) {
-                        filter_data[i >> 3u] |= f(lo, hi, col_data[i]) << (i & 0x07u);
-//                        filter_data[i >> 3u] |= f2(col_data[i]-lo, diff) << (i & 0x07u);
+//                        filter_data[i >> 3u] |= f(lo, hi, col_data[i]) << (i & 0x07u);
+                        filter_data[i >> 3u] |= f2(col_data[i]-lo, diff) << (i & 0x07u);
                     }
                     auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
                     return arrow::Datum(filter_arraydata);
