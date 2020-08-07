@@ -134,8 +134,13 @@ private:
     int slice_length_;
     void clear_data();
 
+
     arrow::ArrayVector array_vec_;
 
+    template<typename T>
+    void apply_indices_internal(const std::shared_ptr<arrow::ChunkedArray> &chunked_values,
+                                const std::shared_ptr<arrow::Array> &indices_array,
+                                const std::shared_ptr<arrow::Array> &offsets, int i);
 
     void apply_indices_internal(const std::shared_ptr<arrow::ChunkedArray> &chunked_values,
                                 const std::shared_ptr<arrow::Array> &indices_array,
@@ -148,6 +153,14 @@ private:
                        arrow::ArrayVector &out);
 
 
+    void apply_indices_internal_str(const std::shared_ptr<arrow::ChunkedArray> &chunked_values,
+                                    const std::shared_ptr<arrow::Array> &indices_array,
+                                    const std::shared_ptr<arrow::Array> &offsets, int slice_i);
+
+    template<typename T>
+    void apply_indices_internal(const std::shared_ptr<arrow::ChunkedArray> &chunked_values, const T**values_data_vec,
+                                const std::shared_ptr<arrow::Array> &indices_array,
+                                const std::shared_ptr<arrow::Array> &offsets, int slice_i);
 };
 
 }

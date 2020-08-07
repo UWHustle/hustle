@@ -226,6 +226,146 @@ void Context::apply_indices_internal(
     array_vec_[i] = temp.chunked_array()->chunk(0);
 }
 
+template<typename T>
+void Context::apply_indices_internal(
+    const std::shared_ptr<arrow::ChunkedArray>& chunked_values,
+    const T ** values_data_vec,
+    const std::shared_ptr<arrow::Array>& indices_array,
+    const std::shared_ptr<arrow::Array>& offsets,
+    int slice_i) {
+
+    int num_slices = indices_array->length()/slice_length_ + 1;
+
+    std::shared_ptr<arrow::Array> sliced_indices;
+    if (slice_i == num_slices-1) sliced_indices = indices_array->Slice(slice_i*slice_length_, indices_array->length() - (slice_i-1)*slice_length_);
+    else sliced_indices = indices_array->Slice(slice_i*slice_length_, slice_length_);
+
+    if (sliced_indices->length() == 0) {
+        array_vec_[slice_i] = arrow::MakeArrayOfNull(chunked_values->type(), 0, arrow::default_memory_pool()).ValueOrDie();
+        return;
+    }
+
+//    const T * values_data_vec[chunked_values->num_chunks()];
+//    for (int i=0; i<chunked_values->num_chunks(); ++i) {
+//        values_data_vec[i] = chunked_values->chunk(i)->data()->GetValues<T>(1);
+//    }
+
+//    T** values_data_vec = (T**) values_data_vec_;
+
+    auto offsets_data = offsets->data()->GetValues<int64_t>(1, 0);
+    auto offsets_data_end = offsets_data + offsets->length();
+
+    auto sliced_indices_data = sliced_indices->data()->GetValues<uint32_t>(1);
+
+    std::shared_ptr<arrow::Buffer> out_buffer;
+    auto status = arrow::AllocateBuffer(sliced_indices->length()*sizeof(int64_t)).Value(&out_buffer);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    //@TODO: this forces the output to be INT64!
+    auto out_data = arrow::ArrayData::Make(arrow::int64(), sliced_indices->length(), {nullptr, out_buffer});
+    auto out = out_data->GetMutableValues<int64_t>(1);
+
+    for (uint32_t i=0; i<sliced_indices->length(); ++i) {
+        auto index = sliced_indices_data[i];
+        // Find the chunk to which index belongs
+        auto chunk_j = (std::upper_bound(offsets_data, offsets_data_end, index) - offsets_data) - 1;
+        out[i] = values_data_vec[chunk_j][index - offsets_data[chunk_j]];
+    }
+
+    array_vec_[slice_i] = arrow::MakeArray(out_data);
+
+}
+
+void Context::apply_indices_internal_str(
+    const std::shared_ptr<arrow::ChunkedArray>& chunked_values,
+    const std::shared_ptr<arrow::Array>& indices_array,
+    const std::shared_ptr<arrow::Array>& offsets,
+    int slice_i) {
+
+    int num_slices = indices_array->length()/slice_length_ + 1;
+
+    std::shared_ptr<arrow::Array> sliced_indices;
+    if (slice_i == num_slices-1) sliced_indices = indices_array->Slice(slice_i*slice_length_, indices_array->length() - (slice_i-1)*slice_length_);
+    else sliced_indices = indices_array->Slice(slice_i*slice_length_, slice_length_);
+
+    if (sliced_indices->length() == 0) {
+        array_vec_[slice_i] = arrow::MakeArrayOfNull(chunked_values->type(), 0, arrow::default_memory_pool()).ValueOrDie();
+        return;
+    }
+
+    int num_chunks = chunked_values->num_chunks();
+
+    const uint8_t* values_data_vec[num_chunks];
+    const int32_t * values_offset_vec[num_chunks];
+
+    int64_t num_bytes = 0;
+    std::shared_ptr<arrow::Array> chunk;
+    for (int i=0; i<num_chunks; ++i) {
+        chunk = chunked_values->chunk(i);
+        values_data_vec[i] = chunk->data()->GetValues<uint8_t >(2, 0);
+        values_offset_vec[i] = chunk->data()->GetValues<int32_t>(1, 0);
+        num_bytes += values_offset_vec[i][chunk->length()];
+    }
+    auto sliced_indices_data = sliced_indices->data()->GetValues<uint32_t>(1);
+
+    arrow::TypedBufferBuilder<uint32_t> offset_builder;
+    arrow::TypedBufferBuilder<uint8_t> data_builder;
+
+    auto output_length = sliced_indices->length();
+
+    auto chunk_offsets = offsets->data()->GetValues<int64_t>(1);
+    auto chunk_offsets_end = chunk_offsets + offsets->length();
+    // Presize the data builder with a rough estimate of the required data size
+    if (chunked_values->length() > 0) {
+        const double mean_value_length =
+            num_bytes / static_cast<double>(chunked_values->length());
+
+        // TODO: See if possible to reduce output_length for take/filter cases
+        // where there are nulls in the selection array
+        auto status =  data_builder.Reserve(static_cast<int64_t>(mean_value_length * output_length));
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    }
+
+    int64_t space_available = data_builder.capacity();
+    int32_t offset = 0;
+
+    for (uint32_t i=0; i<output_length; ++i) {
+        auto index = sliced_indices_data[i];
+        auto status = offset_builder.Append(offset);
+        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+        auto chunk_i = std::upper_bound(chunk_offsets, chunk_offsets_end, index) - chunk_offsets - 1;
+        const int32_t *raw_offsets = values_offset_vec[chunk_i];
+        const uint8_t *raw_data = values_data_vec[chunk_i];
+
+        index -= chunk_offsets[chunk_i];
+        uint32_t val_offset = raw_offsets[index];
+        uint32_t val_size = raw_offsets[index + 1] - val_offset;
+
+        offset += val_size;
+        if (ARROW_PREDICT_FALSE(val_size > space_available)) {
+            auto status = data_builder.Reserve(val_size);
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+            space_available = data_builder.capacity() - data_builder.length();
+        }
+        data_builder.UnsafeAppend(raw_data + val_offset, val_size);
+        space_available -= val_size;
+    }
+    offset_builder.UnsafeAppend(offset); // append final offset (number of bytes in str array)
+
+    std::shared_ptr<arrow::Buffer> data_buffer;
+    std::shared_ptr<arrow::Buffer> offset_buffer;
+
+    auto status = data_builder.Finish(&data_buffer);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    status = offset_builder.Finish(&offset_buffer);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    array_vec_[slice_i] = arrow::MakeArray(arrow::ArrayData::Make(arrow::utf8(),output_length,{nullptr, offset_buffer, data_buffer}));
+
+}
 
 void Context::apply_indices(
     Task* ctx,
@@ -285,7 +425,30 @@ void Context::apply_indices(
 
             for (int i=0; i<num_slices; i++) {
                 internal->spawnLambdaTask([this, indices_array, chunked_values, offsets, i]{
-                    apply_indices_internal(chunked_values, indices_array, offsets, i);
+//                    apply_indices_internal(chunked_values, indices_array, offsets, i);
+                    switch(chunked_values->type()->id()) {
+                        case arrow::Type::INT64: {
+                            std::vector<const int64_t *> values_data_vec(chunked_values->num_chunks());
+                            for (int i=0; i<chunked_values->num_chunks(); ++i) {
+                                values_data_vec[i] = chunked_values->chunk(i)->data()->GetValues<int64_t>(1);
+                            }
+                            apply_indices_internal<int64_t>(chunked_values, values_data_vec.data(), indices_array, offsets, i);
+                            break;
+                        }
+                        case arrow::Type::UINT32: {
+                            std::vector<const uint32_t *> values_data_vec(chunked_values->num_chunks());
+                            for (int i=0; i<chunked_values->num_chunks(); ++i) {
+                                values_data_vec[i] = chunked_values->chunk(i)->data()->GetValues<uint32_t>(1);
+                            }
+                            apply_indices_internal<uint32_t>(chunked_values, values_data_vec.data(), indices_array, offsets, i);
+                            break;
+                        }
+                        case arrow::Type::STRING: {
+//                            apply_indices_internal_str(chunked_values, indices_array, offsets, i);
+                            apply_indices_internal(chunked_values, indices_array, offsets, i);
+                            break;
+                        }
+                    }
                 });
             }
         }),
@@ -298,11 +461,6 @@ void Context::apply_indices(
 
         })
     ));
-
-
-
-
-
 }
 
 void Context::clear_data() {
