@@ -142,7 +142,6 @@ void Join::probe_hash_table_block
         auto chunk_length = chunk->length();
         auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
         auto filter_data = probe_filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
-        auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(probe_filter->chunk(i));
 
         // The indices of the rows joined in chunk i
         auto * joined_left_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
