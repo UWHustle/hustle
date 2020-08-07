@@ -62,8 +62,9 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 }
 
 template<typename Functor>
-void Select::for_each_batch(int batch_size, int num_batches, std::shared_ptr<arrow::ArrayVector> filter_vector, const Functor &functor) {
-    for (int batch_i=0; batch_i<num_batches; batch_i++) {
+void Select::for_each_batch(int batch_size, int num_batches, std::shared_ptr<arrow::ArrayVector> filter_vector,
+                            const Functor &functor) {
+    for (int batch_i = 0; batch_i < num_batches; batch_i++) {
         functor(filter_vector, batch_i, batch_size);
     }
 }
@@ -77,10 +78,9 @@ void Select::execute(Task *ctx) {
 
     ctx->spawnTask(CreateTaskChain(
         // Task 1: perform selection on all blocks
-        CreateLambdaTask([this, filter_vector](Task *internal){
+        CreateLambdaTask([this, filter_vector](Task *internal) {
 
             int batch_size = table_->get_num_blocks() / std::thread::hardware_concurrency();
-//            batch_size = 1;
             if (batch_size == 0) batch_size = table_->get_num_blocks();
             int num_batches = table_->get_num_blocks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
             if (num_batches == 0) num_batches = 1;
@@ -88,7 +88,7 @@ void Select::execute(Task *ctx) {
             auto batch_functor = [&](auto filter_vector, auto batch_i, auto batch_size) {
                 internal->spawnLambdaTask([this, filter_vector, batch_i, batch_size]() {
                     int base_i = batch_i * batch_size;
-                    for (int i=base_i; i<base_i+batch_size && i<table_->get_num_blocks(); i++) {
+                    for (int i = base_i; i < base_i + batch_size && i < table_->get_num_blocks(); i++) {
                         execute_block(*filter_vector, i);
                     }
                 });
@@ -97,13 +97,13 @@ void Select::execute(Task *ctx) {
             for_each_batch(batch_size, num_batches, filter_vector, batch_functor);
         }),
         // Task 2: create the output result
-        CreateLambdaTask([this, filter_vector](Task* internal) {
+        CreateLambdaTask([this, filter_vector](Task *internal) {
             finish(filter_vector, internal);
         })
     ));
 }
 
-void Select::execute_block(arrow::ArrayVector& filter_vector, int i) {
+void Select::execute_block(arrow::ArrayVector &filter_vector, int i) {
 
     auto block = table_->get_block(i);
 
@@ -120,15 +120,15 @@ void Select::execute_block(arrow::ArrayVector& filter_vector, int i) {
 
 }
 
-void Select::finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task* ctx) {
+void Select::finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task *ctx) {
 
 
-    for (auto& a: filters_) {
+    for (auto &a: filters_) {
 //        std::cout << a->ToString() << std::endl;
 
     }
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filters_);
-    LazyTable lazy_table(table_, chunked_filter,arrow::Datum());
+    LazyTable lazy_table(table_, chunked_filter, arrow::Datum());
     output_result_->append(lazy_table);
 }
 
@@ -142,26 +142,108 @@ arrow::Datum Select::get_filter(
 
             uint8_t val = std::static_pointer_cast<arrow::UInt8Scalar>(predicate->value_.scalar())->value;
 
+            switch (predicate->comparator_) {
+                case arrow::compute::CompareOperator::LESS: {
+                    auto f = [](uint8_t x, uint8_t y) -> bool  {return x < y; };
+                    return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
+                    break;
+                }
+                case arrow::compute::CompareOperator::LESS_EQUAL: {
+                    auto f = [](uint8_t x, uint8_t y) -> bool  {return x <= y; };
+                    return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
+                    break;
+                }
+                case arrow::compute::CompareOperator::GREATER: {
+                    auto f = [](uint8_t x, uint8_t y) -> bool  {return x > y; };
+                    return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
+                    break;
+                }
+                case arrow::compute::CompareOperator::GREATER_EQUAL: {
+                    auto f = [](uint8_t x, uint8_t y) -> bool  {return x >= y; };
+                    return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
+                    break;
+                }
+                case arrow::compute::CompareOperator::EQUAL: {
+                    auto f = [](uint8_t x, uint8_t y) -> bool  {return x == y; };
+                    return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
+                    break;
+                }
+                case arrow::compute::CompareOperator::NOT_EQUAL: {
+                    auto f = [](uint8_t lo, uint8_t hi, uint8_t val) -> bool  {return (lo <= val) & (val <= hi); };
+                    auto f2 = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
+
+                    arrow::Datum block_filter;
+                    auto num_rows = block->get_num_rows();
+                    auto col_data = block->get_column_by_name(predicate->col_ref_.col_name)->data()->GetValues<uint8_t >(1);
+
+
+                    std::shared_ptr<arrow::Buffer> filter_buffer;
+                    auto status = arrow::AllocateEmptyBitmap(num_rows).Value(&filter_buffer);
+                    auto filter_data = filter_buffer->mutable_data();
+
+                    auto lo = std::static_pointer_cast<arrow::UInt8Scalar>(predicate->value_.scalar())->value;
+                    auto hi = std::static_pointer_cast<arrow::UInt8Scalar>(predicate->value2_.scalar())->value;
+                    uint8_t diff = hi - lo;
+
+                    for (uint32_t i=0; i<num_rows; ++i) {
+                        filter_data[i >> 3u] |= f(lo, hi, col_data[i]) << (i & 0x07u);
+//                        filter_data[i >> 3u] |= f2(col_data[i]-lo, diff) << (i & 0x07u);
+                    }
+                    auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
+                    return arrow::Datum(filter_arraydata);
+                    break;
+                }
+                default : {
+                    std::cerr << "No support for comparator" << std::endl;
+                }
+            }
+            break;
+        }
+        case arrow::Type::INT64: {
+            int64_t val = std::static_pointer_cast<arrow::Int64Scalar>(predicate->value_.scalar())->value;
+
             switch(predicate->comparator_) {
                 case arrow::compute::CompareOperator::LESS: {
-                    return get_filter<uint8_t>(predicate->col_ref_, std::less(), val, block);
-
+                    return get_filter<int64_t>(predicate->col_ref_, std::less(), val, block);
                     break;
                 }
                 case arrow::compute::CompareOperator::LESS_EQUAL: {
                     std::less_equal op;
-                    return get_filter<uint8_t>(predicate->col_ref_, op, val, block);
+                    return get_filter<int64_t>(predicate->col_ref_, op, val, block);
                     break;
                 }
                 case arrow::compute::CompareOperator::GREATER_EQUAL: {
                     std::greater_equal op;
-                    return get_filter<uint8_t>(predicate->col_ref_, op, val, block);
+                    return get_filter<int64_t>(predicate->col_ref_, op, val, block);
                     break;
 
                 }
                 case arrow::compute::CompareOperator::EQUAL: {
                     std::equal_to op;
-                    return get_filter<uint8_t>(predicate->col_ref_, op, val, block);
+                    return get_filter<int64_t>(predicate->col_ref_, op, val, block);
+                    break;
+                }
+                case arrow::compute::CompareOperator::NOT_EQUAL: {
+                    auto f = [](int64_t lo, int64_t hi, int64_t val) -> bool  {return (lo <= val) & (val <= hi); };
+
+                    arrow::Datum block_filter;
+                    auto num_rows = block->get_num_rows();
+                    auto k = block->get_id();
+                    auto col_data = block->get_column_by_name(predicate->col_ref_.col_name)->data()->GetValues<int64_t >(1);
+
+
+                    std::shared_ptr<arrow::Buffer> filter_buffer;
+                    auto status = arrow::AllocateEmptyBitmap(num_rows).Value(&filter_buffer);
+                    auto filter_data = filter_buffer->mutable_data();
+
+                    auto lo = std::static_pointer_cast<arrow::Int64Scalar>(predicate->value_.scalar())->value;
+                    auto hi = std::static_pointer_cast<arrow::Int64Scalar>(predicate->value2_.scalar())->value;
+
+                    for (uint32_t i=0; i<num_rows; ++i) {
+                        filter_data[i >> 3u] |= (f(lo, hi, col_data[i])) << (i & 0x07u);
+                    }
+                    auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
+                    return arrow::Datum(filter_arraydata);
                     break;
                 }
                 default : {
@@ -170,6 +252,7 @@ arrow::Datum Select::get_filter(
             }
             break;
         }
+
         default : {
             arrow::Status status;
 
@@ -194,9 +277,6 @@ arrow::Datum Select::get_filter(const ColumnReference &col_ref, Op comparator, c
 
     arrow::Datum block_filter;
     auto num_rows = block->get_num_rows();
-
-    auto i = block->get_id();
-//    auto filter_data = filters_[block->get_id()]->data()->GetMutableValues<T>(1);
     auto col_data = block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
 
 
@@ -209,12 +289,11 @@ arrow::Datum Select::get_filter(const ColumnReference &col_ref, Op comparator, c
     }
 
 
-//    std::cout << filters_[block->get_id()]->ToString() << std::endl;
-
     auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
     return arrow::Datum(filter_arraydata);
 
 }
+
 
 
 
