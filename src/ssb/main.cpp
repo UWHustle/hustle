@@ -97,25 +97,25 @@ void read_from_csv() {
 
     std::shared_ptr<Table> t;
 
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.tbl", c_schema, 20*BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.hsl", *t);
-//    std::cout << "c" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.tbl", s_schema, 20*BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.hsl", *t);
-//    std::cout << "s" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.tbl", d_schema, 20*BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.hsl", *t);
-//    std::cout << "d" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.tbl", p_schema, 20*BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.hsl", *t);
-//    std::cout << "p" << std::endl;
-//
-//    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.tbl", lo_schema, 20*BLOCK_SIZE);
-//    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.hsl", *t);
-//    std::cout << "lo" << std::endl;
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.tbl", c_schema, 20*BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.hsl", *t);
+    std::cout << "c" << std::endl;
+
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.tbl", s_schema, 20*BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.hsl", *t);
+    std::cout << "s" << std::endl;
+
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.tbl", d_schema, 20*BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.hsl", *t);
+    std::cout << "d" << std::endl;
+
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.tbl", p_schema, 20*BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.hsl", *t);
+    std::cout << "p" << std::endl;
+
+    t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.tbl", lo_schema, 20*BLOCK_SIZE);
+    write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.hsl", *t);
+    std::cout << "lo" << std::endl;
 
 //    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl", c_schema, 20*BLOCK_SIZE);
 //    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl", *t);
