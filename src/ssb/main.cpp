@@ -152,12 +152,11 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //    skew_column(workload.lo->get_column(4));
 //    std::cout << workload.lo->get_column(4)->ToString() << std::endl;
     std::cout << "sleeping after loading tables..." << std::endl;
-    sleep(0);
+    sleep(10);
     for (int i = 0; i < num_trials; i++) {
         std::cout << "batch start" << std::endl;
 //
 //        workload.q11();
-//        workload.q11_pipelined();
 
         workload.q11();
         workload.q12();
@@ -208,6 +207,6 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         run_experiment(std::stoi(argv[1]));
     } else {
-        run_experiment(1, 1, 0, 1);
+        run_experiment(1, 1, 1, 1);
     }
 }
