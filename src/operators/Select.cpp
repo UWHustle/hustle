@@ -10,6 +10,47 @@
 namespace hustle {
 namespace operators {
 
+
+void pack(int64_t length, const uint8_t *arr,
+          std::shared_ptr<arrow::BooleanArray> *out) {
+    auto packed = std::static_pointer_cast<arrow::BooleanArray>(
+        arrow::MakeArrayFromScalar(arrow::BooleanScalar(false), length)
+            .ValueOrDie());
+
+    uint8_t *packed_arr = packed->values()->mutable_data();
+
+    uint8_t current_byte;
+    const uint8_t *src_byte = arr;
+    uint8_t *dst_byte = packed_arr;
+
+    int64_t remaining_bytes = length / 8;
+    while (remaining_bytes-- > 0) {
+        current_byte = 0u;
+        current_byte = *src_byte++ ? current_byte | 0x01u : current_byte;
+        current_byte = *src_byte++ ? current_byte | 0x02u : current_byte;
+        current_byte = *src_byte++ ? current_byte | 0x04u : current_byte;
+        current_byte = *src_byte++ ? current_byte | 0x08u : current_byte;
+        current_byte = *src_byte++ ? current_byte | 0x10u : current_byte;
+        current_byte = *src_byte++ ? current_byte | 0x20u : current_byte;
+        current_byte = *src_byte++ ? current_byte | 0x40u : current_byte;
+        current_byte = *src_byte++ ? current_byte | 0x80u : current_byte;
+        *dst_byte++ = current_byte;
+    }
+
+    int64_t remaining_bits = length % 8;
+    if (remaining_bits) {
+        current_byte = 0;
+        uint8_t bit_mask = 0x01;
+        while (remaining_bits-- > 0) {
+            current_byte = *src_byte++ ? current_byte | bit_mask : current_byte;
+            bit_mask = bit_mask << 1u;
+        }
+        *dst_byte++ = current_byte;
+    }
+
+    *out = packed;
+}
+
 Select::Select(
     const std::size_t query_id,
     std::shared_ptr<OperatorResult> prev_result,
@@ -146,51 +187,44 @@ arrow::Datum Select::get_filter(
                 case arrow::compute::CompareOperator::LESS: {
                     auto f = [](uint8_t x, uint8_t y) -> bool  {return x < y; };
                     return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
-                    break;
                 }
                 case arrow::compute::CompareOperator::LESS_EQUAL: {
                     auto f = [](uint8_t x, uint8_t y) -> bool  {return x <= y; };
                     return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
-                    break;
                 }
                 case arrow::compute::CompareOperator::GREATER: {
                     auto f = [](uint8_t x, uint8_t y) -> bool  {return x > y; };
                     return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
-                    break;
                 }
                 case arrow::compute::CompareOperator::GREATER_EQUAL: {
                     auto f = [](uint8_t x, uint8_t y) -> bool  {return x >= y; };
                     return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
-                    break;
                 }
                 case arrow::compute::CompareOperator::EQUAL: {
                     auto f = [](uint8_t x, uint8_t y) -> bool  {return x == y; };
                     return get_filter<uint8_t>(predicate->col_ref_, f, val, block);
-                    break;
                 }
+                // TODO(nicholas): placeholder for BETWEEN
                 case arrow::compute::CompareOperator::NOT_EQUAL: {
-                    auto f2 = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
 
-                    arrow::Datum block_filter;
                     auto num_rows = block->get_num_rows();
                     auto col_data = block->get_column_by_name(predicate->col_ref_.col_name)->data()->GetValues<uint8_t >(1);
 
-
-                    std::shared_ptr<arrow::Buffer> filter_buffer;
-                    auto status = arrow::AllocateEmptyBitmap(num_rows).Value(&filter_buffer);
-                    auto filter_data = filter_buffer->mutable_data();
-
                     auto lo = std::static_pointer_cast<arrow::UInt8Scalar>(predicate->value_.scalar())->value;
                     auto hi = std::static_pointer_cast<arrow::UInt8Scalar>(predicate->value2_.scalar())->value;
-                    uint8_t diff = hi - lo;
+                    auto diff = hi - lo;
+
+                    uint8_t bytemap[num_rows];
+
+                    auto f = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
 
                     for (uint32_t i=0; i<num_rows; ++i) {
-//                        filter_data[i >> 3u] |= f(lo, hi, col_data[i]) << (i & 0x07u);
-                        filter_data[i >> 3u] |= f2(col_data[i]-lo, diff) << (i & 0x07u);
+                        bytemap[i] = f(col_data[i]-lo, diff);
                     }
-                    auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
-                    return arrow::Datum(filter_arraydata);
-                    break;
+
+                    std::shared_ptr<arrow::BooleanArray> out_filter;
+                    pack(num_rows, bytemap, &out_filter);
+                    return out_filter;
                 }
                 default : {
                     std::cerr << "No support for comparator" << std::endl;
@@ -223,27 +257,24 @@ arrow::Datum Select::get_filter(
                     break;
                 }
                 case arrow::compute::CompareOperator::NOT_EQUAL: {
-                    auto f = [](int64_t lo, int64_t hi, int64_t val) -> bool  {return (lo <= val) & (val <= hi); };
-
-                    arrow::Datum block_filter;
                     auto num_rows = block->get_num_rows();
-                    auto k = block->get_id();
                     auto col_data = block->get_column_by_name(predicate->col_ref_.col_name)->data()->GetValues<int64_t >(1);
-
-
-                    std::shared_ptr<arrow::Buffer> filter_buffer;
-                    auto status = arrow::AllocateEmptyBitmap(num_rows).Value(&filter_buffer);
-                    auto filter_data = filter_buffer->mutable_data();
 
                     auto lo = std::static_pointer_cast<arrow::Int64Scalar>(predicate->value_.scalar())->value;
                     auto hi = std::static_pointer_cast<arrow::Int64Scalar>(predicate->value2_.scalar())->value;
+                    auto diff = hi - lo;
+
+                    uint8_t bytemap[num_rows];
+
+                    auto f = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
 
                     for (uint32_t i=0; i<num_rows; ++i) {
-                        filter_data[i >> 3u] |= (f(lo, hi, col_data[i])) << (i & 0x07u);
+                        bytemap[i] = f(col_data[i]-lo, diff);
                     }
-                    auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
-                    return arrow::Datum(filter_arraydata);
-                    break;
+
+                    std::shared_ptr<arrow::BooleanArray> out_filter;
+                    pack(num_rows, bytemap, &out_filter);
+                    return out_filter;
                 }
                 default : {
                     std::cerr << "No supprt for comparator" << std::endl;
@@ -278,19 +309,15 @@ arrow::Datum Select::get_filter(const ColumnReference &col_ref, Op comparator, c
     auto num_rows = block->get_num_rows();
     auto col_data = block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
 
-
-    std::shared_ptr<arrow::Buffer> filter_buffer;
-    auto status = arrow::AllocateEmptyBitmap(num_rows).Value(&filter_buffer);
-    auto filter_data = filter_buffer->mutable_data();
+    uint8_t bytemap[num_rows];
 
     for (uint32_t i=0; i<num_rows; ++i) {
-        filter_data[i >> 3u] |= (comparator(col_data[i], value)) << (i & 0x07u);
+        bytemap[i] = comparator(col_data[i], value);
     }
 
-
-    auto filter_arraydata = arrow::ArrayData::Make(arrow::boolean(), num_rows, {nullptr, filter_buffer});
-    return arrow::Datum(filter_arraydata);
-
+    std::shared_ptr<arrow::BooleanArray> out_filter;
+    pack(num_rows, bytemap, &out_filter);
+    return out_filter;
 }
 
 
