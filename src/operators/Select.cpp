@@ -96,21 +96,19 @@ Select::get_filter(const std::shared_ptr<Node> &node,
             for (int i=0; i<num_bytes; ++i) {
                 left_data[i] = left_data[i] & right_data[i];
             }
-
             block_filter = left_child_filter;
             break;
         }
         case OR: {
-
             for (int i=0; i<num_bytes; ++i) {
                 left_data[i] = left_data[i] | right_data[i];
             }
-
             block_filter = left_child_filter;
             break;
         }
         case NONE: {
             block_filter = left_child_filter;
+            break;
         }
     }
     return block_filter;
@@ -166,22 +164,13 @@ void Select::execute_block(arrow::ArrayVector &filter_vector, int i) {
     auto status = arrow::AllocateBitmap(block->get_num_rows()).Value(&filter_buffer);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
-//    auto filter_array_data = arrow::ArrayData::Make(arrow::boolean(), block->get_num_rows(), {nullptr, filter_buffer});
-//    filters_[i] = arrow::MakeArray(filter_array_data);
-
     auto block_filter = this->get_filter(tree_->root_, block);
-//    filter_vector[i] = block_filter.make_array();
     filters_[i] = block_filter.make_array();
 
 }
 
 void Select::finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task *ctx) {
 
-
-    for (auto &a: filters_) {
-//        std::cout << a->ToString() << std::endl;
-
-    }
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filters_);
     LazyTable lazy_table(table_, chunked_filter, arrow::Datum());
     output_result_->append(lazy_table);
@@ -228,7 +217,10 @@ arrow::Datum Select::get_filter(
                     auto hi = std::static_pointer_cast<arrow::UInt8Scalar>(predicate->value2_.scalar())->value;
                     auto diff = hi - lo;
 
-                    uint8_t bytemap[num_rows];
+                    std::shared_ptr<arrow::Buffer> buffer;
+                    auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                    auto bytemap = buffer->mutable_data();
 
                     auto f = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
 
@@ -239,6 +231,8 @@ arrow::Datum Select::get_filter(
                     std::shared_ptr<arrow::BooleanArray> out_filter;
                     pack(num_rows, bytemap, &out_filter);
                     return out_filter;
+//                    return arrow::Datum(arrow::MakeArray(arrow::ArrayData::Make(arrow::uint8(), num_rows, {nullptr, buffer})));
+
                 }
                 default : {
                     std::cerr << "No support for comparator" << std::endl;
@@ -278,7 +272,10 @@ arrow::Datum Select::get_filter(
                     auto hi = std::static_pointer_cast<arrow::Int64Scalar>(predicate->value2_.scalar())->value;
                     auto diff = hi - lo;
 
-                    uint8_t bytemap[num_rows];
+                    std::shared_ptr<arrow::Buffer> buffer;
+                    auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
+                    evaluate_status(status, __FUNCTION__, __LINE__);
+                    auto bytemap = buffer->mutable_data();
 
                     auto f = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
 
@@ -289,6 +286,8 @@ arrow::Datum Select::get_filter(
                     std::shared_ptr<arrow::BooleanArray> out_filter;
                     pack(num_rows, bytemap, &out_filter);
                     return out_filter;
+//                    return arrow::Datum(arrow::MakeArray(arrow::ArrayData::Make(arrow::uint8(), num_rows, {nullptr, buffer})));
+
                 }
                 default : {
                     std::cerr << "No supprt for comparator" << std::endl;
@@ -298,8 +297,18 @@ arrow::Datum Select::get_filter(
         }
 
         default : {
-            arrow::Status status;
 
+//            auto val = std::static_pointer_cast<arrow::StringScalar>(predicate->value_.scalar())->value->ToString();
+//
+//            auto f = [](uint8_t* x, uint8_t y, uint32_t num_bytes) {
+//                for (int i=0; i<num_bytes; ++i) {
+//
+//                }
+//            };
+//
+//            return get_filter_str(predicate->col_ref_, f, val, block);
+
+            arrow::Status status;
             arrow::compute::CompareOptions compare_options(predicate->comparator_);
             arrow::Datum block_filter;
 
@@ -323,7 +332,10 @@ arrow::Datum Select::get_filter(const ColumnReference &col_ref, Op comparator, c
     auto num_rows = block->get_num_rows();
     auto col_data = block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
 
-    uint8_t bytemap[num_rows];
+    std::shared_ptr<arrow::Buffer> buffer;
+    auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    auto bytemap = buffer->mutable_data();
 
     for (uint32_t i=0; i<num_rows; ++i) {
         bytemap[i] = comparator(col_data[i], value);
@@ -332,8 +344,36 @@ arrow::Datum Select::get_filter(const ColumnReference &col_ref, Op comparator, c
     std::shared_ptr<arrow::BooleanArray> out_filter;
     pack(num_rows, bytemap, &out_filter);
     return out_filter;
+//    return arrow::Datum(arrow::MakeArray(arrow::ArrayData::Make(arrow::uint8(), num_rows, {nullptr, buffer})));
+
 }
 
+template<typename Op>
+arrow::Datum Select::get_filter_str(const ColumnReference &col_ref, Op comparator, const std::string &value, const std::shared_ptr<Block> &block) {
+
+    arrow::Datum block_filter;
+    auto num_rows = block->get_num_rows();
+    auto col_data = block->get_column_by_name(col_ref.col_name)->data()->GetValues<uint8_t>(2);
+    auto col_offsets = block->get_column_by_name(col_ref.col_name)->data()->GetValues<uint32_t>(1);
+
+    auto col_data_str = std::static_pointer_cast<arrow::StringArray>(block->get_column_by_name(col_ref.col_name));
+
+
+    std::shared_ptr<arrow::Buffer> buffer;
+    auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+    auto bytemap = buffer->mutable_data();
+    for (uint32_t i=0; i<num_rows; ++i) {
+//        bytemap[i] = std::memcmp(value.c_str(), &col_data[col_offsets[i]], value.length());
+//        bytemap[i] = std::memcmp(value.c_str(), &col_data[col_offsets[i]], value.length());
+        auto y = col_data_str->GetString(i);
+        auto out = std::strcmp(value.c_str(), col_data_str->GetString(i).c_str());
+        bytemap[i] = value == y;
+
+    }
+
+    return arrow::Datum(arrow::MakeArray(arrow::ArrayData::Make(arrow::uint8(), num_rows, {nullptr, buffer})));
+}
 
 
 

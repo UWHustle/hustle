@@ -101,6 +101,9 @@ private:
 
     template<typename T, typename Op>
     arrow::Datum get_filter(const ColumnReference &col_ref, Op comparator, const T &value, const std::shared_ptr<Block> &block);
+
+    template<typename Op>
+    arrow::Datum get_filter_str(const ColumnReference &col_ref, Op comparator, const std::string &value, const std::shared_ptr<Block> &block);
 };
 
 } // namespace hustle
