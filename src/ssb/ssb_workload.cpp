@@ -556,17 +556,45 @@ void SSB::q22() {
     auto s_pred_tree = std::make_shared<PredicateTree>(s_pred_node_1);
 
 
-    auto p_pred = Predicate{
+//    auto p_pred = Predicate{
+//        {p,
+//         "brand1"},
+//        arrow::compute::CompareOperator::NOT_EQUAL,
+//        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2221")),
+//        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2228"))
+//    };
+//
+    auto p_pred_1 = Predicate{
         {p,
          "brand1"},
-        arrow::compute::CompareOperator::NOT_EQUAL,
-        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2221")),
+        arrow::compute::CompareOperator::GREATER_EQUAL,
+        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2221"))
+    };
+
+    auto p_pred_2 = Predicate{
+        {p,
+         "brand1"},
+        arrow::compute::CompareOperator::LESS_EQUAL,
         arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2228"))
     };
 
-    auto p_node =
+    auto p_node_1 =
         std::make_shared<PredicateNode>(
-            std::make_shared<Predicate>(p_pred));
+            std::make_shared<Predicate>(p_pred_1));
+
+    auto p_node_2 =
+        std::make_shared<PredicateNode>(
+            std::make_shared<Predicate>(p_pred_2));
+
+    auto p_node = std::make_shared<ConnectiveNode>(
+        p_node_1,
+        p_node_2,
+        FilterOperator::AND
+    );
+
+//    auto p_node =
+//        std::make_shared<PredicateNode>(
+//            std::make_shared<Predicate>(p_pred));
 
     auto p_pred_tree = std::make_shared<PredicateTree>(p_node);
 
