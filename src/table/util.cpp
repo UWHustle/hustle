@@ -125,6 +125,19 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 
 }
 
+void read_record_batch(const std::shared_ptr<arrow::ipc::RecordBatchFileReader>& record_batch_reader, int i, bool read_only, std::vector<std::shared_ptr<arrow::RecordBatch>>& record_batches) {
+    auto result3 = record_batch_reader->ReadRecordBatch(i);
+    evaluate_status(result3.status(), __FUNCTION__, __LINE__);
+    auto in_batch = result3.ValueOrDie();
+    if (in_batch != nullptr) {
+        if (read_only) {
+            record_batches[i] = in_batch;
+        } else {
+            auto batch_copy = copy_record_batch(in_batch);
+            record_batches[i] = batch_copy;
+        }
+    }
+}
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
 std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
@@ -148,17 +161,7 @@ std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
 
     for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
         scheduler.addTask(hustle::CreateLambdaTask([i, read_only, record_batch_reader, &record_batches]() {
-            auto result3 = record_batch_reader->ReadRecordBatch(i);
-            evaluate_status(result3.status(), __FUNCTION__, __LINE__);
-            auto in_batch = result3.ValueOrDie();
-            if (in_batch != nullptr) {
-                if (read_only) {
-                    record_batches[i] = in_batch;
-                } else {
-                    auto batch_copy = copy_record_batch(in_batch);
-                    record_batches[i] = batch_copy;
-                }
-            }
+            read_record_batch(record_batch_reader, i, read_only, record_batches);
         }));
     }
 
