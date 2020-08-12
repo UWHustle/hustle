@@ -14,7 +14,7 @@ void read_from_csv() {
     auto field3 = arrow::field("cust key", arrow::int64());
     auto field4 = arrow::field("part key", arrow::int64());
     auto field5 = arrow::field("supp key", arrow::int64());
-    auto field6 = arrow::field("order date", arrow::uint32());
+    auto field6 = arrow::field("order date", arrow::int64());
     auto field7 = arrow::field("ord priority", arrow::utf8());
     auto field8 = arrow::field("ship priority", arrow::int64());
     auto field9 = arrow::field("quantity", arrow::uint8());
@@ -116,25 +116,25 @@ void read_from_csv() {
     t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.tbl", lo_schema, 20*BLOCK_SIZE);
     write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.hsl", *t);
     std::cout << "lo" << std::endl;
-
+//
 //    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl", c_schema, 20*BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.hsl", *t);
+//    write_to_file("../../../src/ssb/data/ssb-01/customer.hsl", *t);
 //    std::cout << "c" << std::endl;
 //
 //    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.tbl", s_schema, 20*BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.hsl", *t);
+//    write_to_file("../../../src/ssb/data/ssb-01/supplier.hsl", *t);
 //    std::cout << "s" << std::endl;
 //
 //    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.tbl", d_schema, 20*BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.hsl", *t);
+//    write_to_file("../../../src/ssb/data/ssb-01/date.hsl", *t);
 //    std::cout << "d" << std::endl;
 //
 //    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.tbl", p_schema, 20*BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.hsl", *t);
+//    write_to_file("../../../src/ssb/data/ssb-01/part.hsl", *t);
 //    std::cout << "p" << std::endl;
 //
 //    t = read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.tbl", lo_schema, 20*BLOCK_SIZE);
-//    write_to_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.hsl", *t);
+//    write_to_file("../../../src/ssb/data/ssb-01/lineorder.hsl", *t);
 //    std::cout << "lo" << std::endl;
 }
 
@@ -148,8 +148,8 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 
     if (load) read_from_csv();
     SSB workload(sf, print);
-//    std::cout << workload.lo->get_column(12)->type()->ToString()<<std::endl;
-//    skew_column(workload.lo->get_column(4));
+    std::cout << "skewing column..."<<std::endl;
+    skew_column(workload.lo->get_column(4), true);
 //    std::cout << workload.lo->get_column(4)->ToString() << std::endl;
     std::cout << "sleeping after loading tables..." << std::endl;
     sleep(10);
@@ -158,9 +158,9 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //
 //        workload.q11();
 
-        workload.q11();
-        workload.q12();
-        workload.q13();
+//        workload.q11();
+//        workload.q12();
+//        workload.q13();
 
 //        workload.q21();
 //        workload.q22();
@@ -175,21 +175,21 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //        workload.q42();
 //        workload.q43();
 //
-        workload.q21_lip();
-        workload.q22_lip();
-        workload.q23_lip();
+//        workload.q21_lip();
+//        workload.q22_lip();
+//        workload.q23_lip();
 
-        workload.q31_lip();
+//        workload.q31_lip();
         workload.q32_lip();
-        workload.q33_lip();
-        workload.q34_lip();
-
-        workload.q41_lip();
-        workload.q42_lip();
-        workload.q43_lip();
+//        workload.q33_lip();
+//        workload.q34_lip();
+//
+//        workload.q41_lip();
+//        workload.q42_lip();
+//        workload.q43_lip();
 
     std::cout << "sleeping..." << std::endl;
-    sleep(0);
+    sleep(2);
     }
 }
 
@@ -207,6 +207,6 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         run_experiment(std::stoi(argv[1]));
     } else {
-        run_experiment(1, 1, 1, 1);
+        run_experiment(1, 1, 1, 0);
     }
 }
