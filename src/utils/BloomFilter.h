@@ -26,7 +26,9 @@ public:
         eps_ = 1e-2;
 
         int n = num_vals;
-        num_cells_ = n * 100;
+        num_cells_ = n*100;
+//        num_cells_ = arrow::BitUtil::NextPower2(n*100);
+
         int num_bytes_ = sizeof(uint8_t) * num_cells_ / 8 + 1;
 
         num_hash_ = 3;

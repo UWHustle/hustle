@@ -149,10 +149,10 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
     if (load) read_from_csv();
     SSB workload(sf, print);
     std::cout << "skewing column..."<<std::endl;
-    skew_column(workload.lo->get_column(4), true);
+//    skew_column(workload.lo->get_column(4), true);
 //    std::cout << workload.lo->get_column(4)->ToString() << std::endl;
     std::cout << "sleeping after loading tables..." << std::endl;
-    sleep(10);
+    sleep(0);
     for (int i = 0; i < num_trials; i++) {
         std::cout << "batch start" << std::endl;
 //
@@ -175,21 +175,21 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //        workload.q42();
 //        workload.q43();
 //
-//        workload.q21_lip();
-//        workload.q22_lip();
-//        workload.q23_lip();
+        workload.q21_lip();
+        workload.q22_lip();
+        workload.q23_lip();
 
-//        workload.q31_lip();
+        workload.q31_lip();
         workload.q32_lip();
-//        workload.q33_lip();
-//        workload.q34_lip();
-//
-//        workload.q41_lip();
-//        workload.q42_lip();
-//        workload.q43_lip();
+        workload.q33_lip();
+        workload.q34_lip();
+
+        workload.q41_lip();
+        workload.q42_lip();
+        workload.q43_lip();
 
     std::cout << "sleeping..." << std::endl;
-    sleep(2);
+    sleep(0);
     }
 }
 
@@ -207,6 +207,6 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         run_experiment(std::stoi(argv[1]));
     } else {
-        run_experiment(1, 1, 1, 0);
+        run_experiment(10, 10, 0, 0);
     }
 }

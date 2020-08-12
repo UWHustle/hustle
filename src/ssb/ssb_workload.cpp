@@ -48,7 +48,7 @@ SSB::SSB(int SF, bool print) {
 //        p = read_from_file("../../../src/ssb/data/ssb-10/part.hsl");
 //        c = read_from_file("../../../src/ssb/data/ssb-10/customer.hsl");
 //        s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
-        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/lineorder.hsl", false);
+        lo = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10-20MB/lineorder.hsl", false);
         d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/date.hsl");
         p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/part.hsl");
         c = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/customer.hsl");
