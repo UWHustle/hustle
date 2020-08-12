@@ -251,7 +251,7 @@ void LIP::probe_filters(Task *ctx) {
 //                std::cout << dim_filters_[i]->get_fact_fk_name() << " " << dim_filters_[i]->get_hit_rate() << " " << dim_filters_[i]->get_hit_rate_q(75) << " " << dim_filters_[i]->get_hit_rate_estimate(75) << " ";
             }
 //            std::cout << std::endl;
-            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare2);
+            std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
         });
 
         // Require that Task 2 start only after Task 1 is finished. Each task
