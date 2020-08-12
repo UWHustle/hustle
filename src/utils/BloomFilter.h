@@ -14,10 +14,6 @@ static inline bool get_bit(const uint8_t* bits, uint64_t i) {
     return (bits[i >> 3] >> (i & 0x07)) & 1;
 }
 
-static inline bool get_bit2(const uint8_t* bits, uint64_t bit_i, uint8_t i_mod_8) {
-    return (bits[bit_i] >> i_mod_8) & 1;
-}
-
 class BloomFilter {
 public:
 
@@ -87,7 +83,6 @@ public:
         uint64_t index;
         for(int i=0; i<num_hash_; i++){
             index = hash(val, seeds_[i]) % num_cells_;
-
             if (!get_bit(cells_, index)) {
                 return false;
             }
