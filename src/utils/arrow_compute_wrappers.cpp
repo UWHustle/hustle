@@ -245,13 +245,6 @@ void Context::apply_indices_internal(
         return;
     }
 
-//    const T * values_data_vec[chunked_values->num_chunks()];
-//    for (int i=0; i<chunked_values->num_chunks(); ++i) {
-//        values_data_vec[i] = chunked_values->chunk(i)->data()->GetValues<T>(1);
-//    }
-
-//    T** values_data_vec = (T**) values_data_vec_;
-
     auto offsets_data = offsets->data()->GetValues<int64_t>(1, 0);
     auto offsets_data_end = offsets_data + offsets->length();
 
