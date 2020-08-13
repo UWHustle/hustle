@@ -71,7 +71,7 @@ public:
     inline void insert(long long val) {
         // Hash the value using all hash functions
         int index;
-        for (int k=0; k<num_hash_; k++) {
+        for (int k=0; k<num_hash_; ++k) {
 //            index = hash(val, seeds_[k]) % num_cells_;
             index = reduce(hash(val, seeds_[k]), num_cells_);
             cells_[index/8] |= (1u << (index % 8u));
@@ -88,7 +88,7 @@ public:
     inline bool probe(long long val) {
 //        probe_count_++;
         uint32_t index;
-        for(int i=0; i<num_hash_; i++){
+        for(int i=0; i<num_hash_; ++i){
 //            index = hash(val, seeds_[i]) % num_cells_;
             index = reduce(hash(val, seeds_[i]), num_cells_);
             if (!get_bit(cells_, index)) {
