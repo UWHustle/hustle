@@ -14,6 +14,10 @@ static inline bool get_bit(const uint8_t* bits, uint64_t i) {
     return (bits[i >> 3] >> (i & 0x07)) & 1;
 }
 
+static inline uint32_t reduce(uint32_t x, uint32_t N) {
+    return ((uint64_t) x * (uint64_t) N) >> 32 ;
+}
+
 class BloomFilter {
 public:
 
@@ -68,7 +72,8 @@ public:
         // Hash the value using all hash functions
         int index;
         for (int k=0; k<num_hash_; k++) {
-            index = hash(val, seeds_[k]) % num_cells_;
+//            index = hash(val, seeds_[k]) % num_cells_;
+            index = reduce(hash(val, seeds_[k]), num_cells_);
             cells_[index/8] |= (1u << (index % 8u));
         }
     }
@@ -82,9 +87,10 @@ public:
      */
     inline bool probe(long long val) {
 //        probe_count_++;
-        uint64_t index;
+        uint32_t index;
         for(int i=0; i<num_hash_; i++){
-            index = hash(val, seeds_[i]) % num_cells_;
+//            index = hash(val, seeds_[i]) % num_cells_;
+            index = reduce(hash(val, seeds_[i]), num_cells_);
             if (!get_bit(cells_, index)) {
                 return false;
             }
