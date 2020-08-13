@@ -277,7 +277,7 @@ arrow::Datum Select::get_filter(
                     evaluate_status(status, __FUNCTION__, __LINE__);
                     auto bytemap = buffer->mutable_data();
 
-                    auto f = [](uint8_t val, uint8_t diff) -> bool  {return val <= diff; };
+                    auto f = [](int64_t val, int64_t diff) -> bool  {return val <= diff; };
 
                     for (uint32_t i=0; i<num_rows; ++i) {
                         bytemap[i] = f(col_data[i]-lo, diff);
