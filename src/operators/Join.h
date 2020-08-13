@@ -6,6 +6,7 @@
 #include <table/table.h>
 #include <arrow/compute/api.h>
 #include <utils/parallel_hashmap/phmap.h>
+#include <utils/BloomFilter.h>
 #include "OperatorResult.h"
 #include "JoinGraph.h"
 #include "Operator.h"
@@ -62,6 +63,8 @@ private:
     std::shared_ptr<OperatorResult> prev_result_;
     // Where the output result will be stored once the operator is executed.
     std::shared_ptr<OperatorResult> output_result_;
+    std::shared_ptr<OperatorResult> output_result_lip_;
+
 
     // A graph specifying all join predicates
     JoinGraph graph_;
@@ -187,6 +190,60 @@ private:
 
     std::shared_ptr<OperatorResult>
     back_propogate_result2(const LazyTable &left, LazyTable right, const std::vector<arrow::Datum> &joined_indices);
+
+    void build_filters(Task *ctx);
+
+
+
+
+
+
+
+    // Row indices of the fact table that successfully probed all Bloom filters.
+    std::vector<uint32_t*> lip_indices_raw_;
+    std::vector<std::vector<uint32_t>> lip_indices_;
+    const uint32_t* fact_indices_;
+
+    // Number of blocks that are probed (in parallel) before sorting the the filters
+    int batch_size_;
+
+    // chunk_row_offsets_[i] = the row index at which the ith block of the fact
+    // table starts
+    std::vector<int64_t> chunk_row_offsets_;
+
+    // Map of (fact table foreign key col name, fact table foreign key col)
+    std::unordered_map<std::string, arrow::Datum> fact_fk_cols_;
+    std::unordered_map<std::string, arrow::Datum> dim_pk_cols_;
+
+    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols2_;
+
+
+    // Primary key cols of all dimension tables.
+
+    // Bloom filters of all dimension tables.
+    std::vector<std::shared_ptr<BloomFilter>> dim_filters_;
+
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_col_filters_;
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> fact_col_filters_;
+
+    // Dimension (lazy) tables
+    std::vector<LazyTable> dim_tables_;
+    // Dimension primary key col names
+    std::vector<std::string> dim_pk_col_names_;
+    // Total number of chunks in each dimension table.
+    std::vector<int> dim_join_col_num_chunks_;
+
+    LazyTable fact_table_;
+    // Fact table foreign key col names to probe Bloom filters.
+    std::vector<std::string> fact_fk_col_names_;
+
+    void probe_filters(int chunk_start, int chunk_end, int filter_j, Task *ctx);
+
+    void probe_filters(Task *ctx);
+
+    void initialize(Task *ctx);
+
+    void finish_lip();
 };
 
 } // namespace hustle
