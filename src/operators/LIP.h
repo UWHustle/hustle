@@ -48,6 +48,8 @@ public:
     void execute(Task *ctx) override;
 
 private:
+    std::unordered_map<std::string, std::vector<std::vector<int64_t>>> out_fk_cols_;
+
     // Row indices of the fact table that successfully probed all Bloom filters.
     std::vector<uint32_t*> lip_indices_raw_;
     std::vector<std::vector<uint32_t>> lip_indices_;

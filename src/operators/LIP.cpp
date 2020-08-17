@@ -148,6 +148,7 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
             auto fact_fk_col = fact_fk_cols2_[bloom_filter->get_fact_fk_name()];
 
             uint32_t *indices = nullptr;
+            int64_t *fks = nullptr;
             int32_t indices_length = -1;
             uint32_t offset = chunk_row_offsets_[chunk_i];
             uint32_t temp;
@@ -162,15 +163,18 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                 // Reserve space for the first index vector
                 int k = 0;
                 indices = (uint32_t *) malloc(sizeof(uint32_t) * chunk_length);
+//                fks = (int64_t *) malloc(sizeof(int64_t) * chunk_length);
 
                 for (int row = 0; row < chunk_length; ++row) {
 
                     if (bloom_filter->probe(chunk_data[row])) {
+//                        fks[k] = chunk_data[row];
                         indices[k++] = row + offset;
                     }
                 }
                 indices_length = k - 1;
                 lip_indices_[chunk_i] = std::vector<uint32_t>(indices, indices + indices_length + 1);
+//                out_fk_cols_[bloom_filter->get_fact_fk_name()][chunk_i] = std::vector<int64_t>(fks, fks + indices_length + 1);
 
                 bloom_filter->probe_count_ += chunk_length;
                 bloom_filter->hit_count_ += indices_length+1;
@@ -178,7 +182,6 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                     PROBE_COUNT += chunk_length;
                     HIT_COUNT += indices_length+1;
                 }
-
                 free(indices);
             }
 
@@ -190,16 +193,25 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j, Task* ctx)
                 bloom_filter->probe_count_ += indices_length+1;
                 if (DEBUG) PROBE_COUNT += indices_length+1;
 
+                auto test = out_fk_cols_[bloom_filter->get_fact_fk_name()][chunk_i];
+//                fks = out_fk_cols_[dim_filters_[filter_j-1]->get_fact_fk_name()][chunk_i].data();
+
                 int k = 0;
                 while (k <= indices_length) {
-                    if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
+                    auto key = chunk_data[indices[k] - offset];
+                    if (bloom_filter->probe(key)) {
                         ++k;
                     } else {
+//                        temp = fks[k];
+//                        fks[k] = fks[indices_length];
+//                        fks[indices_length-1] = temp;
+
                         temp = indices[k];
                         indices[k] = indices[indices_length];
                         indices[indices_length--] = temp;
                     }
                 }
+//                out_fk_cols_[bloom_filter->get_fact_fk_name()][chunk_i].resize(indices_length+1);
                 lip_indices_[chunk_i].resize(indices_length+1);
                 bloom_filter->hit_count_ += indices_length+1;
                 if (DEBUG) HIT_COUNT += indices_length+1;
@@ -290,8 +302,37 @@ void LIP::finish() {
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     // Create a new lazy fact table with the new index array
-    LazyTable result_unit(fact_table_.table, fact_table_.filter, new_indices);
-    OperatorResult result({result_unit});
+    LazyTable out_fact_table(fact_table_.table, fact_table_.filter, new_indices);
+////    LazyTable out_fact_table(fact_table_.table, fact_table_.filter, fact_table_.indices);
+//
+//    std::vector<std::shared_ptr<arrow::ChunkedArray>> out_cols;
+//    arrow::Int64Builder b;
+//    arrow::ArrayVector vec;
+//    for (auto& kv : out_fk_cols_) {
+//        vec.resize(kv.second.size());
+//        for (int i=0; i<lip_indices_.size(); ++i) {
+//
+//            auto chunk_data = kv.second[i];
+//            chunk_data.resize(lip_indices_[i].size());
+//            status = b.Resize(chunk_data.size());
+//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//            status = b.AppendValues(chunk_data);
+//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//
+//            std::shared_ptr<arrow::Array> temp;
+//            status = b.Finish(&temp);
+//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//
+//            vec[i] = (temp);
+//        }
+//        auto col = std::make_shared<arrow::ChunkedArray>(vec);
+//        out_cols.push_back(col);
+//        auto col_index = fact_table_.table->get_schema()->GetAllFieldIndices(kv.first)[0];
+//        out_fact_table.materialized_cols_[col_index] = col;
+//    }
+//
+//    out_fact_table.flag_ = false;
+    OperatorResult result({out_fact_table});
     output_result_->append(std::make_shared<OperatorResult>(result));
 
     // Add all dimension tables to the output without changing them.
@@ -363,6 +404,12 @@ void LIP::execute(Task *ctx) {
                 }
                 auto fact_col = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array();
                 lip_indices_.resize(fact_col->num_chunks());
+                out_fk_cols_.reserve(dim_pk_cols_.size());
+                for (auto &bf : dim_filters_) {
+                    std::vector<std::vector<int64_t>> v;
+                    v.resize(fact_col->num_chunks());
+                    out_fk_cols_[bf->get_fact_fk_name()] = v;
+                }
 
                 chunk_row_offsets_.resize(fact_col->num_chunks());
                 chunk_row_offsets_[0] = 0;
