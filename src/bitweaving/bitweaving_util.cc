@@ -22,8 +22,8 @@ BWTable *createBitweavingIndex(const std::shared_ptr<Table> &hustle_table,
   auto* bw_table = new BWTable("./abc", options);
   int num_cols = cols.size();
   for (int i = 0; i < num_cols; i++) {
-    arrow::Type::type col_type = hustle_table->get_column(i)->type()->id();
-    //std::cout << "col: " << col_names[i] << "\t col_type: " << col_type << std::endl;
+    arrow::Type::type col_type = hustle_table->get_column_by_name(cols[i].col_name)->type()->id();
+    //std::cout << "col: " << cols[i].col_name << "\t col_type: " << col_type << std::endl;
 
     if (col_type != arrow::Type::INT16 && col_type != arrow::Type::INT32 &&
         col_type != arrow::Type::INT64 && col_type != arrow::Type::INT8 &&
@@ -31,7 +31,7 @@ BWTable *createBitweavingIndex(const std::shared_ptr<Table> &hustle_table,
         col_type != arrow::Type::UINT64 && col_type != arrow::Type::UINT8) {
       continue;
     }
-    //std::cout << "Column : " << col_names[i] << std::endl;
+    //std::cout << "Creating index for Column : " << cols[i].col_name << std::endl;
 
     bw_table->AddColumn(cols[i].col_name, kBitWeavingV, cols[i].bit_width);
 
@@ -55,7 +55,7 @@ BWTable *createBitweavingIndex(const std::shared_ptr<Table> &hustle_table,
       }
     }
   }
-
+  //std::cout << "Total columns in BW table " << bw_table->GetNumCols() << std::endl;
   return bw_table;
 }
 

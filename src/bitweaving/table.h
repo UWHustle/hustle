@@ -113,6 +113,12 @@ public:
   size_t GetNumRows();
 
   /**
+   * get the num of cols in the table
+   * @return
+   */
+  size_t GetNumCols();
+
+  /**
    * Append the data in the codes array to the column specified
    * @param name - Name of the column to append the data to
    * @param codes - The data to be appended

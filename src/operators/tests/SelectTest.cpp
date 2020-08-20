@@ -418,6 +418,12 @@ TEST_F(JoinTestFixture, AndSelectManyBlocksTest) {
     EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_R_col_3));
 }
 
+/*
+ * SELECT *
+ * FROM R
+ * WHERE R.data >= 10 AND
+ *       R.data <= 30
+ */
 TEST_F(JoinTestFixture, SampleTest) {
 
   R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);

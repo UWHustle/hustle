@@ -54,6 +54,7 @@ void BitweavingIndex::createIndex(std::shared_ptr<Table> table, std::vector<std:
 
   this->bwTable = createBitweavingIndex(table, col_units, true);
   table_index_map[table] = this;
+  std::cout << "Added to global map " << table_index_map.size() << std::endl;
 }
 
 bool BitweavingIndex::isColumnIndexed(std::string col_name) {
@@ -83,6 +84,9 @@ void BitweavingIndex::addPredicate(std::shared_ptr<Predicate> &p, FilterOperator
       break;
     }
   }
+
+  std::cout << "Col : " << p->col_ref_.col_name << " | " << "Value : " << *scalar << " | "
+  << " Comparator : " << *opt << std::endl;
 
   options.emplace_back(BitweavingCompareOptions(column, {BitweavingCompareOptionsUnit(scalar,
       GetBitweavingCompareOperator(p->comparator_), opt)}));

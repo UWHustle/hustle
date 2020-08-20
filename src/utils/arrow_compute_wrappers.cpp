@@ -14,7 +14,7 @@ void apply_filter(
     arrow::compute::FunctionContext function_context(arrow::default_memory_pool());
     arrow::compute::FilterOptions filter_options;
 
-    switch(values.kind()) {
+    switch(filter.kind()) {
         case arrow::compute::Datum::NONE:
             break;
         case arrow::compute::Datum::ARRAY: {

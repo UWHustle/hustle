@@ -72,22 +72,28 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 
 void Select::execute(Task *ctx) {
 
-  if(use_index_){
+  bool is_index_valid = false;
+  TableIndexMap::iterator it;
+  if (use_index_ && table_index_map.count(table_) > 0) {
+    //Check if Index can be used to evaluate the predicate
+    std::cout << "Found table in map" << std::endl;
+    it = table_index_map.find(table_);
+    assert(it != table_index_map.end());
+    is_index_valid = true;
+  }
+
+  if (is_index_valid) {
     ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this](Task *internal) {
-          //Check if Index can be used to evaluate the predicate
-          if (table_index_map.find(table_) != table_index_map.end()) {
-            auto it = table_index_map.find(table_);
-            Index *index = it->second;
-            result_filter_ = index->scan(tree_);
-          }
+        CreateLambdaTask([it, this](Task *internal) {
+          Index *index = it->second;
+          result_filter_ = index->scan(tree_);
         }),
         // Task 2: create the output result
         CreateLambdaTask([this]() {
           finish();
         })
     ));
-  } else{
+  } else {
     ctx->spawnTask(CreateTaskChain(
         // Task 1: perform selection on all blocks
         CreateLambdaTask([this](Task *internal) {
@@ -115,9 +121,9 @@ void Select::execute(Task *ctx) {
 void Select::finish() {
 
   std::shared_ptr<arrow::compute::Datum> filter;
-  if(use_index_){
+  if (use_index_) {
     filter = std::make_shared<arrow::compute::Datum>(result_filter_);
-  }else{
+  } else {
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filter_vector_);
     filter = std::make_shared<arrow::compute::Datum>(chunked_filter);
   }

@@ -40,8 +40,7 @@ class Index{
 
 struct TableCompare {
   bool operator()(const std::shared_ptr<Table> &lhs, const std::shared_ptr<Table> &rhs) const {
-    //The ordering actually doesn't matter here.
-    return arrow::internal::SharedPtrEquals(lhs->get_schema(), rhs->get_schema());
+    return lhs.get() < rhs.get();
   }
 };
 typedef std::map<std::shared_ptr<Table>, Index*, TableCompare> TableIndexMap;

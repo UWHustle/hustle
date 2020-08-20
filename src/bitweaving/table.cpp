@@ -349,5 +349,9 @@ namespace hustle::bitweaving {
     }
 
 
+size_t BWTable::GetNumCols() {
+  return rep_->map.size();
+}
+
 } // namespace bitweaving
 
