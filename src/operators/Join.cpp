@@ -49,6 +49,7 @@ void Join::build_hash_table
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
 
             for (int row = 0; row < chunk->length(); row++) {
+//                hash_table_[chunk->Value(row)] = {(uint32_t) row, (uint16_t) i};
                 hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
             }
         }
@@ -72,54 +73,10 @@ void Join::build_hash_table
             for (int row = 0; row < chunk->length(); row++) {
                 if (arrow::BitUtil::GetBit(filter_data, row)) {
                     hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
+//                    hash_table_[chunk->Value(row)] = {(uint32_t) row, (uint16_t) i};
                 }
             }
         }
-    }
-}
-
-
-void Join::probe_hash_table_block_indices
-    (const std::shared_ptr<arrow::ChunkedArray> &probe_col, const std::shared_ptr<arrow::ChunkedArray> &probe_indices, int batch_i, int batch_size, std::vector<uint64_t> chunk_row_offsets) {
-
-    int base_i = batch_i * batch_size;
-    auto hash_table_end = hash_table_.end();
-
-    // TODO(nicholas): for now, we assume the join column is fixed width type, i.e. values are stored in the buffer at index 1.
-
-    const long* values_data_vec[probe_col->num_chunks()];
-    for (int i=0; i<probe_col->num_chunks(); ++i) {
-        values_data_vec[i] = probe_col->chunk(i)->data()->GetValues<long>(1, 0);
-    }
-
-    for (int i=base_i; i<base_i+batch_size && i<probe_indices->num_chunks(); i++) {
-
-        arrow::Status status;
-
-        int num_joined_indices = 0;
-
-        auto indices_chunk_length = probe_indices->chunk(i)->length();
-        auto indices_data = probe_indices->chunk(i)->data()->GetValues<uint32_t>(1); //@bug
-
-        // The indices of the rows joined in chunk i
-        auto * joined_left_indices = (uint32_t*) malloc(sizeof(uint32_t)*indices_chunk_length);
-        auto * joined_right_indices = (uint32_t*) malloc(sizeof(uint32_t)*indices_chunk_length);
-
-        for (int row = 0; row < indices_chunk_length; row++) {
-            auto index = indices_data[row];
-            auto chunk_j = (upper_bound(chunk_row_offsets.begin(), chunk_row_offsets.end(), index) - chunk_row_offsets.begin()) - 1;
-            auto key_value_pair = hash_table_.find(values_data_vec[chunk_j][index - chunk_row_offsets[chunk_j]]);
-            if (key_value_pair != hash_table_end) {
-                joined_left_indices[num_joined_indices] = indices_data[row];  // insert left row index
-                joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
-                ++num_joined_indices;
-            }
-        }
-
-        new_left_indices_vector[i] = std::vector<uint32_t>(joined_left_indices, joined_left_indices + num_joined_indices);
-        new_right_indices_vector[i] = std::vector<uint32_t>(joined_right_indices, joined_right_indices + num_joined_indices);
-        free(joined_left_indices);
-        free(joined_right_indices);
     }
 }
 
@@ -146,11 +103,18 @@ void Join::probe_hash_table_block
         // The indices of the rows joined in chunk i
         auto * joined_left_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
         auto * joined_right_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
+//        auto * joined_left_index_chunks = (uint16_t*) malloc(sizeof(uint16_t)*chunk_length);
+//        auto * joined_right_index_chunks = (uint16_t*) malloc(sizeof(uint16_t)*chunk_length);
 
         for (int row = 0; row < chunk_length; ++row) {
             if (arrow::BitUtil::GetBit(filter_data, row)) {
                 auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
                 if (key_value_pair != hash_table_end) {
+//                joined_left_indices[num_joined_indices] = row;
+//                joined_left_index_chunks[num_joined_indices] = i;
+//
+//                joined_right_indices[num_joined_indices] = key_value_pair->second.index;
+//                joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
                     joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
                     joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
                     ++num_joined_indices;
@@ -160,8 +124,14 @@ void Join::probe_hash_table_block
 
         new_left_indices_vector[i] = std::vector<uint32_t>(joined_left_indices, joined_left_indices + num_joined_indices);
         new_right_indices_vector[i] = std::vector<uint32_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+//
+//        left_index_chunks_vector[i] = std::vector<uint16_t>(joined_left_index_chunks, joined_left_index_chunks + num_joined_indices);
+//        right_index_chunks_vector[i] = std::vector<uint16_t>(joined_right_index_chunks, joined_right_index_chunks + num_joined_indices);
+//
         free(joined_left_indices);
         free(joined_right_indices);
+//        free(joined_left_index_chunks);
+//        free(joined_right_index_chunks);
     }
 }
 
@@ -187,10 +157,17 @@ void Join::probe_hash_table_block
         // The indices of the rows joined in chunk i
         auto * joined_left_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
         auto * joined_right_indices = (uint32_t*) malloc(sizeof(uint32_t)*chunk_length);
+//        auto * joined_left_index_chunks = (uint16_t*) malloc(sizeof(uint16_t)*chunk_length);
+//        auto * joined_right_index_chunks = (uint16_t*) malloc(sizeof(uint16_t)*chunk_length);
 
         for (int row = 0; row < chunk_length; ++row) {
             auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
             if (key_value_pair != hash_table_end) {
+//                joined_left_indices[num_joined_indices] = row;
+//                joined_left_index_chunks[num_joined_indices] = i;
+//
+//                joined_right_indices[num_joined_indices] = key_value_pair->second.index;
+//                joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
                 joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
                 joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
                 ++num_joined_indices;
@@ -199,8 +176,14 @@ void Join::probe_hash_table_block
 
         new_left_indices_vector[i] = std::vector<uint32_t>(joined_left_indices, joined_left_indices + num_joined_indices);
         new_right_indices_vector[i] = std::vector<uint32_t>(joined_right_indices, joined_right_indices + num_joined_indices);
+
+//        left_index_chunks_vector[i] = std::vector<uint16_t>(joined_left_index_chunks, joined_left_index_chunks + num_joined_indices);
+//        right_index_chunks_vector[i] = std::vector<uint16_t>(joined_right_index_chunks, joined_right_index_chunks + num_joined_indices);
+//
         free(joined_left_indices);
         free(joined_right_indices);
+//        free(joined_left_index_chunks);
+//        free(joined_right_index_chunks);
 
     }
 }
@@ -210,6 +193,8 @@ void Join::probe_hash_table
 
     new_left_indices_vector.resize(probe_col->num_chunks());
     new_right_indices_vector.resize(probe_col->num_chunks());
+//    right_index_chunks_vector.resize(probe_col->num_chunks());
+//    left_index_chunks_vector.resize(probe_col->num_chunks());
 
     // Precompute row offsets. A multithreaded probe phase requires that we know
     // all offsets beforehand.
@@ -255,6 +240,10 @@ void Join::finish_probe(Task* ctx) {
     ctx->spawnLambdaTask([this, num_indices] {
         arrow::Status status;
 
+
+//        arrow::ArrayVector vec;
+//        vec.resize(new_left_indices_vector.size());
+//
         arrow::UInt32Builder new_left_indices_builder;
         std::shared_ptr<arrow::UInt32Array> new_left_indices;
 
@@ -264,14 +253,16 @@ void Join::finish_probe(Task* ctx) {
         // TODO(nicholas): Use UnsafeAppend or index access
         // Append all of the indices to an ArrayBuilder.
         for (int i = 0; i < new_left_indices_vector.size(); i++) {
-            status = new_left_indices_builder.AppendValues(
-                new_left_indices_vector[i]);
+            status = new_left_indices_builder.AppendValues(new_left_indices_vector[i]);
             evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//            status = new_left_indices_builder.Finish(&vec[i]);
+//            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
         }
 
         status = new_left_indices_builder.Finish(&new_left_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
+//        std::make_shared<arrow::ChunkedArray>(vec);
         joined_indices_[0] = (arrow::Datum(new_left_indices));
     });
     ctx->spawnLambdaTask([this, num_indices] {
@@ -299,7 +290,7 @@ void Join::finish_probe(Task* ctx) {
 }
 
 std::shared_ptr<OperatorResult>
-Join::back_propogate_result(const LazyTable& left, LazyTable right,
+Join::back_propogate_result(LazyTable& left, LazyTable right,
                             const std::vector<arrow::Datum>& joined_indices) {
 
     arrow::Status status;
@@ -324,8 +315,9 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     } else {
         new_indices = left_indices_of_indices;
+        left.flag_ = true;
     }
-    output_lazy_tables.emplace_back(left.table, left.filter, new_indices);
+    output_lazy_tables.emplace_back(left.table, left.filter, new_indices, arrow::Datum());
 
 
     // Update the indices of the right LazyTable. If there was no previous
@@ -338,7 +330,7 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
     } else {
         new_indices = right_indices_of_indices;
     }
-    output_lazy_tables.emplace_back(right.table, right.filter, new_indices);
+    output_lazy_tables.emplace_back(right.table, right.filter, new_indices, arrow::Datum());
 
     // Propogate the join to the other tables in the previous OperatorResult.
     // This elimates tuples from other tables in the previous result that were
@@ -352,12 +344,12 @@ Join::back_propogate_result(const LazyTable& left, LazyTable right,
                 evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
                 output_lazy_tables.emplace_back(
-                    lazy_table.table, lazy_table.filter, new_indices);
+                    lazy_table.table, lazy_table.filter, new_indices, arrow::Datum());
             } else {
 //            std::cout << lazy_table.indices.length() << std::endl;
 
             output_lazy_tables.emplace_back(
-                    lazy_table.table, lazy_table.filter, lazy_table.indices);
+                    lazy_table.table, lazy_table.filter, lazy_table.indices, lazy_table.index_chunks);
             }
         }
     }
@@ -474,6 +466,9 @@ void Join::execute(Task *ctx) {
 void Join::finish() {
     // Must append to output_result_ first
     output_result_->append(prev_result_);
+    for(auto &lt : output_result_->lazy_tables_) {
+        lt.index_chunks = arrow::Datum();
+    }
 //    prev_result_->append(prev_result_);
 
 }
