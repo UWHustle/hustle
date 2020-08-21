@@ -50,8 +50,8 @@ void Join::build_hash_table
             auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
 
             for (int row = 0; row < chunk->length(); row++) {
-//                hash_table_[chunk->Value(row)] = {(uint32_t) row, (uint16_t) i};
-                hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
+                hash_table_[chunk->Value(row)] = {(uint32_t) chunk_row_offsets[i] + row, (uint16_t) i};
+//                hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
             }
         }
     } else {
@@ -73,8 +73,8 @@ void Join::build_hash_table
 
             for (int row = 0; row < chunk->length(); row++) {
                 if (arrow::BitUtil::GetBit(filter_data, row)) {
-                    hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
-//                    hash_table_[chunk->Value(row)] = {(uint32_t) row, (uint16_t) i};
+//                    hash_table_[chunk->Value(row)] = chunk_row_offsets[i] + row;
+                    hash_table_[chunk->Value(row)] = {(uint32_t) chunk_row_offsets[i] + row, (uint16_t) i};
                 }
             }
         }
@@ -114,10 +114,10 @@ void Join::probe_hash_table_block
                 joined_left_indices[num_joined_indices] = row + offset;
                 joined_left_index_chunks[num_joined_indices] = i;
 
-//                joined_right_indices[num_joined_indices] = key_value_pair->second.index;
-//                joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
+                joined_right_indices[num_joined_indices] = key_value_pair->second.index;
+                joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
 //                    joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
-                    joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
+//                    joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
                     ++num_joined_indices;
                 }
             }
@@ -167,10 +167,10 @@ void Join::probe_hash_table_block
                 joined_left_indices[num_joined_indices] = row + offset;
                 joined_left_index_chunks[num_joined_indices] = i;
 
-//                joined_right_indices[num_joined_indices] = key_value_pair->second.index;
-//                joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
+                joined_right_indices[num_joined_indices] = key_value_pair->second.index;
+                joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
 //                joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
-                joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
+//                joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
                 ++num_joined_indices;
             }
         }
