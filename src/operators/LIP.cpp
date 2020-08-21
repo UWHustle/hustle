@@ -348,6 +348,7 @@ void LIP::finish() {
         status = index_chunks_builder.AppendValues(temp, lip_indices_[i].size());
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
+        free(temp);
         if (DEBUG) OPT_PROBE_COUNT += lip_indices_[i].size();
     }
 
