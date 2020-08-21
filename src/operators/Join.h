@@ -97,6 +97,9 @@ private:
     // joined_indices[1] = new_right_indices_vector stored as an Array
     std::vector<arrow::Datum> joined_indices_;
 
+    std::vector<arrow::Datum> joined_index_chunks_;
+
+
     arrow::Datum left_join_col_;
     arrow::Datum right_join_col_;
 
