@@ -80,7 +80,6 @@ public:
 
     void set_materialized_column(int i, std::shared_ptr<arrow::ChunkedArray> col);
 
-    bool flag_;
 private:
 //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
 //    std::vector<bool> materialized_cols_bitmap_;
