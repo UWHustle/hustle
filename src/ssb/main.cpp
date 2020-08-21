@@ -148,6 +148,8 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 
     if (load) read_from_csv();
     SSB workload(sf, print);
+    std::cout << workload.lo->get_num_blocks()<<std::endl;
+
     std::cout << "skewing column..."<<std::endl;
 //    skew_column(workload.lo->get_column(4), true);
 //    std::cout << workload.lo->get_column(4)->ToString() << std::endl;
@@ -158,7 +160,7 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //
 //        workload.q11();
 
-//        workload.q11();
+        workload.q11();
 //        workload.q12();
 //        workload.q13();
 
@@ -170,29 +172,73 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //        workload.q32();
 //        workload.q33();
 //        workload.q34();
-//
+
 //        workload.q41();
 //        workload.q42();
 //        workload.q43();
 //
-        workload.q21_lip();
-        workload.q22_lip();
-        workload.q23_lip();
+//        workload.q21_lip();
+//        workload.q22_lip();
+//        workload.q23_lip();
 
-        workload.q31_lip();
-        workload.q32_lip();
-        workload.q33_lip();
-        workload.q34_lip();
-
-        workload.q41_lip();
-        workload.q42_lip();
-        workload.q43_lip();
+//        workload.q31_lip();
+//        workload.q32_lip();
+//        workload.q33_lip();
+//        workload.q34_lip();
+//
+//        workload.q41_lip();
+//        workload.q42_lip();
+//        workload.q43_lip();
 
     std::cout << "sleeping..." << std::endl;
-    sleep(0);
+    sleep(1);
     }
 }
 
+void test() {
+
+    arrow::ArrayVector v;
+    v.resize(3);
+
+    arrow::Int64Builder b;
+    b.AppendValues({9,8,7});
+    b.Finish(&v[0]);
+    b.AppendValues({6,5,4});
+    b.Finish(&v[1]);
+    b.AppendValues({3,2,1});
+    b.Finish(&v[2]);
+
+    auto chunked_vals = std::make_shared<arrow::ChunkedArray>(v);
+    std::cout << chunked_vals->ToString() << std::endl;
+
+
+    std::shared_ptr<arrow::Array> indices;
+    arrow::UInt32Builder b2;
+    b2.AppendValues({0,1,2,0,1,2,0,1,2});
+    b2.Finish(&indices);
+    std::cout << indices->ToString() << std::endl;
+
+    std::shared_ptr<arrow::Array> index_chunks;
+    arrow::UInt16Builder b3;
+    b3.AppendValues({0,0,0,1,1,1,2,2,2});
+    b3.Finish(&index_chunks);
+    std::cout << index_chunks->ToString() << std::endl;
+
+    auto& s = hustle::Scheduler::GlobalInstance();
+
+    arrow::Datum out;
+    hustle::Context c;
+
+    auto task = hustle::CreateLambdaTask([&](hustle::Task* internal) {
+        c.apply_indices(internal, chunked_vals, indices, index_chunks, out);
+    });
+
+    s.addTask(task);
+    s.start();
+    s.join();
+
+    std::cout << out.chunked_array()->ToString() << std::endl;
+}
 
 int main(int argc, char *argv[]) {
 
