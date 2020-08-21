@@ -370,8 +370,8 @@ void LIP::finish() {
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     // Create a new lazy fact table with the new index array
-//    LazyTable out_fact_table(fact_table_.table, fact_table_.filter, new_indices, index_chunks);
-    LazyTable out_fact_table(fact_table_.table, fact_table_.filter, new_indices, arrow::Datum());
+    LazyTable out_fact_table(fact_table_.table, fact_table_.filter, new_indices, index_chunks);
+//    LazyTable out_fact_table(fact_table_.table, fact_table_.filter, new_indices, arrow::Datum());
 
     OperatorResult result({out_fact_table});
     output_result_->append(std::make_shared<OperatorResult>(result));
