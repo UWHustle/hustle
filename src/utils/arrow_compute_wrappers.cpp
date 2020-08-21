@@ -95,6 +95,7 @@ void Context::apply_indices_internal2(
 //    slice_length_ = chunked_values->chunk(slice_i)->length();
 
     auto chunk_offsets_data = chunk_offsets->data()->GetValues<int64_t>(1);
+
     std::shared_ptr<arrow::Array> sliced_indices;
     std::shared_ptr<arrow::Array> sliced_index_chunks;
 
@@ -112,7 +113,7 @@ void Context::apply_indices_internal2(
         return;
     }
 
-    auto index_chunks_data = index_chunks->data()->GetValues<uint16_t>(1, 0);
+    auto sliced_index_chunks_data = sliced_index_chunks->data()->GetValues<uint16_t>(1);
     auto sliced_indices_data = sliced_indices->data()->GetValues<uint32_t>(1);
 
     std::shared_ptr<arrow::Buffer> out_buffer;
@@ -124,9 +125,8 @@ void Context::apply_indices_internal2(
     auto out = out_data->GetMutableValues<int64_t>(1);
 
     for (uint32_t i=0; i<sliced_indices->length(); ++i) {
-        auto chunk_j = index_chunks_data[i];
+        auto chunk_j = sliced_index_chunks_data[i];
         auto index = sliced_indices_data[i]-chunk_offsets_data[chunk_j];
-//        std::cout << chunk_j << " " << index << " " <<  values_data_vec[chunk_j][index] << std::endl;
         out[i] = values_data_vec[chunk_j][index];
     }
 
