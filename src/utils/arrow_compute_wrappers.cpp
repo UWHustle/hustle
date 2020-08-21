@@ -87,12 +87,14 @@ void Context::apply_indices_internal2(
     const T ** values_data_vec,
     const std::shared_ptr<arrow::Array>& indices_array,
     const std::shared_ptr<arrow::Array>& index_chunks,
+    const std::shared_ptr<arrow::Array>& chunk_offsets,
     int slice_i) {
 
     int num_slices = indices_array->length()/slice_length_ + 1;
 //    int num_slices = chunked_values->num_chunks();
 //    slice_length_ = chunked_values->chunk(slice_i)->length();
 
+    auto chunk_offsets_data = chunk_offsets->data()->GetValues<int64_t>(1);
     std::shared_ptr<arrow::Array> sliced_indices;
     std::shared_ptr<arrow::Array> sliced_index_chunks;
 
@@ -122,9 +124,9 @@ void Context::apply_indices_internal2(
     auto out = out_data->GetMutableValues<int64_t>(1);
 
     for (uint32_t i=0; i<sliced_indices->length(); ++i) {
-        auto index = sliced_indices_data[i];
         auto chunk_j = index_chunks_data[i];
-        std::cout << chunk_j << " " << index << values_data_vec[chunk_j][index] << std::endl;
+        auto index = sliced_indices_data[i]-chunk_offsets_data[chunk_j];
+//        std::cout << chunk_j << " " << index << " " <<  values_data_vec[chunk_j][index] << std::endl;
         out[i] = values_data_vec[chunk_j][index];
     }
 
@@ -290,7 +292,7 @@ void Context::apply_indices(
                                 values_data_vec[i] = chunked_values->chunk(i)->data()->GetValues<int64_t>(1);
                             }
                             if (has_index_chunks) {
-                                apply_indices_internal2<int64_t>(chunked_values, values_data_vec.data(), indices_array, index_chunks.make_array(), i);
+                                apply_indices_internal2<int64_t>(chunked_values, values_data_vec.data(), indices_array, index_chunks.make_array(), offsets, i);
                             } else {
                                 apply_indices_internal<int64_t>(chunked_values, values_data_vec.data(), indices_array, offsets, i);
                             }
@@ -302,7 +304,7 @@ void Context::apply_indices(
                                 values_data_vec[i] = chunked_values->chunk(i)->data()->GetValues<uint32_t>(1);
                             }
                             if (has_index_chunks) {
-                                apply_indices_internal2<uint32_t>(chunked_values, values_data_vec.data(), indices_array, index_chunks.make_array(), i);
+                                apply_indices_internal2<uint32_t>(chunked_values, values_data_vec.data(), indices_array, index_chunks.make_array(), offsets, i);
                             } else {
                                 apply_indices_internal<uint32_t>(chunked_values, values_data_vec.data(), indices_array, offsets, i);
                             }

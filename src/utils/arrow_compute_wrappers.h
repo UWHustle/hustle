@@ -143,6 +143,12 @@ private:
     void apply_indices_internal2(const std::shared_ptr<arrow::ChunkedArray> &chunked_values, const T **values_data_vec,
                                  const std::shared_ptr<arrow::Array> &indices_array,
                                  const std::shared_ptr<arrow::Array> &index_chunks, int slice_i);
+
+    template<typename T>
+    void apply_indices_internal2(const std::shared_ptr<arrow::ChunkedArray> &chunked_values, const T **values_data_vec,
+                                 const std::shared_ptr<arrow::Array> &indices_array,
+                                 const std::shared_ptr<arrow::Array> &index_chunks,
+                                 const std::shared_ptr<arrow::Array> &offsets, int slice_i);
 };
 
 }
