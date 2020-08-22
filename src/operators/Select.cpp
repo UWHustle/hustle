@@ -93,25 +93,18 @@ Select::get_filter(const std::shared_ptr<Node> &node,
 
     switch (node->connective_) {
         case AND: {
-            for (int i=0; i<num_bytes; ++i) {
-                left_data[i] = left_data[i] & right_data[i];
-            }
-            block_filter = left_child_filter;
+            for (int i=0; i<num_bytes; ++i) left_data[i] = left_data[i] & right_data[i];
             break;
         }
         case OR: {
-            for (int i=0; i<num_bytes; ++i) {
-                left_data[i] = left_data[i] | right_data[i];
-            }
-            block_filter = left_child_filter;
+            for (int i=0; i<num_bytes; ++i) left_data[i] = left_data[i] | right_data[i];
             break;
         }
         case NONE: {
-            block_filter = left_child_filter;
             break;
         }
     }
-    return block_filter;
+    return left_child_filter;
 }
 
 template<typename Functor>
@@ -172,7 +165,7 @@ void Select::execute_block(arrow::ArrayVector &filter_vector, int i) {
 void Select::finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task *ctx) {
 
     auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filters_);
-    LazyTable lazy_table(table_, chunked_filter, arrow::Datum());
+    LazyTable lazy_table(table_, chunked_filter, arrow::Datum(), arrow::Datum());
     output_result_->append(lazy_table);
 }
 

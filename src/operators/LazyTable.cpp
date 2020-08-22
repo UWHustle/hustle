@@ -14,15 +14,19 @@ namespace hustle::operators{
     LazyTable::LazyTable() {
         filter = arrow::Datum();
         indices =  arrow::Datum();
+        index_chunks = arrow::Datum();
     }
     LazyTable::LazyTable(
         std::shared_ptr<Table> table,
         arrow::Datum filter,
-        arrow::Datum indices) {
+        arrow::Datum indices,
+        arrow::Datum index_chunks) {
 
         this->table = table;
         this->filter = filter;
         this->indices = indices;
+        this->index_chunks = index_chunks;
+
 
         materialized_cols_.resize(table->get_num_cols());
         filtered_cols_.reserve(table->get_num_cols());
@@ -81,14 +85,19 @@ void LazyTable::get_column(Task* ctx, int i, arrow::Datum& out) {
             }
         }),
         CreateLambdaTask([this, i, &out](Task *internal) {
-            if (indices.kind() != arrow::Datum::NONE) {
-                // BUG:
-                context_.apply_indices(internal, out,indices, false, out);
+            if (materialized_cols_[i] != nullptr) {
+                return;
+            } else if (indices.kind() != arrow::Datum::NONE) {
+                context_.apply_indices(internal, out,indices, index_chunks, out);
                 arrow::Status status;
             }
             materialized_cols_[i] = out.chunked_array();
         })
     ));
+}
+
+void LazyTable::set_materialized_column(int i, std::shared_ptr<arrow::ChunkedArray> col) {
+    materialized_cols_[i] = std::move(col);
 }
 
 }

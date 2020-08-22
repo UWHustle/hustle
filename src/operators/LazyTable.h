@@ -36,11 +36,7 @@ public:
      * @param filter A Boolean ChunkedArray Datum
      * @param indices An INT64 Array Datum
      */
-    LazyTable(
-            std::shared_ptr<Table> table,
-            arrow::Datum filter,
-            arrow::Datum indices
-    );
+    LazyTable(std::shared_ptr<Table> table, arrow::Datum filter, arrow::Datum indices, arrow::Datum index_chunks);
 
     /**
      * Materialize the active rows of one column of the LazyTable. This is
@@ -68,6 +64,7 @@ public:
     std::shared_ptr<Table> table;
     arrow::Datum filter; // filters are ChunkedArrays
     arrow::Datum indices; // indices are Arrays
+    arrow::Datum index_chunks;
     std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
     std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
 
@@ -80,6 +77,8 @@ public:
         arrow::Datum& out);
 
     void get_column(Task* ctx, int i, arrow::Datum& out);
+
+    void set_materialized_column(int i, std::shared_ptr<arrow::ChunkedArray> col);
 
 private:
 //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;

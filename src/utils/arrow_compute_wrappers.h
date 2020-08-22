@@ -104,29 +104,10 @@ public:
 
     Context();
 
-    void apply_indices(
-        Task *ctx,
-        const arrow::Datum values,
-        const arrow::Datum indices,
-        bool has_sorted_indices,
-        arrow::Datum& out);
-
-    void apply_filter(
-        Task *ctx,
-        const arrow::Datum &values,
-        const arrow::Datum &filter,
-        arrow::Datum& out);
-
-    void apply_filter_internal(
-        Task *ctx,
-        const arrow::Datum &values,
-        const arrow::Datum &filter,
-        arrow::ArrayVector &out);
-
     arrow::Datum out_;
-    void compare(Task *ctx, const arrow::Datum &left, const arrow::Datum &right,
-                 arrow::compute::CompareOperator compare_operator, arrow::Datum *out);
 
+    void apply_indices(Task *ctx, const arrow::Datum values, const arrow::Datum indices, const arrow::Datum index_chunks,
+                  arrow::Datum &out);
     void match(Task *ctx, const arrow::Datum &values, const arrow::Datum &keys, arrow::Datum &out);
 
 private:
@@ -146,11 +127,6 @@ private:
                                 const std::shared_ptr<arrow::Array> &indices_array,
                                 const std::shared_ptr<arrow::Array> &offsets, int i);
 
-    void apply_filter_block(Task *ctx, const arrow::Datum &values, const arrow::Datum &filter, arrow::ArrayVector &out);
-
-    arrow::Datum
-    apply_filter_block(const std::shared_ptr<arrow::Array> &values, const std::shared_ptr<arrow::Array> &filter,
-                       arrow::ArrayVector &out);
 
 
     void apply_indices_internal_str(const std::shared_ptr<arrow::ChunkedArray> &chunked_values,
@@ -161,6 +137,18 @@ private:
     void apply_indices_internal(const std::shared_ptr<arrow::ChunkedArray> &chunked_values, const T**values_data_vec,
                                 const std::shared_ptr<arrow::Array> &indices_array,
                                 const std::shared_ptr<arrow::Array> &offsets, int slice_i);
+
+
+    template<typename T>
+    void apply_indices_internal2(const std::shared_ptr<arrow::ChunkedArray> &chunked_values, const T **values_data_vec,
+                                 const std::shared_ptr<arrow::Array> &indices_array,
+                                 const std::shared_ptr<arrow::Array> &index_chunks, int slice_i);
+
+    template<typename T>
+    void apply_indices_internal2(const std::shared_ptr<arrow::ChunkedArray> &chunked_values, const T **values_data_vec,
+                                 const std::shared_ptr<arrow::Array> &indices_array,
+                                 const std::shared_ptr<arrow::Array> &index_chunks,
+                                 const std::shared_ptr<arrow::Array> &offsets, int slice_i);
 };
 
 }

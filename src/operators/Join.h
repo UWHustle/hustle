@@ -13,6 +13,11 @@
 
 namespace hustle::operators {
 
+struct RecordID {
+    uint32_t index;
+    uint16_t chunk;
+};
+
 /**
  * The Join operator updates the index arrays of each LazyTable in the inputted
  * OperatorResults. After execution, the index arrays of each LazyTable contains
@@ -70,7 +75,8 @@ private:
     JoinGraph graph_;
 
     // Hash table for the right table in each join
-    phmap::flat_hash_map<int64_t, uint32_t> hash_table_;
+//    phmap::flat_hash_map<int64_t, uint32_t> hash_table_;
+    phmap::flat_hash_map<int64_t, RecordID> hash_table_;
 //    std::unordered_map<int64_t, uint64_t> hash_table_;
 
     // new_left_indices_vector[i] = the indices of rows joined in chunk i in
@@ -79,6 +85,10 @@ private:
     // new_right_indices_vector[i] = the indices of rows joined in chunk i in
     // the right table
     std::vector<std::vector<uint32_t>> new_right_indices_vector;
+
+    std::vector<std::vector<uint16_t>> left_index_chunks_vector;
+    std::vector<std::vector<uint16_t>> right_index_chunks_vector;
+
 
     // It would make much more sense to use an ArrayVector instead of a vector of
     // vectors, since we can make a ChunkedArray out from an ArrayVector. But
@@ -89,6 +99,9 @@ private:
     // joined_indices[0] = new_left_indices_vector stored as an Array
     // joined_indices[1] = new_right_indices_vector stored as an Array
     std::vector<arrow::Datum> joined_indices_;
+
+    std::vector<arrow::Datum> joined_index_chunks_;
+
 
     arrow::Datum left_join_col_;
     arrow::Datum right_join_col_;
@@ -150,7 +163,7 @@ private:
      *
      */
     std::shared_ptr<OperatorResult> back_propogate_result
-        (const LazyTable& left, LazyTable right,
+        (LazyTable& left, LazyTable right,
          const std::vector<arrow::Datum>& joined_indices);
 
     /**
