@@ -161,8 +161,8 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //        workload.q11();
 
         workload.q11();
-//        workload.q12();
-//        workload.q13();
+        workload.q12();
+        workload.q13();
 
 //        workload.q21();
 //        workload.q22();
@@ -177,18 +177,18 @@ void run_experiment(int sf, int num_trials=1, bool load=false, bool print=false)
 //        workload.q42();
 //        workload.q43();
 //
-//        workload.q21_lip();
-//        workload.q22_lip();
-//        workload.q23_lip();
+        workload.q21_lip();
+        workload.q22_lip();
+        workload.q23_lip();
 
-//        workload.q31_lip();
-//        workload.q32_lip();
-//        workload.q33_lip();
-//        workload.q34_lip();
-//
-//        workload.q41_lip();
-//        workload.q42_lip();
-//        workload.q43_lip();
+        workload.q31_lip();
+        workload.q32_lip();
+        workload.q33_lip();
+        workload.q34_lip();
+
+        workload.q41_lip();
+        workload.q42_lip();
+        workload.q43_lip();
 
     std::cout << "sleeping..." << std::endl;
     sleep(1);
@@ -253,6 +253,6 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         run_experiment(std::stoi(argv[1]));
     } else {
-        run_experiment(10, 10, 0, 0);
+        run_experiment(1, 1, 0, 1);
     }
 }
