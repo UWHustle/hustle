@@ -73,11 +73,14 @@ copy_record_batch(const std::shared_ptr<arrow::RecordBatch>& batch);
  */
 int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema);
 
+std::vector<int32_t> get_field_sizes(const std::shared_ptr<arrow::Schema>& schema);
 
 std::shared_ptr<Table> read_from_csv_file(const char* path,
         std::shared_ptr<arrow::Schema>
 schema, int block_size);
 
 std::shared_ptr<arrow::Schema> make_schema(const hustle::catalog::TableSchema& schema);
+
+std::shared_ptr<arrow::ChunkedArray> array_to_chunkedarray(std::shared_ptr<arrow::Array> array, int num_chunks);
 
 #endif //HUSTLE_OFFLINE_UTIL_H

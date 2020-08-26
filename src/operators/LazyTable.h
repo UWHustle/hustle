@@ -5,6 +5,8 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include <scheduler/Task.hpp>
+#include <utils/arrow_compute_wrappers.h>
 
 namespace hustle::operators{
 
@@ -34,11 +36,7 @@ public:
      * @param filter A Boolean ChunkedArray Datum
      * @param indices An INT64 Array Datum
      */
-    LazyTable(
-            std::shared_ptr<Table> table,
-            arrow::compute::Datum filter,
-            arrow::compute::Datum indices
-    );
+    LazyTable(std::shared_ptr<Table> table, arrow::Datum filter, arrow::Datum indices, arrow::Datum index_chunks);
 
     /**
      * Materialize the active rows of one column of the LazyTable. This is
@@ -64,14 +62,29 @@ public:
             std::string col_name);
 
     std::shared_ptr<Table> table;
-    arrow::compute::Datum filter; // filters are ChunkedArrays
-    arrow::compute::Datum indices; // indices are Arrays
-    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+    arrow::Datum filter; // filters are ChunkedArrays
+    arrow::Datum indices; // indices are Arrays
+    arrow::Datum index_chunks;
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+    std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
+
+
+
+
+    void get_column_by_name(
+        Task* ctx,
+        std::string col_name,
+        arrow::Datum& out);
+
+    void get_column(Task* ctx, int i, arrow::Datum& out);
+
+    void set_materialized_column(int i, std::shared_ptr<arrow::ChunkedArray> col);
 
 private:
 //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
-
 //    std::vector<bool> materialized_cols_bitmap_;
+    Context context_;
+
 };
 
 }

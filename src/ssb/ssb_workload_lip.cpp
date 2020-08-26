@@ -20,7 +20,7 @@ void SSB::q11_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1)
+        arrow::Datum((uint8_t) 1)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -31,7 +31,7 @@ void SSB::q11_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 3)
+        arrow::Datum((uint8_t) 3)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -48,7 +48,7 @@ void SSB::q11_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS,
-        arrow::compute::Datum((int64_t) 25)
+        arrow::Datum((uint8_t) 25)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -68,7 +68,7 @@ void SSB::q11_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1993)
+        arrow::Datum((int64_t) 1993)
     };
     auto year_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -109,17 +109,19 @@ void SSB::q11_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q1.1_lip");
+    container->startEvent("1.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q1.1_lip");
+    container->endEvent("1.1_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -133,7 +135,7 @@ void SSB::q12_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 4)
+        arrow::Datum((uint8_t) 4)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -144,7 +146,7 @@ void SSB::q12_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 6)
+        arrow::Datum((uint8_t) 6)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -161,7 +163,7 @@ void SSB::q12_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 26)
+        arrow::Datum((uint8_t) 26)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -172,7 +174,7 @@ void SSB::q12_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 35)
+        arrow::Datum((uint8_t) 35)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -198,7 +200,7 @@ void SSB::q12_lip() {
         {d,
          "year month num"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 199401)
+        arrow::Datum((int64_t) 199401)
     };
     auto year_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -242,17 +244,19 @@ void SSB::q12_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q1.2_lip");
+    container->startEvent("1.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q1.2_lip");
+    container->endEvent("1.2_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -266,7 +270,7 @@ void SSB::q13_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 5)
+        arrow::Datum((uint8_t) 5)
     };
     auto discount_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -277,7 +281,7 @@ void SSB::q13_lip() {
         {lo,
          "discount"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 7)
+        arrow::Datum((uint8_t) 7)
     };
     auto discount_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -294,7 +298,7 @@ void SSB::q13_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 26)
+        arrow::Datum((uint8_t) 26)
     };
     auto quantity_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -305,7 +309,7 @@ void SSB::q13_lip() {
         {lo,
          "quantity"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 35)
+        arrow::Datum((uint8_t) 35)
     };
     auto quantity_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -330,7 +334,7 @@ void SSB::q13_lip() {
         {d,
          "week num in year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 6)
+        arrow::Datum((int64_t) 6)
     };
     auto d_pred_node_1 =
         std::make_shared<PredicateNode>(
@@ -341,7 +345,7 @@ void SSB::q13_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1994)
+        arrow::Datum((int64_t) 1994)
     };
     auto d_pred_node_2 =
         std::make_shared<PredicateNode>(
@@ -392,17 +396,19 @@ void SSB::q13_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q1.3_lip");
+    container->startEvent("1.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q1.3_lip");
+    container->endEvent("1.3_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -415,7 +421,7 @@ void SSB::q21_lip() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto s_pred_node_1 =
@@ -429,7 +435,7 @@ void SSB::q21_lip() {
         {p,
          "category"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#12"))
     };
     auto p_pred_node_1 =
@@ -478,23 +484,26 @@ void SSB::q21_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("q2.1_lip");
+    container->startEvent("2.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q2.1_lip");
+    container->endEvent("2.1_lip");
 
-    
-    out_table = agg_result_out->materialize({
-                                                {nullptr, "revenue"},
-                                                {nullptr, "year"},
-                                                {nullptr, "brand1"}
-                                            });
-    if (print_) out_table->print();
+
+    if (print_) {
+        out_table = agg_result_out->materialize({
+                                                    {nullptr, "revenue"},
+                                                    {nullptr, "year"},
+                                                    {nullptr, "brand1"}
+                                                });
+        out_table->print();
+    }
     hustle::simple_profiler.summarizeToStream(std::cout);
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -504,7 +513,7 @@ void SSB::q22_lip() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
     };
     auto s_pred_node_1 =
@@ -518,7 +527,7 @@ void SSB::q22_lip() {
         {p,
          "brand1"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2221"))
     };
     auto p_pred_node_1 =
@@ -529,7 +538,7 @@ void SSB::q22_lip() {
         {p,
          "brand1"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2228"))
     };
     auto p_pred_node_2 =
@@ -585,23 +594,26 @@ void SSB::q22_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("q2.2_lip");
+    container->startEvent("2.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q2.2_lip");
+    container->endEvent("2.2_lip");
 
-    
-    out_table = agg_result_out->materialize({
-                                                {nullptr, "revenue"},
-                                                {nullptr, "year"},
-                                                {nullptr, "brand1"}
-                                            });
-    if (print_) out_table->print();
+
+    if (print_) {
+        out_table = agg_result_out->materialize({
+                                                    {nullptr, "revenue"},
+                                                    {nullptr, "year"},
+                                                    {nullptr, "brand1"}
+                                                });
+        out_table->print();
+    }
     hustle::simple_profiler.summarizeToStream(std::cout);
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -611,7 +623,7 @@ void SSB::q23_lip() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("EUROPE"))
     };
     auto s_pred_node_1 =
@@ -625,7 +637,7 @@ void SSB::q23_lip() {
         {p,
          "brand1"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2221"))
     };
     auto p_pred_node_1 =
@@ -674,23 +686,26 @@ void SSB::q23_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = hustle::simple_profiler.getContainer();
-    container->startEvent("q2.3_lip");
+    container->startEvent("2.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q2.3_lip");
+    container->endEvent("2.3_lip");
 
-    
-    out_table = agg_result_out->materialize({
-                                                {nullptr, "revenue"},
-                                                {nullptr, "year"},
-                                                {nullptr, "brand1"}
-                                            });
-    if (print_) out_table->print();
+
+    if (print_) {
+        out_table = agg_result_out->materialize({
+                                                    {nullptr, "revenue"},
+                                                    {nullptr, "year"},
+                                                    {nullptr, "brand1"}
+                                                });
+        out_table->print();
+    }
     hustle::simple_profiler.summarizeToStream(std::cout);
+    simple_profiler.clear();
     reset_results();
 }
 
@@ -700,7 +715,7 @@ void SSB::q31_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1992)
+        arrow::Datum((int64_t) 1992)
     };
 
     auto d_pred_node_1 =
@@ -711,7 +726,7 @@ void SSB::q31_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_2 =
@@ -731,7 +746,7 @@ void SSB::q31_lip() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
     };
     auto s_pred_node_1 =
@@ -744,7 +759,7 @@ void SSB::q31_lip() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("ASIA"))
     };
     auto c_pred_node_1 =
@@ -794,17 +809,19 @@ void SSB::q31_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.1_lip");
+    container->startEvent("3.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.1_lip");
+    container->endEvent("3.1_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}, {nullptr, "s nation"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -817,7 +834,7 @@ void SSB::q32_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1992)
+        arrow::Datum((int64_t) 1992)
     };
 
     auto d_pred_node_1 =
@@ -828,7 +845,7 @@ void SSB::q32_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_2 =
@@ -848,7 +865,7 @@ void SSB::q32_lip() {
         {s,
          "s nation"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
     };
     auto s_pred_node_1 =
@@ -861,7 +878,7 @@ void SSB::q32_lip() {
         {c,
          "c nation"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
     };
     auto c_pred_node_1 =
@@ -911,17 +928,19 @@ void SSB::q32_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.2_lip");
+    container->startEvent("3.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.2_lip");
+    container->endEvent("3.2_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -934,7 +953,7 @@ void SSB::q33_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1992)
+        arrow::Datum((int64_t) 1992)
     };
 
     auto d_pred_node_1 =
@@ -945,7 +964,7 @@ void SSB::q33_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_2 =
@@ -965,7 +984,7 @@ void SSB::q33_lip() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -977,7 +996,7 @@ void SSB::q33_lip() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -998,7 +1017,7 @@ void SSB::q33_lip() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -1010,7 +1029,7 @@ void SSB::q33_lip() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -1068,17 +1087,19 @@ void SSB::q33_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.3_lip");
+    container->startEvent("3.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.3_lip");
+    container->endEvent("3.3_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1091,7 +1112,7 @@ void SSB::q34_lip() {
         {d,
          "year month"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("Dec1997"))
     };
 
@@ -1105,7 +1126,7 @@ void SSB::q34_lip() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -1117,7 +1138,7 @@ void SSB::q34_lip() {
         {s,
          "s city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -1138,7 +1159,7 @@ void SSB::q34_lip() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI1"))
     };
 
@@ -1150,7 +1171,7 @@ void SSB::q34_lip() {
         {c,
          "c city"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED KI5"))
     };
 
@@ -1206,17 +1227,19 @@ void SSB::q34_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q3.4_lip");
+    container->startEvent("3.4_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q3.4_lip");
+    container->endEvent("3.4_lip");
 
-    out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
-    if (print_) out_table->print();
+    if (print_) {
+        out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c city"}, {nullptr, "s city"}});
+        out_table->print();
+    }
     simple_profiler.summarizeToStream(std::cout);
 
     simple_profiler.clear();
@@ -1229,7 +1252,7 @@ void SSB::q41_lip() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto s_pred_node_1 =
@@ -1242,7 +1265,7 @@ void SSB::q41_lip() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto c_pred_node_1 =
@@ -1255,7 +1278,7 @@ void SSB::q41_lip() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#1"))
     };
     auto p_pred_node_1 =
@@ -1266,7 +1289,7 @@ void SSB::q41_lip() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2"))
     };
     auto p_pred_node_2 =
@@ -1326,14 +1349,14 @@ void SSB::q41_lip() {
 
     ////////////////////////////////////////////////////////////////////////////
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q4.1_lip");
+    container->startEvent("4.1_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q4.1_lip");
+    container->endEvent("4.1_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}});
     if (print_) out_table->print();
@@ -1349,7 +1372,7 @@ void SSB::q42_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::GREATER_EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_1 =
@@ -1360,7 +1383,7 @@ void SSB::q42_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::LESS_EQUAL,
-        arrow::compute::Datum((int64_t) 1998)
+        arrow::Datum((int64_t) 1998)
     };
 
     auto d_pred_node_2 =
@@ -1380,7 +1403,7 @@ void SSB::q42_lip() {
         {s,
          "s region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto s_pred_node_1 =
@@ -1393,7 +1416,7 @@ void SSB::q42_lip() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto c_pred_node_1 =
@@ -1406,7 +1429,7 @@ void SSB::q42_lip() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#1"))
     };
     auto p_pred_node_1 =
@@ -1417,7 +1440,7 @@ void SSB::q42_lip() {
         {p,
          "mfgr"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#2"))
     };
     auto p_pred_node_2 =
@@ -1477,14 +1500,14 @@ void SSB::q42_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q4.2_lip");
+    container->startEvent("4.2_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q4.2_lip");
+    container->endEvent("4.2_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "s nation"}, {nullptr, "category"}});
     if (print_) out_table->print();
@@ -1500,7 +1523,7 @@ void SSB::q43_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1997)
+        arrow::Datum((int64_t) 1997)
     };
 
     auto d_pred_node_1 =
@@ -1511,7 +1534,7 @@ void SSB::q43_lip() {
         {d,
          "year"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum((int64_t) 1998)
+        arrow::Datum((int64_t) 1998)
     };
 
     auto d_pred_node_2 =
@@ -1531,7 +1554,7 @@ void SSB::q43_lip() {
         {s,
          "s nation"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("UNITED STATES"))
     };
     auto s_pred_node_1 =
@@ -1544,7 +1567,7 @@ void SSB::q43_lip() {
         {c,
          "c region"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("AMERICA"))
     };
     auto c_pred_node_1 =
@@ -1557,7 +1580,7 @@ void SSB::q43_lip() {
         {p,
          "category"},
         arrow::compute::CompareOperator::EQUAL,
-        arrow::compute::Datum(std::make_shared<arrow::StringScalar>
+        arrow::Datum(std::make_shared<arrow::StringScalar>
                                   ("MFGR#14"))
     };
     auto p_pred_node_1 =
@@ -1609,14 +1632,14 @@ void SSB::q43_lip() {
     // Declare aggregate dependency on join operator
     plan.createLink(join_id, agg_id);
 
-    Scheduler scheduler = Scheduler(8);
+    Scheduler scheduler = Scheduler(num_threads_);
     scheduler.addTask(&plan);
 
     auto container = simple_profiler.getContainer();
-    container->startEvent("q4.3_lip");
+    container->startEvent("4.3_lip");
     scheduler.start();
     scheduler.join();
-    container->endEvent("q4.3_lip");
+    container->endEvent("4.3_lip");
 
     out_table = agg_result_out->materialize({{nullptr, "revenue"}, {nullptr, "year"},  {nullptr, "s city"}, {nullptr, "brand1"}});
     if (print_) out_table->print();

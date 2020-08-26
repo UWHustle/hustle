@@ -237,6 +237,9 @@ private:
     std::vector<std::shared_ptr<arrow::ArrayData>> columns;
     std::vector<int> column_sizes;
 
+    std::vector<int32_t> field_sizes_;
+
+
     /**
      * Compute the number of bytes in the block. This function is only called
      * when a block is initialized from a RecordBatch, i.e. when we read in a
@@ -260,6 +263,20 @@ private:
     // Number of columns in the Block, excluding the valid column.
     int num_cols;
 
+    template <typename field_size>
+    std::shared_ptr<arrow::ArrayData> allocate_column_data(std::shared_ptr<arrow::DataType> type, int init_rows);
+
+    template <typename field_size>
+    void insert_values_in_column(int i, int offset, std::shared_ptr<arrow::ArrayData> vals, int num_vals);
+
+    template <typename field_size>
+    void insert_value_in_column(int i, int &head, uint8_t *record_value, int byte_width);
+
+    template <typename field_size>
+    void insert_csv_value_in_column(int i, int &head, std::string_view record, int byte_width);
+
+    template <typename field_size>
+    void truncate_column_buffer(int i);
 };
 
 #endif //HUSTLE_OFFLINE_BLOCK_H

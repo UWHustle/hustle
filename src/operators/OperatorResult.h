@@ -80,6 +80,8 @@ public:
     std::shared_ptr<Table> materialize(const std::vector<ColumnReference>& col_refs);
 
     std::vector<LazyTable> lazy_tables_;
+
+    void set_materialized_col(std::shared_ptr<Table> table, int i, std::shared_ptr<arrow::ChunkedArray> col);
 };
 
 } // namespace hustle

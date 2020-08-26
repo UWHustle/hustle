@@ -7,6 +7,7 @@ add_library(
 
 target_include_directories(hustle_src_table PUBLIC ${ARROW_INCLUDE_DIR} )
 target_link_libraries(hustle_src_table PUBLIC
+        hustle_src_scheduler_Scheduler
         ${ARROW_SHARED_LIB}
         absl::strings
         absl::container

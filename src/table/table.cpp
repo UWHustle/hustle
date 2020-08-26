@@ -167,10 +167,29 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
                     record_size += offsets[row+1] - offsets[row];
                     break;
                 }
+                case arrow::Type::FIXED_SIZE_BINARY: {
+                    int byte_width = schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+                    record_size += byte_width;
+                    break;
+                }
                 case arrow::Type::DOUBLE:
                 case arrow::Type::INT64: {
-                    // buffer at index 1 is the data buffer.
                     int byte_width = sizeof(int64_t);
+                    record_size += byte_width;
+                    break;
+                }
+                case arrow::Type::UINT32: {
+                    int byte_width = sizeof(uint32_t);
+                    record_size += byte_width;
+                    break;
+                }
+                case arrow::Type::UINT16: {
+                    int byte_width = sizeof(uint16_t);
+                    record_size += byte_width;
+                    break;
+                }
+                case arrow::Type::UINT8: {
+                    int byte_width = sizeof(uint8_t);
                     record_size += byte_width;
                     break;
                 }
@@ -190,8 +209,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
             for (int i=0; i<column_data.size(); i++) {
                 // Note that row is equal to the index of the first record we
                 // cannot fit in the block.
-                auto sliced_data = std::make_shared<arrow::ArrayData>
-                        (column_data[i]->Slice(offset,row-offset));
+                auto sliced_data = column_data[i]->Slice(offset,row-offset);
                 sliced_column_data.push_back(sliced_data);
             }
 
@@ -213,8 +231,7 @@ void Table::insert_records(std::vector<std::shared_ptr<arrow::ArrayData>>
     for (int i=0; i<column_data.size(); i++) {
         // Note that row is equal to the index of the first record we
         // cannot fit in the block.
-        auto sliced_data = std::make_shared<arrow::ArrayData>
-                (column_data[i]->Slice(offset,l-offset));
+        auto sliced_data = column_data[i]->Slice(offset,l-offset);
         sliced_column_data.push_back(sliced_data);
     }
     block->insert_records(sliced_column_data);

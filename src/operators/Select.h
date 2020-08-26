@@ -9,6 +9,10 @@
 #include "OperatorResult.h"
 #include "Predicate.h"
 #include "Operator.h"
+#include "Join.h"
+
+// Bitmask selecting the k-th bit in a byte
+static constexpr uint8_t kBitmask[] = {1, 2, 4, 8, 16, 32, 64, 128};
 
 namespace hustle::operators {
 
@@ -45,11 +49,12 @@ public:
 
 private:
     std::shared_ptr<PredicateTree> tree_;
-    std::shared_ptr<OperatorResult> prev_result_;
     std::shared_ptr<OperatorResult> output_result_;
     std::shared_ptr<Table> table_;
-    arrow::ArrayVector filter_vector_;
+    arrow::ArrayVector filters_;
+    std::vector<bool> filter_exists_;
 
+    std::unordered_map<std::string, arrow::ArrayVector> select_col_map;
     /**
      * Perform the selection specified by a node in the predicate tree on
      * one block of the table. If the node is a not a leaf node, this
@@ -62,8 +67,9 @@ private:
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
-    arrow::compute::Datum get_filter(const std::shared_ptr<Node> &node,
-                                     const std::shared_ptr<Block> &block);
+    arrow::Datum get_filter(
+        const std::shared_ptr<Node> &node,
+        const std::shared_ptr<Block> &block);
 
     /**
      * Perform the selection specified by a predicate (i.e. leaf node) in the
@@ -77,14 +83,27 @@ private:
      * @return A filter corresponding to values that satisfy the node's
      * selection predicate(s)
      */
-    arrow::compute::Datum get_filter(
+    arrow::Datum get_filter(
         const std::shared_ptr<Predicate> &predicate,
         const std::shared_ptr<Block> &block);
 
     /**
      * Create the output result from the raw data computed during execution.
      */
-    void finish();
+    void finish(std::shared_ptr<arrow::ArrayVector> filter_vector, Task* ctx);
+
+    void execute_block(arrow::ArrayVector& filter_vector, int i);
+
+    template<typename Functor>
+    void for_each_batch(int batch_size, int num_batches, std::shared_ptr<arrow::ArrayVector> filter_vector,
+                        const Functor &functor);
+
+
+    template<typename T, typename Op>
+    arrow::Datum get_filter(const ColumnReference &col_ref, Op comparator, const T &value, const std::shared_ptr<Block> &block);
+
+    template<typename Op>
+    arrow::Datum get_filter_str(const ColumnReference &col_ref, Op comparator, const std::string &value, const std::shared_ptr<Block> &block);
 };
 
 } // namespace hustle

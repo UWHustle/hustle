@@ -5,6 +5,8 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+//#include <utils/ContextPool.h>
+#include "parallel_hashmap/phmap.h"
 
 #include "OperatorResult.h"
 #include "Operator.h"
@@ -144,9 +146,12 @@ private:
     std::vector<std::shared_ptr<arrow::ArrayData>> output_table_data_;
 
     // Group columns for the output table.
-    std::vector<arrow::compute::Datum> groups_;
+    std::vector<arrow::Datum> groups_;
     // Aggregate column for the output table.
-    arrow::compute::Datum aggregates_;
+    arrow::Datum aggregates_;
+
+    std::atomic<int64_t>* aggregates_vec_;
+    std::vector<const int64_t*> agg_col_data_;
 
     // References denoting which columns we want to perform an aggregate on
     // and which aggregate to perform.
@@ -161,7 +166,19 @@ private:
     bool sort_aggregate_col_;
 
     // Map group by column names to the actual group column
-    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> group_by_cols_;
+    std::vector<arrow::Datum> group_by_cols_;
+
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> group_filters_;
+    std::vector<std::vector<std::shared_ptr<arrow::ChunkedArray>>> unique_value_filters_;
+    std::vector<arrow::Datum> filtered_agg_cols_;
+    std::vector<Context> contexts_;
+    std::vector<std::vector<Context>> unique_value_filter_contexts_;
+    phmap::flat_hash_map<int, int> group_id_to_agg_index_map_;
+    std::vector<arrow::Datum> uniq_val_maps_;
+//    std::vector<const uint32_t *> group_map;
+    std::vector<arrow::ArrayVector> filter_vectors;
+
+    std::vector<std::vector<int64_t>> gbs_;
 
     // A vector of Arrays containing the unique values of each of the group
     // by columns.
@@ -179,10 +196,24 @@ private:
     // groups and its aggregates are inserted at the same row.
     std::mutex builder_mutex_;
 
+    std::mutex unique_value_filters_mutex_;
+    arrow::Datum agg_col_;
+    LazyTable agg_lazy_table_;
+    std::mutex mutex_;
+    std::mutex mutex2_;
+
+    std::vector<std::vector<int>> group_id_vec_;
+    int num_aggs_;
+
+    std::unordered_map<std::string, int> group_by_col_names_to_index_;
+    std::vector<LazyTable> group_by_tables_;
+
+//    ContextPool context_pool_;
+
     /**
      * Initialize or pre-compute data members.
      */
-    void initialize();
+    void initialize(Task* ctx);
 
     /**
      * Construct the schema for the output table.
@@ -219,7 +250,7 @@ private:
      * values we want
      * @return the column's unique values as an Array.
      */
-    arrow::compute::Datum get_unique_values(const ColumnReference& group_ref);
+    arrow::Datum get_unique_values(const ColumnReference& group_ref);
 
     /**
      * Loop over all aggregate groups and compute the aggreate for each group.
@@ -240,7 +271,6 @@ private:
      * @return A filter corresponding to rows of the aggregate column
      * associated with the group defined by the its array.
      */
-    arrow::compute::Datum get_group_filter(std::vector<int> its);
 
     /**
      * Get the filter corresponding to a single group of a single column.
@@ -252,9 +282,10 @@ private:
      * @return A filter corresponding to all rows of col_ref equal to value,
      * i.e. the filter corresponding to a single group of col_ref.
      */
-    std::shared_ptr<arrow::ChunkedArray> get_unique_value_filter(
+    void get_unique_value_filter(
         const ColumnReference& col_ref,
-        arrow::compute::Datum value);
+        const arrow::Datum& value,
+        std::shared_ptr<arrow::ChunkedArray>& out);
 
     /**
      * Compute the aggregate over a single group. This calls compute_aggregate()
@@ -265,8 +296,8 @@ private:
      * unique_values_[3], and unique_values_[7], into group_builder_.
      * @param agg_col aggregate column
      */
-    void compute_group_aggregate(const std::vector<int>& group_id,
-                                 arrow::compute::Datum agg_col);
+    void compute_group_aggregate(Task* ctx, int agg_index, const std::vector<int>& group_id,
+                                 const arrow::Datum agg_col);
 
     /**
      * Compute the aggregate over a column.
@@ -277,9 +308,9 @@ private:
      *
      * @return A Scalar Datum containing the aggregate
      */
-    arrow::compute::Datum compute_aggregate(
+    arrow::Datum compute_aggregate(
         AggregateKernels kernel,
-        const arrow::compute::Datum& aggregate_col);
+        const arrow::Datum& aggregate_col);
 
     /**
      * Insert a particular group into the group_builder_
@@ -288,14 +319,14 @@ private:
      * passing in group_id = [0, 3, 7] would insert unique_values_[0],
      * unique_values_[3], and unique_values_[7], into group_builder_.
      */
-    void insert_group(std::vector<int> grooup_id);
+//    void insert_group(std::vector<int> grooup_id);
 
     /**
      * Insert the aggregate of a single group into aggregate_builder_.
      *
      * @param aggregate The aggregate computed for a single group.
      */
-    void insert_group_aggregate(const arrow::compute::Datum& aggregate);
+//    void insert_group_aggregate(const arrow::Datum& aggregate);
 
     /**
      * Create the output result from data computed during operator execution.
@@ -312,6 +343,18 @@ private:
     void sort();
 
 
+    void initialize_variables(Task *ctx);
+
+    void initialize_group_by_column(Task *ctx, int i);
+
+    void initialize_group_filters(Task *ctx);
+
+    void
+    scan_block(std::vector<const uint32_t *> &group_map, int chunk_i, std::vector<arrow::ArrayVector> &filter_vectors);
+
+    void insert_group(std::vector<int> group_id, int agg_index);
+
+    void insert_group_aggregate(const arrow::Datum &aggregate, int agg_index);
 };
 
 } // namespace operators

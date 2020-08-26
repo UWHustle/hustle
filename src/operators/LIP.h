@@ -5,6 +5,7 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include <utils/Histogram.h>
 #include "BloomFilter.h"
 #include "OperatorResult.h"
 #include "JoinGraph.h"
@@ -47,8 +48,14 @@ public:
     void execute(Task *ctx) override;
 
 private:
+    std::unordered_map<std::string, std::vector<std::vector<int64_t>>> out_fk_cols_;
+
     // Row indices of the fact table that successfully probed all Bloom filters.
-    std::vector<std::vector<int64_t>> lip_indices_;
+    std::vector<uint32_t*> lip_indices_raw_;
+    std::vector<std::vector<uint32_t>> lip_indices_;
+    std::vector<std::vector<uint16_t>> lip_index_chunks_;
+
+    const uint32_t* fact_indices_;
 
     // Number of blocks that are probed (in parallel) before sorting the the filters
     int batch_size_;
@@ -58,12 +65,19 @@ private:
     std::vector<int64_t> chunk_row_offsets_;
 
     // Map of (fact table foreign key col name, fact table foreign key col)
-    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols_;
+    std::unordered_map<std::string, arrow::Datum> fact_fk_cols_;
+    std::unordered_map<std::string, arrow::Datum> dim_pk_cols_;
+
+    std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>> fact_fk_cols2_;
+
+
     // Primary key cols of all dimension tables.
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_pk_cols_;
 
     // Bloom filters of all dimension tables.
     std::vector<std::shared_ptr<BloomFilter>> dim_filters_;
+
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_col_filters_;
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> fact_col_filters_;
 
     // Dimension (lazy) tables
     std::vector<LazyTable> dim_tables_;
@@ -93,7 +107,7 @@ private:
      * chunk_row_offsets_, fetch the foreign key columns of the fact table,
      * and reserve space in lip_indices_.
      */
-    void initialize();
+    void initialize(Task* ctx);
 
     /**
      * Build Bloom filters for all dimension tables.
@@ -113,13 +127,20 @@ private:
      * @param ctx A scheduler task
      * @param chunk_i Index of the block/chunk to be probed.
      */
-    void probe_filters(Task *ctx, int chunk_i);
+    void probe_filters(int chunk_i);
 
     /*
      * Create the output result from the raw data computed during execution.
      */
     void finish();
 
+    void probe_filters2(int chunk_i);
+
+//    void probe_filters(int chunk_start, int chunk_end, int filter_j);
+
+    void probe_filters(int chunk_start, int chunk_end, int filter_j, Task *ctx);
+
+    void probe_all_filters(int chunk_start, int chunk_end, Task *ctx);
 };
 
 } // namespace hustle

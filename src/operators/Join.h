@@ -5,11 +5,17 @@
 #include <table/block.h>
 #include <table/table.h>
 #include <arrow/compute/api.h>
+#include <utils/parallel_hashmap/phmap.h>
 #include "OperatorResult.h"
 #include "JoinGraph.h"
 #include "Operator.h"
 
 namespace hustle::operators {
+
+struct RecordID {
+    uint32_t index;
+    uint16_t chunk;
+};
 
 /**
  * The Join operator updates the index arrays of each LazyTable in the inputted
@@ -66,14 +72,20 @@ private:
     JoinGraph graph_;
 
     // Hash table for the right table in each join
-    std::unordered_map<int64_t, int64_t> hash_table_;
+//    phmap::flat_hash_map<int64_t, uint32_t> hash_table_;
+    phmap::flat_hash_map<int64_t, RecordID> hash_table_;
+//    std::unordered_map<int64_t, uint64_t> hash_table_;
 
     // new_left_indices_vector[i] = the indices of rows joined in chunk i in
     // the left table
-    std::vector<std::vector<int64_t>> new_left_indices_vector;
+    std::vector<std::vector<uint32_t>> new_left_indices_vector;
     // new_right_indices_vector[i] = the indices of rows joined in chunk i in
     // the right table
-    std::vector<std::vector<int64_t>> new_right_indices_vector;
+    std::vector<std::vector<uint32_t>> new_right_indices_vector;
+
+    std::vector<std::vector<uint16_t>> left_index_chunks_vector;
+    std::vector<std::vector<uint16_t>> right_index_chunks_vector;
+
 
     // It would make much more sense to use an ArrayVector instead of a vector of
     // vectors, since we can make a ChunkedArray out from an ArrayVector. But
@@ -83,7 +95,18 @@ private:
 
     // joined_indices[0] = new_left_indices_vector stored as an Array
     // joined_indices[1] = new_right_indices_vector stored as an Array
-    std::vector<arrow::compute::Datum> joined_indices_;
+    std::vector<arrow::Datum> joined_indices_;
+
+    std::vector<arrow::Datum> joined_index_chunks_;
+
+
+    arrow::Datum left_join_col_;
+    arrow::Datum right_join_col_;
+
+    LazyTable left_;
+    LazyTable right_;
+
+    std::unordered_map<std::shared_ptr<Table>, bool> finished_;
 
 
     /**
@@ -94,8 +117,8 @@ private:
      * @return a hash table mapping key values to their index location in the
      * table.
      */
-    void build_hash_table
-        (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx);
+//    void build_hash_table
+//        (const std::shared_ptr<arrow::ChunkedArray> &col, Task *ctx);
 
     /**
      * Perform the probe phase of hash join.
@@ -104,8 +127,8 @@ private:
      * @return A pair of index arrays corresponding to rows of the left table
      * that join with rows of the right table.
      */
-    void probe_hash_table
-        (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx);
+//    void probe_hash_table
+//        (const std::shared_ptr<arrow::ChunkedArray> &probe_col, Task *ctx);
 
     /**
      * Perform a single hash join.
@@ -137,21 +160,46 @@ private:
      *
      */
     std::shared_ptr<OperatorResult> back_propogate_result
-        (LazyTable left, LazyTable right,
-         std::vector<arrow::compute::Datum> joined_indices);
+        (LazyTable& left, LazyTable right,
+         const std::vector<arrow::Datum>& joined_indices);
 
     /**
      * probe_hash_table() populates new_left_indices_vector
      * and new_right_indices_vector. This function converts these into Arrow
      * Arrays.
      */
-    void finish_probe();
+    void finish_probe(Task* ctx);
 
     /*
      * Create the output result from the raw data computed during execution.
      */
     void finish();
 
+//    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
+//                                std::vector<uint64_t> chunk_row_offsets);
+
+    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+                                const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i, int batch_size,
+                                std::vector<uint64_t> chunk_row_offsets);
+
+    void probe_hash_table_block_indices(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+                                const std::shared_ptr<arrow::ChunkedArray> &probe_indices, int batch_i, int batch_size,
+                                std::vector<uint64_t> chunk_row_offsets);
+
+    void
+    build_hash_table(const std::shared_ptr<arrow::ChunkedArray> &col,
+                     const std::shared_ptr<arrow::ChunkedArray> &filter,
+                     Task *ctx);
+
+    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray> &probe_col, int batch_i, int batch_size,
+                                std::vector<uint64_t> chunk_row_offsets);
+
+
+    void probe_hash_table(const std::shared_ptr<arrow::ChunkedArray> &probe_col, const arrow::Datum &probe_filter,
+                          const arrow::Datum &probe_indices, Task *ctx);
+
+    std::shared_ptr<OperatorResult>
+    back_propogate_result2(const LazyTable &left, LazyTable right, const std::vector<arrow::Datum> &joined_indices);
 };
 
 } // namespace hustle

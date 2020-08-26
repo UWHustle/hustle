@@ -1,5 +1,4 @@
 #include <arrow/api.h>
-#include <arrow/csv/api.h>
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
 #include <iostream>
@@ -11,6 +10,7 @@
 #include "table.h"
 #include "block.h"
 #include "util.h"
+#include <scheduler/Scheduler.hpp>
 
 void evaluate_status(const arrow::Status &status, const char *function_name,
                      int line_no) {
@@ -76,6 +76,42 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
                                 {nullptr, data}));
                 break;
             }
+            case arrow::Type::UINT32: {
+                std::shared_ptr<arrow::Buffer> data;
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
+
+                arraydatas.push_back(
+                    arrow::ArrayData::Make(
+                        arrow::uint32(), column->length(),
+                        {nullptr, data}));
+                break;
+            }
+            case arrow::Type::UINT16: {
+                std::shared_ptr<arrow::Buffer> data;
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
+
+                arraydatas.push_back(
+                    arrow::ArrayData::Make(
+                        arrow::uint16(), column->length(),
+                        {nullptr, data}));
+                break;
+            }
+            case arrow::Type::UINT8: {
+                std::shared_ptr<arrow::Buffer> data;
+                auto result = buffers[1]->CopySlice(0, buffers[1]->size());
+                evaluate_status(result.status(), __FUNCTION__, __LINE__);
+                data = result.ValueOrDie();
+
+                arraydatas.push_back(
+                    arrow::ArrayData::Make(
+                        arrow::uint8(), column->length(),
+                        {nullptr, data}));
+                break;
+            }
             default: {
                 throw std::logic_error(
                         std::string("Cannot copy data of type ") +
@@ -89,12 +125,26 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 
 }
 
+void read_record_batch(const std::shared_ptr<arrow::ipc::RecordBatchFileReader>& record_batch_reader, int i, bool read_only, std::vector<std::shared_ptr<arrow::RecordBatch>>& record_batches) {
+    auto result3 = record_batch_reader->ReadRecordBatch(i);
+    evaluate_status(result3.status(), __FUNCTION__, __LINE__);
+    auto in_batch = result3.ValueOrDie();
+    if (in_batch != nullptr) {
+        if (read_only) {
+            record_batches[i] = in_batch;
+        } else {
+            auto batch_copy = copy_record_batch(in_batch);
+            record_batches[i] = batch_copy;
+        }
+    }
+}
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
 std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
 
+    auto& scheduler = hustle::Scheduler::GlobalInstance();
+
     arrow::Status status;
-    int x = 0;
     std::shared_ptr<arrow::io::ReadableFile> infile;
     auto result = arrow::io::ReadableFile::Open(path);
     evaluate_status(result.status(), __FUNCTION__, __LINE__);
@@ -107,21 +157,16 @@ std::shared_ptr<Table> read_from_file(const char *path, bool read_only) {
 
     std::shared_ptr<arrow::RecordBatch> in_batch;
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches;
+    record_batches.resize(record_batch_reader->num_record_batches());
 
     for (int i = 0; i < record_batch_reader->num_record_batches(); i++) {
-        auto result3 = record_batch_reader->ReadRecordBatch(i);
-        evaluate_status(result3.status(), __FUNCTION__, __LINE__);
-        in_batch = result3.ValueOrDie();
-        if (in_batch != nullptr) {
-            if (read_only) {
-                record_batches.push_back(in_batch);
-            }
-            else {
-                auto batch_copy = copy_record_batch(in_batch);
-                record_batches.push_back(batch_copy);
-            }
-        }
+        scheduler.addTask(hustle::CreateLambdaTask([i, read_only, record_batch_reader, &record_batches]() {
+            read_record_batch(record_batch_reader, i, read_only, record_batches);
+        }));
     }
+
+    scheduler.start();
+    scheduler.join();
 
     return std::make_shared<Table>("table", record_batches, BLOCK_SIZE);
 }
@@ -189,9 +234,21 @@ int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema) {
             case arrow::Type::BOOL: {
                 break;
             }
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                fixed_width += field->type()->layout().FixedWidth(1).byte_width;
+                break;
+            }
             case arrow::Type::DOUBLE:
             case arrow::Type::INT64: {
                 fixed_width += sizeof(int64_t);
+                break;
+            }
+            case arrow::Type::UINT32: {
+                fixed_width += sizeof(uint32_t);
+                break;
+            }
+            case arrow::Type::UINT8: {
+                fixed_width += sizeof(uint8_t);
                 break;
             }
             default: {
@@ -203,6 +260,53 @@ int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema) {
         }
     }
     return fixed_width;
+}
+
+std::vector<int32_t> get_field_sizes(const std::shared_ptr<arrow::Schema>& schema) {
+
+    std::vector<int32_t> field_sizes;
+
+    for (auto &field : schema->fields()) {
+
+        switch (field->type()->id()) {
+            case arrow::Type::STRING: {
+                field_sizes.push_back(-1);
+                break;
+            }
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                field_sizes.push_back(field->type()->layout().FixedWidth(1).byte_width);
+                break;
+            }
+            case arrow::Type::BOOL: {
+                field_sizes.push_back(-1);
+                break;
+            }
+            case arrow::Type::DOUBLE:
+            case arrow::Type::INT64: {
+                field_sizes.push_back(sizeof(int64_t));
+                break;
+            }
+            case arrow::Type::UINT32: {
+                field_sizes.push_back(sizeof(uint32_t));
+                break;
+            }
+            case arrow::Type::UINT16: {
+                field_sizes.push_back(sizeof(uint16_t));
+                break;
+            }
+            case arrow::Type::UINT8: {
+                field_sizes.push_back(sizeof(uint8_t));
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                    std::string(
+                        "Cannot get field size. Unsupported type: ") +
+                    field->type()->ToString());
+            }
+        }
+    }
+    return field_sizes;
 }
 
 std::shared_ptr<Table> read_from_csv_file(const char* path,
@@ -245,9 +349,31 @@ std::shared_ptr<Table> read_from_csv_file(const char* path,
                 byte_widths[i] = -1;
                 break;
             }
-            default: {
-                // TODO(nicholas) this will not properly handle boolean values!
+            case arrow::Type::FIXED_SIZE_BINARY: {
+                byte_widths[i] = schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+                break;
+            }
+            case arrow::Type::INT64: {
                 byte_widths[i] = sizeof(int64_t);
+                break;
+            }
+            case arrow::Type::UINT32: {
+                byte_widths[i] = sizeof(uint32_t);
+                break;
+            }
+            case arrow::Type::UINT16: {
+                byte_widths[i] = sizeof(uint16_t);
+                break;
+            }
+            case arrow::Type::UINT8: {
+                byte_widths[i] = sizeof(uint8_t);
+                break;
+            }
+            default: {
+                throw std::logic_error(
+                    std::string(
+                        "Cannot get byte width. Unsupported type: ") +
+                    schema->field(i)->type()->ToString());
             }
         }
     }
@@ -302,4 +428,56 @@ std::shared_ptr<arrow::Schema> make_schema(
 
     return result.ValueOrDie();
 
+}
+
+
+void skew_column(std::shared_ptr<arrow::ChunkedArray>& col) {
+
+    auto num_chunks =  col->num_chunks();
+
+    for (int i=0; i<num_chunks; ++i) {
+
+        auto chunk = col->chunk(i);
+        auto chunk_data = chunk->data()->GetMutableValues<uint32_t>(1, 0);
+        auto chunk_length = chunk->length();
+
+        for (int j=0; j<chunk_length; ++j) {
+            chunk_data[j] = 0;
+        }
+    }
+}
+
+std::shared_ptr<arrow::ChunkedArray> array_to_chunkedarray(std::shared_ptr<arrow::Array> array, int num_chunks) {
+
+    arrow::ArrayVector vec;
+    vec.resize(num_chunks);
+
+    int slice_length = -1;
+    if (array->length() <= num_chunks) {
+        slice_length = array->length();
+        for (int i=1; i<num_chunks; ++i) {
+            vec[i] = arrow::MakeArrayOfNull(array->type(), 0, arrow::default_memory_pool()).ValueOrDie();
+        }
+        num_chunks = 1;
+
+    } else{
+        slice_length = array->length()/num_chunks;
+    }
+
+
+
+    std::shared_ptr<arrow::Array> sliced_array;
+    for (int i=0; i<num_chunks-1; ++i) {
+        sliced_array = array->Slice(i*slice_length, slice_length);
+        vec[i] = sliced_array;
+    }
+
+    if (num_chunks > 1) {
+        sliced_array = array->Slice(vec[num_chunks-2]->offset()+slice_length, array->length() - vec[num_chunks-2]->offset());
+        vec[num_chunks-1] = sliced_array;
+    } else {
+        vec[0] = array;
+    }
+
+    return std::make_shared<arrow::ChunkedArray>(vec);
 }

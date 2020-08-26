@@ -1,0 +1,13 @@
+\</Users/corrado/hustle/src/ssb/monetdb/q11.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q12.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q13.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q21.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q22.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q23.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q31.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q32.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q33.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q34.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q41.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q42.sql
+\</Users/corrado/hustle/src/ssb/monetdb/q43.sql

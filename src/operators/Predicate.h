@@ -11,11 +11,22 @@
 
 namespace hustle::operators {
 
+enum CompareOperator {
+    EQUAL,
+    NOT_EQUAL,
+    LESS,
+    LESS_EQUAL,
+    GREATER,
+    GREATER_EQUAL,
+    BETWEEN
+};
+
 
 struct Predicate {
     ColumnReference col_ref_;
     arrow::compute::CompareOperator comparator_;
-    arrow::compute::Datum value_;
+    arrow::Datum value_;
+    arrow::Datum value2_;
 };
 
 struct JoinPredicate {

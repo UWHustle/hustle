@@ -22,10 +22,15 @@ namespace hustle::operators {
     void OperatorResult::append(std::shared_ptr<Table> table) {
         LazyTable lazy_table(
                 table,
-                arrow::compute::Datum(),
-                arrow::compute::Datum());
+                arrow::Datum(),
+                arrow::Datum(),
+                arrow::Datum());
         lazy_tables_.insert(lazy_tables_.begin(),lazy_table);
     }
+
+void OperatorResult::set_materialized_col(std::shared_ptr<Table> table, int i, std::shared_ptr<arrow::ChunkedArray> col) {
+    get_table(table).set_materialized_column(i, col);
+}
 
     void OperatorResult::append(LazyTable lazy_table) {
         lazy_tables_.insert(lazy_tables_.begin(),lazy_table);

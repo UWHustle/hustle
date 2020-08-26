@@ -9,7 +9,7 @@ add_library(
         LazyTable.cpp LazyTable.h
         Operator.h
         LIP.cpp LIP.h
-        ../utils/BloomFilter.cpp ../utils/BloomFilter.h
+        ../utils/BloomFilter.h
         ../utils/xxHash.h)
 
 
@@ -18,8 +18,10 @@ target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_table
         hustle_src_utils_EventProfiler
         hustle_src_utils_ArrowComputeWrappers
+#        hustle_src_utils_ContextPool
+        hustle_src_utils_ParallelHashmap
         ${ARROW_SHARED_LIB}
-)
+        )
 
 
 
@@ -28,7 +30,7 @@ target_link_libraries(hustle_join_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_table
         hustle_src_operators
@@ -42,7 +44,7 @@ target_link_libraries(hustle_aggregate_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_table
         hustle_src_operators
@@ -56,7 +58,7 @@ target_link_libraries(hustle_select_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_table
         hustle_src_operators
