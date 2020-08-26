@@ -9,35 +9,6 @@ Context::Context() {
     slice_length_ = 30000;
 }
 
-void Context::apply_indices_internal(
-    const std::shared_ptr<arrow::ChunkedArray>& chunked_values,
-    const std::shared_ptr<arrow::Array>& indices_array,
-    const std::shared_ptr<arrow::Array>& offsets,
-    int i) {
-
-    int num_slices = indices_array->length()/slice_length_ + 1;
-
-    std::shared_ptr<arrow::Array> sliced_indices;
-    if (i == num_slices-1) sliced_indices = indices_array->Slice(i*slice_length_, indices_array->length() - (i-1)*slice_length_);
-    else sliced_indices = indices_array->Slice(i*slice_length_, slice_length_);
-
-    if (sliced_indices->length() == 0) {
-        array_vec_[i] = arrow::MakeArrayOfNull(chunked_values->type(), 0, arrow::default_memory_pool()).ValueOrDie();
-        return;
-    }
-    arrow::Datum temp;
-    arrow::Status status;
-
-    // Assume that indices are correct and that boundschecking is unecessary.
-    // CHANGE TO TRUE IF YOU ARE DEBUGGING
-    arrow::compute::TakeOptions take_options(true);
-
-    status = arrow::compute::Take(chunked_values, sliced_indices, offsets, take_options).Value(&temp);
-
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    array_vec_[i] = temp.chunked_array()->chunk(0);
-}
-
 template<typename T>
 void Context::apply_indices_internal(
     const std::shared_ptr<arrow::ChunkedArray>& chunked_values,
@@ -335,53 +306,6 @@ void Context::apply_indices(
 void Context::clear_data() {
     array_vec_.clear();
 
-}
-
-
-void sort_to_indices(const arrow::Datum& values, arrow::Datum* out) {
-
-    arrow::Status status;
-
-    std::shared_ptr<arrow::Array> temp;
-    if (values.kind() == arrow::Datum::CHUNKED_ARRAY) {
-        std::shared_ptr<arrow::Array> combined_chunks;
-        status = arrow::Concatenate(values.chunked_array()->chunks(),
-                                    arrow::default_memory_pool(),
-                                    &combined_chunks);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-        status = arrow::compute::SortToIndices(*combined_chunks).Value(&temp);
-    } else {
-        status = arrow::compute::SortToIndices(*values.make_array().get()).Value(&temp);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    }
-    out->value = temp->data();
-}
-
-void compare(
-    const arrow::Datum& left,
-    const arrow::Datum& right,
-    arrow::compute::CompareOperator compare_operator,
-    arrow::Datum* out) {
-
-    arrow::Status status;
-    arrow::compute::CompareOptions compare_options(compare_operator);
-    status = arrow::compute::Compare(left, right, compare_options).Value(out);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-}
-
-void unique(const arrow::Datum& values, arrow::Datum* out) {
-
-    arrow::Status status;
-    std::shared_ptr<arrow::Array> unique_values;
-
-    std::shared_ptr<arrow::Array> temp_array;
-    // Fetch the unique values in group_by_col
-    status = arrow::compute::Unique(values).Value(&temp_array);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-
-
-    out->value = temp_array->data();
 }
 
 
