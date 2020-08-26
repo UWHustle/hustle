@@ -166,7 +166,7 @@ void Context::apply_indices_internal_str(
     }
     auto sliced_indices_data = sliced_indices->data()->GetValues<uint32_t>(1);
 
-    arrow::TypedBufferBuilder<uint32_t> offset_builder;
+    arrow::TypedBufferBuilder<uint32_t> offset_builder(arrow::default_memory_pool());
     arrow::TypedBufferBuilder<uint8_t> data_builder;
 
     auto output_length = sliced_indices->length();
@@ -188,10 +188,12 @@ void Context::apply_indices_internal_str(
     int64_t space_available = data_builder.capacity();
     int32_t offset = 0;
 
+    auto status = offset_builder.Reserve(sliced_indices->length());
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
     for (uint32_t i=0; i<output_length; ++i) {
         auto index = sliced_indices_data[i];
-        auto status = offset_builder.Append(offset);
-        evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        offset_builder.UnsafeAppend(offset);
 
         auto chunk_i = std::upper_bound(chunk_offsets, chunk_offsets_end, index) - chunk_offsets - 1;
         const int32_t *raw_offsets = values_offset_vec[chunk_i];
@@ -215,7 +217,7 @@ void Context::apply_indices_internal_str(
     std::shared_ptr<arrow::Buffer> data_buffer;
     std::shared_ptr<arrow::Buffer> offset_buffer;
 
-    auto status = data_builder.Finish(&data_buffer);
+    status = data_builder.Finish(&data_buffer);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     status = offset_builder.Finish(&offset_buffer);
@@ -311,8 +313,8 @@ void Context::apply_indices(
                             break;
                         }
                         case arrow::Type::STRING: {
-//                            apply_indices_internal_str(chunked_values, indices_array, offsets, i);
-                            apply_indices_internal(chunked_values, indices_array, offsets, i);
+                            apply_indices_internal_str(chunked_values, indices_array, offsets, i);
+//                            apply_indices_internal(chunked_values, indices_array, offsets, i);
                             break;
                         }
                     }
@@ -401,7 +403,7 @@ void Context::match(
                 internal->spawnLambdaTask([this, j, vals, keys]{
                     arrow::Status status;
                     arrow::Datum temp;
-                    status = arrow::compute::Match(vals->chunk(j), keys).Value(&temp);
+                    status = arrow::compute::IndexIn(vals->chunk(j), keys).Value(&temp);
                     evaluate_status(status, __FUNCTION__, __LINE__);
 
                     array_vec_[j] = temp.make_array();
