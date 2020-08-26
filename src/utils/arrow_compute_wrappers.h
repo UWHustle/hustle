@@ -18,6 +18,7 @@ public:
     void apply_indices(Task *ctx, arrow::Datum values, arrow::Datum indices, arrow::Datum index_chunks,
                   arrow::Datum &out);
     void match(Task *ctx, const arrow::Datum &values, const arrow::Datum &keys, arrow::Datum &out);
+    void apply_filter(Task *ctx, const arrow::Datum &values, const arrow::Datum &filter, arrow::Datum &out);
 
 private:
 
@@ -42,6 +43,14 @@ private:
                                  const std::shared_ptr<arrow::Array> &indices_array,
                                  const std::shared_ptr<arrow::Array> &index_chunks,
                                  const std::shared_ptr<arrow::Array> &offsets, int slice_i);
+
+
+    void
+    apply_filter_internal(Task *ctx, const arrow::Datum &values, const arrow::Datum &filter, arrow::ArrayVector &out);
+
+    arrow::Datum
+    apply_filter_block(const std::shared_ptr<arrow::Array> &values, const std::shared_ptr<arrow::Array> &filter,
+                       arrow::ArrayVector &out);
 };
 
 }

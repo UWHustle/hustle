@@ -343,5 +343,97 @@ void Context::match(
 }
 
 
+arrow::Datum Context::apply_filter_block(
+    const std::shared_ptr<arrow::Array>& values,
+    const std::shared_ptr<arrow::Array>& filter,
+    arrow::ArrayVector& out) {
+
+    arrow::Status status;
+    arrow::Datum block_filter;
+    //                std::cout << "apply filter" << std::endl;
+    //                std::cout << chunked_values->length() << " " << chunked_filter->length() << std::endl;
+    //                std::cout << chunked_values->num_chunks() << " " << chunked_filter->num_chunks()<< std::endl;
+
+//    arrow::Datum filter_indices;
+//    status = arrow::compute::internal::GetTakeIndices(*filter->data(), arrow::compute::FilterOptions::EMIT_NULL).Value(&filter_indices);
+//    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+//    status = arrow::compute::Take(values, filter_indices).Value(&block_filter);
+//    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    status = arrow::compute::Filter(values, filter).Value(&block_filter);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    return block_filter.make_array();
+}
+
+void Context::apply_filter_internal(
+    Task* ctx,
+    const arrow::Datum& values,
+    const arrow::Datum& filter,
+    arrow::ArrayVector& out) {
+
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, values, filter, &out](Task* internal) {
+            const auto& chunked_values = values.chunked_array();
+            const auto& chunked_filter = filter.chunked_array();
+
+            out.resize(chunked_values->num_chunks());
+
+            int batch_size = chunked_values->num_chunks() /  std::thread::hardware_concurrency() / 20;
+            if (batch_size == 0) batch_size = chunked_values->num_chunks();
+            int num_batches = chunked_values->num_chunks() / batch_size + 1; // if num_chunks is a multiple of batch_size, we don't actually want the +1
+            if (num_batches == 0) num_batches = 1;
+
+            for (int batch_i=0; batch_i<num_batches; batch_i++) {
+                internal->spawnLambdaTask([this, batch_i, &out, chunked_filter, chunked_values, batch_size] {
+                    int base_i = batch_i * batch_size;
+                    for (int i=base_i; i<base_i+batch_size && i<chunked_values->num_chunks(); i++) {
+                        auto block_filter = apply_filter_block(chunked_values->chunk(i), chunked_filter->chunk(i), out);
+                        out[i] = block_filter.make_array();
+                    }
+                });
+            }
+        })
+    ));
+}
+
+void Context::apply_filter(
+    Task* ctx,
+    const arrow::Datum& values,
+    const arrow::Datum& filter,
+    arrow::Datum& out) {
+
+    ctx->spawnTask(CreateTaskChain(
+        CreateLambdaTask([this, values, filter, &out](Task* internal) {
+            clear_data();
+
+            arrow::Status status;
+
+            switch(values.kind()) {
+                case arrow::Datum::NONE:
+                    break;
+                case arrow::Datum::ARRAY: {
+                    status = arrow::compute::Filter(values, filter.make_array()).Value(&out);
+                    break;
+                }
+                case arrow::Datum::CHUNKED_ARRAY: {
+
+                    apply_filter_internal(internal, values, filter, array_vec_);
+                    break;
+                }
+                default: {
+                    std::cerr << "Value kind not supported" << std::endl;
+                }
+            }
+
+            evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+        }),
+        CreateLambdaTask([this, values, filter, &out](Task* internal) {
+            if (values.kind() == arrow::Datum::CHUNKED_ARRAY) {
+                out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
+            }
+        })
+    ));
+
+}
 
 }
