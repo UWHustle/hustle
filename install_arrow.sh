@@ -8,7 +8,7 @@ then
   cd release
   if [[ `uname` == "Darwin" ]]; then
     # -DARROW_DEPENDENCY_SOURCE=AUTO: try to build dependencies from source if they are not found on the machine.
-    cmake -DARROW_COMPUTE=ON -DARROW_DEPENDENCY_SOURCE=AUTO ...
+    cmake -DARROW_COMPUTE=ON -DARROW_DEPENDENCY_SOURCE=AUTO ..
   elif [[ `uname` == "Linux" ]]; then
     ../../../cmake-3.15.5/bin/cmake -DARROW_COMPUTE=ON -DARROW_DEPENDENCY_SOURCE=AUTO ..
   fi
