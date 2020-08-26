@@ -8,10 +8,10 @@ std::string Comparative::get_plan_type() {
       right->type == +ExprType::ColumnReference) {
     return "JOIN_Pred";
   } else if (left->type == +ExprType::ColumnReference and
-      right->type != +ExprType::ColumnReference) {
+             right->type != +ExprType::ColumnReference) {
     return "SELECT_Pred";
   } else if (left->type != +ExprType::ColumnReference and
-      right->type == +ExprType::ColumnReference) {
+             right->type == +ExprType::ColumnReference) {
     auto temp = left;
     left = right;
     right = temp;
@@ -20,7 +20,6 @@ std::string Comparative::get_plan_type() {
     return "UNKNOWN";
   }
 }
-
 
 void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree) {
   parse_tree = std::make_shared<ParseTree>(
@@ -33,78 +32,67 @@ void from_json(const json &j, std::shared_ptr<ParseTree> &parse_tree) {
       j.at("order_by").get<std::vector<std::shared_ptr<OrderBy>>>());
 }
 void to_json(json &j, const std::shared_ptr<ParseTree> &parse_tree) {
-  j = json
-      {
-          {"tableList", parse_tree->tableList},
-          {"project", parse_tree->project},
-          {"loop_pred", parse_tree->loop_pred},
-          {"other_pred", parse_tree->other_pred},
-          {"aggregate", parse_tree->aggregate},
-          {"group_by", parse_tree->group_by},
-          {"order_by", parse_tree->order_by}
-      };
+  j = json{{"tableList", parse_tree->tableList},
+           {"project", parse_tree->project},
+           {"loop_pred", parse_tree->loop_pred},
+           {"other_pred", parse_tree->other_pred},
+           {"aggregate", parse_tree->aggregate},
+           {"group_by", parse_tree->group_by},
+           {"order_by", parse_tree->order_by}};
 }
 void from_json(const json &j, std::shared_ptr<LoopPredicate> &loop_pred) {
-  loop_pred = std::make_shared<LoopPredicate>(
-      j.at("fromtable"),
-      j.at("predicates"));
+  loop_pred =
+      std::make_shared<LoopPredicate>(j.at("fromtable"), j.at("predicates"));
 }
 void to_json(json &j, const std::shared_ptr<LoopPredicate> &loop_pred) {
-  j = json
-      {
-          {"fromtable", loop_pred->fromtable},
-          {"predicates", loop_pred->predicates}
-      };
+  j = json{{"fromtable", loop_pred->fromtable},
+           {"predicates", loop_pred->predicates}};
 }
 void from_json(const json &j, std::shared_ptr<Project> &proj) {
-  proj = std::make_shared<Project>(
-      j.at("proj_name"),
-      j.at("expr"));
+  proj = std::make_shared<Project>(j.at("proj_name"), j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<Project> &proj) {
-  j = json
-      {
-          {"proj_name", proj->proj_name},
-          {"expr", proj->expr}
-      };
+  j = json{{"proj_name", proj->proj_name}, {"expr", proj->expr}};
 }
 void from_json(const json &j, std::shared_ptr<OrderBy> &order_by) {
   order_by = std::make_shared<OrderBy>(
-      OrderByDirection::_from_index(j.at("order")),
-      j.at("expr"));
+      OrderByDirection::_from_index(j.at("order")), j.at("expr"));
 }
 void to_json(json &j, const std::shared_ptr<OrderBy> &order_by) {
-  j = json
-      {
-          {"order", order_by->order._to_string()},
-          {"expr", order_by->expr}
-      };
+  j = json{{"order", order_by->order._to_string()}, {"expr", order_by->expr}};
 }
 void from_json(const json &j, std::shared_ptr<Expr> &expr) {
   auto type = ExprType::_from_string(j.at("type").get<std::string>().c_str());
 
   switch (type) {
-    case ExprType::ColumnReference : expr = j.get<std::shared_ptr<ColumnReference>>();
+    case ExprType::ColumnReference:
+      expr = j.get<std::shared_ptr<ColumnReference>>();
       break;
-    case ExprType::IntLiteral : expr = j.get<std::shared_ptr<IntLiteral>>();
+    case ExprType::IntLiteral:
+      expr = j.get<std::shared_ptr<IntLiteral>>();
       break;
-    case ExprType::StrLiteral : expr = j.get<std::shared_ptr<StrLiteral>>();
+    case ExprType::StrLiteral:
+      expr = j.get<std::shared_ptr<StrLiteral>>();
       break;
-    case ExprType::Comparative : expr = j.get<std::shared_ptr<Comparative>>();
+    case ExprType::Comparative:
+      expr = j.get<std::shared_ptr<Comparative>>();
       break;
-    case ExprType::Disjunctive : expr = j.get<std::shared_ptr<Disjunctive>>();
+    case ExprType::Disjunctive:
+      expr = j.get<std::shared_ptr<Disjunctive>>();
       break;
-    case ExprType::Conjunctive : expr = j.get<std::shared_ptr<Conjunctive>>();
+    case ExprType::Conjunctive:
+      expr = j.get<std::shared_ptr<Conjunctive>>();
       break;
-    case ExprType::Arithmetic : expr = j.get<std::shared_ptr<Arithmetic>>();
+    case ExprType::Arithmetic:
+      expr = j.get<std::shared_ptr<Arithmetic>>();
       break;
-    case ExprType::AggFunc : expr = j.get<std::shared_ptr<AggFunc>>();
+    case ExprType::AggFunc:
+      expr = j.get<std::shared_ptr<AggFunc>>();
       break;
   }
 }
 void from_json(const json &j, std::shared_ptr<ColumnReference> &c) {
-  c = std::make_shared<ColumnReference>(j.at("column_name"),
-                                        j.at("i_table"),
+  c = std::make_shared<ColumnReference>(j.at("column_name"), j.at("i_table"),
                                         j.at("i_column"));
 }
 void from_json(const json &j, std::shared_ptr<IntLiteral> &i) {
@@ -165,71 +153,53 @@ void to_json(json &j, const std::shared_ptr<Expr> &expr) {
   }
 }
 void to_json(json &j, const std::shared_ptr<ColumnReference> &c) {
-  j = json
-      {
-          {"type", c->type._to_string()},
-          {"column_name", c->column_name},
-          {"i_table", c->i_table},
-          {"i_column", c->i_column}
-      };
+  j = json{{"type", c->type._to_string()},
+           {"column_name", c->column_name},
+           {"i_table", c->i_table},
+           {"i_column", c->i_column}};
 }
 void to_json(json &j, const std::shared_ptr<IntLiteral> &i) {
-  j = json
-      {
-          {"type", i->type._to_string()},
-          {"value", i->value}
-      };
+  j = json{{"type", i->type._to_string()}, {"value", i->value}};
 }
 void to_json(json &j, const std::shared_ptr<StrLiteral> &s) {
-  j = json
-      {
-          {"type", s->type._to_string()},
-          {"value", s->value}
-      };
+  j = json{{"type", s->type._to_string()}, {"value", s->value}};
 }
 void to_json(json &j, const std::shared_ptr<Comparative> &pred) {
-  j = json
-      {
-          {"type", pred->type._to_string()},
-          {"left", pred->left},
-          {"op", pred->op._to_string()},
-          {"right", pred->right},
-          {"plan_type", pred->plan_type}
-      };
+  j = json{{"type", pred->type._to_string()},
+           {"left", pred->left},
+           {"op", pred->op._to_string()},
+           {"right", pred->right},
+           {"plan_type", pred->plan_type}};
 }
 void to_json(json &j, const std::shared_ptr<Disjunctive> &pred) {
-  j = json
-      {
-          {"type", pred->type._to_string()},
-          {"left", pred->left},
-          {"right", pred->right},
-      };
+  j = json{
+      {"type", pred->type._to_string()},
+      {"left", pred->left},
+      {"right", pred->right},
+  };
 }
 void to_json(json &j, const std::shared_ptr<Conjunctive> &pred) {
-  j = json
-      {
-          {"type", pred->type._to_string()},
-          {"left", pred->left},
-          {"right", pred->right},
-      };
+  j = json{
+      {"type", pred->type._to_string()},
+      {"left", pred->left},
+      {"right", pred->right},
+  };
 }
 void to_json(json &j, const std::shared_ptr<Arithmetic> &pred) {
-  j = json
-      {
-          {"type", pred->type._to_string()},
-          {"left", pred->left},
-          {"op", pred->op._to_string()},
-          {"right", pred->right},
-      };
+  j = json{
+      {"type", pred->type._to_string()},
+      {"left", pred->left},
+      {"op", pred->op._to_string()},
+      {"right", pred->right},
+  };
 }
 void to_json(json &j, const std::shared_ptr<AggFunc> &agg) {
-  j = json
-      {
-          {"type", agg->type._to_string()},
-          {"func", agg->func._to_string()},
-          {"expr", agg->expr},
-      };
+  j = json{
+      {"type", agg->type._to_string()},
+      {"func", agg->func._to_string()},
+      {"expr", agg->expr},
+  };
 }
 
-}
-}
+}  // namespace parser
+}  // namespace hustle

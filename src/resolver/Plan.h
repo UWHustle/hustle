@@ -2,9 +2,8 @@
 #define HUSTLE_PLAN_H
 
 #include <iostream>
-#include <vector>
-
 #include <nlohmann/json.hpp>
+#include <vector>
 
 #include "types/Types.h"
 
@@ -29,12 +28,11 @@ class Expr {
 
 class ColumnReference : public Expr {
  public:
-  ColumnReference(std::string _column_name,
-                  int _i_table,
-                  int _i_column) : Expr(ExprType::ColumnReference),
-                                   column_name(std::move(_column_name)),
-                                   i_table(_i_table),
-                                   i_column(_i_column) {}
+  ColumnReference(std::string _column_name, int _i_table, int _i_column)
+      : Expr(ExprType::ColumnReference),
+        column_name(std::move(_column_name)),
+        i_table(_i_table),
+        i_column(_i_column) {}
 
   std::string column_name;
   int i_table;
@@ -50,20 +48,20 @@ class IntLiteral : public Expr {
 
 class StrLiteral : public Expr {
  public:
-  StrLiteral(std::string _value) : Expr(ExprType::StrLiteral),
-                                   value(std::move(_value)) {}
+  StrLiteral(std::string _value)
+      : Expr(ExprType::StrLiteral), value(std::move(_value)) {}
 
   std::string value;
 };
 
 class Comparative : public Expr {
  public:
-  Comparative(std::shared_ptr<ColumnReference> _left,
-              ComparativeType _op,
-              std::shared_ptr<Expr> _right) : Expr(ExprType::Comparative),
-                                              left(std::move(_left)),
-                                              op(_op),
-                                              right(std::move(_right)) {}
+  Comparative(std::shared_ptr<ColumnReference> _left, ComparativeType _op,
+              std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Comparative),
+        left(std::move(_left)),
+        op(_op),
+        right(std::move(_right)) {}
 
   std::shared_ptr<ColumnReference> left;
   ComparativeType op;
@@ -72,8 +70,7 @@ class Comparative : public Expr {
 
 class Disjunctive : public Expr {
  public:
-  Disjunctive(int _i_table,
-              std::vector<std::shared_ptr<Comparative>> _exprs)
+  Disjunctive(int _i_table, std::vector<std::shared_ptr<Comparative>> _exprs)
       : Expr(ExprType::Disjunctive),
         i_table(_i_table),
         exprs(std::move(_exprs)) {}
@@ -84,13 +81,12 @@ class Disjunctive : public Expr {
 
 class Arithmetic : public Expr {
  public:
-  Arithmetic(
-      std::shared_ptr<Expr> _left,
-      ArithmeticType _op,
-      std::shared_ptr<Expr> _right) : Expr(ExprType::Arithmetic),
-                                      left(std::move(_left)),
-                                      op(_op),
-                                      right(std::move(_right)) {}
+  Arithmetic(std::shared_ptr<Expr> _left, ArithmeticType _op,
+             std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Arithmetic),
+        left(std::move(_left)),
+        op(_op),
+        right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   ArithmeticType op;
@@ -99,10 +95,8 @@ class Arithmetic : public Expr {
 
 class AggFunc : public Expr {
  public:
-  AggFunc(AggFuncType _func,
-          std::shared_ptr<Expr> _expr) : Expr(ExprType::AggFunc),
-                                         func(_func),
-                                         expr(std::move(_expr)) {}
+  AggFunc(AggFuncType _func, std::shared_ptr<Expr> _expr)
+      : Expr(ExprType::AggFunc), func(_func), expr(std::move(_expr)) {}
 
   AggFuncType func;
   std::shared_ptr<Expr> expr;
@@ -133,10 +127,8 @@ class TableReference : public QueryOperator {
 
 class Select : public QueryOperator {
  public:
-
   Select(std::shared_ptr<QueryOperator> _input)
-      : QueryOperator(QueryOperatorType::Select),
-        input(std::move(_input)) {}
+      : QueryOperator(QueryOperatorType::Select), input(std::move(_input)) {}
 
   Select(std::shared_ptr<QueryOperator> _input,
          std::vector<std::shared_ptr<Expr>> _filter)
@@ -223,8 +215,7 @@ class Plan {
 class Query : public Plan {
  public:
   Query(std::shared_ptr<QueryOperator> _query_operator)
-      : Plan(PlanType::Query),
-        query_operator(std::move(_query_operator)) {}
+      : Plan(PlanType::Query), query_operator(std::move(_query_operator)) {}
 
   std::shared_ptr<QueryOperator> query_operator;
 };
@@ -234,7 +225,6 @@ class Create : public Plan {
   Create() : Plan(PlanType::Create) {}
 
   /// TODO(Lichengxi): add Create class
-
 };
 
 /// TODO(Lichengxi): add more classes derived from Plan
@@ -260,7 +250,7 @@ void to_json(json &j, const std::shared_ptr<Comparative> &comparative);
 void to_json(json &j, const std::shared_ptr<Disjunctive> &disjunctive);
 void to_json(json &j, const std::shared_ptr<Arithmetic> &arithmetic);
 void to_json(json &j, const std::shared_ptr<AggFunc> &aggfunc);
-}
-}
+}  // namespace resolver
+}  // namespace hustle
 
-#endif //HUSTLE_PLAN_H
+#endif  // HUSTLE_PLAN_H

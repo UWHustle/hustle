@@ -7,12 +7,11 @@
 
 namespace hustle {
 
-HustleDB::HustleDB(std::string DBpath) :
-    DBPath_(DBpath),
-    CatalogPath_(DBpath + "/" + "catalog.json"),
-    SqliteDBPath_(DBpath + "/" + "hustle_sqlite.db"),
-    catalog_(catalog::Catalog::CreateCatalog(CatalogPath_, SqliteDBPath_)) {
-
+HustleDB::HustleDB(std::string DBpath)
+    : DBPath_(DBpath),
+      CatalogPath_(DBpath + "/" + "catalog.json"),
+      SqliteDBPath_(DBpath + "/" + "hustle_sqlite.db"),
+      catalog_(catalog::Catalog::CreateCatalog(CatalogPath_, SqliteDBPath_)) {
   if (!std::filesystem::exists(DBpath)) {
     std::filesystem::create_directories(DBpath);
   }
@@ -40,4 +39,4 @@ bool HustleDB::select() {
   return true;
 }
 
-} // namespace hustle
+}  // namespace hustle

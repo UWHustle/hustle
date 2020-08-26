@@ -1,8 +1,8 @@
 #include "Catalog.h"
 
-#include <string>
-#include <iostream>
 #include <filesystem>
+#include <iostream>
+#include <string>
 
 extern const int SERIAL_BLOCK_SIZE = 4096;
 char tableList[SERIAL_BLOCK_SIZE];
@@ -23,12 +23,16 @@ std::string createCreateSql(const TableSchema &ts) {
   std::string sql;
   absl::StrAppend(&sql, "CREATE TABLE ", ts.getName(), "(");
 
-  const std::vector<ColumnSchema>& cols = ts.getColumns();
+  const std::vector<ColumnSchema> &cols = ts.getColumns();
   for (int i = 0; i < cols.size(); i++) {
-    auto & c = cols[i];
+    auto &c = cols[i];
     absl::StrAppend(&sql, c.getName(), " ", c.getType().toString(), " ");
-    if (c.isUnique()) { absl::StrAppend(&sql, " UNIQUE"); }
-    if (c.isNotNull()) { absl::StrAppend(&sql, " NOT NULL"); }
+    if (c.isUnique()) {
+      absl::StrAppend(&sql, " UNIQUE");
+    }
+    if (c.isNotNull()) {
+      absl::StrAppend(&sql, " NOT NULL");
+    }
     if (i < cols.size() - 1) {
       absl::StrAppend(&sql, ", ");
     }
@@ -46,11 +50,10 @@ std::string createCreateSql(const TableSchema &ts) {
 
   return sql;
 }
-}
+}  // namespace
 
 Catalog Catalog::CreateCatalog(std::string CatalogPath,
                                std::string SqlitePath) {
-
   if (std::filesystem::exists(CatalogPath)) {
     // Delete the sqlite DB which will be re-created.
     // The sqlite db is used to produce execution plans, only its catalog
@@ -123,8 +126,7 @@ bool Catalog::addTable(TableSchema t) {
 
   SaveToFile();
 
-  if (!utils::executeSqliteNoOutput(SqlitePath_,
-                                    createCreateSql(t))) {
+  if (!utils::executeSqliteNoOutput(SqlitePath_, createCreateSql(t))) {
     std::cerr << "SqliteDB catalog out of sync" << std::endl;
   }
   return true;
@@ -140,5 +142,5 @@ void Catalog::print() const {
   std::cout << "----------- ----------- --------" << std::endl;
 }
 
-} // namespace catalog
-} // namespace hustle
+}  // namespace catalog
+}  // namespace hustle

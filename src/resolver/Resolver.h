@@ -1,9 +1,10 @@
 #ifndef HUSTLE_RESOLVER_H
 #define HUSTLE_RESOLVER_H
 
-#include <vector>
-#include <cassert>
 #include <api/HustleDB.h>
+
+#include <cassert>
+#include <vector>
 
 #include "catalog/TableSchema.h"
 #include "parser/ParseTree.h"
@@ -14,7 +15,6 @@ namespace resolver {
 
 class Resolver {
  public:
-
   Resolver(hustle::catalog::Catalog *catalog) : catalog_(catalog) {}
 
   /**
@@ -102,11 +102,11 @@ class Resolver {
  private:
   hustle::catalog::Catalog *catalog_;
   std::shared_ptr<Plan> plan_;
-  std::map<int, int> map_vir_to_real; // matching from virtual to real table id
-  std::map<int, int> map_real_to_vir; // matching from real to virtual table id
+  std::map<int, int> map_vir_to_real;  // matching from virtual to real table id
+  std::map<int, int> map_real_to_vir;  // matching from real to virtual table id
 };
 
-}
-}
+}  // namespace resolver
+}  // namespace hustle
 
-#endif //HUSTLE_RESOLVER_H
+#endif  // HUSTLE_RESOLVER_H

@@ -13,12 +13,12 @@ void Resolver::resolve(
   }
 
   // resolve TableReference
-  std::vector<std::shared_ptr<Select>>
-      select_operators(parse_tree->tableList.size());
+  std::vector<std::shared_ptr<Select>> select_operators(
+      parse_tree->tableList.size());
   for (int i = 0; i < select_operators.size(); i++) {
-    select_operators[i] = std::make_shared<Select>(
-        std::make_shared<TableReference>(map_vir_to_real[i],
-                                         parse_tree->tableList[i]));
+    select_operators[i] =
+        std::make_shared<Select>(std::make_shared<TableReference>(
+            map_vir_to_real[i], parse_tree->tableList[i]));
   }
 
   // resolve Select
@@ -27,7 +27,7 @@ void Resolver::resolve(
       auto e = resolveComparative(
           std::dynamic_pointer_cast<hustle::parser::Comparative>(pred));
       select_operators[map_real_to_vir[e->left->i_table]]->filter.push_back(e);
-    } else { // pred->type == +ExprType::Disjunctive
+    } else {  // pred->type == +ExprType::Disjunctive
       assert(pred->type == +ExprType::Disjunctive);
       auto e = resolveDisjunctive(
           std::dynamic_pointer_cast<hustle::parser::Disjunctive>(pred));
@@ -46,11 +46,8 @@ void Resolver::resolve(
         join_preds.push_back(resolveComparative(pred));
       }
       auto right = std::move(select_operators[lpred->fromtable]);
-      root = std::make_shared<Join>(
-          std::move(root),
-          std::move(right),
-          std::move(join_preds)
-      );
+      root = std::make_shared<Join>(std::move(root), std::move(right),
+                                    std::move(join_preds));
     }
   }
 
@@ -64,9 +61,7 @@ void Resolver::resolve(
       groupby_cols.push_back(resolveColumnReference(col));
     }
     root = std::make_shared<Aggregate>(
-        std::move(root),
-        std::move(aggregate_func),
-        std::move(groupby_cols));
+        std::move(root), std::move(aggregate_func), std::move(groupby_cols));
   } else {
     // if no aggragate, there must be no groupby
     assert(parse_tree->group_by.empty());
@@ -81,8 +76,7 @@ void Resolver::resolve(
       proj_exprs.push_back(resolveExpr(proj->expr));
       proj_names.push_back(proj->proj_name);
     }
-    root = std::make_shared<Project>(std::move(root),
-                                     std::move(proj_exprs),
+    root = std::make_shared<Project>(std::move(root), std::move(proj_exprs),
                                      std::move(proj_names));
   }
 
@@ -95,8 +89,7 @@ void Resolver::resolve(
       orderby_cols.push_back(resolveExpr(orderby->expr));
       orders.push_back(orderby->order);
     }
-    root = std::make_shared<OrderBy>(std::move(root),
-                                     std::move(orderby_cols),
+    root = std::make_shared<OrderBy>(std::move(root), std::move(orderby_cols),
                                      std::move(orders));
   }
 
@@ -141,17 +134,17 @@ std::shared_ptr<Expr> Resolver::resolveExpr(
 
 std::shared_ptr<Comparative> Resolver::resolveComparative(
     const std::shared_ptr<hustle::parser::Comparative> &expr) {
-  return std::make_shared<Comparative>(resolveColumnReference(
-      std::dynamic_pointer_cast<hustle::parser::ColumnReference>(expr->left)),
-                                       expr->op,
-                                       resolveExpr(expr->right));
+  return std::make_shared<Comparative>(
+      resolveColumnReference(
+          std::dynamic_pointer_cast<hustle::parser::ColumnReference>(
+              expr->left)),
+      expr->op, resolveExpr(expr->right));
 }
 
 std::shared_ptr<ColumnReference> Resolver::resolveColumnReference(
     const std::shared_ptr<hustle::parser::ColumnReference> &expr) {
-  return std::make_shared<ColumnReference>(expr->column_name,
-                                           map_vir_to_real[expr->i_table],
-                                           expr->i_column);
+  return std::make_shared<ColumnReference>(
+      expr->column_name, map_vir_to_real[expr->i_table], expr->i_column);
 }
 
 std::shared_ptr<IntLiteral> Resolver::resolveIntLiteral(
@@ -173,34 +166,27 @@ std::shared_ptr<Disjunctive> Resolver::resolveDisjunctive(
   int i_table = left->left->i_table;
 
   return std::make_shared<Disjunctive>(
-      i_table,
-      std::vector<std::shared_ptr<Comparative>>{
-          std::move(left),
-          std::move(right)
-      });
+      i_table, std::vector<std::shared_ptr<Comparative>>{std::move(left),
+                                                         std::move(right)});
 }
 
 std::shared_ptr<Arithmetic> Resolver::resolveArithmetic(
     const std::shared_ptr<hustle::parser::Arithmetic> &expr) {
-  return std::make_shared<Arithmetic>(resolveExpr(expr->left),
-                                      expr->op,
+  return std::make_shared<Arithmetic>(resolveExpr(expr->left), expr->op,
                                       resolveExpr(expr->right));
 }
 
 std::shared_ptr<AggFunc> Resolver::resolveAggFunc(
     const std::shared_ptr<hustle::parser::AggFunc> &expr) {
-  return std::make_shared<AggFunc>(expr->func,
-                                   resolveExpr(expr->expr));
+  return std::make_shared<AggFunc>(expr->func, resolveExpr(expr->expr));
 }
 
-std::shared_ptr<Plan> Resolver::getPlan() {
-  return plan_;
-}
+std::shared_ptr<Plan> Resolver::getPlan() { return plan_; }
 
 std::string Resolver::toString(int indent) {
   json j = plan_;
   return j.dump(indent);
 }
 
-}
-}
+}  // namespace resolver
+}  // namespace hustle

@@ -12,8 +12,8 @@
 template <typename T>
 using SharedVector = std::shared_ptr<std::vector<T>>;
 
-template <typename T, typename ...Args>
-inline SharedVector<T> MakeSharedVector(Args &&...args) {
+template <typename T, typename... Args>
+inline SharedVector<T> MakeSharedVector(Args &&... args) {
   return std::make_shared<std::vector<T>>(std::forward<Args>(args)...);
 }
 
@@ -33,7 +33,7 @@ inline bool Contains(const Container &container, const Key &key) {
 
 template <typename T>
 inline std::vector<T> Concatenate(const std::vector<T> &lhs,
-                                         const std::vector<T> &rhs) {
+                                  const std::vector<T> &rhs) {
   std::vector<T> results;
   results.reserve(lhs.size() + rhs.size());
   for (const T &value : lhs) {
@@ -47,14 +47,14 @@ inline std::vector<T> Concatenate(const std::vector<T> &lhs,
 
 template <typename SourceContainer, typename TargetType>
 inline void InsertAll(const SourceContainer &source,
-                             std::vector<TargetType> *target) {
+                      std::vector<TargetType> *target) {
   for (const auto &value : source) {
     target->emplace_back(value);
   }
 }
 
-template <typename SourceContainer,
-          typename TargetType, typename TargetEqual, typename TargetHash>
+template <typename SourceContainer, typename TargetType, typename TargetEqual,
+          typename TargetHash>
 inline void InsertAll(
     const SourceContainer &source,
     std::unordered_set<TargetType, TargetEqual, TargetHash> *target) {
@@ -63,8 +63,8 @@ inline void InsertAll(
   }
 }
 
-template <typename SourceContainer,
-          typename TargetType, typename TargetEqual, typename TargetHash>
+template <typename SourceContainer, typename TargetType, typename TargetEqual,
+          typename TargetHash>
 inline void EraseAll(
     std::unordered_set<TargetType, TargetEqual, TargetHash> *target,
     const SourceContainer &source) {

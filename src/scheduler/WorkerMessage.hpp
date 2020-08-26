@@ -16,9 +16,7 @@ enum class WorkerMessageType {
 
 class WorkerMessage {
  public:
-  inline WorkerMessageType getMessageType() const {
-    return msg_type_;
-  }
+  inline WorkerMessageType getMessageType() const { return msg_type_; }
 
  protected:
   explicit WorkerMessage(const WorkerMessageType msg_type)
@@ -33,21 +31,17 @@ class WorkerMessage {
 template <WorkerMessageType msg_type>
 class SimpleWorkerMessage : public WorkerMessage {
  public:
-  SimpleWorkerMessage()
-      : WorkerMessage(msg_type) {}
+  SimpleWorkerMessage() : WorkerMessage(msg_type) {}
 };
 
 using WorkerJoinMessage = SimpleWorkerMessage<WorkerMessageType::kJoin>;
 
 class WorkerTaskMessage : public WorkerMessage {
  public:
-  explicit WorkerTaskMessage(Task *task)
-      : WorkerMessage(WorkerMessageType::kTask),
-        task_(task) {}
+  explicit WorkerTaskMessage(Task* task)
+      : WorkerMessage(WorkerMessageType::kTask), task_(task) {}
 
-  inline Task* getTask() const {
-    return task_.get();
-  }
+  inline Task* getTask() const { return task_.get(); }
 
  private:
   std::unique_ptr<Task> task_;

@@ -14,7 +14,7 @@ class SynchronizationLock {
 
   void wait() {
     std::unique_lock<std::mutex> lock(m_);
-    cv_.wait(lock, [this]{ return this->ready_; });
+    cv_.wait(lock, [this] { return this->ready_; });
   }
 
   void release() {

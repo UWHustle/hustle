@@ -21,12 +21,9 @@ class TaskName {
 
 class SimpleTaskName : public TaskName {
  public:
-  explicit SimpleTaskName(const std::string &name)
-      : name_(name) {}
+  explicit SimpleTaskName(const std::string &name) : name_(name) {}
 
-  std::string getName() const override {
-    return name_;
-  }
+  std::string getName() const override { return name_; }
 
  private:
   const std::string name_;

@@ -16,20 +16,18 @@
 #include <utility>
 #include <vector>
 
+#include "glog/logging.h"
 #include "threading/Mutex.hpp"
 #include "utils/Macros.hpp"
-
-#include "glog/logging.h"
 
 namespace hustle {
 
 using clock = std::chrono::steady_clock;
 
-template <typename TagT, typename ...PayloadT>
+template <typename TagT, typename... PayloadT>
 class EventProfiler {
  public:
-  EventProfiler()
-      : zero_time_(clock::now()) {
+  EventProfiler() : zero_time_(clock::now()) {
     global_containers_.reserve(0x1000);
   }
 
@@ -40,16 +38,11 @@ class EventProfiler {
     std::tuple<PayloadT...> payload;
 
     explicit EventInfo(const clock::time_point &start_time_in)
-        : start_time(start_time_in),
-          is_finished(false) {
-    }
+        : start_time(start_time_in), is_finished(false) {}
 
-    EventInfo()
-        : start_time(clock::now()),
-          is_finished(false) {
-    }
+    EventInfo() : start_time(clock::now()), is_finished(false) {}
 
-    inline void setPayload(PayloadT &&...in_payload) {
+    inline void setPayload(PayloadT &&... in_payload) {
       payload = std::make_tuple(in_payload...);
     }
 
@@ -79,12 +72,12 @@ class EventProfiler {
     std::map<TagT, std::vector<EventInfo>> events;
   };
 
-  EventContainer* getContainer() {
+  EventContainer *getContainer() {
     MutexLock lock(thread_mutex_);
     return &thread_map_[std::this_thread::get_id()];
   }
 
-  EventContainer* getGlobalContainer() {
+  EventContainer *getGlobalContainer() {
     MutexLock lock(global_mutex_);
     global_containers_.emplace_back(std::make_unique<EventContainer>());
     return global_containers_.back().get();
@@ -94,25 +87,28 @@ class EventProfiler {
     time_t rawtime;
     time(&rawtime);
     char event_id[32];
-    strftime(event_id, sizeof event_id, "%Y-%m-%d %H:%M:%S", localtime(&rawtime));
+    strftime(event_id, sizeof event_id, "%Y-%m-%d %H:%M:%S",
+             localtime(&rawtime));
 
     int thread_id = 0;
     for (const auto &thread_ctx : thread_map_) {
       for (const auto &event_group : thread_ctx.second.events) {
         for (const auto &event_info : event_group.second) {
           CHECK(event_info.is_finished)
-              << "Unfinished profiling event at thread " << thread_id
-              << ": " << event_group.first;
+              << "Unfinished profiling event at thread " << thread_id << ": "
+              << event_group.first;
 
-          os << std::setprecision(12)
-             << event_id << ","
-             << thread_id << "," << event_group.first << ",";
+          os << std::setprecision(12) << event_id << "," << thread_id << ","
+             << event_group.first << ",";
 
           PrintTuple(os, event_info.payload, ",");
 
-          os << std::chrono::duration<double>(event_info.start_time - zero_time_).count()
+          os << std::chrono::duration<double>(event_info.start_time -
+                                              zero_time_)
+                    .count()
              << ","
-             << std::chrono::duration<double>(event_info.end_time - zero_time_).count()
+             << std::chrono::duration<double>(event_info.end_time - zero_time_)
+                    .count()
              << "\n";
         }
       }
@@ -126,8 +122,9 @@ class EventProfiler {
       for (const auto &event_group : thread_ctx.second.events) {
         auto &time_sum = time_slots[event_group.first];
         for (const auto &event_info : event_group.second) {
-          time_sum += std::chrono::duration<double>(
-              event_info.end_time - event_info.start_time).count();
+          time_sum += std::chrono::duration<double>(event_info.end_time -
+                                                    event_info.start_time)
+                          .count();
         }
       }
     }
@@ -138,12 +135,13 @@ class EventProfiler {
     for (const auto &global_ctx : global_containers_) {
       for (const auto &event_group : global_ctx->events) {
         for (const auto &event_info : event_group.second) {
-          const double start_time = std::chrono::duration<double>(
-              event_info.start_time - zero_time_).count();
-          const double end_time = std::chrono::duration<double>(
-              event_info.end_time - zero_time_).count();
-          os << std::fixed << std::setprecision(3)
-             << event_group.first << "["
+          const double start_time =
+              std::chrono::duration<double>(event_info.start_time - zero_time_)
+                  .count();
+          const double end_time =
+              std::chrono::duration<double>(event_info.end_time - zero_time_)
+                  .count();
+          os << std::fixed << std::setprecision(3) << event_group.first << "["
              << start_time << "," << end_time << "]\n";
         }
       }
@@ -155,32 +153,30 @@ class EventProfiler {
     thread_map_.clear();
   }
 
-  const std::map<std::thread::id, EventContainer>& containers() {
+  const std::map<std::thread::id, EventContainer> &containers() {
     return thread_map_;
   }
 
-  const clock::time_point& zero_time() {
-    return zero_time_;
-  }
+  const clock::time_point &zero_time() { return zero_time_; }
 
  private:
-  template<class Tuple, std::size_t N>
+  template <class Tuple, std::size_t N>
   struct TuplePrinter {
-    static void Print(std::ostream &os, const Tuple &t, const std::string &sep) {
-      TuplePrinter<Tuple, N-1>::Print(os, t, sep);
-      os << std::get<N-1>(t) << sep;
+    static void Print(std::ostream &os, const Tuple &t,
+                      const std::string &sep) {
+      TuplePrinter<Tuple, N - 1>::Print(os, t, sep);
+      os << std::get<N - 1>(t) << sep;
     }
   };
 
-  template<class Tuple>
+  template <class Tuple>
   struct TuplePrinter<Tuple, 0> {
-    static void Print(std::ostream &os, const Tuple &t, const std::string &sep) {
-    }
+    static void Print(std::ostream &os, const Tuple &t,
+                      const std::string &sep) {}
   };
 
-  template<class... Args>
-  static void PrintTuple(std::ostream &os,
-                         const std::tuple<Args...> &t,
+  template <class... Args>
+  static void PrintTuple(std::ostream &os, const std::tuple<Args...> &t,
                          const std::string &sep) {
     TuplePrinter<decltype(t), sizeof...(Args)>::Print(os, t, sep);
   }
@@ -196,6 +192,6 @@ class EventProfiler {
 
 extern EventProfiler<std::string> simple_profiler;
 
-}  // namespace project
+}  // namespace hustle
 
 #endif  // PROJECT_UTILITY_EVENT_PROFILER_HPP_

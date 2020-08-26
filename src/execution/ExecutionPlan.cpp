@@ -1,3 +1,5 @@
+#include "execution/ExecutionPlan.hpp"
+
 #include <chrono>
 #include <cstddef>
 #include <iostream>
@@ -6,14 +8,12 @@
 #include <utility>
 #include <vector>
 
-#include "scheduler/SchedulerTypedefs.hpp"
-#include "scheduler/SchedulerInterface.hpp"
-#include "utils/EventProfiler.hpp"
-#include "utils/SyncStream.hpp"
-#include "execution/ExecutionPlan.hpp"
-
 #include "gflags/gflags.h"
 #include "glog/logging.h"
+#include "scheduler/SchedulerInterface.hpp"
+#include "scheduler/SchedulerTypedefs.hpp"
+#include "utils/EventProfiler.hpp"
+#include "utils/SyncStream.hpp"
 
 namespace hustle {
 
@@ -53,19 +53,18 @@ void ExecutionPlan::execute() {
 
   // Postpone destruction of relational operators.
   auto operators =
-      std::make_shared<decltype(operators_)>(
-          std::move(operators_));
+      std::make_shared<decltype(operators_)>(std::move(operators_));
 
   auto start_time = std::make_shared<clock::time_point>(clock::now());
 
   scheduler->addTask(
-      CreateLambdaTask([qid = query_id_, operators, start_time]{
+      CreateLambdaTask([qid = query_id_, operators, start_time] {
         if (FLAGS_print_per_query_span) {
           const auto &zero_time = simple_profiler.zero_time();
-          const double start = std::chrono::duration<double>(
-              *start_time - zero_time).count();
-          const double end = std::chrono::duration<double>(
-              clock::now() - zero_time).count();
+          const double start =
+              std::chrono::duration<double>(*start_time - zero_time).count();
+          const double end =
+              std::chrono::duration<double>(clock::now() - zero_time).count();
 
           SyncStream(std::cerr)
               << "[Q-" << qid << "](" << start << ", " << end << ") ";
@@ -76,4 +75,4 @@ void ExecutionPlan::execute() {
   scheduler->fire(c_enter);
 }
 
-}  // namespace project
+}  // namespace hustle

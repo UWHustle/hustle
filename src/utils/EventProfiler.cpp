@@ -6,4 +6,4 @@ namespace hustle {
 
 EventProfiler<std::string> simple_profiler;
 
-}  // namespace project
+}  // namespace hustle

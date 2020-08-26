@@ -11,7 +11,6 @@
 #include "../scheduler/TaskDescription.hpp"
 #include "../utils/Macros.hpp"
 #include "../utils/meta/FunctionTraits.hpp"
-
 #include "glog/logging.h"
 
 namespace hustle {
@@ -40,18 +39,14 @@ class Task {
     return task_id_;
   }
 
-  inline Continuation getContinuation() const {
-    return continuation_;
-  }
+  inline Continuation getContinuation() const { return continuation_; }
 
-  inline SchedulerInterface* getScheduler() const {
+  inline SchedulerInterface *getScheduler() const {
     DCHECK(scheduler_ != nullptr);
     return scheduler_;
   }
 
-  inline const TaskDescription& getDescription() const {
-    return description_;
-  }
+  inline const TaskDescription &getDescription() const { return description_; }
 
   inline void inheritDescription(const TaskDescription &description) {
     description_ = description.inherit();
@@ -82,8 +77,7 @@ class Task {
   }
 
  private:
-  inline void setup(const TaskID task_id,
-                    const Continuation continuation,
+  inline void setup(const TaskID task_id, const Continuation continuation,
                     SchedulerInterface *scheduler) {
     DCHECK_EQ(kInvalidNodeID, task_id_);
     DCHECK_EQ(kInvalidNodeID, continuation_);
@@ -104,31 +98,24 @@ class Task {
   DISALLOW_COPY_AND_ASSIGN(Task);
 };
 
-
 template <typename Functor>
 class LambdaTask : public Task {
  public:
-  explicit LambdaTask(const Functor &functor)
-      : functor_(functor) {
-  }
+  explicit LambdaTask(const Functor &functor) : functor_(functor) {}
 
-  explicit LambdaTask(Functor &&functor)
-      : functor_(std::move(functor)) {
-  }
+  explicit LambdaTask(Functor &&functor) : functor_(std::move(functor)) {}
 
  protected:
-  void execute() override {
-    executeInternal<meta::FunctionTraits<Functor>>();
-  }
+  void execute() override { executeInternal<meta::FunctionTraits<Functor>>(); }
 
  private:
   template <typename FT>
-  void executeInternal(std::enable_if_t<FT::arity == 0>* = 0) {
+  void executeInternal(std::enable_if_t<FT::arity == 0> * = 0) {
     functor_();
   }
 
   template <typename FT>
-  void executeInternal(std::enable_if_t<FT::arity == 1>* = 0) {
+  void executeInternal(std::enable_if_t<FT::arity == 1> * = 0) {
     functor_(this);
   }
 
@@ -136,21 +123,23 @@ class LambdaTask : public Task {
 };
 
 template <typename Functor>
-inline Task* CreateLambdaTask(const Functor &functor) {
+inline Task *CreateLambdaTask(const Functor &functor) {
   return new LambdaTask<Functor>(functor);
 }
 
-template <typename ...TaskTs>
-inline Task* CreateTaskChain(TaskTs *...taskchain) {
-  return CreateLambdaTask([tasks = std::vector<Task*>{taskchain...}](Task *ctx) {
+template <typename... TaskTs>
+inline Task *CreateTaskChain(TaskTs *... taskchain) {
+  return CreateLambdaTask([tasks =
+                               std::vector<Task *>{taskchain...}](Task *ctx) {
     const std::size_t num_tasks = tasks.size();
     SchedulerInterface *scheduler = ctx->getScheduler();
     Continuation c_dependent = ctx->getContinuation();
     for (std::size_t i = 0; i < num_tasks; ++i) {
-      const Continuation c_dependency =
-          i == num_tasks-1 ? kInvalidNodeID : scheduler->allocateContinuation();
+      const Continuation c_dependency = i == num_tasks - 1
+                                            ? kInvalidNodeID
+                                            : scheduler->allocateContinuation();
 
-      Task *task = tasks[num_tasks-1-i];
+      Task *task = tasks[num_tasks - 1 - i];
       task->inheritDescription(ctx->getDescription());
 
       scheduler->addTask(task, c_dependency, c_dependent);
@@ -159,23 +148,24 @@ inline Task* CreateTaskChain(TaskTs *...taskchain) {
   });
 }
 
-template <typename ...TaskTs>
-inline Task* CreateTaskChain(std::vector<Task*> tasks) {
-    return CreateLambdaTask([=](Task *ctx) {
-        const std::size_t num_tasks = tasks.size();
-        SchedulerInterface *scheduler = ctx->getScheduler();
-        Continuation c_dependent = ctx->getContinuation();
-        for (std::size_t i = 0; i < num_tasks; ++i) {
-            const Continuation c_dependency =
-                    i == num_tasks-1 ? kInvalidNodeID : scheduler->allocateContinuation();
+template <typename... TaskTs>
+inline Task *CreateTaskChain(std::vector<Task *> tasks) {
+  return CreateLambdaTask([=](Task *ctx) {
+    const std::size_t num_tasks = tasks.size();
+    SchedulerInterface *scheduler = ctx->getScheduler();
+    Continuation c_dependent = ctx->getContinuation();
+    for (std::size_t i = 0; i < num_tasks; ++i) {
+      const Continuation c_dependency = i == num_tasks - 1
+                                            ? kInvalidNodeID
+                                            : scheduler->allocateContinuation();
 
-            Task *task = tasks[num_tasks-1-i];
-            task->inheritDescription(ctx->getDescription());
+      Task *task = tasks[num_tasks - 1 - i];
+      task->inheritDescription(ctx->getDescription());
 
-            scheduler->addTask(task, c_dependency, c_dependent);
-            c_dependent = c_dependency;
-        }
-    });
+      scheduler->addTask(task, c_dependency, c_dependent);
+      c_dependent = c_dependency;
+    }
+  });
 }
 
 template <typename Functor>

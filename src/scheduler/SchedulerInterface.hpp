@@ -21,7 +21,8 @@ class SchedulerInterface {
 
   virtual TaskID addTask(Task *task) = 0;
 
-  virtual TaskID addTask(Task *task, const NodeID dependency, const NodeID dependent) = 0;
+  virtual TaskID addTask(Task *task, const NodeID dependency,
+                         const NodeID dependent) = 0;
 
   virtual TaskID addTaskWithDependent(Task *task, const NodeID dependent) = 0;
 

@@ -14,7 +14,6 @@
 #include "../threading/ThreadUtil.hpp"
 #include "../utils/Macros.hpp"
 #include "../utils/ThreadSafeQueue.hpp"
-
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
@@ -25,21 +24,16 @@ DECLARE_uint64(task_event_capacity);
 class Worker {
  public:
   using clock = std::chrono::steady_clock;
-  using TaskEvent = std::tuple<TaskDescription, WorkerID,
-                               clock::duration, clock::duration>;
+  using TaskEvent =
+      std::tuple<TaskDescription, WorkerID, clock::duration, clock::duration>;
 
-  explicit Worker(const WorkerID worker_id,
-                  const int cpu_id,
+  explicit Worker(const WorkerID worker_id, const int cpu_id,
                   SchedulerInterface *scheduler)
-      : worker_id_(worker_id),
-        cpu_id_(cpu_id),
-        scheduler_(scheduler) {
+      : worker_id_(worker_id), cpu_id_(cpu_id), scheduler_(scheduler) {
     task_events_.reserve(FLAGS_task_event_capacity);
   }
 
-  inline WorkerID getWorkerID() const {
-    return worker_id_;
-  }
+  inline WorkerID getWorkerID() const { return worker_id_; }
 
   void sendMessage(WorkerMessage *message) {
     DCHECK(message != nullptr);
@@ -48,10 +42,7 @@ class Worker {
 
   void start() {
     DCHECK(thread_ == nullptr);
-    thread_ = std::make_unique<std::thread>(
-        [&]() -> void {
-      this->execute();
-    });
+    thread_ = std::make_unique<std::thread>([&]() -> void { this->execute(); });
   }
 
   void join() {
@@ -76,15 +67,14 @@ class Worker {
           break;
         }
         case WorkerMessageType::kTask: {
-          Task *task = static_cast<WorkerTaskMessage*>(msg.get())->getTask();
+          Task *task = static_cast<WorkerTaskMessage *>(msg.get())->getTask();
           DCHECK(task != nullptr);
 
           const clock::time_point start = clock::now();
           task->execute();
 
           if (task->enabledProfiling()) {
-            task_events_.emplace_back(task->getDescription(),
-                                      worker_id_,
+            task_events_.emplace_back(task->getDescription(), worker_id_,
                                       start - kZeroTime,
                                       clock::now() - kZeroTime);
           }
@@ -99,9 +89,7 @@ class Worker {
     }
   }
 
-  const std::vector<TaskEvent>& getTaskEvents() const {
-    return task_events_;
-  }
+  const std::vector<TaskEvent> &getTaskEvents() const { return task_events_; }
 
  private:
   const WorkerID worker_id_;

@@ -13,8 +13,7 @@
 template <typename T>
 class ThreadSafeQueue {
  public:
-  ThreadSafeQueue()
-      : num_waiters_(0) {}
+  ThreadSafeQueue() : num_waiters_(0) {}
 
   bool empty() const {
     std::lock_guard<std::mutex> lock(queue_mutex_);
@@ -31,7 +30,7 @@ class ThreadSafeQueue {
     internal_queue_ = std::queue<T>();
   }
 
-  void push(const T& element) {
+  void push(const T &element) {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     internal_queue_.push(element);
     queue_nonempty_condition_.notify_one();
@@ -47,8 +46,8 @@ class ThreadSafeQueue {
     std::unique_lock<std::mutex> lock(queue_mutex_);
     if (internal_queue_.empty()) {
       num_waiters_.fetch_add(1, std::memory_order_relaxed);
-      queue_nonempty_condition_.wait(
-          lock, [&]{ return !internal_queue_.empty(); });
+      queue_nonempty_condition_.wait(lock,
+                                     [&] { return !internal_queue_.empty(); });
       num_waiters_.fetch_sub(1, std::memory_order_relaxed);
     }
     T popped_value(std::move(internal_queue_.front()));

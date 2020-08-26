@@ -19,23 +19,18 @@ void Parser::parse(const std::string &sql, hustle::HustleDB &hustleDB) {
   hustleDB.getPlan(sql);
 
   std::string text =
-      "{\"tableList\": [" + std::string(tableList) +
-          "], \"project\": [" + std::string(project) +
-          "], \"loop_pred\": [" + std::string(loopPred) +
-          "], \"other_pred\": [" + std::string(otherPred) +
-          "], \"aggregate\": [" + std::string(aggregate) +
-          "], \"group_by\": [" + std::string(groupBy) +
-          "], \"order_by\": [" + std::string(orderBy) +
-          "]}";
+      "{\"tableList\": [" + std::string(tableList) + "], \"project\": [" +
+      std::string(project) + "], \"loop_pred\": [" + std::string(loopPred) +
+      "], \"other_pred\": [" + std::string(otherPred) + "], \"aggregate\": [" +
+      std::string(aggregate) + "], \"group_by\": [" + std::string(groupBy) +
+      "], \"order_by\": [" + std::string(orderBy) + "]}";
 
   json j = json::parse(text);
   parse_tree_ = j;
   preprocessing();
 }
 
-std::shared_ptr<ParseTree> Parser::getParseTree() {
-  return parse_tree_;
-}
+std::shared_ptr<ParseTree> Parser::getParseTree() { return parse_tree_; }
 
 void Parser::preprocessing() {
   for (auto &loop_pred : parse_tree_->loop_pred) {
@@ -63,5 +58,5 @@ void Parser::checkExplain(const std::string &sql) {
   }
 }
 
-}
-}
+}  // namespace parser
+}  // namespace hustle

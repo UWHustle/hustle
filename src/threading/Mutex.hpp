@@ -13,9 +13,7 @@ class MutexLockImpl {
     mutex_ptr_->lock();
   }
 
-  inline ~MutexLockImpl() {
-    mutex_ptr_->unlock();
-  }
+  inline ~MutexLockImpl() { mutex_ptr_->unlock(); }
 
  private:
   MutexT *mutex_ptr_;
@@ -36,9 +34,10 @@ class MutexLockImpl<MutexT, false> {
 using MutexLock = MutexLockImpl<std::mutex, true>;
 using RecursiveMutexLock = MutexLockImpl<std::recursive_mutex, true>;
 
-template <bool actually_lock> using StaticConditionalMutexLock
-    = MutexLockImpl<std::mutex, actually_lock>;
-template <bool actually_lock> using StaticConditionalRecursiveMutexLock
-    = MutexLockImpl<std::recursive_mutex, actually_lock>;
+template <bool actually_lock>
+using StaticConditionalMutexLock = MutexLockImpl<std::mutex, actually_lock>;
+template <bool actually_lock>
+using StaticConditionalRecursiveMutexLock =
+    MutexLockImpl<std::recursive_mutex, actually_lock>;
 
 #endif  // PROJECT_THREADING_MUTEX_HPP_

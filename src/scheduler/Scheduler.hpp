@@ -19,7 +19,6 @@
 #include "../scheduler/WorkerMessage.hpp"
 #include "../utils/Macros.hpp"
 #include "../utils/ThreadSafeQueue.hpp"
-
 #include "glog/logging.h"
 
 namespace hustle {
@@ -29,7 +28,7 @@ class Scheduler final : public SchedulerInterface {
   explicit Scheduler(const std::size_t num_workers,
                      const bool thread_pinning = false);
 
-  static Scheduler& GlobalInstance();
+  static Scheduler &GlobalInstance();
 
   std::size_t getNumWorkers() const override;
 
@@ -37,7 +36,8 @@ class Scheduler final : public SchedulerInterface {
 
   TaskID addTask(Task *task) override;
 
-  TaskID addTask(Task *task, const NodeID dependency, const NodeID dependent) override;
+  TaskID addTask(Task *task, const NodeID dependency,
+                 const NodeID dependent) override;
 
   TaskID addTaskWithDependent(Task *task, const NodeID dependent) override;
 
@@ -65,12 +65,13 @@ class Scheduler final : public SchedulerInterface {
  private:
   inline TaskID allocateTaskID() {
     TaskID value = task_counter_.load(std::memory_order_relaxed);
-    while (!task_counter_.compare_exchange_weak(
-                value, value + 1, std::memory_order_relaxed)) {}
+    while (!task_counter_.compare_exchange_weak(value, value + 1,
+                                                std::memory_order_relaxed)) {
+    }
     return value;
   }
 
-  inline Task* releaseTaskByID(const TaskID task_id);
+  inline Task *releaseTaskByID(const TaskID task_id);
   inline void addTaskIntoQueue(Task *task);
   inline void processTaskQueue();
 

@@ -7,20 +7,14 @@ namespace hustle {
 
 class Task;
 
-enum class SchedulerMessageType {
-  kJoin = 0,
-  kNewTask,
-  kTaskCompletion
-};
+enum class SchedulerMessageType { kJoin = 0, kNewTask, kTaskCompletion };
 
 class SchedulerMessage {
  public:
   explicit SchedulerMessage(const SchedulerMessageType msg_type)
       : msg_type_(msg_type) {}
 
-  inline SchedulerMessageType getMessageType() const {
-    return msg_type_;
-  }
+  inline SchedulerMessageType getMessageType() const { return msg_type_; }
 
  protected:
   const SchedulerMessageType msg_type_;
@@ -32,8 +26,7 @@ class SchedulerMessage {
 template <SchedulerMessageType msg_type>
 class SimpleSchedulerMessage : public SchedulerMessage {
  public:
-  SimpleSchedulerMessage()
-      : SchedulerMessage(msg_type) {}
+  SimpleSchedulerMessage() : SchedulerMessage(msg_type) {}
 };
 
 using SchedulerJoinMessage =
@@ -44,19 +37,14 @@ using SchedulerNewTaskMessage =
 
 class SchedulerTaskCompletionMessage : public SchedulerMessage {
  public:
-  SchedulerTaskCompletionMessage(const WorkerID worker_id,
-                                 const TaskID task_id)
+  SchedulerTaskCompletionMessage(const WorkerID worker_id, const TaskID task_id)
       : SchedulerMessage(SchedulerMessageType::kTaskCompletion),
         worker_id_(worker_id),
         task_id_(task_id) {}
 
-  inline WorkerID getWorkerID() const {
-    return worker_id_;
-  }
+  inline WorkerID getWorkerID() const { return worker_id_; }
 
-  inline TaskID getTaskID() const {
-    return task_id_;
-  }
+  inline TaskID getTaskID() const { return task_id_; }
 
  private:
   const WorkerID worker_id_;

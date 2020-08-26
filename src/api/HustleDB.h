@@ -4,11 +4,11 @@
 #include <string>
 
 #include "absl/strings/str_cat.h"
-#include "catalog/TableSchema.h"
 #include "catalog/Catalog.h"
+#include "catalog/TableSchema.h"
 
-using hustle::catalog::TableSchema;
 using hustle::catalog::Catalog;
+using hustle::catalog::TableSchema;
 
 namespace hustle {
 
@@ -37,6 +37,6 @@ class HustleDB {
   Catalog catalog_;
 };
 
-} // namespace hustle
+}  // namespace hustle
 
-#endif //HUSTLE_HUSTLEDB_H
+#endif  // HUSTLE_HUSTLEDB_H

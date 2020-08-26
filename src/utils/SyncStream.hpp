@@ -9,17 +9,16 @@
 
 class SyncStream {
  public:
-  explicit SyncStream(std::ostream &os)
-      : os_(os), lock_(GetMutex(&os)) {}
+  explicit SyncStream(std::ostream& os) : os_(os), lock_(GetMutex(&os)) {}
 
   template <typename T>
-  inline SyncStream& operator<<(const T &value) {
+  inline SyncStream& operator<<(const T& value) {
     os_ << value;
     return *this;
   }
 
  private:
-  std::ostream &os_;
+  std::ostream& os_;
   std::lock_guard<std::mutex> lock_;
 
   static std::unordered_map<std::ostream*, std::mutex>& MutexTable() {
@@ -32,7 +31,7 @@ class SyncStream {
     return mtable_mutex;
   }
 
-  static std::mutex& GetMutex(std::ostream *os) {
+  static std::mutex& GetMutex(std::ostream* os) {
     std::lock_guard<std::mutex> lock(MutexTableMutex());
     return MutexTable()[os];
   }

@@ -10,22 +10,18 @@ namespace hustle {
 
 class SpinMutex {
  public:
-  SpinMutex() : locked_(false) {
-  }
+  SpinMutex() : locked_(false) {}
 
   inline void lock() {
     bool previous_locked = false;
-    while (!locked_.compare_exchange_weak(previous_locked,
-                                          true,
+    while (!locked_.compare_exchange_weak(previous_locked, true,
                                           std::memory_order_acquire,
                                           std::memory_order_relaxed)) {
       previous_locked = false;
     }
   }
 
-  inline void unlock() {
-    locked_.store(false, std::memory_order_release);
-  }
+  inline void unlock() { locked_.store(false, std::memory_order_release); }
 
  private:
   std::atomic<bool> locked_;
@@ -34,8 +30,8 @@ class SpinMutex {
 };
 
 typedef MutexLockImpl<SpinMutex, true> SpinMutexLock;
-template <bool actually_lock> using StaticConditionalSpinMutexLock
-    = MutexLockImpl<SpinMutex, actually_lock>;
+template <bool actually_lock>
+using StaticConditionalSpinMutexLock = MutexLockImpl<SpinMutex, actually_lock>;
 
 }  // namespace hustle
 

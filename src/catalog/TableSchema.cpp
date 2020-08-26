@@ -14,9 +14,8 @@ void TableSchema::setPrimaryKey(std::vector<std::string> pk) {
 }
 
 bool TableSchema::addColumn(ColumnSchema c) {
-  if (utils::contains<std::string,
-                      absl::flat_hash_map<std::string, int>>(c.getName(),
-                                                             name_to_id_)) {
+  if (utils::contains<std::string, absl::flat_hash_map<std::string, int>>(
+          c.getName(), name_to_id_)) {
     return false;
   }
   columns_.push_back(c);
@@ -25,8 +24,8 @@ bool TableSchema::addColumn(ColumnSchema c) {
 }
 
 std::optional<ColumnSchema *> TableSchema::ColumnExists(std::string name) {
-  if (!utils::contains<std::string, absl::flat_hash_map<std::string, int>>
-      (name, name_to_id_)) {
+  if (!utils::contains<std::string, absl::flat_hash_map<std::string, int>>(
+          name, name_to_id_)) {
     return std::nullopt;
   }
   return &columns_[name_to_id_[name]];
@@ -44,5 +43,5 @@ void TableSchema::print() const {
   std::cout << std::endl;
 }
 
-}
-}
+}  // namespace catalog
+}  // namespace hustle

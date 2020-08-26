@@ -27,12 +27,11 @@ class Expr {
 
 class ColumnReference : public Expr {
  public:
-  ColumnReference(std::string _column_name,
-                  int _i_table,
-                  int _i_column) : Expr(ExprType::ColumnReference),
-                                   column_name(std::move(_column_name)),
-                                   i_table(_i_table),
-                                   i_column(_i_column) {}
+  ColumnReference(std::string _column_name, int _i_table, int _i_column)
+      : Expr(ExprType::ColumnReference),
+        column_name(std::move(_column_name)),
+        i_table(_i_table),
+        i_column(_i_column) {}
 
   std::string column_name;
   int i_table;
@@ -41,29 +40,28 @@ class ColumnReference : public Expr {
 
 class IntLiteral : public Expr {
  public:
-  explicit IntLiteral(int _value) : Expr(ExprType::IntLiteral),
-                                    value(_value) {}
+  explicit IntLiteral(int _value) : Expr(ExprType::IntLiteral), value(_value) {}
 
   int value;
 };
 
 class StrLiteral : public Expr {
  public:
-  explicit StrLiteral(std::string _value) : Expr(ExprType::StrLiteral),
-                                            value(std::move(_value)) {}
+  explicit StrLiteral(std::string _value)
+      : Expr(ExprType::StrLiteral), value(std::move(_value)) {}
 
   std::string value;
 };
 
 class Comparative : public Expr {
  public:
-  Comparative(std::shared_ptr<Expr> _left,
-              ComparativeType _op,
-              std::shared_ptr<Expr> _right) : Expr(ExprType::Comparative),
-                                              left(std::move(_left)),
-                                              op(_op),
-                                              right(std::move(_right)),
-                                              plan_type(get_plan_type()) {}
+  Comparative(std::shared_ptr<Expr> _left, ComparativeType _op,
+              std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Comparative),
+        left(std::move(_left)),
+        op(_op),
+        right(std::move(_right)),
+        plan_type(get_plan_type()) {}
 
   std::shared_ptr<Expr> left;
   ComparativeType op;
@@ -74,14 +72,12 @@ class Comparative : public Expr {
   std::string get_plan_type();
 };
 
-
-
 class Disjunctive : public Expr {
  public:
-  Disjunctive(std::shared_ptr<Expr> _left,
-              std::shared_ptr<Expr> _right) : Expr(ExprType::Disjunctive),
-                                              left(std::move(_left)),
-                                              right(std::move(_right)) {}
+  Disjunctive(std::shared_ptr<Expr> _left, std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Disjunctive),
+        left(std::move(_left)),
+        right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   std::shared_ptr<Expr> right;
@@ -89,10 +85,10 @@ class Disjunctive : public Expr {
 
 class Conjunctive : public Expr {
  public:
-  Conjunctive(std::shared_ptr<Expr> _left,
-              std::shared_ptr<Expr> _right) : Expr(ExprType::Conjunctive),
-                                              left(std::move(_left)),
-                                              right(std::move(_right)) {}
+  Conjunctive(std::shared_ptr<Expr> _left, std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Conjunctive),
+        left(std::move(_left)),
+        right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   std::shared_ptr<Expr> right;
@@ -100,12 +96,12 @@ class Conjunctive : public Expr {
 
 class Arithmetic : public Expr {
  public:
-  Arithmetic(std::shared_ptr<Expr> _left,
-             ArithmeticType _op,
-             std::shared_ptr<Expr> _right) : Expr(ExprType::Arithmetic),
-                                             left(std::move(_left)),
-                                             op(_op),
-                                             right(std::move(_right)) {}
+  Arithmetic(std::shared_ptr<Expr> _left, ArithmeticType _op,
+             std::shared_ptr<Expr> _right)
+      : Expr(ExprType::Arithmetic),
+        left(std::move(_left)),
+        op(_op),
+        right(std::move(_right)) {}
 
   std::shared_ptr<Expr> left;
   ArithmeticType op;
@@ -114,10 +110,8 @@ class Arithmetic : public Expr {
 
 class AggFunc : public Expr {
  public:
-  AggFunc(AggFuncType _func,
-          std::shared_ptr<Expr> _expr) : Expr(ExprType::AggFunc),
-                                         func(_func),
-                                         expr(std::move(_expr)) {}
+  AggFunc(AggFuncType _func, std::shared_ptr<Expr> _expr)
+      : Expr(ExprType::AggFunc), func(_func), expr(std::move(_expr)) {}
 
   AggFuncType func;
   std::shared_ptr<Expr> expr;
@@ -129,9 +123,8 @@ class AggFunc : public Expr {
 class LoopPredicate {
  public:
   LoopPredicate(int _fromtable,
-                std::vector<std::shared_ptr<Comparative>> _predicates
-  ) : fromtable(_fromtable),
-      predicates(std::move(_predicates)) {}
+                std::vector<std::shared_ptr<Comparative>> _predicates)
+      : fromtable(_fromtable), predicates(std::move(_predicates)) {}
 
   int fromtable;
   std::vector<std::shared_ptr<Comparative>> predicates;
@@ -142,9 +135,8 @@ class LoopPredicate {
  */
 class Project {
  public:
-  Project(std::string _proj_name,
-          std::shared_ptr<Expr> _expr) : proj_name(std::move(_proj_name)),
-                                         expr(std::move(_expr)) {}
+  Project(std::string _proj_name, std::shared_ptr<Expr> _expr)
+      : proj_name(std::move(_proj_name)), expr(std::move(_expr)) {}
 
   std::string proj_name;
   std::shared_ptr<Expr> expr;
@@ -155,10 +147,8 @@ class Project {
  */
 class OrderBy {
  public:
-  OrderBy(OrderByDirection _order,
-          std::shared_ptr<Expr> _expr)
-      : order(_order),
-        expr(std::move(_expr)) {}
+  OrderBy(OrderByDirection _order, std::shared_ptr<Expr> _expr)
+      : order(_order), expr(std::move(_expr)) {}
 
   OrderByDirection order;
   std::shared_ptr<Expr> expr;
@@ -175,14 +165,14 @@ class ParseTree {
             std::vector<std::shared_ptr<Expr>> _other_pred,
             std::vector<std::shared_ptr<AggFunc>> _aggregate,
             std::vector<std::shared_ptr<ColumnReference>> _group_by,
-            std::vector<std::shared_ptr<OrderBy>> _order_by
-  ) : tableList(std::move(_tableList)),
-      project(std::move(_project)),
-      loop_pred(std::move(_loop_pred)),
-      other_pred(std::move(_other_pred)),
-      aggregate(std::move(_aggregate)),
-      group_by(std::move(_group_by)),
-      order_by(std::move(_order_by)) {}
+            std::vector<std::shared_ptr<OrderBy>> _order_by)
+      : tableList(std::move(_tableList)),
+        project(std::move(_project)),
+        loop_pred(std::move(_loop_pred)),
+        other_pred(std::move(_other_pred)),
+        aggregate(std::move(_aggregate)),
+        group_by(std::move(_group_by)),
+        order_by(std::move(_order_by)) {}
 
   std::vector<std::string> tableList;
   std::vector<std::shared_ptr<Project>> project;
@@ -224,7 +214,7 @@ void to_json(json &j, const std::shared_ptr<Conjunctive> &pred);
 void to_json(json &j, const std::shared_ptr<Arithmetic> &pred);
 void to_json(json &j, const std::shared_ptr<AggFunc> &agg);
 
-}
-}
+}  // namespace parser
+}  // namespace hustle
 
-#endif //HUSTLE_PARSETREE_H
+#endif  // HUSTLE_PARSETREE_H

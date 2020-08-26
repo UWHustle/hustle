@@ -10,8 +10,7 @@ namespace hustle {
 
 class TaskStatistics {
  public:
-  explicit TaskStatistics(const Scheduler &scheduler)
-      : scheduler_(scheduler) {}
+  explicit TaskStatistics(const Scheduler &scheduler) : scheduler_(scheduler) {}
 
   void summarizePerQueryToStream(std::ostream &os) const;
   void printPerQueryToStream(std::ostream &os) const;

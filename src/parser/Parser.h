@@ -1,11 +1,9 @@
 #ifndef HUSTLE_SRC_PARSER_PARSER_H_
 #define HUSTLE_SRC_PARSER_PARSER_H_
 
-#include "absl/strings/match.h"
-
-#include "api/HustleDB.h"
 #include "ParseTree.h"
-
+#include "absl/strings/match.h"
+#include "api/HustleDB.h"
 
 namespace hustle {
 namespace parser {
@@ -52,6 +50,6 @@ class Parser {
   std::shared_ptr<ParseTree> parse_tree_;
 };
 
-}
-}
-#endif //HUSTLE_SRC_PARSER_PARSER_H_
+}  // namespace parser
+}  // namespace hustle
+#endif  // HUSTLE_SRC_PARSER_PARSER_H_

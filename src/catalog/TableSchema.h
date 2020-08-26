@@ -1,12 +1,12 @@
 #ifndef HUSTLE_TABLESCHEMA_H
 #define HUSTLE_TABLESCHEMA_H
 
-#include <optional>
 #include <iostream>
-#include "absl/hash/hash.h"
-#include "absl/container/flat_hash_map.h"
+#include <optional>
 
 #include "ColumnSchema.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/hash/hash.h"
 #include "utils/map_utils.h"
 
 namespace hustle {
@@ -14,34 +14,29 @@ namespace catalog {
 
 class TableSchema {
  public:
-  TableSchema(std::string name) : name_(name) {};
+  TableSchema(std::string name) : name_(name){};
 
   // TODO(chronis) Make private
-  TableSchema()  {};
+  TableSchema(){};
 
   void setPrimaryKey(std::vector<std::string> pk);
 
-  const std::vector<std::string>& getPrimaryKey() const {
-    return primary_key_;
-  }
+  const std::vector<std::string>& getPrimaryKey() const { return primary_key_; }
 
   bool addColumn(ColumnSchema c);
 
-  std::optional<ColumnSchema*> ColumnExists(std::string name) ;
+  std::optional<ColumnSchema*> ColumnExists(std::string name);
 
-  const std::vector<ColumnSchema>& getColumns() const {
-    return columns_;
-  }
+  const std::vector<ColumnSchema>& getColumns() const { return columns_; }
 
-  const std::string& getName() const {return name_;}
+  const std::string& getName() const { return name_; }
 
   void print() const;
 
-  template<class Archive>
-  void serialize(Archive & archive)
-  {
-    archive(CEREAL_NVP(name_), CEREAL_NVP(columns_),
-        CEREAL_NVP(primary_key_), CEREAL_NVP(name_to_id_));
+  template <class Archive>
+  void serialize(Archive& archive) {
+    archive(CEREAL_NVP(name_), CEREAL_NVP(columns_), CEREAL_NVP(primary_key_),
+            CEREAL_NVP(name_to_id_));
   }
 
  private:
@@ -51,7 +46,7 @@ class TableSchema {
   absl::flat_hash_map<std::string, int> name_to_id_;
 };
 
-}
-} // namespace hustle
+}  // namespace catalog
+}  // namespace hustle
 
-#endif //HUSTLE_TABLESCHEMA_H
+#endif  // HUSTLE_TABLESCHEMA_H

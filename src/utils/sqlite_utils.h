@@ -14,6 +14,6 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
 std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
                                             const std::string &sql);
 
-}
-}
-#endif //HUSTLE_SQLITE_UTILS_H
+}  // namespace utils
+}  // namespace hustle
+#endif  // HUSTLE_SQLITE_UTILS_H

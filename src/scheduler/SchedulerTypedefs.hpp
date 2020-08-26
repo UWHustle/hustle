@@ -19,9 +19,7 @@ inline bool IsContinuation(const NodeID node_id) {
   return node_id & kContinuationMask;
 }
 
-inline bool IsTaskID(const NodeID node_id) {
-  return !IsContinuation(node_id);
-}
+inline bool IsTaskID(const NodeID node_id) { return !IsContinuation(node_id); }
 
 }  // namespace hustle
 

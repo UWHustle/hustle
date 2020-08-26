@@ -3,13 +3,13 @@
 
 #include <cstddef>
 #include <memory>
-#include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
+#include "operators/Operator.h"
 #include "scheduler/Task.hpp"
 #include "utils/Macros.hpp"
-#include "operators/Operator.h"
 
 // TODO(nicholas): reorganize namespaces so you don't need to do this.
 using hustle::operators::Operator;
@@ -18,12 +18,11 @@ namespace hustle {
 
 class ExecutionPlan : public Task {
  public:
-  explicit ExecutionPlan(const std::size_t query_id)
-      : query_id_(query_id) {}
+  explicit ExecutionPlan(const std::size_t query_id) : query_id_(query_id) {}
 
   void execute() override;
 
-  std::size_t addOperator(Operator *op) {
+  std::size_t addOperator(Operator* op) {
     const std::size_t op_index = operators_.size();
     op->setOperatorIndex(op_index);
     operators_.emplace_back(op);
@@ -45,9 +44,7 @@ class ExecutionPlan : public Task {
     return it == dependents_.end() ? kEmptySet : it->second;
   }
 
-  std::size_t size() const {
-    return operators_.size();
-  }
+  std::size_t size() const { return operators_.size(); }
 
  private:
   const std::size_t query_id_;
@@ -60,6 +57,6 @@ class ExecutionPlan : public Task {
   DISALLOW_COPY_AND_ASSIGN(ExecutionPlan);
 };
 
-}  // namespace project
+}  // namespace hustle
 
 #endif  // PROJECT_OPTIMIZER_EXECUTION_PLAN_HPP_
