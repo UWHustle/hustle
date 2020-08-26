@@ -111,11 +111,11 @@ void Join::probe_hash_table_block
             if (arrow::BitUtil::GetBit(filter_data, row)) {
                 auto key_value_pair = hash_table_.find(left_join_chunk_data[row]);
                 if (key_value_pair != hash_table_end) {
-                joined_left_indices[num_joined_indices] = row + offset;
-                joined_left_index_chunks[num_joined_indices] = i;
+                    joined_left_indices[num_joined_indices] = row + offset;
+                    joined_left_index_chunks[num_joined_indices] = i;
 
-                joined_right_indices[num_joined_indices] = key_value_pair->second.index;
-                joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
+                    joined_right_indices[num_joined_indices] = key_value_pair->second.index;
+                    joined_right_index_chunks[num_joined_indices] = key_value_pair->second.chunk;
 //                    joined_left_indices[num_joined_indices] = offset + row;  // insert left row index
 //                    joined_right_indices[num_joined_indices] = key_value_pair->second; // insert right row index
                     ++num_joined_indices;
@@ -377,7 +377,7 @@ Join::back_propogate_result(LazyTable& left, LazyTable right,
             } else {
 //            std::cout << lazy_table.indices.length() << std::endl;
 
-            output_lazy_tables.emplace_back(
+                output_lazy_tables.emplace_back(
                     lazy_table.table, lazy_table.filter, lazy_table.indices, lazy_table.index_chunks);
             }
         }
@@ -422,7 +422,7 @@ void Join::hash_join(int i, Task *ctx) {
         CreateLambdaTask([this, i](Task *internal) {
             // Probe phase
             probe_hash_table(left_join_col_.chunked_array(), left_.filter, left_.indices, internal);
-            
+
         }),
         CreateLambdaTask([this, i](Task *internal) {
             finish_probe(internal);
