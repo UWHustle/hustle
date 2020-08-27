@@ -1,9 +1,9 @@
 #ifndef HUSTLE_SSB_WORKLOAD_H
 #define HUSTLE_SSB_WORKLOAD_H
 
-#include <operators/Predicate.h>
+#include "operators/predicate.h"
 
-#include "execution/ExecutionPlan.hpp"
+#include "execution/execution_plan.h"
 #include "table/table.h"
 namespace hustle::operators {
 class SSB {

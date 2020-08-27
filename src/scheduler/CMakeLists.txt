@@ -1,16 +1,16 @@
 # Declare micro-libs:
-add_library(hustle_src_scheduler_Node ../empty_src.cpp Node.hpp)
-add_library(hustle_src_scheduler_Scheduler Scheduler.cpp Scheduler.hpp)
-add_library(hustle_src_scheduler_SchedulerFlags SchedulerFlags.cpp SchedulerFlags.hpp)
-add_library(hustle_src_scheduler_SchedulerInterface ../empty_src.cpp SchedulerInterface.hpp)
-add_library(hustle_src_scheduler_SchedulerMessage ../empty_src.cpp SchedulerMessage.hpp)
-add_library(hustle_src_scheduler_SchedulerTypedefs ../empty_src.cpp SchedulerTypedefs.hpp)
-add_library(hustle_src_scheduler_Task ../empty_src.cpp Task.hpp)
-add_library(hustle_src_scheduler_TaskDescription ../empty_src.cpp TaskDescription.hpp)
-add_library(hustle_src_scheduler_TaskName ../empty_src.cpp TaskName.hpp)
-add_library(hustle_src_scheduler_TaskStatistics TaskStatistics.cpp TaskStatistics.hpp)
-add_library(hustle_src_scheduler_Worker Worker.cpp Worker.hpp)
-add_library(hustle_src_scheduler_WorkerMessage ../empty_src.cpp WorkerMessage.hpp)
+add_library(hustle_src_scheduler_Node ../empty_src.cc node.h)
+add_library(hustle_src_scheduler_Scheduler scheduler.cc scheduler.h)
+add_library(hustle_src_scheduler_SchedulerFlags scheduler_flags.cc scheduler_flags.h)
+add_library(hustle_src_scheduler_SchedulerInterface ../empty_src.cc scheduler_interface.h)
+add_library(hustle_src_scheduler_SchedulerMessage ../empty_src.cc scheduler_message.h)
+add_library(hustle_src_scheduler_SchedulerTypedefs ../empty_src.cc scheduler_typedefs.h)
+add_library(hustle_src_scheduler_Task ../empty_src.cc task.h)
+add_library(hustle_src_scheduler_TaskDescription ../empty_src.cc task_description.h)
+add_library(hustle_src_scheduler_TaskName ../empty_src.cc task_name.h)
+add_library(hustle_src_scheduler_TaskStatistics task_statistics.cc task_statistics.h)
+add_library(hustle_src_scheduler_Worker worker.cc worker.h)
+add_library(hustle_src_scheduler_WorkerMessage ../empty_src.cc worker_message.h)
 
 # Link dependencies:
 target_link_libraries(hustle_src_scheduler_Node
@@ -68,7 +68,7 @@ target_link_libraries(hustle_src_scheduler_Worker
 target_link_libraries(hustle_src_scheduler_WorkerMessage
                       hustle_src_utils_Macros)
 
-add_executable(hustle_scheduler_test "tests/SchedulerTest.cpp")
+add_executable(hustle_scheduler_test "tests/scheduler_test.cc")
 target_link_libraries(hustle_scheduler_test
         gtest
         gtest_main

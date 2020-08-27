@@ -1,8 +1,8 @@
 add_library(
         hustle_src_catalog
-        Catalog.h Catalog.cpp
-        ColumnSchema.h
-        TableSchema.h TableSchema.cpp
+        catalog.h catalog.cc
+        column_schema.h
+        table_schema.h table_schema.cc
 )
 
 target_link_libraries(
@@ -17,7 +17,7 @@ target_link_libraries(
 )
 
 
-add_executable(hustle_catalog_test "tests/HustleCatalog_test.cpp")
+add_executable(hustle_catalog_test "tests/catalog_test.cc")
 target_link_libraries(hustle_catalog_test
         gtest
         gtest_main

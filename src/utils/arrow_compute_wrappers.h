@@ -4,7 +4,7 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 
-#include <scheduler/Task.hpp>
+#include "scheduler/task.h"
 
 namespace hustle {
 

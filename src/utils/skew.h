@@ -7,7 +7,7 @@
 
 #include <arrow/api.h>
 
-#include <scheduler/Scheduler.hpp>
+#include "scheduler/scheduler.h"
 
 void skew_column_internal(int i, std::shared_ptr<arrow::ChunkedArray> col) {
   auto chunk = col->chunk(i);

@@ -1,6 +1,6 @@
 add_library(hustle_src_ssb
-        ssb_workload.cpp ssb_workload.h
-        ssb_workload_lip.cpp)
+        ssb_workload.cc ssb_workload.h
+        ssb_workload_lip.cc)
 
 target_include_directories(hustle_src_ssb PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_ssb PUBLIC
@@ -13,8 +13,8 @@ target_link_libraries(hustle_src_ssb PUBLIC
         ${ARROW_SHARED_LIB}
         )
 
-add_executable(hustle_src_ssb_main main.cpp
-        ../utils/BloomFilter.h
+add_executable(hustle_src_ssb_main main.cc
+        ../utils/bloom_filter.h
         ../utils/xxHash.h)
 target_link_libraries(hustle_src_ssb_main PUBLIC
         hustle_src_ssb

@@ -5,9 +5,9 @@
 #ifndef HUSTLE_XORFILTER_WRAPPER_H
 #define HUSTLE_XORFILTER_WRAPPER_H
 
-#include <xorfilter.h>
-
 #include <stdexcept>
+
+#include "xorfilter.h"
 
 class Xor8 {
  public:

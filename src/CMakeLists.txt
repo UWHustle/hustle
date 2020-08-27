@@ -22,7 +22,7 @@ find_package(Arrow REQUIRED)
 
 add_executable(
         hustle_main
-        main.cpp
+        main.cc
 )
 
 set_target_properties(hustle_main

@@ -1,8 +1,8 @@
 add_library(
         hustle_src_table
-        table.h table.cpp
-        block.h block.cpp
-        util.h  util.cpp
+        table.h table.cc
+        block.h block.cc
+        util.h  util.cc
 )
 
 target_include_directories(hustle_src_table PUBLIC ${ARROW_INCLUDE_DIR} )
@@ -16,7 +16,7 @@ target_link_libraries(hustle_src_table PUBLIC
         hustle_src_catalog)
 
 
-add_executable(hustle_table_test "tests/TableTest.cpp")
+add_executable(hustle_table_test "tests/table_test.cc")
 target_link_libraries(hustle_table_test
         gtest
         gtest_main
@@ -26,7 +26,7 @@ target_link_libraries(hustle_table_test
         )
 add_test(HustleTableTest hustle_table_test)
 
-add_executable(hustle_block_test "tests/BlockTest.cpp")
+add_executable(hustle_block_test "tests/block_test.cc")
 target_link_libraries(hustle_block_test
         gtest
         gtest_main
@@ -37,7 +37,7 @@ target_link_libraries(hustle_block_test
 add_test(HustleBlockTest hustle_block_test)
 
 
-add_executable(hustle_util_test "tests/UtilTest.cpp")
+add_executable(hustle_util_test "tests/util_test.cc")
 target_link_libraries(hustle_util_test
         gtest
         gtest_main

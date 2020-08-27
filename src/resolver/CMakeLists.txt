@@ -1,7 +1,7 @@
 add_library(
         hustle_src_resolver
-        Plan.h Plan.cpp
-        Resolver.h Resolver.cpp
+        plan.h plan.cc
+        resolver.h resolver.cc
 )
 
 target_link_libraries(hustle_src_resolver
@@ -9,7 +9,7 @@ target_link_libraries(hustle_src_resolver
 )
 
 
-add_executable(hustle_resolver_simple_test "tests/HustleResolver_simple_test.cpp")
+add_executable(hustle_resolver_simple_test "tests/resolver_simple_test.cc")
 target_link_libraries(hustle_resolver_simple_test
         gtest
         gtest_main
@@ -23,7 +23,7 @@ target_link_libraries(hustle_resolver_simple_test
 add_test(HustleResolver_test hustle_resolver_simple_test)
 
 
-add_executable(hustle_resolver_ssb_test "tests/HustleResolver_ssb_test.cpp")
+add_executable(hustle_resolver_ssb_test "tests/resolver_ssb_test.cc")
 target_link_libraries(hustle_resolver_ssb_test
         gtest
         gtest_main

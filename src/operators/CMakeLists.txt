@@ -1,15 +1,15 @@
 add_library(
         hustle_src_operators
-        OperatorResult.cpp OperatorResult.h
-        Join.h Join.cpp
-        Aggregate.h Aggregate.cpp
-        Select.h Select.cpp
-        JoinGraph.cpp JoinGraph.h
-        Predicate.cpp Predicate.h
-        LazyTable.cpp LazyTable.h
-        Operator.h
-        LIP.cpp LIP.h
-        ../utils/BloomFilter.h
+        operator_result.cc operator_result.h
+        join.h join.cc
+        aggregate.h aggregate.cc
+        select.h select.cc
+        join_graph.cc join_graph.h
+        predicate.cc predicate.h
+        lazy_table.cc lazy_table.h
+        operator.h
+        lip.cc lip.h
+        ../utils/bloom_filter.h
         ../utils/xxHash.h)
 
 
@@ -25,7 +25,7 @@ target_link_libraries(hustle_src_operators PUBLIC
 
 
 
-add_executable(hustle_join_test "tests/JoinTest.cpp")
+add_executable(hustle_join_test "tests/join_test.cc")
 target_link_libraries(hustle_join_test
         gtest
         gtest_main
@@ -39,7 +39,7 @@ target_link_libraries(hustle_join_test
         )
 add_test(HustleJoin_test hustle_join_test)
 
-add_executable(hustle_aggregate_test "tests/AggregateTest.cpp")
+add_executable(hustle_aggregate_test "tests/aggregate_test.cc")
 target_link_libraries(hustle_aggregate_test
         gtest
         gtest_main
@@ -53,7 +53,7 @@ target_link_libraries(hustle_aggregate_test
         )
 add_test(HustleAggregate_test hustle_aggregate_test)
 
-add_executable(hustle_select_test "tests/SelectTest.cpp")
+add_executable(hustle_select_test "tests/select_test.cc")
 target_link_libraries(hustle_select_test
         gtest
         gtest_main

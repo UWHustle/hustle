@@ -4,10 +4,10 @@
 
 #include <arrow/memory_pool.h>
 #include <arrow/table.h>
-#include <catalog/TableSchema.h>
 
 #include <string>
 
+#include "catalog/table_schema.h"
 #include "table.h"
 
 /**
