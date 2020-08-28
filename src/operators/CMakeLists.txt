@@ -1,64 +1,65 @@
 add_library(
         hustle_src_operators
-        OperatorResult.cpp OperatorResult.h
-        Join.h Join.cpp
-        Aggregate.h Aggregate.cpp
-        Select.h Select.cpp
-        JoinGraph.cpp JoinGraph.h
-        Predicate.cpp Predicate.h
-        LazyTable.cpp LazyTable.h
-        Operator.h
-        LIP.cpp LIP.h
-        ../utils/BloomFilter.cpp ../utils/BloomFilter.h
+        join.h join.cc
+        aggregate.h aggregate.cc
+        select.h select.cc
+        join_graph.cc join_graph.h
+        predicate.cc predicate.h
+        operator.h
+        utils/lazy_table.cc utils/lazy_table.h
+        utils/operator_result.cc utils/operator_result.h
+        utils/lip.cc utils/lip.h
+        ../utils/bloom_filter.h
         ../utils/xxHash.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
-        hustle_src_table
+        hustle_src_storage
         hustle_src_utils_EventProfiler
         hustle_src_utils_ArrowComputeWrappers
+        hustle_src_utils_ParallelHashmap
         ${ARROW_SHARED_LIB}
-)
+        )
 
 
 
-add_executable(hustle_join_test "tests/JoinTest.cpp")
+add_executable(hustle_join_test "tests/join_test.cc")
 target_link_libraries(hustle_join_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
-        hustle_src_table
+        hustle_src_storage
         hustle_src_operators
         hustle_src_optimizer_ExecutionPlan
         hustle_src_scheduler_Scheduler
         )
 add_test(HustleJoin_test hustle_join_test)
 
-add_executable(hustle_aggregate_test "tests/AggregateTest.cpp")
+add_executable(hustle_aggregate_test "tests/aggregate_test.cc")
 target_link_libraries(hustle_aggregate_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
-        hustle_src_table
+        hustle_src_storage
         hustle_src_operators
         hustle_src_optimizer_ExecutionPlan
         hustle_src_scheduler_Scheduler
         )
 add_test(HustleAggregate_test hustle_aggregate_test)
 
-add_executable(hustle_select_test "tests/SelectTest.cpp")
+add_executable(hustle_select_test "tests/select_test.cc")
 target_link_libraries(hustle_select_test
         gtest
         gtest_main
         gmock
-#        glog
+        #        glog
         ${GFLAGS_LIB_NAME}
-        hustle_src_table
+        hustle_src_storage
         hustle_src_operators
         hustle_src_optimizer_ExecutionPlan
         hustle_src_scheduler_Scheduler

@@ -8,7 +8,7 @@ target_include_directories(
 add_library(
         sqlite_utils
         sqlite_utils.h
-        sqlite_utils.cpp
+        sqlite_utils.cc
 )
 target_link_libraries(
         sqlite_utils
@@ -18,20 +18,26 @@ target_link_libraries(
 
 
 add_subdirectory(meta)
+#add_subdirectory(arrow_hacks)
 
 # Declare micro-libs:
-add_library(hustle_src_utils_ContainerUtil ../empty_src.cpp ContainerUtil.hpp)
-add_library(hustle_src_utils_EventProfiler EventProfiler.cpp EventProfiler.hpp)
-add_library(hustle_src_utils_Macros ../empty_src.cpp Macros.hpp)
-add_library(hustle_src_utils_SyncStream ../empty_src.cpp SyncStream.hpp)
-add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cpp ThreadSafeQueue.hpp)
-add_library(hustle_src_utils_ArrowComputeWrappers arrow_compute_wrappers.cpp arrow_compute_wrappers.h)
+add_library(hustle_src_utils_ContainerUtil ../empty_src.cc container_util.h)
+add_library(hustle_src_utils_EventProfiler event_profiler.cc event_profiler.h)
+add_library(hustle_src_utils_Macros ../empty_src.cc macros.h)
+add_library(hustle_src_utils_SyncStream ../empty_src.cc sync_stream.h)
+add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cc thread_safe_queue.h)
+add_library(hustle_src_utils_ArrowComputeWrappers arrow_compute_wrappers.cc arrow_compute_wrappers.h)
+#add_library(hustle_src_utils_ContextPool context_pool.cc context_pool.h)
+add_library(hustle_src_utils_ParallelHashmap ../empty_src.cc parallel_hashmap/phmap.h)
+add_library(hustle_src_utils_skew ../empty_src.cc skew.h)
 
-#add_library(hustle_src_utils_BloomFilter BloomFilter.cpp BloomFilter.h)
+
+add_library(hustle_src_utils_BloomFilter ../empty_src.cc bloom_filter.h histogram.h)
 
 # Include Arrow
-#target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})
+target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})
 target_include_directories(hustle_src_utils_ArrowComputeWrappers PUBLIC ${ARROW_INCLUDE_DIR})
+#target_include_directories(hustle_src_utils_ContextPool PUBLIC ${ARROW_INCLUDE_DIR})
 
 
 # Link dependencies:
@@ -52,7 +58,7 @@ target_link_libraries(hustle_src_utils_ArrowComputeWrappers
 
 # Tests
 
-#add_executable(hustle_src_utils_tests_BloomFilterTest "tests/BloomFilterTest.cpp")
+#add_executable(hustle_src_utils_tests_BloomFilterTest "tests/bloom_filter_test.cc")
 #target_link_libraries(hustle_src_utils_tests_BloomFilterTest
 #        gtest
 #        gtest_main
@@ -61,7 +67,7 @@ target_link_libraries(hustle_src_utils_ArrowComputeWrappers
 #        ${ARROW_SHARED_LIB}
 #        ${GFLAGS_LIB_NAME}
 #        absl::hash
-#        hustle_src_table
+#        hustle_src_storage
 #        hustle_src_utils_BloomFilter
 #        )
 #add_test(HustleBloomFilter_test hustle_src_utils_tests_BloomFilterTest)

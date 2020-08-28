@@ -1,5 +1,5 @@
 add_library(hustle_src_optimizer_ExecutionPlan
-        ExecutionPlan.cpp ExecutionPlan.hpp)
+        execution_plan.cc execution_plan.h)
 
 target_include_directories(hustle_src_optimizer_ExecutionPlan PUBLIC
         ${ARROW_INCLUDE_DIR})

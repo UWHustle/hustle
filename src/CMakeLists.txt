@@ -22,7 +22,7 @@ find_package(Arrow REQUIRED)
 
 add_executable(
         hustle_main
-        main.cpp
+        main.cc
 )
 
 set_target_properties(hustle_main
@@ -32,7 +32,7 @@ set_target_properties(hustle_main
 target_link_libraries(hustle_main
         hustleDB
         hustle_src_catalog
-        hustle_src_table
+        hustle_src_storage
         hustle_src_parser
         hustle_src_resolver
         hustle_src_operators
@@ -49,10 +49,9 @@ add_subdirectory(catalog)
 add_subdirectory(api)
 add_subdirectory(parser)
 add_subdirectory(resolver)
-add_subdirectory(table)
+add_subdirectory(storage)
 add_subdirectory(operators)
 add_subdirectory(scheduler)
-add_subdirectory(threading)
 add_subdirectory(execution)
-add_subdirectory(ssb)
+add_subdirectory(benchmark)
 

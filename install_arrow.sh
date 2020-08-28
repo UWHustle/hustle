@@ -2,14 +2,15 @@ if [ ! -d "arrow" ]
 then
   git clone https://github.com/apache/arrow.git
   cd arrow
-  git checkout d5dfa0ec083163f5d4b62dd35d9c305bdcb856b2
+  git checkout apache-arrow-1.0.1
   cd cpp
   mkdir release
   cd release
   if [[ `uname` == "Darwin" ]]; then
-    cmake -DARROW_COMPUTE=ON -DARROW_CSV=ON ..
+    # -DARROW_DEPENDENCY_SOURCE=AUTO: try to build dependencies from source if they are not found on the machine.
+    cmake -DARROW_COMPUTE=ON -DARROW_DEPENDENCY_SOURCE=AUTO ..
   elif [[ `uname` == "Linux" ]]; then
-    ../../../cmake-3.15.5/bin/cmake -DARROW_COMPUTE=ON -DARROW_CSV=ON ..
+    ../../../cmake-3.15.5/bin/cmake -DARROW_COMPUTE=ON -DARROW_DEPENDENCY_SOURCE=AUTO ..
   fi
   sudo make install -j4
 else

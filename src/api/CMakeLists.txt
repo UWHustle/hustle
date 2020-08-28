@@ -1,11 +1,11 @@
 add_library(
         hustleDB
-        HustleDB.h HustleDB.cpp
+        hustle_db.h hustle_db.cc
 )
 
 target_link_libraries(hustleDB sqlite_utils hustle_src_catalog)
 
-add_executable(hustle_hustleDB_test "tests/hustleDB_test.cpp")
+add_executable(hustle_hustleDB_test "tests/hustle_db_test.cc")
 target_link_libraries(hustle_hustleDB_test
         gtest
         gtest_main
