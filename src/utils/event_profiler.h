@@ -34,7 +34,7 @@
 #include <vector>
 
 #include "glog/logging.h"
-#include "threading/mutex.h"
+#include "scheduler/threading/mutex.h"
 #include "utils/macros.h"
 
 namespace hustle {

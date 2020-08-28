@@ -22,7 +22,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "block.h"
+#include "storage/block.h"
 
 /**
  * A Table is collection of Blocks. The Table schema does not include the valid

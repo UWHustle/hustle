@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operator_result.h"
+#include "operators/utils/operator_result.h"
 
 #include <iostream>
 #include <utility>
 
-#include "table/util.h"
+#include "storage/util.h"
 
 namespace hustle::operators {
 

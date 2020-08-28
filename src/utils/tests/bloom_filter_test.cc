@@ -20,7 +20,7 @@
 #include <fstream>
 
 #include "gtest/gtest.h"
-#include "table/util.h"
+#include "storage/util.h"
 
 using namespace testing;
 

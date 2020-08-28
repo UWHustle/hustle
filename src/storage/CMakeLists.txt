@@ -1,12 +1,12 @@
 add_library(
-        hustle_src_table
+        hustle_src_storage
         table.h table.cc
         block.h block.cc
         util.h  util.cc
 )
 
-target_include_directories(hustle_src_table PUBLIC ${ARROW_INCLUDE_DIR} )
-target_link_libraries(hustle_src_table PUBLIC
+target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR} )
+target_link_libraries(hustle_src_storage PUBLIC
         hustle_src_scheduler_Scheduler
         ${ARROW_SHARED_LIB}
         absl::strings
@@ -22,7 +22,7 @@ target_link_libraries(hustle_table_test
         gtest_main
         gmock
         ${ARROW_SHARED_LIB}
-        hustle_src_table
+        hustle_src_storage
         )
 add_test(HustleTableTest hustle_table_test)
 
@@ -32,7 +32,7 @@ target_link_libraries(hustle_block_test
         gtest_main
         gmock
         ${ARROW_SHARED_LIB}
-        hustle_src_table
+        hustle_src_storage
         )
 add_test(HustleBlockTest hustle_block_test)
 
@@ -43,6 +43,6 @@ target_link_libraries(hustle_util_test
         gtest_main
         gmock
         ${ARROW_SHARED_LIB}
-        hustle_src_table
+        hustle_src_storage
         )
 add_test(HustleUtilTest hustle_util_test)

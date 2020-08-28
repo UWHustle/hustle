@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "lazy_table.h"
+#include "operators/utils/lazy_table.h"
 
 #include <iostream>
 #include <utility>
 
-#include "operator_result.h"
-#include "table/util.h"
+#include "operators/utils/operator_result.h"
+#include "storage/util.h"
 
 namespace hustle::operators {
 

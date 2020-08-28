@@ -18,10 +18,10 @@
 #ifndef HUSTLE_SSB_WORKLOAD_H
 #define HUSTLE_SSB_WORKLOAD_H
 
-#include "operators/predicate.h"
-
 #include "execution/execution_plan.h"
-#include "table/table.h"
+#include "operators/predicate.h"
+#include "storage/table.h"
+
 namespace hustle::operators {
 class SSB {
  public:

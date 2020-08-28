@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "join.h"
+#include "operators/join.h"
 
 #include <arrow/compute/api.h>
 #include <arrow/scalar.h>
@@ -23,7 +23,7 @@
 #include <iostream>
 #include <utility>
 
-#include "table/util.h"
+#include "storage/util.h"
 #include "utils/bloom_filter.h"
 
 namespace hustle::operators {

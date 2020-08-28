@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "lip.h"
+#include "operators/utils/lip.h"
 
-#include "table/util.h"
+#include "storage/util.h"
 
 #define DEBUG 0
 uint64_t PROBE_COUNT = 0;

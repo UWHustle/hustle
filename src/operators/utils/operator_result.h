@@ -22,9 +22,9 @@
 
 #include <string>
 
-#include "lazy_table.h"
-#include "table/block.h"
-#include "table/table.h"
+#include "operators/utils/lazy_table.h"
+#include "storage/block.h"
+#include "storage/table.h"
 
 namespace hustle::operators {
 

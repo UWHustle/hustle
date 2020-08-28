@@ -22,11 +22,11 @@
 
 #include <string>
 
-#include "operator.h"
-#include "operator_result.h"
+#include "operators/operator.h"
+#include "operators/utils/operator_result.h"
 #include "parallel_hashmap/phmap.h"
-#include "table/block.h"
-#include "table/table.h"
+#include "storage/block.h"
+#include "storage/table.h"
 
 namespace hustle {
 namespace operators {

@@ -28,8 +28,8 @@
 #include "operators/join.h"
 #include "operators/select.h"
 #include "scheduler/scheduler.h"
-#include "table/block.h"
-#include "table/util.h"
+#include "storage/block.h"
+#include "storage/util.h"
 
 using namespace testing;
 using namespace hustle::operators;

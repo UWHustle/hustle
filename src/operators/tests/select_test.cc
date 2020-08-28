@@ -26,8 +26,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "scheduler/scheduler.h"
-#include "table/block.h"
-#include "table/util.h"
+#include "storage/block.h"
+#include "storage/util.h"
 
 #define BLOCK_SIZE 108
 

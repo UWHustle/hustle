@@ -20,15 +20,15 @@
 #define HUSTLE_SELECT_H
 
 #include <arrow/compute/api.h>
-#include <table/block.h>
-#include <table/table.h>
 
 #include <string>
 
-#include "join.h"
-#include "operator.h"
-#include "operator_result.h"
-#include "predicate.h"
+#include "operators/join.h"
+#include "operators/operator.h"
+#include "operators/predicate.h"
+#include "operators/utils/operator_result.h"
+#include "storage/block.h"
+#include "storage/table.h"
 
 // Bitmask selecting the k-th bit in a byte
 static constexpr uint8_t kBitmask[] = {1, 2, 4, 8, 16, 32, 64, 128};

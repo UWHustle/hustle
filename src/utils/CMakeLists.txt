@@ -67,7 +67,7 @@ target_link_libraries(hustle_src_utils_ArrowComputeWrappers
 #        ${ARROW_SHARED_LIB}
 #        ${GFLAGS_LIB_NAME}
 #        absl::hash
-#        hustle_src_table
+#        hustle_src_storage
 #        hustle_src_utils_BloomFilter
 #        )
 #add_test(HustleBloomFilter_test hustle_src_utils_tests_BloomFilterTest)

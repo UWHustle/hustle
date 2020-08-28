@@ -20,7 +20,7 @@
 
 #include <cstdlib>
 
-#include "operator_result.h"
+#include "operators/utils/operator_result.h"
 #include "scheduler/task.h"
 #include "utils/event_profiler.h"
 

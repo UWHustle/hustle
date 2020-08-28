@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-#include "catalog/Catalog.h"
+#include "catalog/catalog.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "sqlite3/sqlite3.h"

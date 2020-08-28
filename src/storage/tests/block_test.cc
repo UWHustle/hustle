@@ -22,8 +22,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "table/table.h"
-#include "table/util.h"
+#include "storage/table.h"
+#include "storage/util.h"
 
 #define BLOCK_SIZE \
   1024  // Force the block size to 1 KB for the sake of this test

@@ -19,15 +19,15 @@
 #define HUSTLE_JOIN_H
 
 #include <arrow/compute/api.h>
-#include <table/block.h>
-#include <table/table.h>
 #include <utils/parallel_hashmap/phmap.h>
 
 #include <string>
 
-#include "join_graph.h"
-#include "operator.h"
-#include "operator_result.h"
+#include "operators/join_graph.h"
+#include "operators/operator.h"
+#include "operators/utils/operator_result.h"
+#include "storage/block.h"
+#include "storage/table.h"
 
 namespace hustle::operators {
 

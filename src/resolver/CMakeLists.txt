@@ -17,7 +17,7 @@ target_link_libraries(hustle_resolver_simple_test
         hustle_src_catalog
         sqlite3
         hustleDB
-        hustle_src_table
+        hustle_src_storage
         hustle_src_resolver
         )
 add_test(HustleResolver_test hustle_resolver_simple_test)
@@ -31,7 +31,7 @@ target_link_libraries(hustle_resolver_ssb_test
         hustle_src_catalog
         sqlite3
         hustleDB
-        hustle_src_table
+        hustle_src_storage
         hustle_src_resolver
         )
 add_test(HustleResolver_test hustle_resolver_ssb_test)

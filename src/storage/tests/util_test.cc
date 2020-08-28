@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "table/util.h"
+#include "storage/util.h"
 
 #include <arrow/io/api.h>
 
@@ -24,7 +24,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "table/table.h"
+#include "storage/table.h"
 
 using namespace testing;
 

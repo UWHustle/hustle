@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "select.h"
+#include "operators/select.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -23,7 +23,7 @@
 #include <iostream>
 #include <utility>
 
-#include "table/util.h"
+#include "storage/util.h"
 
 namespace hustle {
 namespace operators {

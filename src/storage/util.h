@@ -25,7 +25,7 @@
 #include <string>
 
 #include "catalog/table_schema.h"
-#include "table.h"
+#include "storage/table.h"
 
 /**
  * If a status outcome is an error, print its error message and throw an

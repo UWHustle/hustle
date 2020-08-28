@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "parse_tree.h"
+#include "parser/parse_tree.h"
 
 namespace hustle {
 namespace parser {

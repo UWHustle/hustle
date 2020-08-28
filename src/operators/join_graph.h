@@ -19,7 +19,7 @@
 #define HUSTLE_JOINGRAPH_H
 
 #include "predicate.h"
-#include "table/table.h"
+#include "storage/table.h"
 
 namespace hustle {
 namespace operators {

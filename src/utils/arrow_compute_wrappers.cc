@@ -21,7 +21,7 @@
 
 #include <thread>
 
-#include "table/util.h"
+#include "storage/util.h"
 
 namespace hustle {
 

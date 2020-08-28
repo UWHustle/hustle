@@ -18,7 +18,7 @@
 #ifndef HUSTLE_SRC_PARSER_PARSER_H_
 #define HUSTLE_SRC_PARSER_PARSER_H_
 
-#include "parse_tree.h"
+#include "parser/parse_tree.h"
 #include "absl/strings/match.h"
 #include "api/hustle_db.h"
 

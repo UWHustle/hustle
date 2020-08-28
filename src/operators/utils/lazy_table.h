@@ -23,8 +23,8 @@
 #include <string>
 
 #include "scheduler/task.h"
-#include "table/block.h"
-#include "table/table.h"
+#include "storage/block.h"
+#include "storage/table.h"
 #include "utils/arrow_compute_wrappers.h"
 
 namespace hustle::operators {

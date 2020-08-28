@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "parser.h"
+#include "parser/parser.h"
 
 extern const int SERIAL_BLOCK_SIZE;
 extern char tableList[];

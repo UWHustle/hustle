@@ -19,8 +19,6 @@
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
-#include <table/block.h>
-#include <table/util.h>
 
 #include <fstream>
 
@@ -28,6 +26,8 @@
 #include "gtest/gtest.h"
 #include "operators/select.h"
 #include "scheduler/scheduler.h"
+#include "storage/block.h"
+#include "storage/util.h"
 
 using namespace testing;
 using namespace hustle;

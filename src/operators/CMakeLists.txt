@@ -1,24 +1,23 @@
 add_library(
         hustle_src_operators
-        operator_result.cc operator_result.h
         join.h join.cc
         aggregate.h aggregate.cc
         select.h select.cc
         join_graph.cc join_graph.h
         predicate.cc predicate.h
-        lazy_table.cc lazy_table.h
         operator.h
-        lip.cc lip.h
+        utils/lazy_table.cc utils/lazy_table.h
+        utils/operator_result.cc utils/operator_result.h
+        utils/lip.cc utils/lip.h
         ../utils/bloom_filter.h
         ../utils/xxHash.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_operators PUBLIC
-        hustle_src_table
+        hustle_src_storage
         hustle_src_utils_EventProfiler
         hustle_src_utils_ArrowComputeWrappers
-#        hustle_src_utils_ContextPool
         hustle_src_utils_ParallelHashmap
         ${ARROW_SHARED_LIB}
         )
@@ -32,7 +31,7 @@ target_link_libraries(hustle_join_test
         gmock
         #        glog
         ${GFLAGS_LIB_NAME}
-        hustle_src_table
+        hustle_src_storage
         hustle_src_operators
         hustle_src_optimizer_ExecutionPlan
         hustle_src_scheduler_Scheduler
@@ -46,7 +45,7 @@ target_link_libraries(hustle_aggregate_test
         gmock
         #        glog
         ${GFLAGS_LIB_NAME}
-        hustle_src_table
+        hustle_src_storage
         hustle_src_operators
         hustle_src_optimizer_ExecutionPlan
         hustle_src_scheduler_Scheduler
@@ -60,7 +59,7 @@ target_link_libraries(hustle_select_test
         gmock
         #        glog
         ${GFLAGS_LIB_NAME}
-        hustle_src_table
+        hustle_src_storage
         hustle_src_operators
         hustle_src_optimizer_ExecutionPlan
         hustle_src_scheduler_Scheduler

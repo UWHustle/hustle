@@ -18,7 +18,7 @@
 #include <iostream>
 
 #include "api/hustle_db.h"
-#include "catalog/Catalog.h"
+#include "catalog/catalog.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "parser/parser.h"

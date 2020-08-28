@@ -21,7 +21,7 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 
-#include "operator_result.h"
+#include "operators/utils/operator_result.h"
 
 namespace hustle::operators {
 

@@ -23,8 +23,8 @@
 
 #include <iostream>
 
-#include "block.h"
-#include "util.h"
+#include "storage/block.h"
+#include "storage/util.h"
 
 Table::Table(std::string name, const std::shared_ptr<arrow::Schema> &schema,
              int block_capacity)

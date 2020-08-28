@@ -17,7 +17,7 @@
 
 #include "skew.h"
 #include "ssb_workload.h"
-#include "table/util.h"
+#include "storage/util.h"
 using namespace hustle::operators;
 using namespace std::chrono;
 

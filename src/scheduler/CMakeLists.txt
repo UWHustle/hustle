@@ -1,3 +1,5 @@
+add_subdirectory(threading)
+
 # Declare micro-libs:
 add_library(hustle_src_scheduler_Node ../empty_src.cc node.h)
 add_library(hustle_src_scheduler_Scheduler scheduler.cc scheduler.h)
