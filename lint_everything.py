@@ -21,14 +21,14 @@ import os
 import subprocess
 import sys
 
-EXCLUDED_PREFIXES = ['./.', './third_party', './arrow', './build']
+EXCLUDED_PREFIXES = ['./.', './third_party', './arrow', './build', './src/utils']
 
 print "Running cpplint on entire source tree. This may take several minutes ..."
 
 call_args = ['/usr/bin/env',
              'python2',
              './third_party/cpplint/cpplint.py',
-             '--extensions=cpp,h',
+             '--extensions=cc,h',
              '--linelength=80',
              '--headers=h',
              '--filter=-build/header_guard',
@@ -41,7 +41,7 @@ for (dirpath, dirnames, filenames) in os.walk('.'):
             filtered = True
     if not filtered:
         for filename in filenames:
-            if filename.endswith('.h') or filename.endswith('.cpp'):
+            if filename.endswith('.h') or filename.endswith('.cc'):
                 call_args.append(dirpath + '/' + filename)
 
 sys.exit(subprocess.call(call_args))
