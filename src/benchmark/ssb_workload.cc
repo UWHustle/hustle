@@ -204,8 +204,8 @@ void SSB::q11() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
@@ -282,8 +282,8 @@ void SSB::q12() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
@@ -373,8 +373,8 @@ void SSB::q13() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
@@ -446,8 +446,8 @@ void SSB::q21() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
+  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -542,8 +542,8 @@ void SSB::q22() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
+  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -614,8 +614,8 @@ void SSB::q23() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
+  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -697,9 +697,9 @@ void SSB::q31() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -785,9 +785,9 @@ void SSB::q32() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -897,9 +897,9 @@ void SSB::q33() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -1007,9 +1007,9 @@ void SSB::q34() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -1103,9 +1103,9 @@ void SSB::q41() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
+  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,
@@ -1210,10 +1210,10 @@ void SSB::q42() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,
@@ -1313,10 +1313,10 @@ void SSB::q43() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d_result_in, d_select_result_out, d_pred_tree);
+  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
+  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,

@@ -27,8 +27,8 @@
 
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
-#include "storage/block.h"
 #include "scheduler/scheduler.h"
+#include "storage/block.h"
 #include "storage/table.h"
 
 void evaluate_status(const arrow::Status& status, const char* function_name,

@@ -130,7 +130,7 @@ void Table::mark_block_for_insert(const std::shared_ptr<Block> &block) {
 
 std::shared_ptr<arrow::Schema> Table::get_schema() const { return schema; }
 
-int Table::get_num_blocks() const { return blocks.size(); }
+size_t Table::get_num_blocks() const { return blocks.size(); }
 
 void Table::print() {
   if (blocks.empty()) {

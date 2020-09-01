@@ -108,7 +108,7 @@ TEST_F(SelectTestFixture, SingleSelectTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  Select select_op(0, result, out_result, select_pred_tree);
+  Select select_op(0, R, result, out_result, select_pred_tree);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -178,7 +178,7 @@ TEST_F(SelectTestFixture, AndSelectTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  Select select_op(0, result, out_result, select_pred_tree);
+  Select select_op(0, R, result, out_result, select_pred_tree);
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
   scheduler.addTask(select_op.createTask());
@@ -247,7 +247,7 @@ TEST_F(SelectTestFixture, OrSelectTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  Select select_op(0, result, out_result, select_pred_tree);
+  Select select_op(0, R, result, out_result, select_pred_tree);
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
   scheduler.addTask(select_op.createTask());
@@ -301,7 +301,7 @@ TEST_F(SelectTestFixture, SingleSelectManyBlocksTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  Select select_op(0, result, out_result, select_pred_tree);
+  Select select_op(0, R, result, out_result, select_pred_tree);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -371,7 +371,7 @@ TEST_F(SelectTestFixture, AndSelectManyBlocksTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  Select select_op(0, result, out_result, select_pred_tree);
+  Select select_op(0, R, result, out_result, select_pred_tree);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
