@@ -6,9 +6,8 @@ Hustle is an efficient data platform, organized as a collection of data processi
 ## Building blocks
 Hustle is built on [Apache Arrow](https://github.com/apache/arrow). 
 
-## Coding Guidelinees
-We follow [these guidelines](https://arrow.apache.org/docs/developers/cpp/development.html).
-
+## Coding Guidelines
+We follow [these guidelines](https://arrow.apache.org/docs/developers/cpp/development.html) for development.
 
 ## Build Hustle
 
