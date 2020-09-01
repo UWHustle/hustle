@@ -23,7 +23,7 @@ Then use cmake to build Hustle:
 ```
 mkdir build
 cd build
-cmake -D CMAKE_BUILD_TYPE=DEBUG .. 
+cmake -D CMAKE_BUILD_TYPE=RELEASE .. 
 make -j<number of cores>
 ```
 

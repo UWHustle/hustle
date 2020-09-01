@@ -20,7 +20,9 @@
 
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
+#include <utility>
 
 #include "storage/block.h"
 
@@ -86,7 +88,7 @@ class Table {
 
   int get_num_rows() const;
 
-  int get_num_blocks() const;
+  size_t get_num_blocks() const;
 
   /**
    * Insert a record into a block in the insert pool.
@@ -164,6 +166,9 @@ class Table {
   void insert_record(std::vector<std::string_view> values,
                      int32_t *byte_widths);
 
+  template <typename Functor>
+  void ForEachBatch(const Functor &functor) const;
+
  private:
   std::string table_name;
 
@@ -202,5 +207,16 @@ class Table {
   // at index 0 is always 0.
   std::vector<int> block_row_offsets;
 };
+
+template <typename Functor>
+void Table::ForEachBatch(const Functor &functor) const {
+  size_t batch_size =
+      this->get_num_blocks() / std::thread::hardware_concurrency();
+  if (batch_size == 0) batch_size = this->get_num_blocks();
+  size_t num_batches = 1 + ((this->get_num_blocks() - 1) / batch_size);
+  for (size_t batch_index = 0; batch_index < num_batches; batch_index++) {
+    functor(batch_index, batch_size);
+  }
+}
 
 #endif  // HUSTLE_OFFLINE_TABLE_H

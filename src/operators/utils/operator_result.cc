@@ -45,6 +45,10 @@ void OperatorResult::append(LazyTable lazy_table) {
   lazy_tables_.insert(lazy_tables_.begin(), lazy_table);
 }
 
+void OperatorResult::append(std::shared_ptr<LazyTable> lazy_table) {
+  lazy_tables_.insert(lazy_tables_.begin(), *lazy_table);
+}
+
 void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
   for (auto& lazy_table : result->lazy_tables_) {
     lazy_tables_.push_back(lazy_table);

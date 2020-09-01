@@ -67,6 +67,12 @@ class OperatorResult {
   void append(LazyTable lazy_table);
 
   /**
+   * Append a new lazy table to the OperatorResult.
+   * @param table Shared pointer to the lazy table to append
+   */
+  void append(std::shared_ptr<LazyTable> lazy_table);
+
+  /**
    * Append another OperatorResult to this OperatorResult.
    *
    * @param result Another OperatorResult
