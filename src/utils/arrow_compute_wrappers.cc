@@ -361,9 +361,9 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
 void Context::clear_data() { array_vec_.clear(); }
 
 void Context::match(Task* ctx, const arrow::Datum& values,
-                    const arrow::Datum& keys, arrow::Datum& out) {
+                    const arrow::Datum& keys) {
   ctx->spawnTask(CreateTaskChain(
-      CreateLambdaTask([this, values, keys, &out](Task* internal) {
+      CreateLambdaTask([this, values, keys](Task* internal) {
         clear_data();
 
         auto vals = values.chunked_array();
@@ -380,9 +380,7 @@ void Context::match(Task* ctx, const arrow::Datum& values,
           });
         }
       }),
-      CreateLambdaTask([this, &out](Task* internal) {
-        //            out.value =
-        //            std::make_shared<arrow::ChunkedArray>(array_vec_);
+      CreateLambdaTask([this](Task* internal) {
         out_.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
       })));
 }

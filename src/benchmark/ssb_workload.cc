@@ -213,7 +213,7 @@ void SSB::q11() {
   JoinGraph graph({{join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
   ////////////////////////////////////////////////////////////////////////////
@@ -294,7 +294,7 @@ void SSB::q12() {
 
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
   ////////////////////////////////////////////////////////////////////////////
@@ -385,7 +385,7 @@ void SSB::q13() {
 
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
   ////////////////////////////////////////////////////////////////////////////
@@ -455,7 +455,7 @@ void SSB::q21() {
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
 
@@ -551,7 +551,7 @@ void SSB::q22() {
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
 
@@ -623,7 +623,7 @@ void SSB::q23() {
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
 
@@ -707,7 +707,7 @@ void SSB::q31() {
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref, s_nation_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -795,7 +795,7 @@ void SSB::q32() {
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -907,7 +907,7 @@ void SSB::q33() {
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -1017,7 +1017,7 @@ void SSB::q34() {
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -1114,7 +1114,7 @@ void SSB::q41() {
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref});
 
@@ -1222,7 +1222,7 @@ void SSB::q42() {
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_nation_ref, p_category_ref},
                    {d_year_ref, s_nation_ref, p_category_ref});
@@ -1325,7 +1325,7 @@ void SSB::q43() {
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref});
