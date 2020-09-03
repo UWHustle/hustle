@@ -33,8 +33,7 @@ class Context {
 
   void apply_indices(Task *ctx, arrow::Datum values, arrow::Datum indices,
                      arrow::Datum index_chunks, arrow::Datum &out);
-  void match(Task *ctx, const arrow::Datum &values, const arrow::Datum &keys,
-             arrow::Datum &out);
+  void match(Task *ctx, const arrow::Datum &values, const arrow::Datum &keys);
   void apply_filter(Task *ctx, const arrow::Datum &values,
                     const arrow::Datum &filter, arrow::Datum &out);
 

@@ -80,7 +80,7 @@ void SSB::q11_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
   ////////////////////////////////////////////////////////////////////////////
@@ -186,7 +186,7 @@ void SSB::q12_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
   ////////////////////////////////////////////////////////////////////////////
@@ -302,7 +302,7 @@ void SSB::q13_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
   ////////////////////////////////////////////////////////////////////////////
@@ -376,7 +376,7 @@ void SSB::q21_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
 
@@ -462,7 +462,7 @@ void SSB::q22_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
 
@@ -538,7 +538,7 @@ void SSB::q23_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
 
@@ -633,7 +633,7 @@ void SSB::q31_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref, s_nation_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -734,7 +734,7 @@ void SSB::q32_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -859,7 +859,7 @@ void SSB::q33_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -975,7 +975,7 @@ void SSB::q34_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}});
@@ -1076,7 +1076,7 @@ void SSB::q41_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref});
 
@@ -1195,7 +1195,7 @@ void SSB::q42_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_nation_ref, p_category_ref},
                    {d_year_ref, s_nation_ref, p_category_ref});
@@ -1307,7 +1307,7 @@ void SSB::q43_lip() {
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
   Join join_op(0, {lip_result_out}, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref});

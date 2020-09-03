@@ -102,7 +102,7 @@ TEST_F(AggregateTestFixture, MeanTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  AggregateReference agg_ref = {AggregateKernels::MEAN, "data_mean", R, "data"};
+  AggregateReference agg_ref = {AggregateKernel::MEAN, "data_mean", R, "data"};
   Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
@@ -136,7 +136,7 @@ TEST_F(AggregateTestFixture, SumTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
@@ -228,7 +228,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
                    {R_group_ref});
   Scheduler &scheduler = Scheduler::GlobalInstance();
@@ -283,7 +283,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
 
-  AggregateReference agg_ref = {AggregateKernels::SUM, "data_sum", R, "data"};
+  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
                    {R_group_ref});
   Scheduler &scheduler = Scheduler::GlobalInstance();
