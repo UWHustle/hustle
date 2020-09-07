@@ -39,30 +39,24 @@ SSB::SSB(int SF, bool print) {
   //    num_threads_ = 1;
 
   if (SF == 0) {
-    lo = read_from_file("../../../src/ssb/data/ssb-small/lineorder.hsl");
-    d = read_from_file("../../../src/ssb/data/ssb-01/date.hsl");
-    p = read_from_file("../../../src/ssb/data/ssb-01/part.hsl");
-    c = read_from_file("../../../src/ssb/data/ssb-01/customer.hsl");
-    s = read_from_file("../../../src/ssb/data/ssb-01/supplier.hsl");
+    lo = read_from_file("../../../data/lineorder.hsl");
+    d = read_from_file("../../../data/date.hsl");
+    p = read_from_file("../../../data/part.hsl");
+    c = read_from_file("../../../data/customer.hsl");
+    s = read_from_file("../../../data/supplier.hsl");
   }
   if (SF == 1) {
-    lo = read_from_file(
-        "/Users/corrado/temp_hustle/hustle/src/ssb/data/ssb-01/lineorder.hsl",
-        false);
-    d = read_from_file(
-        "/Users/corrado/temp_hustle/hustle/src/ssb/data/ssb-01/date.hsl");
-    p = read_from_file(
-        "/Users/corrado/temp_hustle/hustle/src/ssb/data/ssb-01/part.hsl");
-    c = read_from_file(
-        "/Users/corrado/temp_hustle/hustle/src/ssb/data/ssb-01/customer.hsl");
-    s = read_from_file(
-        "/Users/corrado/temp_hustle/hustle/src/ssb/data/ssb-01/supplier.hsl");
+    lo = read_from_file("../../../data/lineorder.hsl", false);
+    d = read_from_file("../../../data/date.hsl");
+    p = read_from_file("../../../data/part.hsl");
+    c = read_from_file("../../../data/customer.hsl");
+    s = read_from_file("../../../data/supplier.hsl");
   } else if (SF == 5) {
-    lo = read_from_file("../../../src/ssb/data/ssb-05/lineorder.hsl");
-    d = read_from_file("../../../src/ssb/data/ssb-05/date.hsl");
-    p = read_from_file("../../../src/ssb/data/ssb-05/part.hsl");
-    c = read_from_file("../../../src/ssb/data/ssb-05/customer.hsl");
-    s = read_from_file("../../../src/ssb/data/ssb-05/supplier.hsl");
+    lo = read_from_file("../../../data/lineorder.hsl");
+    d = read_from_file("../../../data/date.hsl");
+    p = read_from_file("../../../data/part.hsl");
+    c = read_from_file("../../../data/customer.hsl");
+    s = read_from_file("../../../data/supplier.hsl");
   } else if (SF == 10) {
     //        lo =
     //        read_from_file("../../../src/ssb/data/ssb-10-20MB/lineorder.hsl");
@@ -70,52 +64,41 @@ SSB::SSB(int SF, bool print) {
     //        p = read_from_file("../../../src/ssb/data/ssb-10/part.hsl");
     //        c = read_from_file("../../../src/ssb/data/ssb-10/customer.hsl");
     //        s = read_from_file("../../../src/ssb/data/ssb-10/supplier.hsl");
-    lo = read_from_file(
-        "/Users/corrado/hustle/src/ssb/data/ssb-10-20MB/lineorder.hsl", false);
-    d = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/date.hsl");
-    p = read_from_file("/Users/corrado/hustle/src/ssb/data/ssb-10/part.hsl");
-    c = read_from_file(
-        "/Users/corrado/hustle/src/ssb/data/ssb-10/customer.hsl");
-    s = read_from_file(
-        "/Users/corrado/hustle/src/ssb/data/ssb-10/supplier.hsl");
+    lo = read_from_file("../../../data/lineorder.hsl", false);
+    d = read_from_file("../../../data/date.hsl");
+    p = read_from_file("../../../data/part.hsl");
+    c = read_from_file("/../../../data/customer.hsl");
+    s = read_from_file("../../../data/supplier.hsl");
   } else if (SF == 100) {
-    d = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.hsl");
+    d = read_from_file("../../../data/date.hsl");
     std::cout << "d" << std::endl;
 
-    p = read_from_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.hsl");
+    p = read_from_file("../../../data/part.hsl");
     std::cout << "p" << std::endl;
 
-    c = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/customer.hsl");
+    c = read_from_file("../../../data/customer.hsl");
     std::cout << "d" << std::endl;
 
-    s = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/supplier.hsl");
+    s = read_from_file("../../../data/supplier.hsl");
     std::cout << "s" << std::endl;
 
-    lo = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.hsl");
+    lo = read_from_file("../../../data/lineorder.hsl");
     std::cout << "lo" << std::endl;
 
   } else if (SF == 101) {
-    d = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/date.hsl");
+    d = read_from_file("../../../data/date.hsl");
     std::cout << "d" << std::endl;
 
-    p = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/part.hsl");
+    p = read_from_file("../../../data/part.hsl");
     std::cout << "p" << std::endl;
 
-    c = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/customer.hsl");
+    c = read_from_file("../../../data/customer.hsl");
     std::cout << "d" << std::endl;
 
-    s = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/supplier.hsl");
+    s = read_from_file("../../../data/supplier.hsl");
     std::cout << "s" << std::endl;
 
-    lo = read_from_file(
-        "/mydata/SQL-benchmark-data-generator/ssbgen/ssb-001/lineorder.hsl");
+    lo = read_from_file("../../../data/lineorder.hsl");
     std::cout << "lo" << std::endl;
   }
 
