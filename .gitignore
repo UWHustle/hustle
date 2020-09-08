@@ -45,3 +45,5 @@ debug
 /build/
 /cmake-build-debug/
 /src/ssb/data/
+Brewfile.lock.json
+arrow/
