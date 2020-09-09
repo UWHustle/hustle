@@ -18,6 +18,14 @@ elif [[ `uname` == "Linux" ]]; then
       ./bootstrap
       make -j 4
       sudo make install
+
+      cd ..
+      git clone https://github.com/google/benchmark.git
+      git clone https://github.com/google/googletest.git benchmark/googletest
+      cd benchmark
+      cmake -E make_directory "build"
+      cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
+      sudo cmake --build "build" --config Release --target install
     fi
     sudo apt-get update
     sudo apt-get install software-properties-common --yes
