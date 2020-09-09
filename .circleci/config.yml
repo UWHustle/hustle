@@ -6,11 +6,11 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-            keys: my-cache-v2
+            keys: my-cache-v3
       - run: ./install_requirements.sh
       - run: ./install_arrow.sh
       - save_cache:
-            key: my-cache-v2
+            key: my-cache-v3
             paths:
               - arrow
               - cmake-3.15.5
