@@ -1,1 +1,2 @@
 brew "cmake"
+brew "pkgconfig"
