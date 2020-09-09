@@ -1,3 +1,4 @@
+find_package(benchmark REQUIRED)
 add_library(hustle_src_benchmark
         ssb_workload.cc ssb_workload.h
         ssb_workload_lip.cc)
@@ -18,6 +19,7 @@ add_executable(hustle_src_benchmark_main main.cc
         ../utils/xxHash.h)
 target_link_libraries(hustle_src_benchmark_main PUBLIC
         hustle_src_benchmark
+        benchmark::benchmark
         )
 
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
