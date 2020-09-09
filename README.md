@@ -11,6 +11,8 @@ We follow [these guidelines](https://arrow.apache.org/docs/developers/cpp/develo
 
 ## Build Hustle
 
+User on MacOS shall install [homebrew](https://brew.sh/) before running the following scripts.
+
 To install the required packages for Hustle use the following scripts:
 
 ```

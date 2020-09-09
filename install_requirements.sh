@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
 if [[ `uname` == "Darwin" ]]; then
+    # Check if user is using brew
+    which -s brew
+    if [[ $? != 0 ]] ; then
+        echo Homebrew not found. Please first install homebrew through: https://brew.sh/
+		exit 1
+    fi
     brew update && brew bundle --file=Brewfile
 elif [[ `uname` == "Linux" ]]; then
     if [ ! -d "cmake-3.15.5" ]
