@@ -33,3 +33,19 @@ To run the test go into the build directory and use:
 ```
 ctest --output-on-failure
 ```
+
+## Run Benchmark
+
+You can use the following commands to run the ssb benchmark, (before running the below commands make sure you have built the executable from the source files using the steps provided in the previous section).
+
+To generate the ssb benchmark data
+
+```
+sh ./scripts/ssb/gen_benchmark_data.sh
+```
+
+To run the ssb benchmark,
+
+```
+sh ./scripts/ssb/run_benchmark.sh
+```

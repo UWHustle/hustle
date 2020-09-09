@@ -15,11 +15,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include <benchmark/benchmark.h>
+
 #include "skew.h"
 #include "ssb_workload.h"
 #include "storage/util.h"
+
 using namespace hustle::operators;
 using namespace std::chrono;
+
+SSB* workload;
 
 void read_from_csv() {
   std::shared_ptr<Table> lo, c, s, p, d;
@@ -107,131 +112,128 @@ void read_from_csv() {
                             p_field6, p_field7, p_field8, p_field9});
 
   std::shared_ptr<Table> t;
+  t = read_from_csv_file("../../../ssb/data/customer.tbl", c_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../../../ssb/data/customer.hsl", *t);
 
-  t = read_from_csv_file(
-      "/mydata/SQL-benchmark-data-generator/ssbgen/customer.tbl", c_schema,
-      20 * BLOCK_SIZE);
-  write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/customer.hsl", *t);
-  std::cout << "c" << std::endl;
+  t = read_from_csv_file("../../../ssb/data/supplier.tbl", s_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../../../ssb/data/supplier.hsl", *t);
 
-  t = read_from_csv_file(
-      "/mydata/SQL-benchmark-data-generator/ssbgen/supplier.tbl", s_schema,
-      20 * BLOCK_SIZE);
-  write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/supplier.hsl", *t);
-  std::cout << "s" << std::endl;
+  t = read_from_csv_file("../../../ssb/data/date.tbl", d_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../../../ssb/data/date.hsl", *t);
 
-  t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.tbl",
-                         d_schema, 20 * BLOCK_SIZE);
-  write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/date.hsl", *t);
-  std::cout << "d" << std::endl;
+  t = read_from_csv_file("../../../ssb/data/part.tbl", p_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../../../ssb/data/part.hsl", *t);
 
-  t = read_from_csv_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.tbl",
-                         p_schema, 20 * BLOCK_SIZE);
-  write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/part.hsl", *t);
-  std::cout << "p" << std::endl;
-
-  t = read_from_csv_file(
-      "/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.tbl", lo_schema,
-      20 * BLOCK_SIZE);
-  write_to_file("/mydata/SQL-benchmark-data-generator/ssbgen/lineorder.hsl",
-                *t);
-  std::cout << "lo" << std::endl;
-  //
-  //    t =
-  //    read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/customer.tbl",
-  //    c_schema, 20*BLOCK_SIZE);
-  //    write_to_file("../../../src/ssb/data/ssb-01/customer.hsl", *t);
-  //    std::cout << "c" << std::endl;
-  //
-  //    t =
-  //    read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/supplier.tbl",
-  //    s_schema, 20*BLOCK_SIZE);
-  //    write_to_file("../../../src/ssb/data/ssb-01/supplier.hsl", *t);
-  //    std::cout << "s" << std::endl;
-  //
-  //    t =
-  //    read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/date.tbl",
-  //    d_schema, 20*BLOCK_SIZE);
-  //    write_to_file("../../../src/ssb/data/ssb-01/date.hsl", *t);
-  //    std::cout << "d" << std::endl;
-  //
-  //    t =
-  //    read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/part.tbl",
-  //    p_schema, 20*BLOCK_SIZE);
-  //    write_to_file("../../../src/ssb/data/ssb-01/part.hsl", *t);
-  //    std::cout << "p" << std::endl;
-  //
-  //    t =
-  //    read_from_csv_file("/Users/corrado/hustle/src/ssb/data/ssb-01/lineorder.tbl",
-  //    lo_schema, 20*BLOCK_SIZE);
-  //    write_to_file("../../../src/ssb/data/ssb-01/lineorder.hsl", *t);
-  //    std::cout << "lo" << std::endl;
+  t = read_from_csv_file("../../../ssb/data/lineorder.tbl", lo_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../../../ssb/data/lineorder.hsl", *t);
+  std::cout << "read the table files..." << std::endl;
 }
 
-void run_experiment(int sf, int num_trials = 1, bool load = false,
-                    bool print = false) {
-  if (load) read_from_csv();
-  SSB workload(sf, print);
-  std::cout << workload.lo->get_num_blocks() << std::endl;
-
-  std::cout << "skewing column..." << std::endl;
-  //    skew_column(workload.lo->get_column(4), true);
-  //    std::cout << workload.lo->get_column(4)->ToString() << std::endl;
-  std::cout << "sleeping after loading tables..." << std::endl;
-  sleep(0);
-  for (int i = 0; i < num_trials; i++) {
-    std::cout << "batch start" << std::endl;
-    //
-    //        workload.q11();
-
-    workload.q11();
-    workload.q12();
-    workload.q13();
-
-    //        workload.q21();
-    //        workload.q22();
-    //        workload.q23();
-    //
-    //        workload.q31();
-    //        workload.q32();
-    //        workload.q33();
-    //        workload.q34();
-
-    //        workload.q41();
-    //        workload.q42();
-    //        workload.q43();
-    //
-    workload.q21_lip();
-    workload.q22_lip();
-    workload.q23_lip();
-
-    workload.q31_lip();
-    workload.q32_lip();
-    workload.q33_lip();
-    workload.q34_lip();
-
-    workload.q41_lip();
-    workload.q42_lip();
-    workload.q43_lip();
-
-    std::cout << "sleeping..." << std::endl;
-    sleep(1);
+static void query11(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q11();
   }
 }
 
-int main(int argc, char *argv[]) {
-  //    read_from_csv();
-  //    return 0;
-  if (argc == 5) {
-    run_experiment(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]),
-                   std::stoi(argv[4]));
-  } else if (argc == 4) {
-    run_experiment(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]));
-  } else if (argc == 3) {
-    run_experiment(std::stoi(argv[1]), std::stoi(argv[2]));
-  } else if (argc == 2) {
-    run_experiment(std::stoi(argv[1]));
-  } else {
-    run_experiment(1, 1, 0, 1);
+static void query12(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q12();
   }
+}
+
+static void query13(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q13();
+  }
+}
+
+static void query21(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q21_lip();
+  }
+}
+
+static void query22(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q22_lip();
+  }
+}
+
+static void query23(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q23_lip();
+  }
+}
+
+static void query31(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q31_lip();
+  }
+}
+
+static void query32(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q32_lip();
+  }
+}
+
+static void query33(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q33_lip();
+  }
+}
+
+static void query34(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q34_lip();
+  }
+}
+
+static void query41(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q41_lip();
+  }
+}
+
+static void query42(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q42_lip();
+  }
+}
+
+static void query43(benchmark::State& state) {
+  for (auto _ : state) {
+    workload->q43_lip();
+  }
+}
+
+BENCHMARK(query11);
+BENCHMARK(query12);
+BENCHMARK(query13);
+BENCHMARK(query21);
+BENCHMARK(query22);
+BENCHMARK(query23);
+BENCHMARK(query31);
+BENCHMARK(query32);
+BENCHMARK(query33);
+BENCHMARK(query34);
+BENCHMARK(query41);
+BENCHMARK(query42);
+BENCHMARK(query43);
+
+int main(int argc, char* argv[]) {
+  std::cout << "Started initializing with the required data ..." << std::endl;
+  read_from_csv();
+
+  workload = new SSB();
+
+  ::benchmark::Initialize(&argc, argv);
+
+  std::cout << "Stated running benchmarks ..." << std::endl;
+  ::benchmark::RunSpecifiedBenchmarks();
 }
