@@ -17,9 +17,11 @@ elif [[ `uname` == "Linux" ]]; then
       cd cmake-3.15.5
       ./bootstrap
       make -j 4
+    else
+      cd cmake-3.15.5
       sudo make install
-      cd ..
     fi
+    cd ..
     sudo apt-get update
     sudo apt-get install software-properties-common --yes
     sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
@@ -35,5 +37,8 @@ elif [[ `uname` == "Linux" ]]; then
       cmake -E make_directory "build"
       cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
       sudo cmake --build "build" --config Release --target install
+    else
+      cd benchmark/build
+      sudo make install -j4
     fi
 fi
