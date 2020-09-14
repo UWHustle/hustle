@@ -109,7 +109,9 @@ void Join::HashJoin(int join_id, Task *ctx) {
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
         // Build phase
-        if (right_.filter.kind() == arrow::Datum::CHUNKED_ARRAY) {
+        if (right_.hash_table_ != nullptr) {
+          hash_table_ = *right_.hash_table_;
+        } else if (right_.filter.kind() == arrow::Datum::CHUNKED_ARRAY) {
           BuildHashTable(right_join_col_.chunked_array(),
                          right_.filter.chunked_array(), internal);
         } else {

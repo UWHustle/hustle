@@ -6,6 +6,7 @@ add_library(
         join_graph.cc join_graph.h
         predicate.cc predicate.h
         operator.h
+        fused/select_build_hash.cc fused/select_build_hash.h
         utils/lazy_table.cc utils/lazy_table.h
         utils/operator_result.cc utils/operator_result.h
         utils/lip.cc utils/lip.h

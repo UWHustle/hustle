@@ -31,11 +31,6 @@
 
 namespace hustle::operators {
 
-struct RecordID {
-  uint32_t index;
-  uint16_t chunk;
-};
-
 /**
  * The Join operator updates the index arrays of each LazyTable in the inputted
  * OperatorResults. After execution, the index arrays of each LazyTable contains

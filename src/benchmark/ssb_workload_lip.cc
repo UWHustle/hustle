@@ -17,6 +17,7 @@
 
 #include "execution/execution_plan.h"
 #include "operators/aggregate.h"
+#include "operators/fused/select_build_hash.h"
 #include "operators/join.h"
 #include "operators/join_graph.h"
 #include "operators/predicate.h"
@@ -366,8 +367,10 @@ void SSB::q21_lip() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out};
@@ -452,8 +455,10 @@ void SSB::q22_lip() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out};
@@ -528,8 +533,10 @@ void SSB::q23_lip() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out};
@@ -622,9 +629,12 @@ void SSB::q31_lip() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};
@@ -723,9 +733,12 @@ void SSB::q32_lip() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};
@@ -848,9 +861,12 @@ void SSB::q33_lip() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};

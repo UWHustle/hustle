@@ -19,6 +19,7 @@
 
 #include "execution/execution_plan.h"
 #include "operators/aggregate.h"
+#include "operators/fused/select_build_hash.h"
 #include "operators/join.h"
 #include "operators/join_graph.h"
 #include "operators/predicate.h"
@@ -181,13 +182,14 @@ void SSB::q11() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
-
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, join_pred.right_col_ref_);
+
   Join join_op(0, join_result_in, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
@@ -259,13 +261,14 @@ void SSB::q12() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
-
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
+
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
@@ -350,13 +353,14 @@ void SSB::q13() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
-
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
+
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
@@ -423,8 +427,10 @@ void SSB::q21() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -519,8 +525,10 @@ void SSB::q22() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -591,8 +599,10 @@ void SSB::q23() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -674,9 +684,12 @@ void SSB::q31() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -762,9 +775,12 @@ void SSB::q32() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -874,9 +890,12 @@ void SSB::q33() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -984,9 +1003,12 @@ void SSB::q34() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -1080,9 +1102,12 @@ void SSB::q41() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,
@@ -1187,10 +1212,14 @@ void SSB::q42() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,
@@ -1290,10 +1319,14 @@ void SSB::q43() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,

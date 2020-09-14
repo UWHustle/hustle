@@ -25,8 +25,8 @@
 namespace hustle {
 namespace utils {
 
-void pack(int64_t length, const uint8_t *arr,
-          std::shared_ptr<arrow::BooleanArray> *out) {
+static void pack(int64_t length, const uint8_t *arr,
+                 std::shared_ptr<arrow::BooleanArray> *out) {
   auto packed = std::static_pointer_cast<arrow::BooleanArray>(
       arrow::MakeArrayFromScalar(arrow::BooleanScalar(false), length)
           .ValueOrDie());
