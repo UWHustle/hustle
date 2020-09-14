@@ -30,8 +30,8 @@
 // @nicholas: these headers are hidden from Arrow API
 #include <iostream>
 
-#include "/Users/corrado/hustle/arrow/cpp/src/arrow/compute/kernels/common.h"
-#include "/Users/corrado/hustle/arrow/cpp/src/arrow/compute/kernels/util_internal.h"
+#include "../../arrow/cpp/src/arrow/compute/kernels/common.h"
+#include "../../arrow/cpp/src/arrow/compute/kernels/util_internal.h"
 #include "arrow/extension_type.h"
 #include "arrow/record_batch.h"
 #include "arrow/result.h"
