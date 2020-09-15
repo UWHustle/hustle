@@ -47,3 +47,4 @@ debug
 /src/ssb/data/
 Brewfile.lock.json
 arrow/
+ssb/
