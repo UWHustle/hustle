@@ -81,7 +81,8 @@ class Join : public Operator {
   JoinGraph graph_;
 
   // Hash table for the right table in each join
-  phmap::flat_hash_map<int64_t, RecordID> hash_table_;
+  std::vector<std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>>>
+      hash_tables_;
 
   // new_left_indices_vector[i] = the indices of rows joined in chunk i in
   // the left table
@@ -120,15 +121,17 @@ class Join : public Operator {
   //    void probe_hash_table_block(const std::shared_ptr<arrow::ChunkedArray>
   //    &probe_col, int batch_i, int batch_size,
   //                                std::vector<uint64_t> chunk_row_offsets);
-  void BuildHashTable(const std::shared_ptr<arrow::ChunkedArray> &col,
+  void BuildHashTable(int join_id,
+                      const std::shared_ptr<arrow::ChunkedArray> &col,
                       const std::shared_ptr<arrow::ChunkedArray> &filter,
                       Task *ctx);
 
-  void ProbeHashTable(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+  void ProbeHashTable(int join_id,
+                      const std::shared_ptr<arrow::ChunkedArray> &probe_col,
                       const arrow::Datum &probe_filter,
                       const arrow::Datum &probe_indices, Task *ctx);
   void ProbeHashTableBlock(
-      const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+      int join_id, const std::shared_ptr<arrow::ChunkedArray> &probe_col,
       const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i,
       int batch_size, std::vector<uint64_t> chunk_row_offsets);
 
