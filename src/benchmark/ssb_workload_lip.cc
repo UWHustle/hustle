@@ -102,13 +102,12 @@ void SSB::q11_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.1_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.1_lip");
 
   if (print_) {
@@ -208,13 +207,12 @@ void SSB::q12_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.2_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.2_lip");
 
   if (print_) {
@@ -324,13 +322,12 @@ void SSB::q13_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.3_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.3_lip");
 
   if (print_) {
@@ -402,13 +399,12 @@ void SSB::q21_lip() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.1_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.1_lip");
 
   if (print_) {
@@ -490,13 +486,12 @@ void SSB::q22_lip() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.2_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.2_lip");
 
   if (print_) {
@@ -568,13 +563,12 @@ void SSB::q23_lip() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.3_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.3_lip");
 
   if (print_) {
@@ -669,13 +663,12 @@ void SSB::q31_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.1_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.1_lip");
 
   if (print_) {
@@ -773,13 +766,12 @@ void SSB::q32_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.2_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.2_lip");
 
   if (print_) {
@@ -901,13 +893,12 @@ void SSB::q33_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.3_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.3_lip");
 
   if (print_) {
@@ -1015,13 +1006,12 @@ void SSB::q34_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.4_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.4_lip");
 
   if (print_) {
@@ -1119,13 +1109,12 @@ void SSB::q41_lip() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.1_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.1_lip");
 
   out_table = agg_result_out->materialize(
@@ -1241,13 +1230,12 @@ void SSB::q42_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.2_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.2_lip");
 
   out_table = agg_result_out->materialize({{nullptr, "revenue"},
@@ -1353,13 +1341,12 @@ void SSB::q43_lip() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.3_lip");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.3_lip");
 
   out_table = agg_result_out->materialize({{nullptr, "revenue"},

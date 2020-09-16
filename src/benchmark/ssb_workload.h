@@ -20,6 +20,7 @@
 
 #include "execution/execution_plan.h"
 #include "operators/predicate.h"
+#include "scheduler/scheduler.h"
 #include "storage/table.h"
 
 namespace hustle::operators {
@@ -71,6 +72,7 @@ class SSB {
  private:
   bool print_;
   int num_threads_;
+  std::shared_ptr<Scheduler> scheduler;
 
   std::shared_ptr<OperatorResult> lo_result_in;
   std::shared_ptr<OperatorResult> d_result_in;

@@ -37,6 +37,8 @@ namespace hustle::operators {
 SSB::SSB(int SF, bool print) {
   print_ = print;
   num_threads_ = std::thread::hardware_concurrency();
+
+  scheduler = std::make_shared<Scheduler>(num_threads_, true);
   //    num_threads_ = 1;
 
   if (SF == 0) {
@@ -210,13 +212,12 @@ void SSB::q11() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.1");
 
   if (print_) {
@@ -292,13 +293,12 @@ void SSB::q12() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.2");
 
   if (print_) {
@@ -384,13 +384,12 @@ void SSB::q13() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.3");
 
   if (print_) {
@@ -458,13 +457,12 @@ void SSB::q21() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.1");
 
   if (print_) {
@@ -556,13 +554,12 @@ void SSB::q22() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.2");
 
   if (print_) {
@@ -630,13 +627,12 @@ void SSB::q23() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.3");
 
   if (print_) {
@@ -718,13 +714,12 @@ void SSB::q31() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.1");
 
   if (print_) {
@@ -809,13 +804,12 @@ void SSB::q32() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.2");
 
   if (print_) {
@@ -924,13 +918,12 @@ void SSB::q33() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.3");
 
   if (print_) {
@@ -1037,13 +1030,12 @@ void SSB::q34() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.4");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.4");
 
   if (print_) {
@@ -1140,13 +1132,12 @@ void SSB::q41() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.1");
 
   if (print_) {
@@ -1253,13 +1244,12 @@ void SSB::q42() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.2");
 
   if (print_) {
@@ -1358,13 +1348,12 @@ void SSB::q43() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.3");
 
   if (print_) {
