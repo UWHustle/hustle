@@ -134,10 +134,12 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
 
         for (int row = 0; row < chunk_length; ++row) {
           if (bloom_filter->probe(chunk_data[row])) {
-            if (dim_tables_[filter_j].hash_table_ != nullptr &&
-                dim_tables_[filter_j].hash_table_->find(chunk_data[row]) !=
-                    dim_tables_[filter_j].hash_table_->end()) {
-              //                        fks[k] = chunk_data[row];
+            if (dim_tables_[filter_j].hash_table_ != nullptr) {
+              if (dim_tables_[filter_j].hash_table_->contains(
+                      chunk_data[row])) {
+                indices[k++] = row + offset;
+              }
+            } else {
               indices[k++] = row + offset;
             }
             //                        indices[k++] = row;
@@ -146,8 +148,6 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
         indices_length = k - 1;
         lip_indices_[chunk_i] =
             std::vector<uint32_t>(indices, indices + indices_length + 1);
-        //                out_fk_cols_[bloom_filter->get_fact_fk_name()][chunk_i]
-        //                = std::vector<int64_t>(fks, fks + indices_length + 1);
 
         bloom_filter->probe_count_ += chunk_length;
         bloom_filter->hit_count_ += indices_length + 1;
@@ -175,12 +175,18 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
           auto key = chunk_data[indices[k] - offset];
           //                    auto key = chunk_data[indices[k]];
           if (bloom_filter->probe(key)) {
-            ++k;
+            if (dim_tables_[filter_j].hash_table_ != nullptr) {
+              if (dim_tables_[filter_j].hash_table_->contains(key)) {
+                ++k;
+              } else {
+                temp = indices[k];
+                indices[k] = indices[indices_length];
+                indices[indices_length--] = temp;
+              }
+            } else {
+              ++k;
+            }
           } else {
-            //                        temp = fks[k];
-            //                        fks[k] = fks[indices_length];
-            //                        fks[indices_length-1] = temp;
-
             temp = indices[k];
             indices[k] = indices[indices_length];
             indices[indices_length--] = temp;
@@ -235,13 +241,11 @@ void LIP::probe_filters(Task *ctx) {
     auto update_and_sort_task = CreateLambdaTask([this] {
       for (int i = 0; i < dim_filters_.size(); ++i) {
         dim_filters_[i]->update();
-        //                std::cout << dim_filters_[i]->get_fact_fk_name() << "
-        //                " << dim_filters_[i]->get_hit_rate() << " " <<
-        //                dim_filters_[i]->get_hit_rate_q(75) << " " <<
-        //                dim_filters_[i]->get_hit_rate_estimate(75) << " ";
       }
       //            std::cout << std::endl;
-      std::sort(dim_filters_.begin(), dim_filters_.end(), BloomFilter::compare);
+      // std::sort(dim_filters_.begin(), dim_filters_.end(),
+      // BloomFilter::compare); //TODO(Surya): Handle the hash vector indexes to
+      // enable this
     });
 
     // Require that Task 2 start only after Task 1 is finished. Each task
