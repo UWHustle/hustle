@@ -103,56 +103,6 @@ void LIP::build_filters(Task *ctx) {
   }
 }
 
-void LIP::probe_filters2(int chunk_i) {
-  // indices[i] stores the indices of fact table rows that passed the
-  // ith filter.
-  uint32_t *indices = nullptr;
-  int32_t indices_length = -1;
-  uint32_t offset = chunk_row_offsets_[chunk_i];
-  uint32_t temp;
-  for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
-    auto bloom_filter = dim_filters_[filter_j];
-
-    auto fact_fk_col = fact_fk_cols2_[bloom_filter->get_fact_fk_name()];
-    // TODO(nicholas): For now, we assume the column is of INT64 type
-    auto chunk = fact_fk_col->chunk(chunk_i);
-    auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
-    auto chunk_length = chunk->length();
-
-    // For the first filter, we must probe all rows of the block.
-    if (filter_j == 0) {
-      // Reserve space for the first index vector
-      int k = 0;
-      indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
-
-      for (int row = 0; row < chunk_length; ++row) {
-        if (bloom_filter->probe(chunk_data[row])) {
-          indices[k++] = fact_indices_[row + offset];
-        }
-      }
-      indices_length = k - 1;
-    }
-
-    // For the remaining filters, we only need to probe rows that passed
-    // the previous filters.
-    else {
-      int k = 0;
-      while (k <= indices_length) {
-        if (bloom_filter->probe(chunk_data[indices[k] - offset])) {
-          ++k;
-        } else {
-          temp = indices[k];
-          indices[k] = indices[indices_length];
-          indices[indices_length--] = temp;
-        }
-      }
-    }
-  }
-
-  lip_indices_[chunk_i] =
-      std::vector<uint32_t>(indices, indices + indices_length + 1);
-}
-
 void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
                         Task *ctx) {
   // indices[i] stores the indices of fact table rows that passed the
@@ -184,8 +134,12 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
 
         for (int row = 0; row < chunk_length; ++row) {
           if (bloom_filter->probe(chunk_data[row])) {
-            //                        fks[k] = chunk_data[row];
-            indices[k++] = row + offset;
+            if (dim_tables_[filter_j].hash_table_ != nullptr &&
+                dim_tables_[filter_j].hash_table_->find(chunk_data[row]) !=
+                    dim_tables_[filter_j].hash_table_->end()) {
+              //                        fks[k] = chunk_data[row];
+              indices[k++] = row + offset;
+            }
             //                        indices[k++] = row;
           }
         }
@@ -241,52 +195,6 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
   }
 }
 
-void LIP::probe_all_filters(int chunk_start, int chunk_end, Task *ctx) {
-  // indices[i] stores the indices of fact table rows that passed the
-  // ith filter.
-
-  for (auto chunk_i = chunk_start; chunk_i <= chunk_end; ++chunk_i) {
-    ctx->spawnLambdaTask([this, chunk_i] {
-      auto offset = chunk_row_offsets_[chunk_i];
-
-      std::vector<const int64_t *> chunk_data;
-      auto chunk_length = fact_fk_cols2_[dim_filters_[0]->get_fact_fk_name()]
-                              ->chunk(chunk_i)
-                              ->length();
-
-      for (auto &dim_filter : dim_filters_) {
-        // TODO(nicholas): For now, we assume the column is of INT64 type
-        chunk_data.push_back(fact_fk_cols2_[dim_filter->get_fact_fk_name()]
-                                 ->chunk(chunk_i)
-                                 ->data()
-                                 ->GetValues<int64_t>(1));
-      }
-
-      int indices_length = 0;
-      auto indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
-
-      std::shared_ptr<BloomFilter> bloom_filter;
-      int64_t key;
-      for (int row = 0; row < chunk_length; ++row) {
-        bool hit = true;
-        for (int filter_j = 0; hit && filter_j < dim_filters_.size();
-             ++filter_j) {
-          bloom_filter = dim_filters_[filter_j];
-          key = chunk_data[filter_j][row];
-          hit = bloom_filter->probe(key);
-        }
-        if (hit) {
-          indices[indices_length++] = row + offset;
-        }
-      }
-
-      lip_indices_[chunk_i] =
-          std::vector<uint32_t>(indices, indices + indices_length);
-      free(indices);
-    });
-  }
-}
-
 void LIP::probe_filters(Task *ctx) {
   int num_chunks =
       fact_fk_cols_[fact_fk_col_names_[0]].chunked_array()->num_chunks();
@@ -302,21 +210,6 @@ void LIP::probe_filters(Task *ctx) {
   tasks.reserve(num_batches);
 
   for (int batch_i = 0; batch_i < num_batches; batch_i++) {
-    // Task 1 = probe all filters with one batch of blocks, where each batch
-    // contains batch_size_ blocks.
-    //        auto probe_task = CreateLambdaTask([this, batch_i,
-    //        num_chunks](Task *internal) {
-    //            int base_i = batch_i * batch_size_;
-    //
-    //            if (base_i + batch_size_ - 1 < num_chunks) {
-    //                probe_all_filters(base_i, base_i + batch_size_ - 1,
-    //                internal);
-    //            }
-    //            else {
-    //                probe_all_filters(base_i, num_chunks-1,  internal);
-    //            }
-    //        });
-
     auto probe_task =
         CreateLambdaTask([this, batch_i, num_chunks](Task *internal) {
           int base_i = batch_i * batch_size_;
