@@ -222,8 +222,25 @@ void Join::ProbeHashTableBlock(
     auto *joined_right_index_chunks =
         (uint16_t *)malloc(sizeof(uint16_t) * chunk_length);
 
-    for (std::size_t row = 0; row < chunk_length; row++) {
-      if (filter_data == nullptr || arrow::BitUtil::GetBit(filter_data, row)) {
+    if (filter_data != nullptr) {
+      for (std::size_t row = 0; row < chunk_length; row++) {
+        if (arrow::BitUtil::GetBit(filter_data, row)) {
+          auto key_value_pair =
+              hash_tables_[join_id]->find(left_join_chunk_data[row]);
+          if (key_value_pair != hash_table_end) {
+            joined_left_indices[num_joined_indices] = row + offset;
+            joined_left_index_chunks[num_joined_indices] = i;
+
+            joined_right_indices[num_joined_indices] =
+                key_value_pair->second.index;
+            joined_right_index_chunks[num_joined_indices] =
+                key_value_pair->second.chunk;
+            ++num_joined_indices;
+          }
+        }
+      }
+    } else {
+      for (std::size_t row = 0; row < chunk_length; row++) {
         auto key_value_pair =
             hash_tables_[join_id]->find(left_join_chunk_data[row]);
         if (key_value_pair != hash_table_end) {
