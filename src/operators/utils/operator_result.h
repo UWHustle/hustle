@@ -19,7 +19,6 @@
 #define HUSTLE_OPERATORRESULT_H
 
 #include <arrow/compute/api.h>
-#include <utils/parallel_hashmap/phmap.h>
 
 #include <string>
 
