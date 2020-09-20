@@ -39,7 +39,6 @@ SSB::SSB(int SF, bool print) {
   num_threads_ = std::thread::hardware_concurrency();
 
   scheduler = std::make_shared<Scheduler>(num_threads_, true);
-  //    num_threads_ = 1;
 
   if (SF == 0) {
     lo = read_from_file("../../../ssb/data/lineorder.hsl");

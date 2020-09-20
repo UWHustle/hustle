@@ -230,8 +230,8 @@ int main(int argc, char* argv[]) {
   std::cout << "Started initializing with the required data ..." << std::endl;
   read_from_csv();
 
-  // workload = new SSB(0, 1);
   workload = new SSB();
+
   ::benchmark::Initialize(&argc, argv);
 
   std::cout << "Stated running benchmarks ..." << std::endl;
