@@ -98,7 +98,7 @@ void LIP::build_filters(Task *ctx) {
 
           bloom_filter->set_memory(1);
           bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
-          dim_filters_[i] = (bloom_filter);
+          dim_filters_[i] = {bloom_filter, dim_tables_[i].hash_table_};
         })));
   }
 }
@@ -110,7 +110,7 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
 
   for (auto chunk_i = chunk_start; chunk_i <= chunk_end; ++chunk_i) {
     ctx->spawnLambdaTask([this, chunk_i, filter_j] {
-      auto bloom_filter = dim_filters_[filter_j];
+      auto bloom_filter = dim_filters_[filter_j].bloom_filter;
       auto fact_fk_col = fact_fk_cols2_[bloom_filter->get_fact_fk_name()];
 
       uint32_t *indices = nullptr;
@@ -132,17 +132,20 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
         //                fks = (int64_t *) malloc(sizeof(int64_t) *
         //                chunk_length);
 
-        for (int row = 0; row < chunk_length; ++row) {
-          if (bloom_filter->probe(chunk_data[row])) {
-            if (dim_tables_[filter_j].hash_table_ != nullptr) {
-              if (dim_tables_[filter_j].hash_table_->contains(
+        if (dim_filters_[filter_j].hash_table != nullptr) {
+          for (int row = 0; row < chunk_length; ++row) {
+            if (bloom_filter->probe(chunk_data[row])) {
+              if (dim_filters_[filter_j].hash_table->contains(
                       chunk_data[row])) {
                 indices[k++] = row + offset;
               }
-            } else {
+            }
+          }
+        } else {
+          for (int row = 0; row < chunk_length; ++row) {
+            if (bloom_filter->probe(chunk_data[row])) {
               indices[k++] = row + offset;
             }
-            //                        indices[k++] = row;
           }
         }
         indices_length = k - 1;
@@ -171,12 +174,11 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
         //                out_fk_cols_[dim_filters_[filter_j-1]->get_fact_fk_name()][chunk_i].data();
 
         int k = 0;
-        while (k <= indices_length) {
-          auto key = chunk_data[indices[k] - offset];
-          //                    auto key = chunk_data[indices[k]];
-          if (bloom_filter->probe(key)) {
-            if (dim_tables_[filter_j].hash_table_ != nullptr) {
-              if (dim_tables_[filter_j].hash_table_->contains(key)) {
+        if (dim_filters_[filter_j].hash_table != nullptr) {
+          while (k <= indices_length) {
+            auto key = chunk_data[indices[k] - offset];
+            if (bloom_filter->probe(key)) {
+              if (dim_filters_[filter_j].hash_table->contains(key)) {
                 ++k;
               } else {
                 temp = indices[k];
@@ -184,15 +186,23 @@ void LIP::probe_filters(int chunk_start, int chunk_end, int filter_j,
                 indices[indices_length--] = temp;
               }
             } else {
-              ++k;
+              temp = indices[k];
+              indices[k] = indices[indices_length];
+              indices[indices_length--] = temp;
             }
-          } else {
-            temp = indices[k];
-            indices[k] = indices[indices_length];
-            indices[indices_length--] = temp;
+          }
+        } else {
+          while (k <= indices_length) {
+            auto key = chunk_data[indices[k] - offset];
+            if (bloom_filter->probe(key)) {
+              ++k;
+            } else {
+              temp = indices[k];
+              indices[k] = indices[indices_length];
+              indices[indices_length--] = temp;
+            }
           }
         }
-        //                out_fk_cols_[bloom_filter->get_fact_fk_name()][chunk_i].resize(indices_length+1);
         lip_indices_[chunk_i].resize(indices_length + 1);
         bloom_filter->hit_count_ += indices_length + 1;
         if (DEBUG) HIT_COUNT += indices_length + 1;
@@ -240,12 +250,9 @@ void LIP::probe_filters(Task *ctx) {
     // Task 2 = update Bloom filter statistics and sort filters accordingly
     auto update_and_sort_task = CreateLambdaTask([this] {
       for (int i = 0; i < dim_filters_.size(); ++i) {
-        dim_filters_[i]->update();
+        dim_filters_[i].bloom_filter->update();
       }
-      //            std::cout << std::endl;
-      // std::sort(dim_filters_.begin(), dim_filters_.end(),
-      // BloomFilter::compare); //TODO(Surya): Handle the hash vector indexes to
-      // enable this
+      std::sort(dim_filters_.begin(), dim_filters_.end(), SortByBloomFilter);
     });
 
     // Require that Task 2 start only after Task 1 is finished. Each task
@@ -380,7 +387,7 @@ void LIP::execute(Task *ctx) {
         for (auto &bf : dim_filters_) {
           std::vector<std::vector<int64_t>> v;
           v.resize(fact_col->num_chunks());
-          out_fk_cols_[bf->get_fact_fk_name()] = v;
+          out_fk_cols_[bf.bloom_filter->get_fact_fk_name()] = v;
         }
 
         chunk_row_offsets_.resize(fact_col->num_chunks());
