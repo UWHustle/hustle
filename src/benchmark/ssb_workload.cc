@@ -190,7 +190,7 @@ void SSB::q11() {
   JoinGraph graph({{join_pred}});
   Join join_op(0, join_result_in, join_result_out, graph);
 
-  AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
+  AggregateReference agg_ref = {AggregateKernel::COUNT, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
 
   ////////////////////////////////////////////////////////////////////////////
