@@ -19,6 +19,7 @@
 
 #include "execution/execution_plan.h"
 #include "operators/aggregate.h"
+#include "operators/fused/select_build_hash.h"
 #include "operators/join.h"
 #include "operators/join_graph.h"
 #include "operators/predicate.h"
@@ -36,7 +37,8 @@ namespace hustle::operators {
 SSB::SSB(int SF, bool print) {
   print_ = print;
   num_threads_ = std::thread::hardware_concurrency();
-  //    num_threads_ = 1;
+
+  scheduler = std::make_shared<Scheduler>(num_threads_, true);
 
   if (SF == 0) {
     lo = read_from_file("../../../ssb/data/lineorder.hsl");
@@ -181,13 +183,14 @@ void SSB::q11() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
-
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, join_pred.right_col_ref_);
+
   Join join_op(0, join_result_in, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
@@ -208,13 +211,12 @@ void SSB::q11() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.1");
 
   if (print_) {
@@ -259,13 +261,14 @@ void SSB::q12() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
-
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
+
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
@@ -289,13 +292,12 @@ void SSB::q12() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.2");
 
   if (print_) {
@@ -350,13 +352,14 @@ void SSB::q13() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
-
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
+
+  Select lo_select_op(0, lo, lo_result_in, lo_select_result_out, lo_pred_tree);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
@@ -380,13 +383,12 @@ void SSB::q13() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("1.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("1.3");
 
   if (print_) {
@@ -423,8 +425,10 @@ void SSB::q21() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -452,13 +456,12 @@ void SSB::q21() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.1");
 
   if (print_) {
@@ -519,8 +522,10 @@ void SSB::q22() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -548,13 +553,12 @@ void SSB::q22() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.2");
 
   if (print_) {
@@ -591,8 +595,10 @@ void SSB::q23() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out};
@@ -620,13 +626,12 @@ void SSB::q23() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = hustle::simple_profiler.getContainer();
   container->startEvent("2.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("2.3");
 
   if (print_) {
@@ -674,9 +679,12 @@ void SSB::q31() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -705,13 +713,12 @@ void SSB::q31() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.1");
 
   if (print_) {
@@ -762,9 +769,12 @@ void SSB::q32() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -793,13 +803,12 @@ void SSB::q32() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.2");
 
   if (print_) {
@@ -874,9 +883,12 @@ void SSB::q33() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -905,13 +917,12 @@ void SSB::q33() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.3");
 
   if (print_) {
@@ -984,9 +995,12 @@ void SSB::q34() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     s_select_result_out, c_select_result_out};
@@ -1015,13 +1029,12 @@ void SSB::q34() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("3.4");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("3.4");
 
   if (print_) {
@@ -1080,9 +1093,12 @@ void SSB::q41() {
   lo_select_result_out->append(lo);
   d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,
@@ -1115,13 +1131,12 @@ void SSB::q41() {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.1");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.1");
 
   if (print_) {
@@ -1187,10 +1202,14 @@ void SSB::q42() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,
@@ -1224,13 +1243,12 @@ void SSB::q42() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.2");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.2");
 
   if (print_) {
@@ -1290,10 +1308,14 @@ void SSB::q43() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   join_result_in = {lo_select_result_out, d_select_result_out,
                     p_select_result_out, s_select_result_out,
@@ -1325,13 +1347,12 @@ void SSB::q43() {
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
 
-  Scheduler scheduler = Scheduler(num_threads_);
-  scheduler.addTask(&plan);
+  scheduler->addTask(&plan);
 
   auto container = simple_profiler.getContainer();
   container->startEvent("4.3");
-  scheduler.start();
-  scheduler.join();
+  scheduler->start();
+  scheduler->join();
   container->endEvent("4.3");
 
   if (print_) {
