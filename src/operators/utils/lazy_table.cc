@@ -29,6 +29,7 @@ LazyTable::LazyTable() {
   filter = arrow::Datum();
   indices = arrow::Datum();
   index_chunks = arrow::Datum();
+  hash_table_ = nullptr;
 }
 LazyTable::LazyTable(std::shared_ptr<Table> table, arrow::Datum filter,
                      arrow::Datum indices, arrow::Datum index_chunks) {
@@ -36,6 +37,7 @@ LazyTable::LazyTable(std::shared_ptr<Table> table, arrow::Datum filter,
   this->filter = filter;
   this->indices = indices;
   this->index_chunks = index_chunks;
+  this->hash_table_ = nullptr;
 
   materialized_cols_.resize(table->get_num_cols());
   filtered_cols_.reserve(table->get_num_cols());
@@ -102,6 +104,11 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
 void LazyTable::set_materialized_column(
     int i, std::shared_ptr<arrow::ChunkedArray> col) {
   materialized_cols_[i] = std::move(col);
+}
+
+void LazyTable::set_hash_table(
+    std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table) {
+  hash_table_ = hash_table;
 }
 
 }  // namespace hustle::operators

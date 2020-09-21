@@ -61,7 +61,7 @@ class Select : public Operator {
    */
   void execute(Task *ctx) override;
 
- private:
+ protected:
   std::shared_ptr<Table> table_;
   std::shared_ptr<OperatorResult> output_result_;
   std::shared_ptr<PredicateTree> tree_;

@@ -19,6 +19,7 @@
 #define HUSTLE_LAZYTABLE_H
 
 #include <arrow/compute/api.h>
+#include <utils/parallel_hashmap/phmap.h>
 
 #include <string>
 
@@ -28,6 +29,11 @@
 #include "utils/arrow_compute_wrappers.h"
 
 namespace hustle::operators {
+
+struct RecordID {
+  uint32_t index;
+  uint16_t chunk;
+};
 
 struct ColumnReference {
   std::shared_ptr<Table> table;
@@ -85,11 +91,18 @@ class LazyTable {
   std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
   std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
 
+  // Hash table for the right table in each join
+  std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table_;
+  bool is_hash_table_avail = false;
+
   void get_column_by_name(Task* ctx, std::string col_name, arrow::Datum& out);
 
   void get_column(Task* ctx, int i, arrow::Datum& out);
 
   void set_materialized_column(int i, std::shared_ptr<arrow::ChunkedArray> col);
+
+  void set_hash_table(
+      std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table);
 
  private:
   //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;

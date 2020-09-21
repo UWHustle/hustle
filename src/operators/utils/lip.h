@@ -32,6 +32,16 @@
 
 namespace hustle::operators {
 
+struct LookupFilter {
+  std::shared_ptr<BloomFilter> bloom_filter;
+  std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table;
+};
+
+static bool SortByBloomFilter(const LookupFilter &lhs,
+                              const LookupFilter &rhs) {
+  return BloomFilter::compare(lhs.bloom_filter, rhs.bloom_filter);
+}
+
 /**
  * The LIP operator updates the index array of the fact LazyTable in the
  * inputted OperatorResults. After execution, the index array of the fact
@@ -95,7 +105,7 @@ class LIP : public Operator {
   // Primary key cols of all dimension tables.
 
   // Bloom filters of all dimension tables.
-  std::vector<std::shared_ptr<BloomFilter>> dim_filters_;
+  std::vector<LookupFilter> dim_filters_;
 
   std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_col_filters_;
   std::vector<std::shared_ptr<arrow::ChunkedArray>> fact_col_filters_;
