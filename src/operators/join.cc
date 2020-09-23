@@ -28,6 +28,9 @@
 
 namespace hustle::operators {
 
+static const uint32_t kLeftJoinIndex = 0;
+static const uint32_t kRightJoinIndex = 1;
+
 Join::Join(const std::size_t query_id,
            std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
            std::shared_ptr<OperatorResult> output_result, JoinGraph graph)
@@ -318,7 +321,7 @@ void Join::FinishProbe(Task *ctx) {
 
     status = new_left_indices_builder.Finish(&new_left_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    joined_indices_[0] = (arrow::Datum(new_left_indices));
+    joined_indices_[kLeftJoinIndex] = (arrow::Datum(new_left_indices));
   });
   ctx->spawnLambdaTask([this, num_indices] {
     arrow::Status status;
@@ -340,7 +343,7 @@ void Join::FinishProbe(Task *ctx) {
     status = new_right_indices_builder.Finish(&new_right_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    joined_indices_[1] = (arrow::Datum(new_right_indices));
+    joined_indices_[kRightJoinIndex] = (arrow::Datum(new_right_indices));
   });
 }
 
@@ -354,11 +357,11 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
   std::vector<LazyTable> output_lazy_tables;
 
   // The indices of the indices that were joined
-  auto left_indices_of_indices = joined_indices_[0];
-  auto right_indices_of_indices = joined_indices_[1];
+  auto left_indices_of_indices = joined_indices_[kLeftJoinIndex];
+  auto right_indices_of_indices = joined_indices_[kRightJoinIndex];
 
-  auto left_index_chunks = joined_index_chunks_[0];
-  auto right_index_chunks = joined_index_chunks_[1];
+  auto left_index_chunks = joined_index_chunks_[kLeftJoinIndex];
+  auto right_index_chunks = joined_index_chunks_[kRightJoinIndex];
 
   // Assume that indices are correct and that boundschecking is unecessary.
   // CHANGE TO TRUE IF YOU ARE DEBUGGING
