@@ -217,10 +217,6 @@ void Join::ProbeHashTableBlock(
         (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
     auto *joined_right_indices =
         (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
-    auto *joined_left_index_chunks =
-        (uint16_t *)malloc(sizeof(uint16_t) * chunk_length);
-    auto *joined_right_index_chunks =
-        (uint16_t *)malloc(sizeof(uint16_t) * chunk_length);
 
     if (filter_data != nullptr) {
       for (std::size_t row = 0; row < chunk_length; row++) {
@@ -229,12 +225,8 @@ void Join::ProbeHashTableBlock(
               hash_tables_[join_id]->find(left_join_chunk_data[row]);
           if (key_value_pair != hash_table_end) {
             joined_left_indices[num_joined_indices] = row + offset;
-            joined_left_index_chunks[num_joined_indices] = i;
-
             joined_right_indices[num_joined_indices] =
                 key_value_pair->second.index;
-            joined_right_index_chunks[num_joined_indices] =
-                key_value_pair->second.chunk;
             ++num_joined_indices;
           }
         }
@@ -245,12 +237,8 @@ void Join::ProbeHashTableBlock(
             hash_tables_[join_id]->find(left_join_chunk_data[row]);
         if (key_value_pair != hash_table_end) {
           joined_left_indices[num_joined_indices] = row + offset;
-          joined_left_index_chunks[num_joined_indices] = i;
-
           joined_right_indices[num_joined_indices] =
               key_value_pair->second.index;
-          joined_right_index_chunks[num_joined_indices] =
-              key_value_pair->second.chunk;
           ++num_joined_indices;
         }
       }
@@ -261,17 +249,8 @@ void Join::ProbeHashTableBlock(
     new_right_indices_vector_[i] = std::vector<uint32_t>(
         joined_right_indices, joined_right_indices + num_joined_indices);
 
-    left_index_chunks_vector_[i] =
-        std::vector<uint16_t>(joined_left_index_chunks,
-                              joined_left_index_chunks + num_joined_indices);
-    right_index_chunks_vector_[i] =
-        std::vector<uint16_t>(joined_right_index_chunks,
-                              joined_right_index_chunks + num_joined_indices);
-
     free(joined_left_indices);
     free(joined_right_indices);
-    free(joined_left_index_chunks);
-    free(joined_right_index_chunks);
   }
 }
 
@@ -281,8 +260,6 @@ void Join::ProbeHashTable(int join_id,
                           const arrow::Datum &probe_indices, Task *ctx) {
   new_left_indices_vector_.resize(probe_col->num_chunks());
   new_right_indices_vector_.resize(probe_col->num_chunks());
-  right_index_chunks_vector_.resize(probe_col->num_chunks());
-  left_index_chunks_vector_.resize(probe_col->num_chunks());
 
   // Precompute row offsets. A multithreaded probe phase requires that we know
   // all offsets beforehand.
