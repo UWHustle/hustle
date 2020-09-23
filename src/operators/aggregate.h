@@ -19,6 +19,7 @@
 #define HUSTLE_AGGREGATE_H
 
 #include <arrow/compute/api.h>
+#include <arrow/compute/api_aggregate.h>
 
 #include <string>
 

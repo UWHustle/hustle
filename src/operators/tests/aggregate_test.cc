@@ -156,6 +156,40 @@ TEST_F(AggregateTestFixture, SumTest) {
 }
 
 /*
+ * SELECT count(R.data) as data_count
+ * FROM R
+ */
+TEST_F(AggregateTestFixture, CountTest) {
+    R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+
+    ColumnReference R_key_ref = {R, "key"};
+    ColumnReference R_group_ref = {R, "data"};
+
+    auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
+    result->append(R);
+
+    AggregateReference agg_ref = {AggregateKernel::COUNT, "data_count", R, "data"};
+    Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(agg_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    auto out_table = out_result->materialize({{nullptr, "data_count"}});
+    //    out_table->print();
+
+    // Construct expected results
+    arrow::Status status;
+    status = int_builder.Append(6);
+    status = int_builder.Finish(&expected_agg_col_1);
+
+    EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+}
+
+/*
  * SELECT sum(R.data) as data_sum
  * FROM R
  * WHERE R.group == "R0"

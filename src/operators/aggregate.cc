@@ -217,7 +217,8 @@ std::shared_ptr<arrow::ArrayBuilder> Aggregate::CreateAggregateBuilder(
       break;
     }
     case COUNT: {
-      throw std::runtime_error("Count aggregate not supported.");
+      aggregate_builder = std::make_shared<arrow::Int64Builder>();
+      break;
     }
   }
   return aggregate_builder;
@@ -246,7 +247,10 @@ std::shared_ptr<arrow::Schema> Aggregate::OutputSchema(
       break;
     }
     case COUNT: {
-      throw std::runtime_error("Count aggregate not supported.");
+      status =
+          schema_builder.AddField(arrow::field(agg_col_name, arrow::int64()));
+      evaluate_status(status, __FUNCTION__, __LINE__);
+      break;
     }
   }
 
@@ -359,7 +363,7 @@ arrow::Datum Aggregate::ComputeAggregate(AggregateKernel kernel,
       break;
     }
     case COUNT: {
-      throw std::runtime_error("Count aggregate not supported.");
+      status = arrow::compute::Count(aggregate_col).Value(&out_aggregate);
       break;
     }
       // Note that Mean outputs a DOUBLE
