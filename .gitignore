@@ -48,4 +48,4 @@ debug
 Brewfile.lock.json
 arrow/
 ssb/
-.vscode/settings.json
+.vscode/
