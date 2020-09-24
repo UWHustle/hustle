@@ -362,8 +362,9 @@ void SSB::q21_lip() {
   ////////////////////////////////////////////////////////////////////////////
 
   lo_select_result_out->append(lo);
-  d_select_result_out->append(d);
 
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
+                              d_join_pred.right_col_ref_);
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
                               p_pred_tree, p_join_pred.right_col_ref_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
@@ -383,12 +384,14 @@ void SSB::q21_lip() {
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
   auto s_select_id = plan.addOperator(&s_select_op);
+  auto d_select_id = plan.addOperator(&d_select_op);
 
   auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
+  plan.createLink(d_select_id, lip_id);
   plan.createLink(p_select_id, lip_id);
   plan.createLink(s_select_id, lip_id);
 
@@ -449,8 +452,9 @@ void SSB::q22_lip() {
   ////////////////////////////////////////////////////////////////////////////
 
   lo_select_result_out->append(lo);
-  d_select_result_out->append(d);
 
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
+                              d_join_pred.right_col_ref_);
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
                               p_pred_tree, p_join_pred.right_col_ref_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
@@ -470,6 +474,7 @@ void SSB::q22_lip() {
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
   auto s_select_id = plan.addOperator(&s_select_op);
+  auto d_select_id = plan.addOperator(&d_select_op);
 
   auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
@@ -478,6 +483,7 @@ void SSB::q22_lip() {
   // Declare join dependency on select operators
   plan.createLink(p_select_id, lip_id);
   plan.createLink(s_select_id, lip_id);
+  plan.createLink(d_select_id, lip_id);
 
   plan.createLink(lip_id, join_id);
 
@@ -526,8 +532,9 @@ void SSB::q23_lip() {
   ////////////////////////////////////////////////////////////////////////////
 
   lo_select_result_out->append(lo);
-  d_select_result_out->append(d);
 
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
+                              d_join_pred.right_col_ref_);
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
                               p_pred_tree, p_join_pred.right_col_ref_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
@@ -547,6 +554,7 @@ void SSB::q23_lip() {
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
   auto s_select_id = plan.addOperator(&s_select_op);
+  auto d_select_id = plan.addOperator(&d_select_op);
 
   auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
@@ -555,6 +563,7 @@ void SSB::q23_lip() {
   // Declare join dependency on select operators
   plan.createLink(p_select_id, lip_id);
   plan.createLink(s_select_id, lip_id);
+  plan.createLink(d_select_id, lip_id);
 
   plan.createLink(lip_id, join_id);
 
@@ -971,9 +980,12 @@ void SSB::q34_lip() {
 
   lo_select_result_out->append(lo);
 
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};
@@ -1068,11 +1080,15 @@ void SSB::q41_lip() {
   ////////////////////////////////////////////////////////////////////////////
 
   lo_select_result_out->append(lo);
-  d_select_result_out->append(d);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
+                              d_join_pred.right_col_ref_);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out,
@@ -1092,6 +1108,7 @@ void SSB::q41_lip() {
   auto p_select_id = plan.addOperator(&p_select_op);
   auto s_select_id = plan.addOperator(&s_select_op);
   auto c_select_id = plan.addOperator(&c_select_op);
+  auto d_select_id = plan.addOperator(&d_select_op);
 
   auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
@@ -1101,6 +1118,7 @@ void SSB::q41_lip() {
   plan.createLink(p_select_id, lip_id);
   plan.createLink(s_select_id, lip_id);
   plan.createLink(c_select_id, lip_id);
+  plan.createLink(d_select_id, lip_id);
 
   plan.createLink(lip_id, join_id);
 
@@ -1189,10 +1207,14 @@ void SSB::q42_lip() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out,
@@ -1302,10 +1324,14 @@ void SSB::q43_lip() {
 
   lo_select_result_out->append(lo);
 
-  Select p_select_op(0, p, p_result_in, p_select_result_out, p_pred_tree);
-  Select s_select_op(0, s, s_result_in, s_select_result_out, s_pred_tree);
-  Select c_select_op(0, c, c_result_in, c_select_result_out, c_pred_tree);
-  Select d_select_op(0, d, d_result_in, d_select_result_out, d_pred_tree);
+  SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
+                              p_pred_tree, p_join_pred.right_col_ref_);
+  SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
+                              s_pred_tree, s_join_pred.right_col_ref_);
+  SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
+                              c_pred_tree, c_join_pred.right_col_ref_);
+  SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
+                              d_pred_tree, d_join_pred.right_col_ref_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out,
