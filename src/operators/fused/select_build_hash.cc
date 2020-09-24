@@ -71,9 +71,17 @@ void SelectBuildHash::execute(Task *ctx) {
       }),
       // Task 2: create the output result
       CreateLambdaTask([this](Task *internal) {
-        auto chunked_filter = std::make_shared<arrow::ChunkedArray>(filters_);
-        auto lazy_table = std::make_shared<LazyTable>(
-            table_, chunked_filter, arrow::Datum(), arrow::Datum());
+        std::shared_ptr<arrow::ChunkedArray> chunked_filter;
+        if (tree_ != nullptr) {
+          chunked_filter = std::make_shared<arrow::ChunkedArray>(filters_);
+        }
+        auto lazy_table =
+            tree_ != nullptr
+                ? std::make_shared<LazyTable>(table_, chunked_filter,
+                                              arrow::Datum(), arrow::Datum())
+                : std::make_shared<LazyTable>(table_, arrow::Datum(),
+                                              arrow::Datum(), arrow::Datum());
+
         lazy_table->set_hash_table(hash_table_);
         output_result_->append(lazy_table);
       })));
@@ -81,16 +89,25 @@ void SelectBuildHash::execute(Task *ctx) {
 
 void SelectBuildHash::ExecuteBlock(int block_index) {
   auto block = table_->get_block(block_index);
-  auto block_filter = Select::Filter(block, tree_->root_);
-  filters_[block_index] = block_filter.make_array();
-
-  auto filter_data = filters_[block_index]->data()->GetValues<uint8_t>(1, 0);
   auto block_data = block->get_column_by_name(join_column_.col_name)
                         ->data()
                         ->GetValues<uint64_t>(1, 0);
-  int filter_index = 0;
-  for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
-    if (arrow::BitUtil::GetBit(filter_data, row)) {
+
+  if (tree_ != nullptr) {
+    auto block_filter = Select::Filter(block, tree_->root_);
+    filters_[block_index] = block_filter.make_array();
+
+    auto filter_data = filters_[block_index]->data()->GetValues<uint8_t>(1, 0);
+
+    for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
+      if (arrow::BitUtil::GetBit(filter_data, row)) {
+        (*hash_table_)[block_data[row]] = {
+            (uint32_t)chunk_row_offsets_[block_index] + row,
+            (uint16_t)block_index};
+      }
+    }
+  } else {
+    for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
       (*hash_table_)[block_data[row]] = {
           (uint32_t)chunk_row_offsets_[block_index] + row,
           (uint16_t)block_index};
