@@ -31,6 +31,7 @@ LazyTable::LazyTable() {
   index_chunks = arrow::Datum();
   hash_table_ = nullptr;
 }
+
 LazyTable::LazyTable(std::shared_ptr<Table> table, arrow::Datum filter,
                      arrow::Datum indices, arrow::Datum index_chunks) {
   this->table = table;
@@ -41,6 +42,14 @@ LazyTable::LazyTable(std::shared_ptr<Table> table, arrow::Datum filter,
 
   materialized_cols_.resize(table->get_num_cols());
   filtered_cols_.reserve(table->get_num_cols());
+}
+
+LazyTable::LazyTable(
+    std::shared_ptr<Table> table, arrow::Datum filter, arrow::Datum indices,
+    arrow::Datum index_chunks,
+    std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table)
+    : LazyTable(table, filter, indices, index_chunks) {
+  this->hash_table_ = hash_table;
 }
 
 std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column_by_name(

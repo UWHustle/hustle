@@ -62,6 +62,11 @@ class LazyTable {
   LazyTable(std::shared_ptr<Table> table, arrow::Datum filter,
             arrow::Datum indices, arrow::Datum index_chunks);
 
+  LazyTable(
+      std::shared_ptr<Table> table, arrow::Datum filter, arrow::Datum indices,
+      arrow::Datum index_chunks,
+      std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table);
+
   /**
    * Materialize the active rows of one column of the LazyTable. This is
    * achieved by first applying the filter to the column and then applying

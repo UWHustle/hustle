@@ -389,7 +389,7 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
     new_index_chunks = left_index_chunks;
   }
   output_lazy_tables.emplace_back(left.table, left.filter, new_indices,
-                                  new_index_chunks);
+                                  new_index_chunks, left.hash_table_);
 
   // Update the indices of the right LazyTable. If there was no previous
   // join on the right table, then right_indices_of_indices directly
@@ -405,7 +405,7 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
   }
   new_index_chunks = arrow::Datum();
   output_lazy_tables.emplace_back(right.table, right.filter, new_indices,
-                                  new_index_chunks);
+                                  new_index_chunks, right.hash_table_);
 
   // Propogate the join to the other tables in the previous OperatorResult.
   // This elimates tuples from other tables in the previous result that were
@@ -419,11 +419,12 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
         output_lazy_tables.emplace_back(lazy_table.table, lazy_table.filter,
-                                        new_indices, arrow::Datum());
+                                        new_indices, arrow::Datum(),
+                                        lazy_table.hash_table_);
       } else {
-        output_lazy_tables.emplace_back(lazy_table.table, lazy_table.filter,
-                                        lazy_table.indices,
-                                        lazy_table.index_chunks);
+        output_lazy_tables.emplace_back(
+            lazy_table.table, lazy_table.filter, lazy_table.indices,
+            lazy_table.index_chunks, lazy_table.hash_table_);
       }
     }
   }
