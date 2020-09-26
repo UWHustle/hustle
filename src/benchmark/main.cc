@@ -24,6 +24,8 @@
 using namespace hustle::operators;
 using namespace std::chrono;
 
+#define DEBUG false
+
 SSB* workload;
 
 void read_from_csv() {
@@ -230,10 +232,26 @@ int main(int argc, char* argv[]) {
   std::cout << "Started initializing with the required data ..." << std::endl;
   read_from_csv();
 
-  workload = new SSB();
+  if (DEBUG) {
+    workload = new SSB(0, 1);
+    workload->q11();
+    workload->q12();
+    workload->q13();
+    workload->q21_lip();
+    workload->q22_lip();
+    workload->q23_lip();
+    workload->q31_lip();
+    workload->q32_lip();
+    workload->q33_lip();
+    workload->q34_lip();
+    workload->q41_lip();
+    workload->q42_lip();
+    workload->q43_lip();
+  } else {
+    workload = new SSB();
+    ::benchmark::Initialize(&argc, argv);
 
-  ::benchmark::Initialize(&argc, argv);
-
-  std::cout << "Stated running benchmarks ..." << std::endl;
-  ::benchmark::RunSpecifiedBenchmarks();
+    std::cout << "Stated running benchmarks ..." << std::endl;
+    ::benchmark::RunSpecifiedBenchmarks();
+  }
 }
