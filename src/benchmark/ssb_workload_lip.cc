@@ -17,6 +17,7 @@
 
 #include "execution/execution_plan.h"
 #include "operators/aggregate.h"
+#include "operators/fused/fused_join.h"
 #include "operators/fused/select_build_hash.h"
 #include "operators/join.h"
 #include "operators/join_graph.h"
@@ -374,8 +375,7 @@ void SSB::q21_lip() {
                    p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -386,16 +386,13 @@ void SSB::q21_lip() {
   auto s_select_id = plan.addOperator(&s_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(d_select_id, lip_id);
-  plan.createLink(p_select_id, lip_id);
-  plan.createLink(s_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(d_select_id, join_id);
+  plan.createLink(p_select_id, join_id);
+  plan.createLink(s_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -464,8 +461,7 @@ void SSB::q22_lip() {
                    p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -476,16 +472,13 @@ void SSB::q22_lip() {
   auto s_select_id = plan.addOperator(&s_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(p_select_id, lip_id);
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(p_select_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -544,8 +537,7 @@ void SSB::q23_lip() {
                    p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  Join join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -556,16 +548,13 @@ void SSB::q23_lip() {
   auto s_select_id = plan.addOperator(&s_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(p_select_id, lip_id);
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(p_select_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -643,8 +632,7 @@ void SSB::q31_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -658,16 +646,13 @@ void SSB::q31_lip() {
   auto c_select_id = plan.addOperator(&c_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(c_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(c_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -746,8 +731,7 @@ void SSB::q32_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -761,16 +745,13 @@ void SSB::q32_lip() {
   auto c_select_id = plan.addOperator(&c_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(c_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(c_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -873,8 +854,7 @@ void SSB::q33_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -888,16 +868,13 @@ void SSB::q33_lip() {
   auto c_select_id = plan.addOperator(&c_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(c_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(c_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -991,8 +968,7 @@ void SSB::q34_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -1004,16 +980,13 @@ void SSB::q34_lip() {
   auto c_select_id = plan.addOperator(&c_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(c_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(c_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -1095,8 +1068,7 @@ void SSB::q41_lip() {
                    c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -1110,17 +1082,14 @@ void SSB::q41_lip() {
   auto c_select_id = plan.addOperator(&c_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(p_select_id, lip_id);
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(c_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(p_select_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(c_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -1221,8 +1190,7 @@ void SSB::q42_lip() {
                    c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, {lip_result_in}, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -1237,17 +1205,14 @@ void SSB::q42_lip() {
   auto c_select_id = plan.addOperator(&c_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(p_select_id, lip_id);
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(c_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(p_select_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(c_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
@@ -1338,8 +1303,7 @@ void SSB::q43_lip() {
                    c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  FusedJoin join_op(0, lip_result_in, join_result_out, graph);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
@@ -1352,17 +1316,14 @@ void SSB::q43_lip() {
   auto c_select_id = plan.addOperator(&c_select_op);
   auto d_select_id = plan.addOperator(&d_select_op);
 
-  auto lip_id = plan.addOperator(&lip_op);
   auto join_id = plan.addOperator(&join_op);
   auto agg_id = plan.addOperator(&agg_op);
 
   // Declare join dependency on select operators
-  plan.createLink(p_select_id, lip_id);
-  plan.createLink(s_select_id, lip_id);
-  plan.createLink(c_select_id, lip_id);
-  plan.createLink(d_select_id, lip_id);
-
-  plan.createLink(lip_id, join_id);
+  plan.createLink(p_select_id, join_id);
+  plan.createLink(s_select_id, join_id);
+  plan.createLink(c_select_id, join_id);
+  plan.createLink(d_select_id, join_id);
 
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
