@@ -20,9 +20,6 @@
 #include "storage/util.h"
 
 #define DEBUG 0
-uint64_t PROBE_COUNT_JOIN = 0;
-uint64_t HIT_COUNT_JOIN = 0;
-uint64_t OPT_PROBE_COUNT_JOIN = 0;
 
 namespace hustle::operators {
 
@@ -108,7 +105,6 @@ void FilterJoin::probe_filters(int chunk_start, int chunk_end, int filter_j,
                                Task *ctx) {
   // indices[i] stores the indices of fact table rows that passed the
   // ith filter.
-
   for (auto chunk_i = chunk_start; chunk_i <= chunk_end; ++chunk_i) {
     ctx->spawnLambdaTask([this, chunk_i, filter_j] {
       auto bloom_filter = dim_filters_[filter_j].bloom_filter;
@@ -152,12 +148,7 @@ void FilterJoin::probe_filters(int chunk_start, int chunk_end, int filter_j,
             std::vector<uint32_t>(indices, indices + indices_length + 1);
         dim_filters_[filter_j].indices_[chunk_i] = std::vector<uint32_t>(
             dim_indices, dim_indices + indices_length + 1);
-        bloom_filter->probe_count_ += chunk_length;
-        bloom_filter->hit_count_ += indices_length + 1;
-        if (DEBUG) {
-          PROBE_COUNT_JOIN += chunk_length;
-          HIT_COUNT_JOIN += indices_length + 1;
-        }
+
         free(indices);
         free(dim_indices);
       }
@@ -172,8 +163,6 @@ void FilterJoin::probe_filters(int chunk_start, int chunk_end, int filter_j,
         indices_length = lip_indices_[chunk_i].size() - 1;
         dim_indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
 
-        bloom_filter->probe_count_ += indices_length + 1;
-        if (DEBUG) PROBE_COUNT_JOIN += indices_length + 1;
         int k = 0;
         if (dim_filters_[filter_j].hash_table != nullptr) {
           while (k <= indices_length) {
@@ -217,8 +206,6 @@ void FilterJoin::probe_filters(int chunk_start, int chunk_end, int filter_j,
             dim_indices, dim_indices + indices_length + 1);
 
         lip_indices_[chunk_i].resize(indices_length + 1);
-        bloom_filter->hit_count_ += indices_length + 1;
-        if (DEBUG) HIT_COUNT_JOIN += indices_length + 1;
         free(dim_indices);
       }
     });
@@ -297,48 +284,21 @@ void FilterJoin::finish() {
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
     free(temp);
-    if (DEBUG) OPT_PROBE_COUNT_JOIN += lip_indices_[i].size();
   }
 
   std::vector<std::shared_ptr<arrow::UInt32Array>> dim_indices;
   dim_indices.resize(dim_filters_.size());
 
-  std::vector<std::shared_ptr<arrow::UInt16Array>> dim_index_chunks;
-  dim_index_chunks.resize(dim_filters_.size());
-
   for (int i = 0; i < dim_filters_.size(); i++) {
     arrow::UInt32Builder dim_indices_builder;
-    arrow::UInt16Builder dim_index_chunks_builder;
 
     auto indices = dim_filters_[i].indices_;
     for (int j = 0; j < indices.size(); j++) {
       status = dim_indices_builder.AppendValues(indices[j]);
       evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-      auto temp = (uint16_t *)malloc(sizeof(uint16_t) * indices[j].size());
-      std::fill_n(temp, indices[j].size(), j);
-      status = dim_index_chunks_builder.AppendValues(temp, indices[j].size());
-      evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-      free(temp);
     }
     status = dim_indices_builder.Finish(&dim_indices[i]);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-    status = dim_index_chunks_builder.Finish(&dim_index_chunks[i]);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-  }
-
-  if (DEBUG) {
-    int num_lip_indices = 0;
-    for (int i = 0; i < lip_indices_.size(); i++) {
-      num_lip_indices += lip_indices_[i].size();
-    }
-
-    OPT_PROBE_COUNT_JOIN =
-        num_lip_indices * dim_filters_.size();  // A hit will pass all filters
-    OPT_PROBE_COUNT_JOIN += fact_table_.table->get_num_rows() -
-                            num_lip_indices;  // opt scenario: we eliminate
-                                              // bad tuples with one probe.
   }
 
   // Construct new fact table index array
@@ -348,19 +308,18 @@ void FilterJoin::finish() {
   status = index_chunks_builder.Finish(&index_chunks);
   evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
+  std::vector<LazyTable> output_lazy_tables;
   // Create a new lazy fact table with the new index array
-  LazyTable out_fact_table(fact_table_.table, fact_table_.filter, new_indices,
-                           index_chunks);
-  //    LazyTable out_fact_table(fact_table_.table, fact_table_.filter,
-  //    new_indices, arrow::Datum());
-
-  OperatorResult result({out_fact_table});
-  output_result_->append(std::make_shared<OperatorResult>(result));
-
+  output_lazy_tables.emplace_back(fact_table_.table, fact_table_.filter,
+                                  new_indices, index_chunks);
   // Add all dimension tables to the output without changing them.
   for (int i = 0; i < dim_tables_.size(); i++) {
-    output_result_->append(dim_tables_[i]);
+    output_lazy_tables.emplace_back(dim_tables_[i].table, dim_tables_[i].filter,
+                                    dim_indices[i], arrow::Datum(),
+                                    dim_tables_[i].hash_table_);
   }
+  OperatorResult result({output_lazy_tables});
+  output_result_->append(std::make_shared<OperatorResult>(result));
 }
 
 void FilterJoin::initialize(Task *ctx) {
@@ -433,7 +392,6 @@ void FilterJoin::execute(Task *ctx) {
           out_fk_cols_[bf.bloom_filter->get_fact_fk_name()] = v;
           bf.indices_.resize(fact_col->num_chunks());
         }
-
         chunk_row_offsets_.resize(fact_col->num_chunks());
         chunk_row_offsets_[0] = 0;
         for (int i = 1; i < fact_col->num_chunks(); i++) {
@@ -442,23 +400,7 @@ void FilterJoin::execute(Task *ctx) {
         }
         probe_filters(internal);
       }),
-      CreateLambdaTask([this]() {
-        finish();
-        if (DEBUG) {
-          std::cout << "LIP DEBUG:" << std::endl;
-          std::cout << "\t hit count:\t\t\t\t\t\t" << HIT_COUNT_JOIN
-                    << std::endl;
-          std::cout << "\t probe count:\t\t\t\t\t" << PROBE_COUNT_JOIN
-                    << std::endl;
-          std::cout << "\t hit count / probe count:\t\t"
-                    << ((double)HIT_COUNT_JOIN) / PROBE_COUNT_JOIN << std::endl;
-          std::cout << "\t opt hit count:\t\t\t\t\t" << OPT_PROBE_COUNT_JOIN
-                    << std::endl;
-          std::cout << "\t probe count / opt probe count:\t"
-                    << ((double)PROBE_COUNT_JOIN) / OPT_PROBE_COUNT_JOIN
-                    << std::endl;
-        }
-      })));
+      CreateLambdaTask([this]() { finish(); })));
 
   // TODO(nicholas): for now, we assume that there is no need to backpropogate
   //  the LIP result. This would be an issue only if we run LIP on a left deep
