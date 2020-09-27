@@ -61,7 +61,7 @@ void FilterJoin::BuildFilters(Task *ctx) {
               // TODO(nicholas): For now, we assume the column is of INT64 type.
               auto chunk = std::static_pointer_cast<arrow::Int64Array>(
                   pk_col->chunk(chunk_idx));
-              for (size_t row_idx = 0; row_idx < chunk->length(); ++row_idx) {
+              for (int64_t row_idx = 0; row_idx < chunk->length(); ++row_idx) {
                 bloom_filter->insert(chunk->Value(row_idx));
               }
             }
@@ -88,7 +88,7 @@ void FilterJoin::BuildFilters(Task *ctx) {
               auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(
                   filter->chunk(chunk_idx));
 
-              for (size_t row_idx = 0; row_idx < chunk->length(); ++row_idx) {
+              for (int64_t row_idx = 0; row_idx < chunk->length(); ++row_idx) {
                 if (chunkf->Value(row_idx)) {
                   bloom_filter->insert(chunk->Value(row_idx));
                 }
@@ -104,13 +104,13 @@ void FilterJoin::BuildFilters(Task *ctx) {
   }
 }
 
-void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_idx,
+void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_j,
                               Task *ctx) {
   // indices[i] stores the indices of fact table rows that passed the
   // ith filter.
-  for (size_t chunk_i = chunk_start; chunk_i <= chunk_end; ++chunk_i) {
-    ctx->spawnLambdaTask([this, chunk_i, filter_idx] {
-      auto bloom_filter = dim_filters_[filter_idx].bloom_filter;
+  for (auto chunk_i = chunk_start; chunk_i <= chunk_end; ++chunk_i) {
+    ctx->spawnLambdaTask([this, chunk_i, filter_j] {
+      auto bloom_filter = dim_filters_[filter_j].bloom_filter;
       auto fact_fk_col = fact_fk_cols2_[bloom_filter->get_fact_fk_name()];
 
       uint32_t *indices = nullptr, *dim_indices = nullptr;
@@ -122,18 +122,18 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_idx,
       auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
       auto chunk_length = chunk->length();
 
-      auto dim_hash_end = dim_filters_[filter_idx].hash_table->end();
+      auto dim_hash_end = dim_filters_[filter_j].hash_table->end();
       // For the first filter, we must probe all rows of the block.
-      if (filter_idx == 0) {
+      if (filter_j == 0) {
         // Reserve space for the first index vector
-        size_t join_row_idx = 0;
+        int join_row_idx = 0;
         indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
         dim_indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
-        if (dim_filters_[filter_idx].hash_table != nullptr) {
-          for (size_t row = 0; row < chunk_length; ++row) {
+        if (dim_filters_[filter_j].hash_table != nullptr) {
+          for (int64_t row = 0; row < chunk_length; ++row) {
             if (bloom_filter->probe(chunk_data[row])) {
               auto key_value_pair =
-                  dim_filters_[filter_idx].hash_table->find(chunk_data[row]);
+                  dim_filters_[filter_j].hash_table->find(chunk_data[row]);
               // Remember the matched index in the dimension table
               // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
@@ -147,7 +147,7 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_idx,
         indices_length = join_row_idx - 1;
         lip_indices_[chunk_i] =
             std::vector<uint32_t>(indices, indices + indices_length + 1);
-        dim_filters_[filter_idx].indices_[chunk_i] = std::vector<uint32_t>(
+        dim_filters_[filter_j].indices_[chunk_i] = std::vector<uint32_t>(
             dim_indices, dim_indices + indices_length + 1);
 
         free(indices);
@@ -156,23 +156,23 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_idx,
       // For the remaining filters, we only need to probe rows that passed
       // the previous filters.
       else {
-        uint32_t *prev_dim_indices[filter_idx];
-        for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
-             prev_filter_idx++) {
-          prev_dim_indices[prev_filter_idx] =
-              dim_filters_[prev_filter_idx].indices_[chunk_i].data();
+        uint32_t *prev_dim_indices[filter_j];
+        for (size_t prev_filter_id = 0; prev_filter_id < filter_j;
+             prev_filter_id++) {
+          prev_dim_indices[prev_filter_id] =
+              dim_filters_[prev_filter_id].indices_[chunk_i].data();
         }
         indices = lip_indices_[chunk_i].data();
         indices_length = lip_indices_[chunk_i].size() - 1;
         dim_indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
 
-        size_t join_row_idx = 0;
-        if (dim_filters_[filter_idx].hash_table != nullptr) {
+        int join_row_idx = 0;
+        if (dim_filters_[filter_j].hash_table != nullptr) {
           while (join_row_idx <= indices_length) {
             auto key = chunk_data[indices[join_row_idx] - offset];
             if (bloom_filter->probe(key)) {
               auto key_value_pair =
-                  dim_filters_[filter_idx].hash_table->find(key);
+                  dim_filters_[filter_j].hash_table->find(key);
               // Remember the matched index in the dimension table
               // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
@@ -181,30 +181,29 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_idx,
                 // There's no matched value in the current dimension table
                 // then remove the stored matched indices in the prev dimension
                 // tables.
-                for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
-                     prev_filter_idx++) {
+                for (size_t prev_filter_id = 0; prev_filter_id < filter_j;
+                     prev_filter_id++) {
                   current_idx_temp =
-                      prev_dim_indices[prev_filter_idx][join_row_idx];
-                  prev_dim_indices[prev_filter_idx][join_row_idx] =
-                      prev_dim_indices[prev_filter_idx][indices_length];
-                  prev_dim_indices[prev_filter_idx][indices_length] =
+                      prev_dim_indices[prev_filter_id][join_row_idx];
+                  prev_dim_indices[prev_filter_id][join_row_idx] =
+                      prev_dim_indices[prev_filter_id][indices_length];
+                  prev_dim_indices[prev_filter_id][indices_length] =
                       current_idx_temp;
                 }
                 // Update fact table indices
                 current_idx_temp = indices[join_row_idx];
                 indices[join_row_idx] = indices[indices_length];
-                indices[indices_length] = current_idx_temp;
-                indices_length--;
+                indices[indices_length--] = current_idx_temp;
               }
             } else {
               // Update the prev dim indices
-              for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
-                   prev_filter_idx++) {
+              for (size_t prev_filter_id = 0; prev_filter_id < filter_j;
+                   prev_filter_id++) {
                 current_idx_temp =
-                    prev_dim_indices[prev_filter_idx][join_row_idx];
-                prev_dim_indices[prev_filter_idx][join_row_idx] =
-                    prev_dim_indices[prev_filter_idx][indices_length];
-                prev_dim_indices[prev_filter_idx][indices_length] =
+                    prev_dim_indices[prev_filter_id][join_row_idx];
+                prev_dim_indices[prev_filter_id][join_row_idx] =
+                    prev_dim_indices[prev_filter_id][indices_length];
+                prev_dim_indices[prev_filter_id][indices_length] =
                     current_idx_temp;
               }
               // Update fact table indices
@@ -215,12 +214,12 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_idx,
           }
         }
         // Update the prev dim indices
-        for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
-             prev_filter_idx++) {
-          dim_filters_[prev_filter_idx].indices_[chunk_i].resize(
-              indices_length + 1);
+        for (size_t prev_filter_id = 0; prev_filter_id < filter_j;
+             prev_filter_id++) {
+          dim_filters_[prev_filter_id].indices_[chunk_i].resize(indices_length +
+                                                                1);
         }
-        dim_filters_[filter_idx].indices_[chunk_i] = std::vector<uint32_t>(
+        dim_filters_[filter_j].indices_[chunk_i] = std::vector<uint32_t>(
             dim_indices, dim_indices + indices_length + 1);
 
         lip_indices_[chunk_i].resize(indices_length + 1);
@@ -244,21 +243,20 @@ void FilterJoin::ProbeFilters(Task *ctx) {
   std::vector<Task *> tasks;
   tasks.reserve(num_batches);
 
-  for (size_t batch_i = 0; batch_i < num_batches; batch_i++) {
+  for (int batch_i = 0; batch_i < num_batches; batch_i++) {
     auto probe_task =
         CreateLambdaTask([this, batch_i, num_chunks](Task *internal) {
           int base_i = batch_i * batch_size_;
 
           std::vector<Task *> tasks;
-          for (size_t filter_idx = 0; filter_idx < dim_tables_.size();
-               ++filter_idx) {
+          for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
             auto probe_task_one_filter = CreateLambdaTask(
-                [this, base_i, filter_idx, num_chunks](Task *internal) {
+                [this, base_i, filter_j, num_chunks](Task *internal) {
                   if (base_i + batch_size_ - 1 < num_chunks) {
-                    ProbeFilters(base_i, base_i + batch_size_ - 1, filter_idx,
+                    ProbeFilters(base_i, base_i + batch_size_ - 1, filter_j,
                                  internal);
                   } else {
-                    ProbeFilters(base_i, num_chunks - 1, filter_idx, internal);
+                    ProbeFilters(base_i, num_chunks - 1, filter_j, internal);
                   }
                 });
 
@@ -269,9 +267,8 @@ void FilterJoin::ProbeFilters(Task *ctx) {
 
     // Task 2 = update Bloom filter statistics and sort filters accordingly
     auto update_and_sort_task = CreateLambdaTask([this] {
-      for (size_t filter_idx = 0; filter_idx < dim_filters_.size();
-           ++filter_idx) {
-        dim_filters_[filter_idx].bloom_filter->update();
+      for (int i = 0; i < dim_filters_.size(); ++i) {
+        dim_filters_[i].bloom_filter->update();
       }
       std::sort(dim_filters_.begin(), dim_filters_.end(),
                 SortByBloomFilterJoin);
@@ -377,14 +374,14 @@ void FilterJoin::Finish() {
     status = fact_indices_builder.AppendValues(lip_indices_[chunk_idx]);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    auto temp =
+    auto temp_chunk_indices =
         (uint16_t *)malloc(sizeof(uint16_t) * lip_indices_[chunk_idx].size());
-    std::fill_n(temp, lip_indices_[chunk_idx].size(), chunk_idx);
+    std::fill_n(temp_chunk_indices, lip_indices_[chunk_idx].size(), chunk_idx);
     status = fact_index_chunks_builder.AppendValues(
-        temp, lip_indices_[chunk_idx].size());
+        temp_chunk_indices, lip_indices_[chunk_idx].size());
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    free(temp);
+    free(temp_chunk_indices);
   }
 
   std::vector<std::shared_ptr<arrow::UInt32Array>> dim_indices;
