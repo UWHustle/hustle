@@ -82,4 +82,18 @@ target_link_libraries(hustle_select_build_hash_test
         )
 add_test(HustleSelectBuildHash_test hustle_select_build_hash_test)
 
+add_executable(hustle_filter_join_test "tests/filter_join_test.cc")
+target_link_libraries(hustle_filter_join_test
+        gtest
+        gtest_main
+        gmock
+        #        glog
+        ${GFLAGS_LIB_NAME}
+        hustle_src_storage
+        hustle_src_operators
+        hustle_src_optimizer_ExecutionPlan
+        hustle_src_scheduler_Scheduler
+        )
+add_test(HustleFilterJoin_test hustle_filter_join_test)
+
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
