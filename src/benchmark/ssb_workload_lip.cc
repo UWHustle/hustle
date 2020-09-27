@@ -18,7 +18,6 @@
 #include "execution/execution_plan.h"
 #include "operators/aggregate.h"
 #include "operators/fused/filter_join.h"
-#include "operators/fused/fused_join.h"
 #include "operators/fused/select_build_hash.h"
 #include "operators/join.h"
 #include "operators/join_graph.h"

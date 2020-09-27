@@ -8,7 +8,6 @@ add_library(
         operator.h
         fused/select_build_hash.cc fused/select_build_hash.h
         fused/filter_join.cc fused/filter_join.h
-        fused/fused_join.cc fused/fused_join.h
         utils/lazy_table.cc utils/lazy_table.h
         utils/operator_result.cc utils/operator_result.h
         utils/lip.cc utils/lip.h
