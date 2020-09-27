@@ -19,8 +19,6 @@
 
 #include "storage/util.h"
 
-#define DEBUG 0
-
 namespace hustle::operators {
 
 FilterJoin::FilterJoin(
@@ -35,118 +33,121 @@ FilterJoin::FilterJoin(
   graph_ = std::move(graph);
 }
 
-void FilterJoin::build_filters(Task *ctx) {
+void FilterJoin::BuildFilters(Task *ctx) {
   dim_filters_.resize(dim_tables_.size());
 
-  for (int i = 0; i < dim_tables_.size(); i++) {
-    auto dim_join_col_name = dim_pk_col_names_[i];
+  for (size_t table_idx = 0; table_idx < dim_tables_.size(); table_idx++) {
+    auto dim_join_col_name = dim_pk_col_names_[table_idx];
     // Task = build the Bloom filter for one dimension table.
     ctx->spawnTask(CreateTaskChain(
-        CreateLambdaTask([this, dim_join_col_name, i](Task *internal) {
+        CreateLambdaTask([this, dim_join_col_name, table_idx](Task *internal) {
           dim_pk_cols_[dim_join_col_name] =
-              dim_tables_[i].table->get_column_by_name(dim_join_col_name);
+              dim_tables_[table_idx].table->get_column_by_name(
+                  dim_join_col_name);
         }),
-        CreateLambdaTask([this, dim_join_col_name, i] {
+        CreateLambdaTask([this, dim_join_col_name, table_idx] {
           auto pk_col = dim_pk_cols_[dim_join_col_name].chunked_array();
-          auto filter_d = dim_tables_[i].filter;
+          auto filter_d = dim_tables_[table_idx].filter;
           std::shared_ptr<BloomFilter> bloom_filter;
 
           // TODO(nicholas): consider indices as well. We don't have to worry
           // about this for SSB, though.
-          auto indices_d = dim_tables_[i].indices;
+          auto indices_d = dim_tables_[table_idx].indices;
 
           if (filter_d.kind() == arrow::Datum::NONE) {
             bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
-            for (int j = 0; j < pk_col->num_chunks(); ++j) {
+            for (size_t chunk_idx = 0; chunk_idx < pk_col->num_chunks();
+                 ++chunk_idx) {
               // TODO(nicholas): For now, we assume the column is of INT64 type.
-              auto chunk =
-                  std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
-              for (int k = 0; k < chunk->length(); ++k) {
-                bloom_filter->insert(chunk->Value(k));
+              auto chunk = std::static_pointer_cast<arrow::Int64Array>(
+                  pk_col->chunk(chunk_idx));
+              for (size_t row_idx = 0; row_idx < chunk->length(); ++row_idx) {
+                bloom_filter->insert(chunk->Value(row_idx));
               }
             }
           } else {
             auto filter = filter_d.chunked_array();
             uint32_t length_after_filtering = 0;
 
-            for (int j = 0; j < pk_col->num_chunks(); ++j) {
+            for (size_t chunk_idx = 0; chunk_idx < pk_col->num_chunks();
+                 ++chunk_idx) {
               length_after_filtering +=
                   arrow::compute::internal::GetFilterOutputSize(
-                      *filter->chunk(j)->data(),
+                      *filter->chunk(chunk_idx)->data(),
                       arrow::compute::FilterOptions::NullSelectionBehavior::
                           DROP);
             }
             bloom_filter =
                 std::make_shared<BloomFilter>(length_after_filtering);
 
-            for (int j = 0; j < pk_col->num_chunks(); ++j) {
+            for (size_t chunk_idx = 0; chunk_idx < pk_col->num_chunks();
+                 ++chunk_idx) {
               // TODO(nicholas): For now, we assume the column is of INT64 type.
-              auto chunk =
-                  std::static_pointer_cast<arrow::Int64Array>(pk_col->chunk(j));
+              auto chunk = std::static_pointer_cast<arrow::Int64Array>(
+                  pk_col->chunk(chunk_idx));
               auto chunkf = std::static_pointer_cast<arrow::BooleanArray>(
-                  filter->chunk(j));
+                  filter->chunk(chunk_idx));
 
-              for (int k = 0; k < chunk->length(); ++k) {
-                if (chunkf->Value(k)) {
-                  bloom_filter->insert(chunk->Value(k));
+              for (size_t row_idx = 0; row_idx < chunk->length(); ++row_idx) {
+                if (chunkf->Value(row_idx)) {
+                  bloom_filter->insert(chunk->Value(row_idx));
                 }
               }
             }
           }
 
           bloom_filter->set_memory(1);
-          bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
-          dim_filters_[i] = {bloom_filter, dim_tables_[i].hash_table_};
+          bloom_filter->set_fact_fk_name(fact_fk_col_names_[table_idx]);
+          dim_filters_[table_idx] = {bloom_filter,
+                                     dim_tables_[table_idx].hash_table_};
         })));
   }
 }
 
-void FilterJoin::probe_filters(int chunk_start, int chunk_end, int filter_j,
-                               Task *ctx) {
+void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_idx,
+                              Task *ctx) {
   // indices[i] stores the indices of fact table rows that passed the
   // ith filter.
-  for (auto chunk_i = chunk_start; chunk_i <= chunk_end; ++chunk_i) {
-    ctx->spawnLambdaTask([this, chunk_i, filter_j] {
-      auto bloom_filter = dim_filters_[filter_j].bloom_filter;
+  for (size_t chunk_i = chunk_start; chunk_i <= chunk_end; ++chunk_i) {
+    ctx->spawnLambdaTask([this, chunk_i, filter_idx] {
+      auto bloom_filter = dim_filters_[filter_idx].bloom_filter;
       auto fact_fk_col = fact_fk_cols2_[bloom_filter->get_fact_fk_name()];
 
-      uint32_t *indices = nullptr;
-      uint32_t *dim_indices = nullptr;
-      int64_t *fks = nullptr;
-      int32_t indices_length = -1;
-      int32_t dim_indices_length = -1;
-      uint32_t offset = chunk_row_offsets_[chunk_i];
-      uint32_t temp;
+      uint32_t *indices = nullptr, *dim_indices = nullptr;
+      int32_t indices_length = -1, dim_indices_length = -1;
+      uint32_t current_idx_temp, offset = chunk_row_offsets_[chunk_i];
 
       // TODO(nicholas): For now, we assume the column is of INT64 type
       auto chunk = fact_fk_col->chunk(chunk_i);  // @bug: fact_fk_col is nullptr
       auto chunk_data = chunk->data()->GetValues<int64_t>(1, 0);
       auto chunk_length = chunk->length();
 
-      auto dim_hash_end = dim_filters_[filter_j].hash_table->end();
+      auto dim_hash_end = dim_filters_[filter_idx].hash_table->end();
       // For the first filter, we must probe all rows of the block.
-      if (filter_j == 0) {
+      if (filter_idx == 0) {
         // Reserve space for the first index vector
-        int k = 0;
+        size_t join_row_idx = 0;
         indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
         dim_indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
-        if (dim_filters_[filter_j].hash_table != nullptr) {
-          for (int row = 0; row < chunk_length; ++row) {
+        if (dim_filters_[filter_idx].hash_table != nullptr) {
+          for (size_t row = 0; row < chunk_length; ++row) {
             if (bloom_filter->probe(chunk_data[row])) {
               auto key_value_pair =
-                  dim_filters_[filter_j].hash_table->find(chunk_data[row]);
+                  dim_filters_[filter_idx].hash_table->find(chunk_data[row]);
+              // Remember the matched index in the dimension table
+              // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
-                indices[k] = row + offset;
-                dim_indices[k] = key_value_pair->second.index;
-                k++;
+                indices[join_row_idx] = row + offset;
+                dim_indices[join_row_idx] = key_value_pair->second.index;
+                join_row_idx++;
               }
             }
           }
         }
-        indices_length = k - 1;
+        indices_length = join_row_idx - 1;
         lip_indices_[chunk_i] =
             std::vector<uint32_t>(indices, indices + indices_length + 1);
-        dim_filters_[filter_j].indices_[chunk_i] = std::vector<uint32_t>(
+        dim_filters_[filter_idx].indices_[chunk_i] = std::vector<uint32_t>(
             dim_indices, dim_indices + indices_length + 1);
 
         free(indices);
@@ -155,54 +156,71 @@ void FilterJoin::probe_filters(int chunk_start, int chunk_end, int filter_j,
       // For the remaining filters, we only need to probe rows that passed
       // the previous filters.
       else {
-        uint32_t *prev_dim_indices[filter_j];
-        for (int i = 0; i < filter_j; i++) {
-          prev_dim_indices[i] = dim_filters_[i].indices_[chunk_i].data();
+        uint32_t *prev_dim_indices[filter_idx];
+        for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
+             prev_filter_idx++) {
+          prev_dim_indices[prev_filter_idx] =
+              dim_filters_[prev_filter_idx].indices_[chunk_i].data();
         }
         indices = lip_indices_[chunk_i].data();
         indices_length = lip_indices_[chunk_i].size() - 1;
         dim_indices = (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
 
-        int k = 0;
-        if (dim_filters_[filter_j].hash_table != nullptr) {
-          while (k <= indices_length) {
-            auto key = chunk_data[indices[k] - offset];
+        size_t join_row_idx = 0;
+        if (dim_filters_[filter_idx].hash_table != nullptr) {
+          while (join_row_idx <= indices_length) {
+            auto key = chunk_data[indices[join_row_idx] - offset];
             if (bloom_filter->probe(key)) {
               auto key_value_pair =
-                  dim_filters_[filter_j].hash_table->find(key);
+                  dim_filters_[filter_idx].hash_table->find(key);
+              // Remember the matched index in the dimension table
+              // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
-                dim_indices[k++] = key_value_pair->second.index;
+                dim_indices[join_row_idx++] = key_value_pair->second.index;
               } else {
-                // Update the prev dim indices
-                for (int i = 0; i < filter_j; i++) {
-                  temp = prev_dim_indices[i][k];
-                  prev_dim_indices[i][k] = prev_dim_indices[i][indices_length];
-                  prev_dim_indices[i][indices_length] = temp;
+                // There's no matched value in the current dimension table
+                // then remove the stored matched indices in the prev dimension
+                // tables.
+                for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
+                     prev_filter_idx++) {
+                  current_idx_temp =
+                      prev_dim_indices[prev_filter_idx][join_row_idx];
+                  prev_dim_indices[prev_filter_idx][join_row_idx] =
+                      prev_dim_indices[prev_filter_idx][indices_length];
+                  prev_dim_indices[prev_filter_idx][indices_length] =
+                      current_idx_temp;
                 }
                 // Update fact table indices
-                temp = indices[k];
-                indices[k] = indices[indices_length];
-                indices[indices_length--] = temp;
+                current_idx_temp = indices[join_row_idx];
+                indices[join_row_idx] = indices[indices_length];
+                indices[indices_length] = current_idx_temp;
+                indices_length--;
               }
             } else {
               // Update the prev dim indices
-              for (int i = 0; i < filter_j; i++) {
-                temp = prev_dim_indices[i][k];
-                prev_dim_indices[i][k] = prev_dim_indices[i][indices_length];
-                prev_dim_indices[i][indices_length] = temp;
+              for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
+                   prev_filter_idx++) {
+                current_idx_temp =
+                    prev_dim_indices[prev_filter_idx][join_row_idx];
+                prev_dim_indices[prev_filter_idx][join_row_idx] =
+                    prev_dim_indices[prev_filter_idx][indices_length];
+                prev_dim_indices[prev_filter_idx][indices_length] =
+                    current_idx_temp;
               }
               // Update fact table indices
-              temp = indices[k];
-              indices[k] = indices[indices_length];
-              indices[indices_length--] = temp;
+              current_idx_temp = indices[join_row_idx];
+              indices[join_row_idx] = indices[indices_length];
+              indices[indices_length--] = current_idx_temp;
             }
           }
         }
         // Update the prev dim indices
-        for (int i = 0; i < filter_j; i++) {
-          dim_filters_[i].indices_[chunk_i].resize(indices_length + 1);
+        for (size_t prev_filter_idx = 0; prev_filter_idx < filter_idx;
+             prev_filter_idx++) {
+          dim_filters_[prev_filter_idx].indices_[chunk_i].resize(
+              indices_length + 1);
         }
-        dim_filters_[filter_j].indices_[chunk_i] = std::vector<uint32_t>(
+        dim_filters_[filter_idx].indices_[chunk_i] = std::vector<uint32_t>(
             dim_indices, dim_indices + indices_length + 1);
 
         lip_indices_[chunk_i].resize(indices_length + 1);
@@ -212,7 +230,7 @@ void FilterJoin::probe_filters(int chunk_start, int chunk_end, int filter_j,
   }
 }
 
-void FilterJoin::probe_filters(Task *ctx) {
+void FilterJoin::ProbeFilters(Task *ctx) {
   int num_chunks =
       fact_fk_cols_[fact_fk_col_names_[0]].chunked_array()->num_chunks();
   batch_size_ = std::thread::hardware_concurrency();
@@ -226,20 +244,21 @@ void FilterJoin::probe_filters(Task *ctx) {
   std::vector<Task *> tasks;
   tasks.reserve(num_batches);
 
-  for (int batch_i = 0; batch_i < num_batches; batch_i++) {
+  for (size_t batch_i = 0; batch_i < num_batches; batch_i++) {
     auto probe_task =
         CreateLambdaTask([this, batch_i, num_chunks](Task *internal) {
           int base_i = batch_i * batch_size_;
 
           std::vector<Task *> tasks;
-          for (int filter_j = 0; filter_j < dim_tables_.size(); ++filter_j) {
+          for (size_t filter_idx = 0; filter_idx < dim_tables_.size();
+               ++filter_idx) {
             auto probe_task_one_filter = CreateLambdaTask(
-                [this, base_i, filter_j, num_chunks](Task *internal) {
+                [this, base_i, filter_idx, num_chunks](Task *internal) {
                   if (base_i + batch_size_ - 1 < num_chunks) {
-                    probe_filters(base_i, base_i + batch_size_ - 1, filter_j,
-                                  internal);
+                    ProbeFilters(base_i, base_i + batch_size_ - 1, filter_idx,
+                                 internal);
                   } else {
-                    probe_filters(base_i, num_chunks - 1, filter_j, internal);
+                    ProbeFilters(base_i, num_chunks - 1, filter_idx, internal);
                   }
                 });
 
@@ -250,8 +269,9 @@ void FilterJoin::probe_filters(Task *ctx) {
 
     // Task 2 = update Bloom filter statistics and sort filters accordingly
     auto update_and_sort_task = CreateLambdaTask([this] {
-      for (int i = 0; i < dim_filters_.size(); ++i) {
-        dim_filters_[i].bloom_filter->update();
+      for (size_t filter_idx = 0; filter_idx < dim_filters_.size();
+           ++filter_idx) {
+        dim_filters_[filter_idx].bloom_filter->update();
       }
       std::sort(dim_filters_.begin(), dim_filters_.end(),
                 SortByBloomFilterJoin);
@@ -265,73 +285,16 @@ void FilterJoin::probe_filters(Task *ctx) {
   ctx->spawnTask(CreateTaskChain(tasks));
 }
 
-void FilterJoin::finish() {
-  arrow::Status status;
-  arrow::UInt32Builder new_indices_builder;
-  arrow::UInt16Builder index_chunks_builder;
-
-  std::shared_ptr<arrow::UInt32Array> new_indices;
-  std::shared_ptr<arrow::UInt16Array> index_chunks;
-
-  // Append all of the LIP indices to an ArrayBuilder.
-  for (int i = 0; i < lip_indices_.size(); i++) {
-    status = new_indices_builder.AppendValues(lip_indices_[i]);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-    auto temp = (uint16_t *)malloc(sizeof(uint16_t) * lip_indices_[i].size());
-    std::fill_n(temp, lip_indices_[i].size(), i);
-    status = index_chunks_builder.AppendValues(temp, lip_indices_[i].size());
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-    free(temp);
-  }
-
-  std::vector<std::shared_ptr<arrow::UInt32Array>> dim_indices;
-  dim_indices.resize(dim_filters_.size());
-
-  for (int i = 0; i < dim_filters_.size(); i++) {
-    arrow::UInt32Builder dim_indices_builder;
-
-    auto indices = dim_filters_[i].indices_;
-    for (int j = 0; j < indices.size(); j++) {
-      status = dim_indices_builder.AppendValues(indices[j]);
-      evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    }
-    status = dim_indices_builder.Finish(&dim_indices[i]);
-    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-  }
-
-  // Construct new fact table index array
-  status = new_indices_builder.Finish(&new_indices);
-  evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-  status = index_chunks_builder.Finish(&index_chunks);
-  evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-
-  std::vector<LazyTable> output_lazy_tables;
-  // Create a new lazy fact table with the new index array
-  output_lazy_tables.emplace_back(fact_table_.table, fact_table_.filter,
-                                  new_indices, index_chunks);
-  // Add all dimension tables to the output without changing them.
-  for (int i = 0; i < dim_tables_.size(); i++) {
-    output_lazy_tables.emplace_back(dim_tables_[i].table, dim_tables_[i].filter,
-                                    dim_indices[i], arrow::Datum(),
-                                    dim_tables_[i].hash_table_);
-  }
-  OperatorResult result({output_lazy_tables});
-  output_result_->append(std::make_shared<OperatorResult>(result));
-}
-
-void FilterJoin::initialize(Task *ctx) {
-  for (int i = 0; i < dim_tables_.size(); i++) {
-    auto fact_join_col_name = fact_fk_col_names_[i];
+void FilterJoin::Initialize(Task *ctx) {
+  for (size_t table_idx = 0; table_idx < dim_tables_.size(); table_idx++) {
+    auto fact_join_col_name = fact_fk_col_names_[table_idx];
     fact_fk_cols_.emplace(fact_join_col_name, arrow::Datum());
   }
 
   // Pre-materialized and save fact table fk columns.
-  for (int i = 0; i < dim_tables_.size(); i++) {
-    ctx->spawnLambdaTask([this, i](Task *internal) {
-      auto fact_join_col_name = fact_fk_col_names_[i];
+  for (size_t table_idx = 0; table_idx < dim_tables_.size(); table_idx++) {
+    ctx->spawnLambdaTask([this, table_idx](Task *internal) {
+      auto fact_join_col_name = fact_fk_col_names_[table_idx];
       fact_table_.get_column_by_name(internal, fact_join_col_name,
                                      fact_fk_cols_[fact_join_col_name]);
     });
@@ -356,8 +319,9 @@ void FilterJoin::execute(Task *ctx) {
 
     // The previous result prev may contain many LazyTables. Find the
     // LazyTables that we want to join.
-    for (int i = 0; i < prev_result_->lazy_tables_.size(); i++) {
-      auto lazy_table = prev_result_->get_table(i);
+    for (size_t lazy_tbl_idx = 0;
+         lazy_tbl_idx < prev_result_->lazy_tables_.size(); lazy_tbl_idx++) {
+      auto lazy_table = prev_result_->get_table(lazy_tbl_idx);
 
       if (left_ref.table == lazy_table.table) {
         fact_table_ = lazy_table;  // left table is always the same
@@ -373,8 +337,8 @@ void FilterJoin::execute(Task *ctx) {
 
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this](Task *internal) {
-        initialize(internal);
-        build_filters(internal);
+        Initialize(internal);
+        BuildFilters(internal);
       }),
       CreateLambdaTask([this](Task *internal) {
         // Grab any fact table column so we can pre-compute chunk row offsets.
@@ -383,28 +347,82 @@ void FilterJoin::execute(Task *ctx) {
         }
         auto fact_col = fact_fk_cols_[fact_fk_col_names_[0]].chunked_array();
         lip_indices_.resize(fact_col->num_chunks());
-        lip_index_chunks_.resize(fact_col->num_chunks());
 
-        out_fk_cols_.reserve(dim_pk_cols_.size());
         for (auto &bf : dim_filters_) {
-          std::vector<std::vector<int64_t>> v;
-          v.resize(fact_col->num_chunks());
-          out_fk_cols_[bf.bloom_filter->get_fact_fk_name()] = v;
           bf.indices_.resize(fact_col->num_chunks());
         }
         chunk_row_offsets_.resize(fact_col->num_chunks());
         chunk_row_offsets_[0] = 0;
-        for (int i = 1; i < fact_col->num_chunks(); i++) {
-          chunk_row_offsets_[i] =
-              chunk_row_offsets_[i - 1] + fact_col->chunk(i - 1)->length();
+        for (size_t chunk_idx = 1; chunk_idx < fact_col->num_chunks();
+             chunk_idx++) {
+          chunk_row_offsets_[chunk_idx] =
+              chunk_row_offsets_[chunk_idx - 1] +
+              fact_col->chunk(chunk_idx - 1)->length();
         }
-        probe_filters(internal);
+        ProbeFilters(internal);
       }),
-      CreateLambdaTask([this]() { finish(); })));
+      CreateLambdaTask([this]() { Finish(); })));
+}
 
-  // TODO(nicholas): for now, we assume that there is no need to backpropogate
-  //  the LIP result. This would be an issue only if we run LIP on a left deep
-  //  subplan.
+void FilterJoin::Finish() {
+  arrow::Status status;
+  arrow::UInt32Builder fact_indices_builder;
+  arrow::UInt16Builder fact_index_chunks_builder;
+
+  std::shared_ptr<arrow::UInt32Array> fact_indices;
+  std::shared_ptr<arrow::UInt16Array> fact_index_chunks;
+
+  // Append all of the LIP indices to an ArrayBuilder.
+  for (size_t chunk_idx = 0; chunk_idx < lip_indices_.size(); chunk_idx++) {
+    status = fact_indices_builder.AppendValues(lip_indices_[chunk_idx]);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    auto temp =
+        (uint16_t *)malloc(sizeof(uint16_t) * lip_indices_[chunk_idx].size());
+    std::fill_n(temp, lip_indices_[chunk_idx].size(), chunk_idx);
+    status = fact_index_chunks_builder.AppendValues(
+        temp, lip_indices_[chunk_idx].size());
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+    free(temp);
+  }
+
+  std::vector<std::shared_ptr<arrow::UInt32Array>> dim_indices;
+  dim_indices.resize(dim_filters_.size());
+
+  for (size_t filter_idx = 0; filter_idx < dim_filters_.size(); filter_idx++) {
+    arrow::UInt32Builder dim_indices_builder;
+
+    auto indices = dim_filters_[filter_idx].indices_;
+    for (size_t chunk_idx = 0; chunk_idx < indices.size(); chunk_idx++) {
+      status = dim_indices_builder.AppendValues(indices[chunk_idx]);
+      evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+    }
+    status = dim_indices_builder.Finish(&dim_indices[filter_idx]);
+    evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+  }
+
+  // Construct new fact table index array
+  status = fact_indices_builder.Finish(&fact_indices);
+  evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+  status = fact_index_chunks_builder.Finish(&fact_index_chunks);
+  evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
+
+  std::vector<LazyTable> output_lazy_tables;
+  // Create a new lazy fact table with the new index array
+  output_lazy_tables.emplace_back(fact_table_.table, fact_table_.filter,
+                                  fact_indices, fact_index_chunks);
+  // Add all dimension tables to the output without changing them.
+  for (size_t dim_tbl_idx = 0; dim_tbl_idx < dim_tables_.size();
+       dim_tbl_idx++) {
+    output_lazy_tables.emplace_back(dim_tables_[dim_tbl_idx].table,
+                                    dim_tables_[dim_tbl_idx].filter,
+                                    dim_indices[dim_tbl_idx], arrow::Datum(),
+                                    dim_tables_[dim_tbl_idx].hash_table_);
+  }
+  OperatorResult result({output_lazy_tables});
+  output_result_->append(std::make_shared<OperatorResult>(result));
 }
 
 }  // namespace hustle::operators

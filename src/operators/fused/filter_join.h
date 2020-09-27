@@ -39,25 +39,24 @@ struct LookupFilterJoin {
 };
 
 static bool SortByBloomFilterJoin(const LookupFilterJoin &lhs,
-                              const LookupFilterJoin &rhs) {
+                                  const LookupFilterJoin &rhs) {
   return BloomFilter::compare(lhs.bloom_filter, rhs.bloom_filter);
 }
 
 /**
- * The LIP operator updates the index array of the fact LazyTable in the
- * inputted OperatorResults. After execution, the index array of the fact
- * LazyTable contains the indices of rows that join with all other LazyTables
- * the fact LazyTable was joined with and possibly with some extraneous indices
- * (false positives). The index array of all other LazyTables are unchanged.
- * Filters are unchanged.
+ * FilterJoin operator is an implementation for operator-fusion of
+ * LIP (Look-ahead Information Passing and Join operator). It does the
+ * look-ahead filtering and after filtering, it checks the hash and does a join
+ * on the fly i.e it stores the matched indexes in the dimension and fact table
+ * and also removes the previously matched indices in case of mismatch.
  */
 class FilterJoin : public Operator {
  public:
   /**
-   * Construct a LIP operator to perform LIP on a left-deep join plan. We
-   * assume that the left table in all of the join predicates is the same and
-   * call this table the fact table. The right table in all join predicates
-   * correspond to dimension tables.
+   * Construct a FilterJoin operator to perform LIP and Join on a left-deep join
+   * plan. We assume that the left table in all of the join predicates is the
+   * same and call this table the fact table. The right table in all join
+   * predicates correspond to dimension tables.
    *
    * @param query_id Query id
    * @param prev_result_vec OperatorResults from upstream operators
@@ -71,21 +70,15 @@ class FilterJoin : public Operator {
              hustle::operators::JoinGraph graph);
 
   /**
-   * Perform LIP on a left-deep join plan.
+   * Perform LIP and JOIN on a left-deep join plan.
    *
    * @param ctx A scheduler task
    */
   void execute(Task *ctx) override;
 
  private:
-  std::unordered_map<std::string, std::vector<std::vector<int64_t>>>
-      out_fk_cols_;
-
   // Row indices of the fact table that successfully probed all Bloom filters.
-  std::vector<uint32_t *> lip_indices_raw_;
   std::vector<std::vector<uint32_t>> lip_indices_;
-  std::vector<std::vector<uint16_t>> lip_index_chunks_;
-
   const uint32_t *fact_indices_;
 
   // Number of blocks that are probed (in parallel) before sorting the the
@@ -97,8 +90,7 @@ class FilterJoin : public Operator {
   std::vector<int64_t> chunk_row_offsets_;
 
   // Map of (fact table foreign key col name, fact table foreign key col)
-  std::unordered_map<std::string, arrow::Datum> fact_fk_cols_;
-  std::unordered_map<std::string, arrow::Datum> dim_pk_cols_;
+  std::unordered_map<std::string, arrow::Datum> fact_fk_cols_, dim_pk_cols_;
 
   std::unordered_map<std::string, std::shared_ptr<arrow::ChunkedArray>>
       fact_fk_cols2_;
@@ -108,15 +100,10 @@ class FilterJoin : public Operator {
   // Bloom filters of all dimension tables.
   std::vector<LookupFilterJoin> dim_filters_;
 
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> dim_col_filters_;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> fact_col_filters_;
-
   // Dimension (lazy) tables
   std::vector<LazyTable> dim_tables_;
   // Dimension primary key col names
   std::vector<std::string> dim_pk_col_names_;
-  // Total number of chunks in each dimension table.
-  std::vector<int> dim_join_col_num_chunks_;
 
   LazyTable fact_table_;
   // Fact table foreign key col names to probe Bloom filters.
@@ -125,11 +112,10 @@ class FilterJoin : public Operator {
   // Results from upstream operators
   std::vector<std::shared_ptr<OperatorResult>> prev_result_vec_;
 
-  // Results from upstream operators condensed into one object
-  std::shared_ptr<OperatorResult> prev_result_;
-
-  // Where the output result will be stored once the operator is executed.
-  std::shared_ptr<OperatorResult> output_result_;
+  // prev_result_ - Results from upstream operators condensed into one object
+  // output_result_ - Where the output result will be stored once the operator
+  // is executed.
+  std::shared_ptr<OperatorResult> prev_result_, output_result_;
 
   // A graph specifying all join predicates
   JoinGraph graph_;
@@ -139,40 +125,27 @@ class FilterJoin : public Operator {
    * chunk_row_offsets_, fetch the foreign key columns of the fact table,
    * and reserve space in lip_indices_.
    */
-  void initialize(Task *ctx);
+  void Initialize(Task *ctx);
 
   /**
    * Build Bloom filters for all dimension tables.
    * @param ctx A scheduler task
    */
-  void build_filters(Task *ctx);
+  void BuildFilters(Task *ctx);
 
   /**
    * Probe all Bloom filters
    *
    * @param ctx A scheduler task
    */
-  void probe_filters(Task *ctx);
+  void ProbeFilters(Task *ctx);
 
-  /**
-   * Probe all Bloom filters with one fact table block/chunk.
-   * @param ctx A scheduler task
-   * @param chunk_i Index of the block/chunk to be probed.
-   */
-  void probe_filters(int chunk_i);
+  void ProbeFilters(int chunk_start, int chunk_end, int filter_j, Task *ctx);
 
   /*
    * Create the output result from the raw data computed during execution.
    */
-  void finish();
-
-  void probe_filters2(int chunk_i);
-
-  //    void probe_filters(int chunk_start, int chunk_end, int filter_j);
-
-  void probe_filters(int chunk_start, int chunk_end, int filter_j, Task *ctx);
-
-  void probe_all_filters(int chunk_start, int chunk_end, Task *ctx);
+  void Finish();
 };
 
 }  // namespace hustle::operators
