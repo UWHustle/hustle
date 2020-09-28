@@ -28,6 +28,9 @@
 
 namespace hustle::operators {
 
+static const uint32_t kLeftJoinIndex = 0;
+static const uint32_t kRightJoinIndex = 1;
+
 Join::Join(const std::size_t query_id,
            std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
            std::shared_ptr<OperatorResult> output_result, JoinGraph graph)
@@ -217,10 +220,6 @@ void Join::ProbeHashTableBlock(
         (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
     auto *joined_right_indices =
         (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
-    auto *joined_left_index_chunks =
-        (uint16_t *)malloc(sizeof(uint16_t) * chunk_length);
-    auto *joined_right_index_chunks =
-        (uint16_t *)malloc(sizeof(uint16_t) * chunk_length);
 
     if (filter_data != nullptr) {
       for (std::size_t row = 0; row < chunk_length; row++) {
@@ -229,12 +228,8 @@ void Join::ProbeHashTableBlock(
               hash_tables_[join_id]->find(left_join_chunk_data[row]);
           if (key_value_pair != hash_table_end) {
             joined_left_indices[num_joined_indices] = row + offset;
-            joined_left_index_chunks[num_joined_indices] = i;
-
             joined_right_indices[num_joined_indices] =
                 key_value_pair->second.index;
-            joined_right_index_chunks[num_joined_indices] =
-                key_value_pair->second.chunk;
             ++num_joined_indices;
           }
         }
@@ -245,12 +240,8 @@ void Join::ProbeHashTableBlock(
             hash_tables_[join_id]->find(left_join_chunk_data[row]);
         if (key_value_pair != hash_table_end) {
           joined_left_indices[num_joined_indices] = row + offset;
-          joined_left_index_chunks[num_joined_indices] = i;
-
           joined_right_indices[num_joined_indices] =
               key_value_pair->second.index;
-          joined_right_index_chunks[num_joined_indices] =
-              key_value_pair->second.chunk;
           ++num_joined_indices;
         }
       }
@@ -261,17 +252,8 @@ void Join::ProbeHashTableBlock(
     new_right_indices_vector_[i] = std::vector<uint32_t>(
         joined_right_indices, joined_right_indices + num_joined_indices);
 
-    left_index_chunks_vector_[i] =
-        std::vector<uint16_t>(joined_left_index_chunks,
-                              joined_left_index_chunks + num_joined_indices);
-    right_index_chunks_vector_[i] =
-        std::vector<uint16_t>(joined_right_index_chunks,
-                              joined_right_index_chunks + num_joined_indices);
-
     free(joined_left_indices);
     free(joined_right_indices);
-    free(joined_left_index_chunks);
-    free(joined_right_index_chunks);
   }
 }
 
@@ -281,8 +263,6 @@ void Join::ProbeHashTable(int join_id,
                           const arrow::Datum &probe_indices, Task *ctx) {
   new_left_indices_vector_.resize(probe_col->num_chunks());
   new_right_indices_vector_.resize(probe_col->num_chunks());
-  right_index_chunks_vector_.resize(probe_col->num_chunks());
-  left_index_chunks_vector_.resize(probe_col->num_chunks());
 
   // Precompute row offsets. A multithreaded probe phase requires that we know
   // all offsets beforehand.
@@ -341,7 +321,7 @@ void Join::FinishProbe(Task *ctx) {
 
     status = new_left_indices_builder.Finish(&new_left_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-    joined_indices_[0] = (arrow::Datum(new_left_indices));
+    joined_indices_[kLeftJoinIndex] = (arrow::Datum(new_left_indices));
   });
   ctx->spawnLambdaTask([this, num_indices] {
     arrow::Status status;
@@ -363,7 +343,7 @@ void Join::FinishProbe(Task *ctx) {
     status = new_right_indices_builder.Finish(&new_right_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    joined_indices_[1] = (arrow::Datum(new_right_indices));
+    joined_indices_[kRightJoinIndex] = (arrow::Datum(new_right_indices));
   });
 }
 
@@ -377,11 +357,11 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
   std::vector<LazyTable> output_lazy_tables;
 
   // The indices of the indices that were joined
-  auto left_indices_of_indices = joined_indices_[0];
-  auto right_indices_of_indices = joined_indices_[1];
+  auto left_indices_of_indices = joined_indices_[kLeftJoinIndex];
+  auto right_indices_of_indices = joined_indices_[kRightJoinIndex];
 
-  auto left_index_chunks = joined_index_chunks_[0];
-  auto right_index_chunks = joined_index_chunks_[1];
+  auto left_index_chunks = joined_index_chunks_[kLeftJoinIndex];
+  auto right_index_chunks = joined_index_chunks_[kRightJoinIndex];
 
   // Assume that indices are correct and that boundschecking is unecessary.
   // CHANGE TO TRUE IF YOU ARE DEBUGGING
@@ -409,7 +389,7 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
     new_index_chunks = left_index_chunks;
   }
   output_lazy_tables.emplace_back(left.table, left.filter, new_indices,
-                                  new_index_chunks);
+                                  new_index_chunks, left.hash_table_);
 
   // Update the indices of the right LazyTable. If there was no previous
   // join on the right table, then right_indices_of_indices directly
@@ -425,7 +405,7 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
   }
   new_index_chunks = arrow::Datum();
   output_lazy_tables.emplace_back(right.table, right.filter, new_indices,
-                                  new_index_chunks);
+                                  new_index_chunks, right.hash_table_);
 
   // Propogate the join to the other tables in the previous OperatorResult.
   // This elimates tuples from other tables in the previous result that were
@@ -439,11 +419,12 @@ std::shared_ptr<OperatorResult> Join::BackPropogateResult(
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
         output_lazy_tables.emplace_back(lazy_table.table, lazy_table.filter,
-                                        new_indices, arrow::Datum());
+                                        new_indices, arrow::Datum(),
+                                        lazy_table.hash_table_);
       } else {
-        output_lazy_tables.emplace_back(lazy_table.table, lazy_table.filter,
-                                        lazy_table.indices,
-                                        lazy_table.index_chunks);
+        output_lazy_tables.emplace_back(
+            lazy_table.table, lazy_table.filter, lazy_table.indices,
+            lazy_table.index_chunks, lazy_table.hash_table_);
       }
     }
   }
