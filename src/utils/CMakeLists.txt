@@ -29,14 +29,19 @@ add_library(hustle_src_utils_ThreadSafeQueue ../empty_src.cc thread_safe_queue.h
 add_library(hustle_src_utils_ArrowComputeWrappers arrow_compute_wrappers.cc arrow_compute_wrappers.h)
 #add_library(hustle_src_utils_ContextPool context_pool.cc context_pool.h)
 add_library(hustle_src_utils_ParallelHashmap ../empty_src.cc parallel_hashmap/phmap.h)
+add_library(hustle_src_utils_Config ../empty_src.cc config.h)
 add_library(hustle_src_utils_skew ../empty_src.cc skew.h)
 
 
 add_library(hustle_src_utils_BloomFilter ../empty_src.cc bloom_filter.h histogram.h)
 
+find_path(LIB_CONFIG_DIR NAMES libconfig.h++)
+find_library(LIB_CONFIG_LIB NAMES config++)
+
 # Include Arrow
 target_include_directories(hustle_src_utils_BloomFilter PUBLIC ${ARROW_INCLUDE_DIR})
 target_include_directories(hustle_src_utils_ArrowComputeWrappers PUBLIC ${ARROW_INCLUDE_DIR})
+target_include_directories(hustle_src_utils_Config PUBLIC ${LIB_CONFIG_DIR})
 #target_include_directories(hustle_src_utils_ContextPool PUBLIC ${ARROW_INCLUDE_DIR})
 
 
@@ -52,6 +57,9 @@ target_link_libraries(hustle_src_utils_ThreadSafeQueue
 target_link_libraries(hustle_src_utils_ArrowComputeWrappers
         absl::hash
         ${ARROW_SHARED_LIB})
+target_link_libraries(hustle_src_utils_Config PUBLIC
+        ${LIB_CONFIG_LIB}
+        )
 #target_link_libraries(hustle_src_utils_BloomFilter PUBLIC
 #        ${ARROW_SHARED_LIB}
 #        )
