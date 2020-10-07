@@ -80,10 +80,11 @@ void SSB::q11_lip() {
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
+  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -185,10 +186,11 @@ void SSB::q12_lip() {
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
+  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -300,10 +302,11 @@ void SSB::q13_lip() {
   lip_result_in = {lo_select_result_out, d_select_result_out};
 
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph);
+  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
+  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -375,11 +378,13 @@ void SSB::q21_lip() {
                    p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
+                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
+                   aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -462,11 +467,13 @@ void SSB::q22_lip() {
                    p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
+                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
+                   aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -538,11 +545,13 @@ void SSB::q23_lip() {
                    p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
+                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
+                   aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -633,12 +642,13 @@ void SSB::q31_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref, s_nation_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -732,12 +742,13 @@ void SSB::q32_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -855,12 +866,13 @@ void SSB::q33_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -969,12 +981,13 @@ void SSB::q34_lip() {
                    s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -1069,11 +1082,13 @@ void SSB::q41_lip() {
                    c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref});
+                   {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -1191,12 +1206,14 @@ void SSB::q42_lip() {
                    c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, {lip_result_out}, agg_result_out, {agg_ref},
                    {d_year_ref, s_nation_ref, p_category_ref},
-                   {d_year_ref, s_nation_ref, p_category_ref});
+                   {d_year_ref, s_nation_ref, p_category_ref},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -1304,12 +1321,13 @@ void SSB::q43_lip() {
                    c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph);
+  FilterJoin lip_op(0, lip_result_in, lip_result_out, graph,
+                    filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref},
-                   {d_year_ref, s_city_ref, p_brand1_ref});
+                   {d_year_ref, s_city_ref, p_brand1_ref}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);

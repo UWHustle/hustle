@@ -38,7 +38,17 @@ SelectBuildHash::SelectBuildHash(const std::size_t query_id,
                                  std::shared_ptr<OperatorResult> output_result,
                                  std::shared_ptr<PredicateTree> tree,
                                  ColumnReference join_column)
-    : Select(query_id, table, prev_result, output_result, tree),
+    : SelectBuildHash(query_id, table, prev_result, output_result, tree,
+                      join_column, std::make_shared<OperatorOptions>()) {}
+
+SelectBuildHash::SelectBuildHash(const std::size_t query_id,
+                                 std::shared_ptr<Table> table,
+                                 std::shared_ptr<OperatorResult> prev_result,
+                                 std::shared_ptr<OperatorResult> output_result,
+                                 std::shared_ptr<PredicateTree> tree,
+                                 ColumnReference join_column,
+                                 std::shared_ptr<OperatorOptions> options)
+    : Select(query_id, table, prev_result, output_result, tree, options),
       join_column_(join_column) {
   filters_.resize(table_->get_num_blocks());
   hash_table_ = std::make_shared<phmap::flat_hash_map<int64_t, RecordID>>();

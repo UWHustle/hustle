@@ -34,7 +34,14 @@ static const uint32_t kRightJoinIndex = 1;
 Join::Join(const std::size_t query_id,
            std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
            std::shared_ptr<OperatorResult> output_result, JoinGraph graph)
-    : Operator(query_id),
+    : Join(query_id, prev_result_vec, output_result, graph,
+           std::make_shared<OperatorOptions>()) {}
+
+Join::Join(const std::size_t query_id,
+           std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
+           std::shared_ptr<OperatorResult> output_result, JoinGraph graph,
+           std::shared_ptr<OperatorOptions> options)
+    : Operator(query_id, options),
       prev_result_vec_(prev_result_vec),
       output_result_(output_result),
       graph_(graph) {
@@ -274,7 +281,8 @@ void Join::ProbeHashTable(int join_id,
   }
 
   int batch_size =
-      probe_col->num_chunks() / std::thread::hardware_concurrency() / 2;
+      probe_col->num_chunks() /
+      (std::thread::hardware_concurrency() * options_->get_parallel_factor());
   if (batch_size == 0) batch_size = probe_col->num_chunks();
   int num_batches = probe_col->num_chunks() / batch_size +
                     1;  // if num_chunks is a multiple of batch_size, we don't

@@ -19,6 +19,7 @@
 #define HUSTLE_SSB_WORKLOAD_H
 
 #include "execution/execution_plan.h"
+#include "operators/operator_options.h"
 #include "operators/predicate.h"
 #include "scheduler/scheduler.h"
 #include "storage/table.h"
@@ -92,6 +93,11 @@ class SSB {
   std::shared_ptr<OperatorResult> lip_result_out;
   std::shared_ptr<OperatorResult> join_result_out;
   std::shared_ptr<OperatorResult> agg_result_out;
+
+  std::shared_ptr<OperatorOptions> select_options;
+  std::shared_ptr<OperatorOptions> join_options;
+  std::shared_ptr<OperatorOptions> filter_join_options;
+  std::shared_ptr<OperatorOptions> aggregate_options;
 
   std::shared_ptr<Table> out_table;
 

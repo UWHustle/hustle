@@ -20,8 +20,10 @@
 
 #include <cstdlib>
 
+#include "operators/operator_options.h"
 #include "operators/utils/operator_result.h"
 #include "scheduler/task.h"
+#include "utils/config.h"
 #include "utils/event_profiler.h"
 
 namespace hustle::operators {
@@ -50,8 +52,15 @@ class Operator {
   }
 
  protected:
-  explicit Operator(const std::size_t query_id) : query_id_(query_id) {}
+  explicit Operator(const std::size_t query_id) : query_id_(query_id) {
+    options_ = std::make_shared<OperatorOptions>();
+  }
 
+  explicit Operator(const std::size_t query_id,
+                    std::shared_ptr<OperatorOptions> options)
+      : query_id_(query_id), options_(options) {}
+
+  std::shared_ptr<OperatorOptions> options_;
   const std::size_t query_id_;
 
  private:

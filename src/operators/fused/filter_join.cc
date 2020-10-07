@@ -26,7 +26,16 @@ FilterJoin::FilterJoin(
     std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
     std::shared_ptr<OperatorResult> output_result,
     hustle::operators::JoinGraph graph)
-    : Operator(query_id) {
+    : FilterJoin(query_id, prev_result_vec, output_result, graph,
+                 std::make_shared<OperatorOptions>()) {}
+
+FilterJoin::FilterJoin(
+    const std::size_t query_id,
+    std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
+    std::shared_ptr<OperatorResult> output_result,
+    hustle::operators::JoinGraph graph,
+    std::shared_ptr<OperatorOptions> options)
+    : Operator(query_id, options) {
   prev_result_ = std::make_shared<OperatorResult>();
   prev_result_vec_ = prev_result_vec;
   output_result_ = std::move(output_result);
@@ -232,7 +241,8 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_j,
 void FilterJoin::ProbeFilters(Task *ctx) {
   int num_chunks =
       fact_fk_cols_[fact_fk_col_names_[0]].chunked_array()->num_chunks();
-  batch_size_ = std::thread::hardware_concurrency();
+  batch_size_ =
+      std::thread::hardware_concurrency() * options_->get_parallel_factor();
 
   if (batch_size_ == 0) batch_size_ = num_chunks;
   int num_batches = num_chunks / batch_size_ +

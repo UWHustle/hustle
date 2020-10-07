@@ -6,6 +6,7 @@ add_library(
         join_graph.cc join_graph.h
         predicate.cc predicate.h
         operator.h
+        operator_options.h
         fused/select_build_hash.cc fused/select_build_hash.h
         fused/filter_join.cc fused/filter_join.h
         utils/lazy_table.cc utils/lazy_table.h
@@ -20,6 +21,7 @@ target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_storage
         hustle_src_utils_EventProfiler
         hustle_src_utils_ArrowComputeWrappers
+        hustle_src_utils_Config
         hustle_src_utils_ParallelHashmap
         ${ARROW_SHARED_LIB}
         )

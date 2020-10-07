@@ -29,6 +29,7 @@
 #include "scheduler/scheduler_flags.h"
 #include "storage/util.h"
 #include "utils/arrow_compute_wrappers.h"
+#include "utils/config.h"
 
 using namespace std::chrono;
 
@@ -39,7 +40,7 @@ SSB::SSB(int SF, bool print) {
   num_threads_ = std::thread::hardware_concurrency();
 
   scheduler = std::make_shared<Scheduler>(num_threads_, true);
-
+  Config::Init("../../../hustle.cfg");
   if (SF == 0) {
     lo = read_from_file("../../../ssb/data/lineorder.hsl");
     d = read_from_file("../../../ssb/data/date.hsl");
@@ -122,6 +123,21 @@ SSB::SSB(int SF, bool print) {
   s_join_pred = {lo_s_ref, arrow::compute::EQUAL, s_ref};
   c_join_pred = {lo_c_ref, arrow::compute::EQUAL, c_ref};
 
+  double join_parallel_factor =
+      Config::GetInstance().GetDoubleValue("join-parallel-factor");
+  double aggregate_parallel_factor =
+      Config::GetInstance().GetDoubleValue("aggregate-parallel-factor");
+  double filter_join_parallel_factor =
+      Config::GetInstance().GetDoubleValue("filter_join-parallel-factor");
+
+  join_options = std::make_shared<OperatorOptions>();
+  join_options->set_parallel_factor(join_parallel_factor);
+
+  filter_join_options = std::make_shared<OperatorOptions>();
+  filter_join_options->set_parallel_factor(filter_join_parallel_factor);
+
+  aggregate_options = std::make_shared<OperatorOptions>();
+  aggregate_options->set_parallel_factor(aggregate_parallel_factor);
   reset_results();
 }
 
@@ -191,10 +207,11 @@ void SSB::q11() {
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
                               d_pred_tree, join_pred.right_col_ref_);
 
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
+  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -272,10 +289,11 @@ void SSB::q12() {
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
+  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -363,10 +381,11 @@ void SSB::q13() {
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {});
+  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -434,11 +453,12 @@ void SSB::q21() {
                     p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
+                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
+                   aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -484,14 +504,6 @@ void SSB::q22() {
 
   auto s_pred_tree = std::make_shared<PredicateTree>(s_pred_node_1);
 
-  //    auto p_pred = Predicate{
-  //        {p,
-  //         "brand1"},
-  //        arrow::compute::CompareOperator::NOT_EQUAL,
-  //        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2221")),
-  //        arrow::Datum(std::make_shared<arrow::StringScalar>("MFGR#2228"))
-  //    };
-  //
   auto p_pred_1 = Predicate{
       {p, "brand1"},
       arrow::compute::CompareOperator::GREATER_EQUAL,
@@ -511,10 +523,6 @@ void SSB::q22() {
   auto p_node =
       std::make_shared<ConnectiveNode>(p_node_1, p_node_2, FilterOperator::AND);
 
-  //    auto p_node =
-  //        std::make_shared<PredicateNode>(
-  //            std::make_shared<Predicate>(p_pred));
-
   auto p_pred_tree = std::make_shared<PredicateTree>(p_node);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -531,11 +539,12 @@ void SSB::q22() {
                     p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
+                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
+                   aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -604,11 +613,12 @@ void SSB::q23() {
                     p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}});
+                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
+                   aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -690,12 +700,12 @@ void SSB::q31() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref, s_nation_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -780,12 +790,12 @@ void SSB::q32() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -894,12 +904,12 @@ void SSB::q33() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -1006,12 +1016,12 @@ void SSB::q34() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}});
+                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -1105,11 +1115,12 @@ void SSB::q41() {
                     c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref});
+                   {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -1216,12 +1227,13 @@ void SSB::q42() {
                     c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_nation_ref, p_category_ref},
-                   {d_year_ref, s_nation_ref, p_category_ref});
+                   {d_year_ref, s_nation_ref, p_category_ref},
+                   aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -1322,12 +1334,12 @@ void SSB::q43() {
                     c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph);
+  Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref},
-                   {d_year_ref, s_city_ref, p_brand1_ref});
+                   {d_year_ref, s_city_ref, p_brand1_ref}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
