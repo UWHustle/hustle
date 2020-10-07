@@ -35,7 +35,18 @@ Aggregate::Aggregate(const std::size_t query_id,
                      std::vector<AggregateReference> aggregate_refs,
                      std::vector<ColumnReference> group_by_refs,
                      std::vector<ColumnReference> order_by_refs)
-    : Operator(query_id),
+    : Aggregate(query_id, prev_result, output_result, aggregate_refs,
+                group_by_refs, order_by_refs,
+                std::make_shared<OperatorOptions>()) {}
+
+Aggregate::Aggregate(const std::size_t query_id,
+                     std::shared_ptr<OperatorResult> prev_result,
+                     std::shared_ptr<OperatorResult> output_result,
+                     std::vector<AggregateReference> aggregate_refs,
+                     std::vector<ColumnReference> group_by_refs,
+                     std::vector<ColumnReference> order_by_refs,
+                     std::shared_ptr<OperatorOptions> options)
+    : Operator(query_id, options),
       prev_result_(prev_result),
       output_result_(output_result),
       aggregate_refs_(aggregate_refs),
@@ -152,8 +163,8 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
           agg_col->chunk(chunk_index)->data()->GetValues<int64_t>(1, 0);
     }
 
-    std::size_t batch_size =
-        num_chunks / std::thread::hardware_concurrency() / 2;
+    std::size_t batch_size = num_chunks / (std::thread::hardware_concurrency() *
+                                           options_->get_parallel_factor());
     if (batch_size == 0) batch_size = num_chunks;
     std::size_t num_batches = 1 + ((num_aggs_ - 1) / batch_size);
 

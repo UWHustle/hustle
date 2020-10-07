@@ -53,6 +53,12 @@ class Select : public Operator {
          std::shared_ptr<OperatorResult> output_result,
          std::shared_ptr<PredicateTree> tree);
 
+  Select(const std::size_t query_id, std::shared_ptr<Table> table,
+         std::shared_ptr<OperatorResult> prev_result,
+         std::shared_ptr<OperatorResult> output_result,
+         std::shared_ptr<PredicateTree> tree,
+         std::shared_ptr<OperatorOptions> options);
+
   /**
    * Perform the selection specified by the predicate tree passed into the
    * constructor.

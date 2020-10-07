@@ -52,6 +52,11 @@ class Join : public Operator {
        std::vector<std::shared_ptr<OperatorResult>> prev_result,
        std::shared_ptr<OperatorResult> output_result, JoinGraph graph);
 
+  Join(const std::size_t query_id,
+       std::vector<std::shared_ptr<OperatorResult>> prev_result,
+       std::shared_ptr<OperatorResult> output_result, JoinGraph graph,
+       std::shared_ptr<OperatorOptions> options);
+
   /**
    * Perform a natural join on two tables using hash join.
    *

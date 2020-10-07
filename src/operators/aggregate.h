@@ -129,6 +129,14 @@ class Aggregate : public Operator {
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs);
 
+  Aggregate(const std::size_t query_id,
+            std::shared_ptr<OperatorResult> prev_result,
+            std::shared_ptr<OperatorResult> output_result,
+            std::vector<AggregateReference> aggregate_units,
+            std::vector<ColumnReference> group_by_refs,
+            std::vector<ColumnReference> order_by_refs,
+            std::shared_ptr<OperatorOptions> options);
+
   /**
    * Compute the aggregate(s) specified by the parameters passed into the
    * constructor.

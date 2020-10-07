@@ -36,7 +36,15 @@ Select::Select(const std::size_t query_id, std::shared_ptr<Table> table,
                std::shared_ptr<OperatorResult> prev_result,
                std::shared_ptr<OperatorResult> output_result,
                std::shared_ptr<PredicateTree> tree)
-    : Operator(query_id),
+    : Select(query_id, table, prev_result, output_result, tree,
+             std::make_shared<OperatorOptions>()) {}
+
+Select::Select(const std::size_t query_id, std::shared_ptr<Table> table,
+               std::shared_ptr<OperatorResult> prev_result,
+               std::shared_ptr<OperatorResult> output_result,
+               std::shared_ptr<PredicateTree> tree,
+               std::shared_ptr<OperatorOptions> options)
+    : Operator(query_id, options),
       table_(table),
       output_result_(output_result),
       tree_(tree) {

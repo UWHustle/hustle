@@ -55,6 +55,13 @@ class SelectBuildHash : public Select {
                   std::shared_ptr<PredicateTree> tree,
                   ColumnReference join_column);
 
+  SelectBuildHash(const std::size_t query_id, std::shared_ptr<Table> table,
+                  std::shared_ptr<OperatorResult> prev_result,
+                  std::shared_ptr<OperatorResult> output_result,
+                  std::shared_ptr<PredicateTree> tree,
+                  ColumnReference join_column,
+                  std::shared_ptr<OperatorOptions> options);
+
   /**
    * Perform the selection specified by the predicate tree passed into the
    * constructor.

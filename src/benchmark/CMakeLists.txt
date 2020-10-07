@@ -11,6 +11,7 @@ target_link_libraries(hustle_src_benchmark PUBLIC
         hustle_src_optimizer_ExecutionPlan
         hustle_src_utils_EventProfiler
         hustle_src_utils_skew
+        hustle_src_utils_Config
         ${ARROW_SHARED_LIB}
         )
 

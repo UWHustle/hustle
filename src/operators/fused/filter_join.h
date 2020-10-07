@@ -69,6 +69,12 @@ class FilterJoin : public Operator {
              std::shared_ptr<OperatorResult> output_result,
              hustle::operators::JoinGraph graph);
 
+  FilterJoin(const std::size_t query_id,
+             std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
+             std::shared_ptr<OperatorResult> output_result,
+             hustle::operators::JoinGraph graph,
+             std::shared_ptr<OperatorOptions> options);
+
   /**
    * Perform LIP and JOIN on a left-deep join plan.
    *
