@@ -37,7 +37,7 @@ Aggregate::Aggregate(const std::size_t query_id,
                      std::vector<ColumnReference> order_by_refs)
     : Aggregate(query_id, prev_result, output_result, aggregate_refs,
                 group_by_refs, order_by_refs,
-                std::make_shared<OperatorOptions>(), NESTED_DEPTH) {}
+                std::make_shared<OperatorOptions>()) {}
 
 Aggregate::Aggregate(const std::size_t query_id,
                      std::shared_ptr<OperatorResult> prev_result,
@@ -46,25 +46,12 @@ Aggregate::Aggregate(const std::size_t query_id,
                      std::vector<ColumnReference> group_by_refs,
                      std::vector<ColumnReference> order_by_refs,
                      std::shared_ptr<OperatorOptions> options)
-  : Aggregate(query_id, prev_result, output_result, aggregate_refs,
-            group_by_refs, order_by_refs,
-            std::make_shared<OperatorOptions>(), NESTED_DEPTH) {}
-
-Aggregate::Aggregate(const std::size_t query_id,
-                     std::shared_ptr<OperatorResult> prev_result,
-                     std::shared_ptr<OperatorResult> output_result,
-                     std::vector<AggregateReference> aggregate_refs,
-                     std::vector<ColumnReference> group_by_refs,
-                     std::vector<ColumnReference> order_by_refs,
-                     std::shared_ptr<OperatorOptions> options,
-                     AggregateStrategy strategy)
     : Operator(query_id, options),
       prev_result_(prev_result),
       output_result_(output_result),
       aggregate_refs_(aggregate_refs),
       group_by_refs_(group_by_refs),
-      order_by_refs_(order_by_refs),
-      strategy_(strategy) {}
+      order_by_refs_(order_by_refs) {}
 
 void Aggregate::execute(Task* ctx) {
   ctx->spawnTask(CreateTaskChain(
@@ -73,68 +60,7 @@ void Aggregate::execute(Task* ctx) {
       CreateLambdaTask([this](Task* internal) { Finish(); })));
 }
 
-// TODO: Refactor this function
-void Aggregate::setStrategy(AggregateStrategy strategy){
-  if (strategy != AggregateStrategy::COMPOSIT_HASH &&
-      strategy != AggregateStrategy::NESTED_DEPTH){
-    std::cerr << "[DVAR] Not supported AggregateStrategy: " << strategy << std::endl;
-    exit(1);
-  }
-  this->strategy_ = strategy;
-  std::cout << "[DVAR] Aggregate set to strategy: " << strategy << std::endl;
-}
-
 void Aggregate::Initialize(Task* ctx) {
-  // Initialize variable based on the aggregate strategy.
-  switch (strategy_) {
-    case NESTED_DEPTH:
-      InitializeNestedDepth(ctx);
-      break;
-    case COMPOSIT_HASH:
-      InitializeCompositeHash(ctx);
-      break;
-  }
-}
-
-void Aggregate::InitializeNestedDepth(Task* ctx) {
-    std::vector<std::shared_ptr<Context>> contexts;
-    contexts.reserve(group_by_refs_.size());
-    for (std::size_t i = 0; i < group_by_refs_.size(); ++i) {
-      contexts.push_back(std::make_shared<Context>());
-    }
-
-    ctx->spawnTask(CreateTaskChain(
-      CreateLambdaTask(
-        [this](Task* internal) { InitializeVariables(internal); }),
-      CreateLambdaTask([this, contexts](Task* internal) {
-        // Fetch unique values for all Group By columns.
-        for (std::size_t group_index = 0; group_index < group_by_refs_.size();
-             group_index++) {
-          internal->spawnTask(CreateTaskChain(
-            CreateLambdaTask([this, group_index](Task* internal) {
-              InitializeGroupByColumn(internal, group_index);
-            }),
-            // TODO: Bring the unique value calculation earlier in the section
-            CreateLambdaTask([this, group_index] {
-              unique_values_[group_index] =
-                ComputeUniqueValues(group_by_refs_[group_index])
-                  .make_array();
-            }),
-            CreateLambdaTask([this, group_index, contexts](Task* internal) {
-              contexts[group_index]->match(internal,
-                                           group_by_cols_[group_index],
-                                           unique_values_[group_index]);
-            }),
-            CreateLambdaTask([this, contexts, group_index] {
-              unique_values_map_[group_index] =
-                contexts[group_index]->out_.chunked_array();
-            })));
-        }
-      })));
-  }
-
-
-void Aggregate::InitializeCompositeHash(Task *ctx) {
   std::vector<std::shared_ptr<Context>> contexts;
   contexts.reserve(group_by_refs_.size());
   for (std::size_t i = 0; i < group_by_refs_.size(); ++i) {
@@ -142,36 +68,33 @@ void Aggregate::InitializeCompositeHash(Task *ctx) {
   }
 
   ctx->spawnTask(CreateTaskChain(
-    CreateLambdaTask(
-      [this](Task* internal) { InitializeVariables(internal); }),
-    CreateLambdaTask([this, contexts](Task* internal) {
-      // Fetch unique values for all Group By columns.
-      for (std::size_t group_index = 0; group_index < group_by_refs_.size();
-           group_index++) {
-        internal->spawnTask(CreateTaskChain(
-          CreateLambdaTask([this, group_index](Task* internal) {
-            InitializeGroupByColumn(internal, group_index);
-          }),
-          // TODO: Bring the unique value calculation earlier in the section
-          CreateLambdaTask([this, group_index] {
-            unique_values_[group_index] =
-              ComputeUniqueValues(group_by_refs_[group_index])
-                .make_array();
-          }),
-          CreateLambdaTask([this, group_index, contexts](Task* internal) {
-            contexts[group_index]->match(internal,
-                                         group_by_cols_[group_index],
-                                         unique_values_[group_index]);
-          }),
-          CreateLambdaTask([this, contexts, group_index] {
-            unique_values_map_[group_index] =
-              contexts[group_index]->out_.chunked_array();
-          })));
-      }
-    })));
-
+      CreateLambdaTask(
+          [this](Task* internal) { InitializeVariables(internal); }),
+      CreateLambdaTask([this, contexts](Task* internal) {
+        // Fetch unique values for all Group By columns.
+        for (std::size_t group_index = 0; group_index < group_by_refs_.size();
+             group_index++) {
+          internal->spawnTask(CreateTaskChain(
+              CreateLambdaTask([this, group_index](Task* internal) {
+                InitializeGroupByColumn(internal, group_index);
+              }),
+              CreateLambdaTask([this, group_index] {
+                unique_values_[group_index] =
+                    ComputeUniqueValues(group_by_refs_[group_index])
+                        .make_array();
+              }),
+              CreateLambdaTask([this, group_index, contexts](Task* internal) {
+                contexts[group_index]->match(internal,
+                                             group_by_cols_[group_index],
+                                             unique_values_[group_index]);
+              }),
+              CreateLambdaTask([this, contexts, group_index] {
+                unique_values_map_[group_index] =
+                    contexts[group_index]->out_.chunked_array();
+              })));
+        }
+      })));
 }
-
 
 void Aggregate::InitializeVariables(Task* ctx) {
   // Fetch the fields associated with each groupby column.
@@ -483,238 +406,105 @@ void Aggregate::ComputeGroupAggregate(Task* ctx, std::size_t agg_index,
   }
 }
 
-void Aggregate::ComputeGroupAggregate(Task* ctx, std::size_t agg_index,
-                                      const std::vector<int>& group_id,
-                                      const arrow::Datum agg_col) {
-  if (num_aggs_ == 1) {
-    auto aggregate =
-      ComputeAggregate(aggregate_refs_[0].kernel, agg_col.chunked_array());
-    aggregate_data_[agg_index] =
-      std::static_pointer_cast<arrow::Int64Scalar>(aggregate.scalar())->value;
-  }
-  if (aggregate_data_[agg_index] > 0) {
-    // Compute the aggregate over the filtered agg_col
-    // Acquire mutex_ so that groups are correctly associated with
-    // their corresponding aggregates
-    std::unique_lock<std::mutex> lock(mutex_);
-    InsertGroupAggregate(agg_index);
-    InsertGroupColumns(group_id, agg_index);
-  }
-}
-
 void Aggregate::ComputeAggregates(Task* ctx) {
-  switch (this->strategy_) {
-    case NESTED_DEPTH:
-      ComputeNestedDepthAggregates(ctx);
-      break;
-    case COMPOSIT_HASH:
-      ComputeCompositeHashAggregates(ctx);
-      break;
-  }
-}
-
-void Aggregate::ComputeNestedDepthAggregates(Task* ctx) {
   ctx->spawnTask(CreateTaskChain(
-    CreateLambdaTask([this](Task* internal) {
-      // TODO(nicholas): For now, we only perform one aggregate.
-      auto table = aggregate_refs_[0].col_ref.table;
-      auto col_name = aggregate_refs_[0].col_ref.col_name;
-      agg_lazy_table_ = prev_result_->get_table(table);
-      agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
-    }),
-    CreateLambdaTask([this](Task* internal) {
-      // Initialize the slots to hold the current iteration value for each
-      // depth
-      int num_group_columns = group_type_->num_fields();
-      int max_unique_values[num_group_columns];
-      std::vector<int> group_id(num_group_columns);
+      CreateLambdaTask([this](Task* internal) {
+        // TODO(nicholas): For now, we only perform one aggregate.
+        auto table = aggregate_refs_[0].col_ref.table;
+        auto col_name = aggregate_refs_[0].col_ref.col_name;
+        agg_lazy_table_ = prev_result_->get_table(table);
+        agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
+      }),
+      CreateLambdaTask([this](Task* internal) {
+        // Initialize the slots to hold the current iteration value for each
+        // depth
+        int num_group_columns = group_type_->num_fields();
+        int max_unique_values[num_group_columns];
+        std::vector<int> group_id(num_group_columns);
 
-      // DYNAMIC DEPTH NESTED LOOP:
-      // We must handle an arbitrary number of GROUP BY columns. We need a
-      // dynamic nested loop to iterate over all possible groups. If maxes =
-      // {2, 3} (i.e. we have two group by columns which have 2 and 3 unique
-      // values, respectively), then group_id takes on the following values at
-      // each iteration:
-      //
-      // {0, 0}
-      // {0, 1}
-      // {0, 2}
-      // {1, 0}
-      // {1, 1}
-      // {1, 2}
+        // DYNAMIC DEPTH NESTED LOOP:
+        // We must handle an arbitrary number of GROUP BY columns. We need a
+        // dynamic nested loop to iterate over all possible groups. If maxes =
+        // {2, 3} (i.e. we have two group by columns which have 2 and 3 unique
+        // values, respectively), then group_id takes on the following values at
+        // each iteration:
+        //
+        // {0, 0}
+        // {0, 1}
+        // {0, 2}
+        // {1, 0}
+        // {1, 1}
+        // {1, 2}
 
-      // initialize group_id = {0, 0, ..., 0} and initialize maxes[i] to the
-      // number of unique values in group by column i.
-      num_aggs_ = 1;
-      for (std::size_t i = 0; i < num_group_columns; ++i) {
-        group_id[i] = 0;
-        max_unique_values[i] = unique_values_[i]->length();
-        num_aggs_ *= max_unique_values[i];
-      }
-
-      group_agg_index_map_.reserve(num_aggs_);
-      group_id_vec_.resize(num_aggs_);
-      aggregate_data_ = (std::atomic<int64_t>*)calloc(
-        num_aggs_, sizeof(std::atomic<int64_t>));
-
-      int agg_index = 0;
-      int index = num_group_columns - 1;  // loop index
-
-      bool exit = false;
-      while (!exit) {
-        // LOOP BODY START
-        group_id_vec_[agg_index] = group_id;
-        auto key = 0;
-        for (std::size_t k = 0; k < group_id.size(); ++k) {
-          key += group_id[k] * pow(10, k);
-        }
-        group_agg_index_map_[key] = agg_index++;
-        // LOOP BODY END
-
-        if (num_group_columns == 0) {
-          break;  // Only execute the loop once if there are no group bys
+        // initialize group_id = {0, 0, ..., 0} and initialize maxes[i] to the
+        // number of unique values in group by column i.
+        num_aggs_ = 1;
+        for (std::size_t i = 0; i < num_group_columns; ++i) {
+          group_id[i] = 0;
+          max_unique_values[i] = unique_values_[i]->length();
+          num_aggs_ *= max_unique_values[i];
         }
 
-        // INCREMENT group_id
-        group_id[num_group_columns - 1]++;
-        while (group_id[index] == max_unique_values[index]) {
-          if (index == 0) {
-            exit = true;
-            break;
+        group_agg_index_map_.reserve(num_aggs_);
+        group_id_vec_.resize(num_aggs_);
+        aggregate_data_ = (std::atomic<int64_t>*)calloc(
+            num_aggs_, sizeof(std::atomic<int64_t>));
+
+        int agg_index = 0;
+        int index = num_group_columns - 1;  // loop index
+
+        bool exit = false;
+        while (!exit) {
+          // LOOP BODY START
+          group_id_vec_[agg_index] = group_id;
+          auto key = 0;
+          for (std::size_t k = 0; k < group_id.size(); ++k) {
+            key += group_id[k] * pow(10, k);
           }
-          group_id[index--] = 0;
-          ++group_id[index];
-        }
-        index = num_group_columns - 1;
-      }
-      InitializeGroupFilters(internal);
-    }),
-    CreateLambdaTask([this](Task* internal) {
-      std::size_t batch_size =
-        num_aggs_ / std::thread::hardware_concurrency() / 2;
-      if (batch_size == 0) batch_size = num_aggs_;
-      std::size_t num_batches = 1 + ((num_aggs_ - 1) / batch_size);
+          group_agg_index_map_[key] = agg_index++;
+          // LOOP BODY END
 
-      for (std::size_t batch_index = 0; batch_index < num_batches;
-           ++batch_index) {
-        // Each task gets the filter for one block and stores it in
-        // filter_vector
-        internal->spawnLambdaTask([this, batch_index,
-                                    batch_size](Task* internal) {
-          int base_index = batch_index * batch_size;
-          for (std::size_t agg_index = base_index;
-               agg_index < base_index + batch_size && agg_index < num_aggs_;
-               ++agg_index) {
-            ComputeGroupAggregate(internal, agg_index,
-                                  group_id_vec_[agg_index], agg_col_);
+          if (num_group_columns == 0) {
+            break;  // Only execute the loop once if there are no group bys
           }
-        });
-      }
-    })));
+
+          // INCREMENT group_id
+          group_id[num_group_columns - 1]++;
+          while (group_id[index] == max_unique_values[index]) {
+            if (index == 0) {
+              exit = true;
+              break;
+            }
+            group_id[index--] = 0;
+            ++group_id[index];
+          }
+          index = num_group_columns - 1;
+        }
+        InitializeGroupFilters(internal);
+      }),
+      CreateLambdaTask([this](Task* internal) {
+        std::size_t batch_size =
+            num_aggs_ / std::thread::hardware_concurrency() / 2;
+        if (batch_size == 0) batch_size = num_aggs_;
+        std::size_t num_batches = 1 + ((num_aggs_ - 1) / batch_size);
+
+        for (std::size_t batch_index = 0; batch_index < num_batches;
+             ++batch_index) {
+          // Each task gets the filter for one block and stores it in
+          // filter_vector
+          internal->spawnLambdaTask([this, batch_index,
+                                     batch_size](Task* internal) {
+            int base_index = batch_index * batch_size;
+            for (std::size_t agg_index = base_index;
+                 agg_index < base_index + batch_size && agg_index < num_aggs_;
+                 ++agg_index) {
+              ComputeGroupAggregate(internal, agg_index,
+                                    group_id_vec_[agg_index], agg_col_);
+            }
+          });
+        }
+      })));
 }
-
-void Aggregate::ComputeCompositeHashAggregates(Task* ctx) {
-  ctx->spawnTask(CreateTaskChain(
-    CreateLambdaTask([this](Task* internal) {
-      // TODO(nicholas): For now, we only perform one aggregate.
-      auto table = aggregate_refs_[0].col_ref.table;
-      auto col_name = aggregate_refs_[0].col_ref.col_name;
-      agg_lazy_table_ = prev_result_->get_table(table);
-      agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
-    }),
-    CreateLambdaTask([this](Task* internal) {
-      // Build hash functions
-
-      // Initialize the slots to hold the current iteration value for each
-      // depth
-      int num_group_columns = group_type_->num_fields();
-      int max_unique_values[num_group_columns];
-      std::vector<int> group_id(num_group_columns);
-
-      // DYNAMIC DEPTH NESTED LOOP:
-      // We must handle an arbitrary number of GROUP BY columns. We need a
-      // dynamic nested loop to iterate over all possible groups. If maxes =
-      // {2, 3} (i.e. we have two group by columns which have 2 and 3 unique
-      // values, respectively), then group_id takes on the following values at
-      // each iteration:
-      //
-      // {0, 0}
-      // {0, 1}
-      // {0, 2}
-      // {1, 0}
-      // {1, 1}
-      // {1, 2}
-
-      // initialize group_id = {0, 0, ..., 0} and initialize maxes[i] to the
-      // number of unique values in group by column i.
-      num_aggs_ = 1;
-      for (std::size_t i = 0; i < num_group_columns; ++i) {
-        group_id[i] = 0;
-        max_unique_values[i] = unique_values_[i]->length();
-        num_aggs_ *= max_unique_values[i];
-      }
-
-      group_agg_index_map_.reserve(num_aggs_);
-      group_id_vec_.resize(num_aggs_);
-      aggregate_data_ = (std::atomic<int64_t>*)calloc(
-        num_aggs_, sizeof(std::atomic<int64_t>));
-
-      int agg_index = 0;
-      int index = num_group_columns - 1;  // loop index
-
-      bool exit = false;
-      while (!exit) {
-        // LOOP BODY START
-        group_id_vec_[agg_index] = group_id;
-        auto key = 0;
-        for (std::size_t k = 0; k < group_id.size(); ++k) {
-          key += group_id[k] * pow(10, k);
-        }
-        group_agg_index_map_[key] = agg_index++;
-        // LOOP BODY END
-
-        if (num_group_columns == 0) {
-          break;  // Only execute the loop once if there are no group bys
-        }
-
-        // INCREMENT group_id
-        group_id[num_group_columns - 1]++;
-        while (group_id[index] == max_unique_values[index]) {
-          if (index == 0) {
-            exit = true;
-            break;
-          }
-          group_id[index--] = 0;
-          ++group_id[index];
-        }
-        index = num_group_columns - 1;
-      }
-      InitializeGroupFilters(internal);
-    }),
-    CreateLambdaTask([this](Task* internal) {
-      std::size_t batch_size =
-        num_aggs_ / std::thread::hardware_concurrency() / 2;
-      if (batch_size == 0) batch_size = num_aggs_;
-      std::size_t num_batches = 1 + ((num_aggs_ - 1) / batch_size);
-
-      for (std::size_t batch_index = 0; batch_index < num_batches;
-           ++batch_index) {
-        // Each task gets the filter for one block and stores it in
-        // filter_vector
-        internal->spawnLambdaTask([this, batch_index,
-                                    batch_size](Task* internal) {
-          int base_index = batch_index * batch_size;
-          for (std::size_t agg_index = base_index;
-               agg_index < base_index + batch_size && agg_index < num_aggs_;
-               ++agg_index) {
-            ComputeGroupAggregate(internal, agg_index,
-                                  group_id_vec_[agg_index], agg_col_);
-          }
-        });
-      }
-    })));
-}
-
 
 void Aggregate::SortResult(std::vector<arrow::Datum>& groups,
                            arrow::Datum& aggregates) {

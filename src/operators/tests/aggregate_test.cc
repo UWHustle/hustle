@@ -88,106 +88,106 @@ class AggregateTestFixture : public testing::Test {
   }
 };
 
-///*
-// * SELECT avg(R.data) as data_mean
-// * FROM R
-// */
-//TEST_F(AggregateTestFixture, MeanTest) {
-//  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-//
-//  ColumnReference R_key_ref = {R, "key"};
-//  ColumnReference R_group_ref = {R, "data"};
-//
-//  auto result = std::make_shared<OperatorResult>();
-//  auto out_result = std::make_shared<OperatorResult>();
-//  result->append(R);
-//
-//  AggregateReference agg_ref = {AggregateKernel::MEAN, "data_mean", R, "data"};
-//  Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
-//
-//  Scheduler &scheduler = Scheduler::GlobalInstance();
-//  scheduler.addTask(agg_op.createTask());
-//
-//  scheduler.start();
-//  scheduler.join();
-//
-//  auto out_table = out_result->materialize({{nullptr, "data_mean"}});
-//  //    out_table->print();
-//
-//  // Construct expected results
-//  arrow::Status status;
-//  status = double_builder.Append(((double)150) / 6);
-//  status = double_builder.Finish(&expected_agg_col_1);
-//
-//  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
-//}
-//
-///*
-// * SELECT sum(R.data) as data_sum
-// * FROM R
-// */
-//TEST_F(AggregateTestFixture, SumTest) {
-//  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-//
-//  ColumnReference R_key_ref = {R, "key"};
-//  ColumnReference R_group_ref = {R, "data"};
-//
-//  auto result = std::make_shared<OperatorResult>();
-//  auto out_result = std::make_shared<OperatorResult>();
-//  result->append(R);
-//
-//  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
-//  Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
-//  Scheduler &scheduler = Scheduler::GlobalInstance();
-//  scheduler.addTask(agg_op.createTask());
-//
-//  scheduler.start();
-//  scheduler.join();
-//
-//  auto out_table = out_result->materialize({{nullptr, "data_sum"}});
-//  //    out_table->print();
-//
-//  // Construct expected results
-//  arrow::Status status;
-//  status = int_builder.Append(150);
-//  status = int_builder.Finish(&expected_agg_col_1);
-//
-//  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
-//}
-//
-///*
-// * SELECT count(R.data) as data_count
-// * FROM R
-// */
-//TEST_F(AggregateTestFixture, CountTest) {
-//    R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-//
-//    ColumnReference R_key_ref = {R, "key"};
-//    ColumnReference R_group_ref = {R, "data"};
-//
-//    auto result = std::make_shared<OperatorResult>();
-//    auto out_result = std::make_shared<OperatorResult>();
-//    result->append(R);
-//
-//    AggregateReference agg_ref = {AggregateKernel::COUNT, "data_count", R, "data"};
-//    Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
-//
-//    Scheduler &scheduler = Scheduler::GlobalInstance();
-//    scheduler.addTask(agg_op.createTask());
-//
-//    scheduler.start();
-//    scheduler.join();
-//
-//    auto out_table = out_result->materialize({{nullptr, "data_count"}});
-//    //    out_table->print();
-//
-//    // Construct expected results
-//    arrow::Status status;
-//    status = int_builder.Append(6);
-//    status = int_builder.Finish(&expected_agg_col_1);
-//
-//    EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
-//}
+/*
+ * SELECT avg(R.data) as data_mean
+ * FROM R
+ */
+TEST_F(AggregateTestFixture, MeanTest) {
+  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+
+  ColumnReference R_key_ref = {R, "key"};
+  ColumnReference R_group_ref = {R, "data"};
+
+  auto result = std::make_shared<OperatorResult>();
+  auto out_result = std::make_shared<OperatorResult>();
+  result->append(R);
+
+  AggregateReference agg_ref = {AggregateKernel::MEAN, "data_mean", R, "data"};
+  Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+
+  Scheduler &scheduler = Scheduler::GlobalInstance();
+  scheduler.addTask(agg_op.createTask());
+
+  scheduler.start();
+  scheduler.join();
+
+  auto out_table = out_result->materialize({{nullptr, "data_mean"}});
+  //    out_table->print();
+
+  // Construct expected results
+  arrow::Status status;
+  status = double_builder.Append(((double)150) / 6);
+  status = double_builder.Finish(&expected_agg_col_1);
+
+  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+}
+
+/*
+ * SELECT sum(R.data) as data_sum
+ * FROM R
+ */
+TEST_F(AggregateTestFixture, SumTest) {
+  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+
+  ColumnReference R_key_ref = {R, "key"};
+  ColumnReference R_group_ref = {R, "data"};
+
+  auto result = std::make_shared<OperatorResult>();
+  auto out_result = std::make_shared<OperatorResult>();
+  result->append(R);
+
+  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
+  Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+  Scheduler &scheduler = Scheduler::GlobalInstance();
+  scheduler.addTask(agg_op.createTask());
+
+  scheduler.start();
+  scheduler.join();
+
+  auto out_table = out_result->materialize({{nullptr, "data_sum"}});
+  //    out_table->print();
+
+  // Construct expected results
+  arrow::Status status;
+  status = int_builder.Append(150);
+  status = int_builder.Finish(&expected_agg_col_1);
+
+  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+}
+
+/*
+ * SELECT count(R.data) as data_count
+ * FROM R
+ */
+TEST_F(AggregateTestFixture, CountTest) {
+    R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+
+    ColumnReference R_key_ref = {R, "key"};
+    ColumnReference R_group_ref = {R, "data"};
+
+    auto result = std::make_shared<OperatorResult>();
+    auto out_result = std::make_shared<OperatorResult>();
+    result->append(R);
+
+    AggregateReference agg_ref = {AggregateKernel::COUNT, "data_count", R, "data"};
+    Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+
+    Scheduler &scheduler = Scheduler::GlobalInstance();
+    scheduler.addTask(agg_op.createTask());
+
+    scheduler.start();
+    scheduler.join();
+
+    auto out_table = out_result->materialize({{nullptr, "data_count"}});
+    //    out_table->print();
+
+    // Construct expected results
+    arrow::Status status;
+    status = int_builder.Append(6);
+    status = int_builder.Finish(&expected_agg_col_1);
+
+    EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+}
 
 /*
  * SELECT sum(R.data) as data_sum
@@ -252,56 +252,7 @@ class AggregateTestFixture : public testing::Test {
  * FROM R
  * GROUP BY R.group
  */
-//TEST_F(AggregateTestFixture, SumWithGroupByTest) {
-//  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-//
-//  ColumnReference R_key_ref = {R, "key"};
-//  ColumnReference R_group_ref = {R, "group"};
-//
-//  auto result = std::make_shared<OperatorResult>();
-//  auto out_result = std::make_shared<OperatorResult>();
-//  result->append(R);
-//
-//  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
-//  Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
-//                   {R_group_ref});
-//  Scheduler &scheduler = Scheduler::GlobalInstance();
-//  scheduler.addTask(agg_op.createTask());
-//
-//  scheduler.start();
-//  scheduler.join();
-//
-//  auto out_table =
-//      out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
-//  //    out_table->print();
-//
-//  // Construct expected results
-//  arrow::Status status;
-//  status = str_builder.AppendValues({"R2", "R1", "R0"});
-//  status = str_builder.Finish(&expected_agg_col_1);
-//
-//  status = int_builder.AppendValues({10, 50, 90});
-//  status = int_builder.Finish(&expected_agg_col_2);
-//
-//  auto group_col = std::static_pointer_cast<arrow::StringArray>(
-//      out_table->get_column(0)->chunk(0));
-//  auto agg_col = std::static_pointer_cast<arrow::Int64Array>(
-//      out_table->get_column(1)->chunk(0));
-//
-//  for (int i = 0; i < group_col->length(); i++) {
-//    if (group_col->GetString(i) == "R0") {
-//      ASSERT_EQ(agg_col->Value(i), 90);
-//    } else if (group_col->GetString(i) == "R1") {
-//      ASSERT_EQ(agg_col->Value(i), 50);
-//    } else if (group_col->GetString(i) == "R2") {
-//      ASSERT_EQ(agg_col->Value(i), 10);
-//    } else {
-//      FAIL();
-//    }
-//  }
-//}
-
-TEST_F(AggregateTestFixture, SumWithGroupByCompositeHashTest) {
+TEST_F(AggregateTestFixture, SumWithGroupByTest) {
   R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
   ColumnReference R_key_ref = {R, "key"};
@@ -314,9 +265,6 @@ TEST_F(AggregateTestFixture, SumWithGroupByCompositeHashTest) {
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
                    {R_group_ref});
-  // Set the strategy to composite hash keys.
-  agg_op.setStrategy(AggregateStrategy::COMPOSIT_HASH);
-
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
 
@@ -324,7 +272,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByCompositeHashTest) {
   scheduler.join();
 
   auto out_table =
-    out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
+      out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
   //    out_table->print();
 
   // Construct expected results
@@ -336,9 +284,9 @@ TEST_F(AggregateTestFixture, SumWithGroupByCompositeHashTest) {
   status = int_builder.Finish(&expected_agg_col_2);
 
   auto group_col = std::static_pointer_cast<arrow::StringArray>(
-    out_table->get_column(0)->chunk(0));
+      out_table->get_column(0)->chunk(0));
   auto agg_col = std::static_pointer_cast<arrow::Int64Array>(
-    out_table->get_column(1)->chunk(0));
+      out_table->get_column(1)->chunk(0));
 
   for (int i = 0; i < group_col->length(); i++) {
     if (group_col->GetString(i) == "R0") {
@@ -353,43 +301,43 @@ TEST_F(AggregateTestFixture, SumWithGroupByCompositeHashTest) {
   }
 }
 
-///*
-// * SELECT sum(R.data) as data_sum
-// * FROM R
-// * GROUP BY R.group
-// * ORDER BY R.group
-// */
-//TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
-//  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-//
-//  ColumnReference R_key_ref = {R, "key"};
-//  ColumnReference R_group_ref = {R, "group"};
-//
-//  auto result = std::make_shared<OperatorResult>();
-//  auto out_result = std::make_shared<OperatorResult>();
-//  result->append(R);
-//
-//  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
-//  Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
-//                   {R_group_ref});
-//  Scheduler &scheduler = Scheduler::GlobalInstance();
-//  scheduler.addTask(agg_op.createTask());
-//
-//  scheduler.start();
-//  scheduler.join();
-//
-//  auto out_table =
-//      out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
-//  //    out_table->print();
-//
-//  // Construct expected results
-//  arrow::Status status;
-//  status = str_builder.AppendValues({"R0", "R1", "R2"});
-//  status = str_builder.Finish(&expected_agg_col_1);
-//
-//  status = int_builder.AppendValues({90, 50, 10});
-//  status = int_builder.Finish(&expected_agg_col_2);
-//
-//  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
-//  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_agg_col_2));
-//}
+/*
+ * SELECT sum(R.data) as data_sum
+ * FROM R
+ * GROUP BY R.group
+ * ORDER BY R.group
+ */
+TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
+  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+
+  ColumnReference R_key_ref = {R, "key"};
+  ColumnReference R_group_ref = {R, "group"};
+
+  auto result = std::make_shared<OperatorResult>();
+  auto out_result = std::make_shared<OperatorResult>();
+  result->append(R);
+
+  AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
+  Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
+                   {R_group_ref});
+  Scheduler &scheduler = Scheduler::GlobalInstance();
+  scheduler.addTask(agg_op.createTask());
+
+  scheduler.start();
+  scheduler.join();
+
+  auto out_table =
+      out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
+  //    out_table->print();
+
+  // Construct expected results
+  arrow::Status status;
+  status = str_builder.AppendValues({"R0", "R1", "R2"});
+  status = str_builder.Finish(&expected_agg_col_1);
+
+  status = int_builder.AppendValues({90, 50, 10});
+  status = int_builder.Finish(&expected_agg_col_2);
+
+  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_agg_col_2));
+}
