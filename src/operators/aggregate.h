@@ -32,8 +32,14 @@
 namespace hustle {
 namespace operators {
 
-// Types of aggregates we can perform. COUNT is currently not supported.
+// Types of aggregates we can perform.
 enum AggregateKernel { SUM, COUNT, MEAN };
+
+// Strategy of aggregation.
+// TODO: The usage is not healthy
+enum AggregateStrategy{
+  NESTED_DEPTH, COMPOSIT_HASH
+};
 
 /**
  * A reference structure containing all the information needed to perform an
@@ -137,6 +143,15 @@ class Aggregate : public Operator {
             std::vector<ColumnReference> order_by_refs,
             std::shared_ptr<OperatorOptions> options);
 
+  Aggregate(const std::size_t query_id,
+            std::shared_ptr<OperatorResult> prev_result,
+            std::shared_ptr<OperatorResult> output_result,
+            std::vector<AggregateReference> aggregate_units,
+            std::vector<ColumnReference> group_by_refs,
+            std::vector<ColumnReference> order_by_refs,
+            std::shared_ptr<OperatorOptions> options,
+            AggregateStrategy strategy);
+
   /**
    * Compute the aggregate(s) specified by the parameters passed into the
    * constructor.
@@ -149,10 +164,16 @@ class Aggregate : public Operator {
    */
   void execute(Task* ctx) override;
 
+  // TODO: Refactor this function
+  void setStrategy(AggregateStrategy strategy);
+
  private:
+  // The product of unique values in all group-by columns.
   std::size_t num_aggs_;
   // Operator result from an upstream operator and output result will be stored
   std::shared_ptr<OperatorResult> prev_result_, output_result_;
+  // Aggregate strategy
+  AggregateStrategy strategy_;
 
   // The new output table containing the group columns and aggregate columns.
   std::shared_ptr<Table> output_table_;
@@ -199,6 +220,11 @@ class Aggregate : public Operator {
    * Initialize or pre-compute data members.
    */
   void Initialize(Task* ctx);
+
+  // Initialize for nested depth strategy.
+  void InitializeNestedDepth(Task *ctx);
+
+  void InitializeCompositeHash(Task *ctx);
 
   void InitializeGroupByColumn(Task* ctx, std::size_t group_index);
 
@@ -275,6 +301,8 @@ class Aggregate : public Operator {
    * @param ctx scheduler task
    */
   void ComputeAggregates(Task* ctx);
+  void ComputeNestedDepthAggregates(Task* ctx);
+  void ComputeCompositeHashAggregates(Task* ctx);
 
   /**
    * Sort the output data with respect to each column in the ORDER BY clause.
@@ -295,6 +323,15 @@ class Aggregate : public Operator {
    * Create the output result from data computed during operator execution.
    */
   void Finish();
+
+
+  void ComputeGroupAggregateCompositeHash(
+    Task *ctx, size_t agg_index, const std::vector<int> &group_id,
+    arrow::Datum agg_col);
+
+  void ComputeGroupAggregateNestedDepth(
+    Task *ctx, size_t agg_index, const std::vector<int> &group_id,
+    arrow::Datum agg_col);
 };
 
 }  // namespace operators
