@@ -170,7 +170,7 @@ class Aggregate : public Operator {
 
   // Map group by column names to the actual group column
   std::vector<arrow::Datum> group_by_cols_;
-  // Hash the group to the agg_index (see BlockScan)
+  // Hash the group-by key to the agg_index (initialized in ComputeAggregates)
   phmap::flat_hash_map<int, int> group_agg_index_map_;
   // Number of unique values in each group by column.
   std::vector<arrow::Datum> unique_values_map_;
@@ -178,6 +178,7 @@ class Aggregate : public Operator {
   // by columns.
   std::vector<std::shared_ptr<arrow::Array>> unique_values_;
 
+  arrow::Datum agg_col_;
   // A StructType containing the types of all group by columns
   std::shared_ptr<arrow::DataType> group_type_;
   // We append each aggregate to this after it is computed.
@@ -185,11 +186,10 @@ class Aggregate : public Operator {
   // We append each group to this after we compute the aggregate for that
   // group.
   std::shared_ptr<arrow::StructBuilder> group_builder_;
-  arrow::Datum agg_col_;
   // Construct the group-by key. Initialized in Dynamic Depth Nested Loop.
   std::vector<std::vector<int>> group_id_vec_;
 
-  //
+  // Map group-by column name to group_index in the group_by_refs_ table.
   std::unordered_map<std::string, int> group_by_index_map_;
   std::vector<LazyTable> group_by_tables_;
   LazyTable agg_lazy_table_;
