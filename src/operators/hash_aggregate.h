@@ -98,7 +98,32 @@ private:
 
   void Finish();
 
+  /**
+   * @return A vector of ArrayBuilders, one for each of the group by columns.
+   */
   std::vector<std::shared_ptr<arrow::ArrayBuilder>> CreateGroupBuilderVector();
+
+  /**
+   * Construct an ArrayBuilder for the aggregate values.
+   *
+   * @param kernel The type of aggregate we want to compute
+   * @return An ArrayBuilder of the correct type for the aggregate we want
+   * to compute.
+   */
+  std::shared_ptr<arrow::ArrayBuilder> CreateAggregateBuilder(
+    AggregateKernel kernel);
+
+  /**
+   * Construct the schema for the output table.
+   *
+   * @param kernel The type of aggregate we want to compute
+   * @param agg_col_name The column over which we want to compute the
+   * aggregate.
+   *
+   * @return The schema for the output table.
+   */
+  std::shared_ptr<arrow::Schema> OutputSchema(AggregateKernel kernel,
+                                              const std::string& agg_col_name);
 };
 
 }
