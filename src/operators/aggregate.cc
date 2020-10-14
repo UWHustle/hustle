@@ -84,9 +84,10 @@ void Aggregate::Initialize(Task* ctx) {
                         .make_array();
               }),
               CreateLambdaTask([this, group_index, contexts](Task* internal) {
-                contexts[group_index]->match(internal,
-                                             group_by_cols_[group_index],
-                                             unique_values_[group_index]);
+                contexts[group_index]->match(
+                  internal,
+                  group_by_cols_[group_index],
+                  unique_values_[group_index]);
               }),
               CreateLambdaTask([this, contexts, group_index] {
                 unique_values_map_[group_index] =
@@ -455,12 +456,22 @@ void Aggregate::ComputeAggregates(Task* ctx) {
 
         bool exit = false;
         while (!exit) {
+          /*
+           * 1. COPY the current group_id to group_id_vec_[agg_index]
+           * 2. CREATE hash key of the group_id
+           * 3. INSERT the (key, agg_index) pair into group_agg_index_map_.
+           * 4. INCREMENT the group_id using dynamic nested depth loop.
+           * */
+
+          // 1. COPY group_id
           // LOOP BODY START
           group_id_vec_[agg_index] = group_id;
+          // 2. CREATE hash key
           auto key = 0;
           for (std::size_t k = 0; k < group_id.size(); ++k) {
             key += group_id[k] * pow(10, k);
           }
+          // 3. INSERT hash key map to agg_index
           group_agg_index_map_[key] = agg_index++;
           // LOOP BODY END
 
@@ -468,7 +479,7 @@ void Aggregate::ComputeAggregates(Task* ctx) {
             break;  // Only execute the loop once if there are no group bys
           }
 
-          // INCREMENT group_id
+          // 4. INCREMENT group_id
           group_id[num_group_columns - 1]++;
           while (group_id[index] == max_unique_values[index]) {
             if (index == 0) {

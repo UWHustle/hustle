@@ -150,14 +150,16 @@ class Aggregate : public Operator {
   void execute(Task* ctx) override;
 
  private:
+  // Number of groups to aggregate.
   std::size_t num_aggs_;
   // Operator result from an upstream operator and output result will be stored
   std::shared_ptr<OperatorResult> prev_result_, output_result_;
 
   // The new output table containing the group columns and aggregate columns.
   std::shared_ptr<Table> output_table_;
-
+  // The output result of each aggregate group (length = num_aggs_)
   std::atomic<int64_t>* aggregate_data_;
+  // Hold the aggregate column data (in chunks)
   std::vector<const int64_t*> aggregate_col_data_;
 
   // References denoting which columns we want to perform an aggregate on
@@ -168,8 +170,9 @@ class Aggregate : public Operator {
 
   // Map group by column names to the actual group column
   std::vector<arrow::Datum> group_by_cols_;
-
+  // Hash the group to the agg_index (see BlockScan)
   phmap::flat_hash_map<int, int> group_agg_index_map_;
+  // Number of unique values in each group by column.
   std::vector<arrow::Datum> unique_values_map_;
   // A vector of Arrays containing the unique values of each of the group
   // by columns.
@@ -183,9 +186,10 @@ class Aggregate : public Operator {
   // group.
   std::shared_ptr<arrow::StructBuilder> group_builder_;
   arrow::Datum agg_col_;
-
+  // Construct the group-by key. Initialized in Dynamic Depth Nested Loop.
   std::vector<std::vector<int>> group_id_vec_;
 
+  //
   std::unordered_map<std::string, int> group_by_index_map_;
   std::vector<LazyTable> group_by_tables_;
   LazyTable agg_lazy_table_;
