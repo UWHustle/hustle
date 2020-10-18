@@ -180,5 +180,61 @@ HashAggregate::CreateGroupBuilderVector() {
   return group_builders;
 }
 
+std::shared_ptr<arrow::ArrayBuilder> HashAggregate::CreateAggregateBuilder(
+  AggregateKernel kernel) {
+  std::shared_ptr<arrow::ArrayBuilder> aggregate_builder;
+  switch (kernel) {
+    case SUM: {
+      aggregate_builder = std::make_shared<arrow::Int64Builder>();
+      break;
+    }
+    case MEAN: {
+      aggregate_builder = std::make_shared<arrow::DoubleBuilder>();
+      break;
+    }
+    case COUNT: {
+      aggregate_builder = std::make_shared<arrow::Int64Builder>();
+      break;
+    }
+  }
+  return aggregate_builder;
+}
+
+std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
+  AggregateKernel kernel, const std::string& agg_col_name) {
+  arrow::Status status;
+  arrow::SchemaBuilder schema_builder;
+
+  if (group_type_ != nullptr) {
+    status = schema_builder.AddFields(group_type_->fields());
+    evaluate_status(status, __FUNCTION__, __LINE__);
+  }
+  switch (kernel) {
+    case SUM: {
+      status =
+        schema_builder.AddField(arrow::field(agg_col_name, arrow::int64()));
+      evaluate_status(status, __FUNCTION__, __LINE__);
+      break;
+    }
+    case MEAN: {
+      status =
+        schema_builder.AddField(arrow::field(agg_col_name, arrow::float64()));
+      evaluate_status(status, __FUNCTION__, __LINE__);
+      break;
+    }
+    case COUNT: {
+      status =
+        schema_builder.AddField(arrow::field(agg_col_name, arrow::int64()));
+      evaluate_status(status, __FUNCTION__, __LINE__);
+      break;
+    }
+  }
+
+  auto result = schema_builder.Finish();
+  evaluate_status(result.status(), __FUNCTION__, __LINE__);
+  return result.ValueOrDie();
+}
+
+
 
 }
