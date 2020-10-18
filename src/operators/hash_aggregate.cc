@@ -23,6 +23,52 @@
 
 namespace hustle::operators {
 
+HashAggregateStrategy::HashAggregateStrategy(int partitions,
+                                             int chunks)
+  : partitions(partitions), chunks(chunks) {}
+
+int HashAggregateStrategy::suggestedNumTasks() {
+    if (chunks < partitions){
+      return chunks;
+    }
+    return partitions;
+}
+
+std::tuple<int, int> HashAggregateStrategy::getChunkID(
+  int tid, int totalThreads, int totalNumChunks){
+
+  assert(tid >= 0);
+  assert(totalThreads > 0);
+  assert(totalNumChunks >= 0);
+
+  if (tid >= totalNumChunks){
+    return std::make_tuple(-1, -1);
+  }
+
+  //  auto M = ceil(totalNumChunks / totalThreads);
+  int M = (totalNumChunks + totalThreads - 1) / totalThreads;
+  //  auto m = floor(totalNumChunks / totalThreads);
+  int m = totalNumChunks / totalThreads;
+  int FR = totalNumChunks % totalThreads;
+
+  int st = 0;
+  int ed = 0;
+  if (tid < FR){
+    st = M * tid;
+    ed = M * (tid + 1);
+  }else{
+    st = M * FR + m * (tid - FR);
+    ed = M * FR + m * (tid + 1- FR);
+  }
+  // st = max(st, 0);
+  st = st < 0 ? 0 : st;
+  // ed = min(ed, totalNumChunks);
+  ed = ed > totalNumChunks ? totalNumChunks : ed;
+
+  return std::make_tuple(st, ed);
+};
+
+
 
 HashAggregate::HashAggregate(const std::size_t query_id,
                              std::shared_ptr<OperatorResult> prev_result,
