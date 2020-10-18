@@ -1,7 +1,9 @@
 add_library(
         hustle_src_operators
         join.h join.cc
+        aggregate_const.h
         aggregate.h aggregate.cc
+        hash_aggregate.h hash_aggregate.cc
         select.h select.cc
         join_graph.cc join_graph.h
         predicate.cc predicate.h
