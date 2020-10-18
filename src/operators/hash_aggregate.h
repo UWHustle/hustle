@@ -24,6 +24,20 @@
 namespace hustle{
 namespace operators{
 
+class HashAggregateStrategy {
+public:
+  HashAggregateStrategy(int partitions, int chunks);
+
+private:
+  int chunks;
+  int partitions;
+
+  int suggestedNumTasks();
+  static std::tuple<int, int> getChunkID(int tid,
+                                         int totalThreads,
+                                         int totalNumChunks);
+};
+
 class HashAggregate : public Operator {
 
 public:
@@ -44,6 +58,11 @@ public:
 
   void execute(Task* ctx) override;
 
+  // TODO: Documentation
+  static std::tuple<int, int> getChunkID(int tid,
+                                         int totalThreads,
+                                         int totalNumChunks);
+
 private:
   // Operator result from an upstream operator and output result will be stored
   std::shared_ptr<OperatorResult> prev_result_, output_result_;
@@ -62,13 +81,6 @@ private:
 
   // Map group by column names to the actual group column
   std::vector<arrow::Datum> group_by_cols_;
-  //  // Number of unique values in each group by column.
-  //  std::vector<arrow::Datum> unique_values_map_;
-  //  // A vector of Arrays containing the unique values of each of the group
-  //  // by columns.
-  //  std::vector<std::shared_ptr<arrow::Array>> unique_values_;
-
-
 
   arrow::Datum agg_col_;
   // A StructType containing the types of all group by columns
@@ -85,6 +97,13 @@ private:
   std::unordered_map<std::string, int> group_by_index_map_;
   std::vector<LazyTable> group_by_tables_;
   LazyTable agg_lazy_table_;
+
+  // Two phase hashing requires two types of hash tables.
+  // Local hash table that holds the aggregated values for each group.
+  std::unordered_map<size_t, int> local_maps;
+
+  // Global hash table handles the second phase of hashing.
+
 
   // If a thread wants to insert a group and its aggregate into group_builder_
   // and aggregate_builder_, then it must grab this mutex to ensure that the
@@ -124,6 +143,8 @@ private:
    */
   std::shared_ptr<arrow::Schema> OutputSchema(AggregateKernel kernel,
                                               const std::string& agg_col_name);
+
+
 };
 
 }
