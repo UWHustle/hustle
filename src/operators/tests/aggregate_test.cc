@@ -21,6 +21,7 @@
 #include <arrow/compute/api.h>
 
 #include <fstream>
+#include <operators/hash_aggregate.h>
 
 #include "execution/execution_plan.h"
 #include "gmock/gmock.h"
@@ -340,4 +341,38 @@ TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
 
   EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
   EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_agg_col_2));
+}
+
+/*
+ * SELECT avg(R.data) as data_mean
+ * FROM R
+ */
+TEST_F(AggregateTestFixture, MeanTestHashAgg){
+  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+
+  ColumnReference R_key_ref = {R, "key"};
+  ColumnReference R_group_ref = {R, "data"};
+
+  auto result = std::make_shared<OperatorResult>();
+  auto out_result = std::make_shared<OperatorResult>();
+  result->append(R);
+
+  AggregateReference agg_ref = {AggregateKernel::MEAN, "data_mean", R, "data"};
+  HashAggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+
+  Scheduler &scheduler = Scheduler::GlobalInstance();
+  scheduler.addTask(agg_op.createTask());
+
+  scheduler.start();
+  scheduler.join();
+
+  auto out_table = out_result->materialize({{nullptr, "data_mean"}});
+  //    out_table->print();
+
+  // Construct expected results
+  arrow::Status status;
+  status = double_builder.Append(((double)150) / 6);
+  status = double_builder.Finish(&expected_agg_col_1);
+
+  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
 }
