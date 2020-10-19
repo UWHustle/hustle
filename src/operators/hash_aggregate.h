@@ -25,20 +25,46 @@ namespace hustle{
 namespace operators{
 
 class HashAggregateStrategy {
+
 public:
+  HashAggregateStrategy();
   HashAggregateStrategy(int partitions, int chunks);
+
+  int suggestedNumTasks() const;
+  static std::tuple<int, int> getChunkID(int tid,
+                                         int totalThreads,
+                                         int totalNumChunks);
 
 private:
   int chunks;
   int partitions;
 
-  int suggestedNumTasks();
-  static std::tuple<int, int> getChunkID(int tid,
-                                         int totalThreads,
-                                         int totalNumChunks);
 };
 
 class HashAggregate : public Operator {
+  /**
+   * Two-phase aggregate.
+   * Procedure:
+   *    1. Partition the aggregate columns into different chunks.
+   *    2. In parallel, perform the first-phase aggregation.
+   *        - For each task, construct a local hash map.
+   *        - Fetch the data in its partition and perform aggregation.
+   *        - Store the result on local hash map.
+   *    3. On master thread, perform the second-phase aggregation.
+   *        - Iterates through all the local hash maps constructed in 2 and
+   *            aggregate the results on a (bigger) hash map.
+   */
+
+  // TODO: Refactor the creation of hash map to a HashAggregateMap class.
+  //  This class should design such that:
+  //    1. Hook different phase of aggregation into the hash map creation.
+  //      Decouple the aggregate kernel from every creation methods.
+  //      Ideally, we want to abstract this interface as much as possible.
+  //    2. Class template, and take care of polymorphic type from arrow.
+  //    3. Customize hash function, with hash-combine supported.
+  //    4. Automatic mapping of group-by tuple hash to the row id
+  //      on the aggregate column. Hopefully this mapping won't change.
+
 
 public:
   HashAggregate(const std::size_t query_id,
@@ -57,11 +83,6 @@ public:
             std::shared_ptr<OperatorOptions> options);
 
   void execute(Task* ctx) override;
-
-  // TODO: Documentation
-  static std::tuple<int, int> getChunkID(int tid,
-                                         int totalThreads,
-                                         int totalNumChunks);
 
 private:
   // Operator result from an upstream operator and output result will be stored
@@ -99,11 +120,29 @@ private:
   LazyTable agg_lazy_table_;
 
   // Two phase hashing requires two types of hash tables.
+  HashAggregateStrategy strategy;
+
+  // TODO: Refactor the creation of hash map to a HashAggregateMap class.
   // Local hash table that holds the aggregated values for each group.
-  std::unordered_map<size_t, int> local_maps;
+  // The (temporary) type for key.
+  typedef size_t hash_t;
+  // The (temporary) type for value.
+  // Used long long in case we hit int64_t.
+  typedef long long value_t;
+  // TODO: Refactor the unordered_maps to use phmap::flat_hash_map.
+  //  It seems to have great optimization over the hash phrasing.
+  typedef std::unordered_map<hash_t, value_t> HashMap;
+  typedef std::unordered_map<hash_t, double> MeanHashMap;
+  std::vector<HashMap *> count_maps;
+  std::vector<HashMap *> value_maps;
+  // Map the hash key to (chunk_id, offset).
+  phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>> * tuple_map;
+
+  // TODO: Construct a mapping from hash key to group-by column tuples
 
   // Global hash table handles the second phase of hashing.
-
+  // TODO: Depending on the strategy, the global_map should be polymorphic.
+  void * global_map;
 
   // If a thread wants to insert a group and its aggregate into group_builder_
   // and aggregate_builder_, then it must grab this mutex to ensure that the
@@ -144,7 +183,45 @@ private:
   std::shared_ptr<arrow::Schema> OutputSchema(AggregateKernel kernel,
                                               const std::string& agg_col_name);
 
+  /**
+   * Initialize the hash tables for the first phase of aggregate.
+   */
+  void InitializeLocalHashTables();
 
+  /**
+   * Perform the first aggregate of the two phase hash aggregate.
+   * Only aggregate with chunk_id range from [st, ed).
+   *
+   * @param task_id Task id.
+   * @param start_chunk_id The chunk_id to start with.
+   * @param end_chunk_id The chunk_id to end with.
+   */
+  void FirstPhaseAggregateChunks(
+    size_t task_id, int start_chunk_id, int end_chunk_id);
+
+  /**
+   * Helper method of FirstPhaseAggregateChunks().
+   * First phase aggregate on chunk_id.
+   *
+   * @param task_id Task id.
+   * @param chunk_id The chunk_id to work with.
+   */
+  void FirstPhaseAggregateChunk_(size_t task_id, int chunk_id);
+
+  /**
+   * Perform the second aggregate of the two phase hash aggregate.
+   *
+   * @param internal The scheduler object.
+   */
+  void SecondPhaseAggregate(Task* internal);
+
+
+
+
+
+
+
+  hash_t HashCombine(hash_t seed, hash_t val);
 };
 
 }
