@@ -154,7 +154,7 @@ private:
 
   void ComputeAggregates(Task* internal);
 
-  void Finish();
+  void Finish(Task* internal);
 
   /**
    * @return A vector of ArrayBuilders, one for each of the group by columns.
