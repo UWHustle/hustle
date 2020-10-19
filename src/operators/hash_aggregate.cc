@@ -235,6 +235,161 @@ std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
   return result.ValueOrDie();
 }
 
+void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
+  auto agg_chunk = agg_col_.chunked_array()->chunk(chunk_index);
+  auto chunk_size = agg_chunk->length();
+
+  auto agg_type = agg_col_.type();
+  auto agg_type_id = agg_type->id();
+
+  auto kernel = aggregate_refs_[0].kernel;
+
+  // Retrieve the proper maps for aggregate
+  HashMap * count_map = count_maps.at(tid);
+  HashMap * value_map = value_maps.at(tid);
+
+  for (int item_index = 0; item_index < chunk_size; ++item_index) {
+    // TODO: Redefine item value as hash_t
+    // 1. Build agg_item_key
+    // 2. Build agg_item_value
+    // 3. Insert the value into the hash table
+    // 4. If the key did not present in 3 originally,
+    //      insert the tuple into tuple_map.
+    hash_t agg_item_key = 0;
+    long long agg_item_value = 0;
+
+    // 1
+    hash_t key = 0;
+    for (const auto& group_by: group_by_cols_){
+      auto group_by_chunk = group_by.chunked_array()->chunk(chunk_index);
+
+      auto group_by_type = group_by.type();
+      auto group_by_type_id = group_by_type->id();
+      hash_t next_key = 0;
+      // TODO: Factor this out as template functions.
+      switch (group_by_type_id) {
+        case arrow::Type::STRING : {
+          // TODO: Guard - cannot be sum / mean, but could be count.
+          auto a = group_by_chunk->data()->GetValues<std::string>(item_index)->c_str();
+          auto b = std::hash<std::string>{}(a);
+          next_key = b;
+          break;
+        }
+        case arrow::Type::FIXED_SIZE_BINARY : {
+          // TODO: Not sure what is the FIXED_SIZE_BINARY type.
+          std::cerr << "HashAggregate does not support group bys of type " +
+                    group_by_type->ToString()
+                    << std::endl;
+          break;
+        }
+        case arrow::Type::INT64 : {
+          auto a = group_by_chunk->data()->GetValues<std::int64_t>(item_index);
+          next_key = *a;
+          break;
+        }
+        default: {
+          std::cerr << "HashAggregate does not support group bys of type " +
+                    group_by_type->ToString()
+                    << std::endl;
+        }
+      }
+      key = HashCombine(key, next_key);
+    }
+    agg_item_key = key;
+    debugmsg(agg_item_key);
+
+    // 2
+    // TODO: Without a unique operator, we don't need to calculate
+    //  the String type hash code.
+    switch (agg_type_id) {
+      case arrow::Type::STRING : {
+        // TODO: Guard - cannot be sum / mean, but could be count.
+        auto a = agg_chunk->data()->GetValues<std::string>(item_index)->c_str();
+        auto b = std::hash<std::string>{}(a);
+        agg_item_value = b;
+        break;
+      }
+      case arrow::Type::FIXED_SIZE_BINARY : {
+        // TODO: Not sure what is the FIXED_SIZE_BINARY type.
+        std::cerr << "HashAggregate does not support aggregate of type " +
+                     agg_type->ToString()
+                  << std::endl;
+        break;
+      }
+      case arrow::Type::INT64 : {
+        auto a = agg_chunk->data()->GetValues<std::int64_t>(item_index);
+        agg_item_value = *a;
+        break;
+      }
+      default: {
+        std::cerr << "HashAggregate does not support aggregate of type " +
+                     agg_type->ToString()
+                  << std::endl;
+      }
+    }
+    debugmsg(agg_item_value);
+
+
+    // 3
+    // TODO: Optimize the hash key access pattern.
+    switch (kernel) {
+      case SUM:{
+        auto it = value_map->find(agg_item_key);
+        if (it != value_map->end()){
+          it->second = agg_item_value;
+        }else{
+          it->second = agg_item_value + it->second;
+        }
+        break;
+      }
+
+      case COUNT:{
+        auto it = value_map->find(agg_item_key);
+        if (it != value_map->end()){
+          it->second = 1;
+        }else{
+          it->second = 1 + it->second;
+        }
+        break;
+      }
+
+      case MEAN:{
+        auto it = value_map->find(agg_item_key);
+        auto jt = count_map->find(agg_item_key);
+        if (it != value_map->end()){
+          it->second = agg_item_value;
+        }else{
+          it->second = agg_item_value + it->second;
+        }
+        if (jt != count_map->end()){
+          jt->second = 1;
+        }else{
+          jt->second = 1 + jt->second;
+        }
+        break;
+      }
+
+      default:{
+        std::cerr << "Not supported aggregate kernel." << std::endl;
+        break;
+      }
+    }
+
+    // 4
+    auto it = tuple_map->find(agg_item_key);
+    if (it == tuple_map->end()){
+      // Only insert the tuple when its not shown.
+      // TODO: insert_or_assign() does not prevent collision when two threads
+      //  tries to enter the critical section. A better method, which does not
+      //  show up here, seems to be
+      //        insert_or_abort().
+      auto item = std::tuple(chunk_index, item_index);
+      tuple_map->insert_or_assign(agg_item_key, item);
+    }
+  }
+
+}
+
 void HashAggregate::InitializeLocalHashTables() {
   auto num_tasks = strategy.suggestedNumTasks();
   auto kernel = aggregate_refs_[0].kernel;
