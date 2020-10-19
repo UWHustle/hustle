@@ -235,6 +235,32 @@ std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
   return result.ValueOrDie();
 }
 
+void HashAggregate::InitializeLocalHashTables() {
+  auto num_tasks = strategy.suggestedNumTasks();
+  auto kernel = aggregate_refs_[0].kernel;
+  switch (kernel) {
+    case SUM:
+    case COUNT: {
+      for (size_t tid = 0; tid < num_tasks; ++tid) {
+        auto map = new HashMap();
+        value_maps.push_back(map);
+      }
+      break;
+    }
+
+    case MEAN: {
+      // Need 2 maps to hold the float values accountable.
+      for (size_t tid = 0; tid < num_tasks; ++tid) {
+        auto value_map = new HashMap();
+        auto count_map = new HashMap();
+        value_maps.push_back(value_map);
+        count_maps.push_back(count_map);
+      }
+      break;
+    }
+  }
+}
+
 
 
 }
