@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include <storage/util.h>
 #include "hash_aggregate.h"
 
 // TODO: Merge this reference with the one in aggregate.cc.
@@ -23,11 +24,14 @@
 
 namespace hustle::operators {
 
+HashAggregateStrategy::HashAggregateStrategy()
+  : partitions(0), chunks(0) {}
+
 HashAggregateStrategy::HashAggregateStrategy(int partitions,
                                              int chunks)
   : partitions(partitions), chunks(chunks) {}
 
-int HashAggregateStrategy::suggestedNumTasks() {
+int HashAggregateStrategy::suggestedNumTasks() const {
     if (chunks < partitions){
       return chunks;
     }
@@ -99,7 +103,8 @@ void HashAggregate::execute(Task *ctx) {
   ctx->spawnTask(CreateTaskChain(
     CreateLambdaTask([this](Task* internal){
       Initialize(internal);
-    }),
+    })
+    ,
     CreateLambdaTask([this](Task* internal){
       ComputeAggregates(internal);
     }),
@@ -115,8 +120,10 @@ void HashAggregate::Initialize(Task *ctx) {
   std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
   group_by_fields.reserve(group_by_refs_.size());
   for (auto& group_by : group_by_refs_) {
-    group_by_fields.push_back(
-      group_by.table->get_schema()->GetFieldByName(group_by.col_name));
+    auto val = group_by.table->get_schema()->GetFieldByName(group_by.col_name);
+    group_by_fields.push_back(val);
+    debugmsg(val->ToString(true));
+
   }
 
   // Initialize a StructBuilder containing one builder for each group
@@ -134,18 +141,27 @@ void HashAggregate::Initialize(Task *ctx) {
     OutputSchema(aggregate_refs_[0].kernel, aggregate_refs_[0].agg_name);
   output_table_ =
     std::make_shared<Table>(AGGREGATE_OUTPUT_TABLE, out_schema, BLOCK_SIZE);
-
   group_by_cols_.resize(group_by_refs_.size());
   for (auto& group_by : group_by_refs_) {
     group_by_tables_.push_back(prev_result_->get_table(group_by.table));
   }
 
-
-
 }
 
-void HashAggregate::ComputeAggregates(Task *internal) {
+    }),
+    CreateLambdaTask([this](Task * internal){
+      // Second Phase Aggregate
+      // TODO: Make strategy controls whether we use the phmap or
+      //  the single hash map strategy.
+      // 1. Initialize the global map
+      // 2. For each local map, we add that to the global map.
+      // 3. Convert to an arrow array.
 
+
+
+    })
+
+    ));
 }
 
 void HashAggregate::Finish() {
