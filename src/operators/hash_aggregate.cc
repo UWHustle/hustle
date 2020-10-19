@@ -148,8 +148,69 @@ void HashAggregate::Initialize(Task *ctx) {
 
 }
 
+void HashAggregate::ComputeAggregates(Task *ctx) {
+  // TODO: Only support one column aggregation for now.
+  ctx->spawnTask(CreateTaskChain(
+    CreateLambdaTask([this](Task* internal){
+      // Initialize the agg_col_ variable.
+      auto table = aggregate_refs_[0].col_ref.table;
+      auto col_name = aggregate_refs_[0].col_ref.col_name;
+      agg_lazy_table_ = prev_result_->get_table(table);
+      agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
+      debugmsg(col_name);
     }),
-    CreateLambdaTask([this](Task * internal){
+    CreateLambdaTask([this](Task* internal){
+      // Partition the chunks.
+
+      // Initialize the aggregate_col_data_?
+      auto agg_col = agg_col_.chunked_array();
+      auto num_chunks = agg_col->num_chunks();
+      // TODO: Maybe this is unnecessary
+      aggregate_col_data_.resize(num_chunks);
+
+      for (std::size_t chunk_index = 0; chunk_index < num_chunks; ++chunk_index) {
+        auto val = agg_col->chunk(chunk_index)->data()->GetValues<int64_t>(1, 0);
+        aggregate_col_data_[chunk_index] = val;
+        debugmsg(
+          "chunk_index=" << chunk_index <<
+          ", chunks=" << num_chunks <<
+          ", length=" << agg_col->chunk(chunk_index)->data()->length <<
+          ", offset=" << *val);
+      }
+
+      // Distribute tasks to perform the first phase of hash aggregate.
+      std::size_t totalThreads = std::thread::hardware_concurrency();
+      // TODO: Initialize the strategy at the Aggregate init time.
+      // TODO: Make strategy control the hash function.
+      strategy = HashAggregateStrategy(totalThreads, num_chunks);
+      auto num_tasks = strategy.suggestedNumTasks();
+      InitializeLocalHashTables();
+
+    }),
+    CreateLambdaTask([this](Task* internal){
+      // First Phase Aggregate
+      auto num_tasks = strategy.suggestedNumTasks();
+      std::size_t totalThreads = std::thread::hardware_concurrency();
+
+      auto agg_col = agg_col_.chunked_array();
+      auto num_chunks = agg_col->num_chunks();
+
+      for (size_t tid = 0; tid < num_tasks; ++tid) {
+        int st, ed;
+        std::tie (st, ed) = strategy.getChunkID(
+          tid, totalThreads, num_chunks);
+        if (st >= ed){ continue; }
+
+        // First Phase Aggregation
+        internal->spawnTask(CreateLambdaTask(
+          [this, tid, st, ed](Task * ctx){
+            printf("tid=%zu, st=%d, ed=%d\n", tid, st, ed);
+            FirstPhaseAggregateChunks(tid, st, ed);
+          }
+        ));
+      }
+    }),
+    CreateLambdaTask([this](Task* internal){
       // Second Phase Aggregate
       // TODO: Make strategy controls whether we use the phmap or
       //  the single hash map strategy.
@@ -157,7 +218,12 @@ void HashAggregate::Initialize(Task *ctx) {
       // 2. For each local map, we add that to the global map.
       // 3. Convert to an arrow array.
 
-
+      // TODO: Refactor this strategy and use the parallel update strategy.
+      //  Haven't figure out if the phmap has the compare-then-swap mechamism.
+      // TODO: Optimize this strategy - first take the largest map,
+      //  then for other maps just update the other map.
+      //  Be careful when there is only one map.
+      SecondPhaseAggregate(internal);
 
     })
 
