@@ -230,6 +230,89 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
     ));
 }
 
+void HashAggregate::SecondPhaseAggregate(Task* internal){
+  auto kernel = aggregate_refs_[0].kernel;
+  switch (kernel) {
+    case SUM:
+    case COUNT:{
+      auto big_map = new HashMap();
+      global_map = big_map;
+      for (auto map: value_maps){
+        for(auto item: *map){
+          auto key = item.first;
+          auto value = item.second;
+          auto it = big_map->find(key);
+          if (it == big_map->end()){
+            big_map->insert(std::make_pair(key, value));
+          }else{
+            it->second = value + it->second;
+          }
+        }
+      }
+      break;
+    }
+
+    case MEAN: {
+      auto big_value_map = new HashMap();
+      auto big_count_map = new HashMap();
+      auto big_final_map = new MeanHashMap();
+      global_map = big_final_map;
+
+      // First aggregate all the result to
+      // big_value_map and big_count_map
+      for (int i = 0; i < value_maps.size(); ++i) {
+        auto cmap = count_maps.at(i);
+        auto vmap = value_maps.at(i);
+        for (auto ct: *cmap) {
+          auto key = ct.first;
+          auto count = ct.second;
+          auto vt = vmap->find(key);
+          if (vt == vmap->end()) {
+            std::cerr << "Failed to find the key in value table: "
+                      << key << std::endl;
+            throw std::exception();
+          }
+          auto value = vt->second;
+
+          // Update the global value map
+          auto it = big_value_map->find(key);
+          if (it == big_value_map->end()) {
+            big_value_map->insert(std::make_pair(key, value));
+          } else {
+            it->second = it->second + value;
+          }
+          // Update the global count map
+          auto jt = big_count_map->find(key);
+          if (jt == big_count_map->end()) {
+            big_count_map->insert(std::make_pair(key, count));
+          } else {
+            it->second = it->second + count;
+          }
+        }
+      }
+
+      // Then update the global result map
+      for(auto ct: *big_count_map){
+        auto key = ct.first;
+        auto count = ct.second;
+        auto vt = big_value_map->find(key);
+        if (vt == big_value_map->end()){
+          std::cerr << "Failed to find the key in value table: "
+                    << key << std::endl;
+          throw std::exception();
+        }
+        auto value = vt->second;
+
+        auto result = (double) value / (double) count;
+        big_final_map->insert({key, result});
+      }
+
+      break;
+    }
+  }
+
+}
+
 void HashAggregate::Finish() {
 
 }
