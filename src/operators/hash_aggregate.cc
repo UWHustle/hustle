@@ -235,6 +235,12 @@ std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
   return result.ValueOrDie();
 }
 
+void HashAggregate::FirstPhaseAggregateChunks(size_t tid, int st, int ed) {
+  for(int i = st; i < ed; i++){
+    FirstPhaseAggregateChunk_(tid, i);
+  }
+}
+
 void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
   auto agg_chunk = agg_col_.chunked_array()->chunk(chunk_index);
   auto chunk_size = agg_chunk->length();
