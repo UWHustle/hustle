@@ -21,6 +21,7 @@
 // TODO: Merge this reference with the one in aggregate.cc.
 //  Maybe put this in aggregate.h?
 #define AGGREGATE_OUTPUT_TABLE "aggregate"
+#define debugmsg(arg) {std::cout << __FILE_NAME__ << ":" << __LINE__ << " " << arg << std::endl;}
 
 namespace hustle::operators {
 
@@ -513,8 +514,8 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
     switch (kernel) {
       case SUM:{
         auto it = value_map->find(agg_item_key);
-        if (it != value_map->end()){
-          it->second = agg_item_value;
+        if (it == value_map->end()){
+          value_map->insert(std::make_pair(agg_item_key, agg_item_value));
         }else{
           it->second = agg_item_value + it->second;
         }
@@ -523,8 +524,8 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
 
       case COUNT:{
         auto it = value_map->find(agg_item_key);
-        if (it != value_map->end()){
-          it->second = 1;
+        if (it == value_map->end()){
+          value_map->insert(std::make_pair(agg_item_key, 1));
         }else{
           it->second = 1 + it->second;
         }
@@ -535,12 +536,12 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
         auto it = value_map->find(agg_item_key);
         auto jt = count_map->find(agg_item_key);
         if (it != value_map->end()){
-          it->second = agg_item_value;
+          value_map->insert(std::make_pair(agg_item_key, agg_item_value));
         }else{
           it->second = agg_item_value + it->second;
         }
         if (jt != count_map->end()){
-          jt->second = 1;
+          value_map->insert(std::make_pair(agg_item_key, 1));
         }else{
           jt->second = 1 + jt->second;
         }
