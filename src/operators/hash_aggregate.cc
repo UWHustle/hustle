@@ -235,6 +235,13 @@ std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
   return result.ValueOrDie();
 }
 
+// TODO: Refactor HashCombine function as a part of the strategy.
+// TODO: Verify if this hash function works.
+HashAggregate::hash_t HashAggregate::HashCombine(hash_t seed, hash_t val){
+  seed ^= val + 0x9e3779b9 + (seed<<6) + (seed>>2);
+  return seed;
+}
+
 void HashAggregate::FirstPhaseAggregateChunks(size_t tid, int st, int ed) {
   for(int i = st; i < ed; i++){
     FirstPhaseAggregateChunk_(tid, i);
