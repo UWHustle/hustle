@@ -2,6 +2,7 @@ add_library(
         hustle_src_resolver
         plan.h plan.cc
         resolver.h resolver.cc
+        cresolver.h cresolver.cc
 )
 
 target_link_libraries(hustle_src_resolver

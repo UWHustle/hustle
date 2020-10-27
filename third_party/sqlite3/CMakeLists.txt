@@ -1,7 +1,7 @@
 add_library(
         sqlite3
-        sqlite3-all.c
+        sqlite3.c
 		sqlite3.h
 )
 
-target_link_libraries(sqlite3 ${CMAKE_DL_LIBS})
+target_link_libraries(sqlite3 PUBLIC ${CMAKE_DL_LIBS} hustle_src_resolver)
