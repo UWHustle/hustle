@@ -1,7 +1,14 @@
 #include "resolver/cresolver.h"
 
-int resolveSelect(Select* queryTree){
+#include <iostream>
 
-    // TODO: (@srsuryadev) resolve the select query
-    return 0;
+int resolveSelect(Select* queryTree) {
+  // TODO: (@srsuryadev) resolve the select query
+  if (queryTree->pEList != NULL) {
+    std::cout << queryTree->pEList->a->zEName << std::endl;
+  }
+  if (queryTree->pGroupBy != NULL && queryTree->pEList != NULL) {
+    std::cout << queryTree->pGroupBy->a->zEName << std::endl;
+  }
+  return 0;
 }
