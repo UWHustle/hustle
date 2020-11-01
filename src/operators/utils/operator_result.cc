@@ -30,13 +30,13 @@ OperatorResult::OperatorResult(std::vector<LazyTable> lazy_tables) {
 
 OperatorResult::OperatorResult() = default;
 
-void OperatorResult::append(std::shared_ptr<Table> table) {
+void OperatorResult::append(std::shared_ptr<DBTable> table) {
   LazyTable lazy_table(table, arrow::Datum(), arrow::Datum(), arrow::Datum());
   lazy_tables_.insert(lazy_tables_.begin(), lazy_table);
 }
 
 void OperatorResult::set_materialized_col(
-    std::shared_ptr<Table> table, int i,
+    std::shared_ptr<DBTable> table, int i,
     std::shared_ptr<arrow::ChunkedArray> col) {
   get_table(table).set_materialized_column(i, col);
 }
@@ -57,7 +57,7 @@ void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
 
 LazyTable OperatorResult::get_table(int i) { return lazy_tables_[i]; }
 
-LazyTable OperatorResult::get_table(const std::shared_ptr<Table>& table) {
+LazyTable OperatorResult::get_table(const std::shared_ptr<DBTable>& table) {
   LazyTable result;
   for (auto& lazy_table : lazy_tables_) {
     if (lazy_table.table == table) {
@@ -68,7 +68,7 @@ LazyTable OperatorResult::get_table(const std::shared_ptr<Table>& table) {
   return result;
 }
 
-std::shared_ptr<Table> OperatorResult::materialize(
+std::shared_ptr<DBTable> OperatorResult::materialize(
     const std::vector<ColumnReference>& col_refs) {
   arrow::Status status;
   arrow::SchemaBuilder schema_builder;
@@ -94,7 +94,7 @@ std::shared_ptr<Table> OperatorResult::materialize(
   evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
   auto out_schema = schema_builder.Finish().ValueOrDie();
 
-  auto out_table = std::make_shared<Table>("out", out_schema, BLOCK_SIZE);
+  auto out_table = std::make_shared<DBTable>("out", out_schema, BLOCK_SIZE);
 
   std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
 

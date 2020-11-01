@@ -29,6 +29,7 @@
   1024  // Force the block size to 1 KB for the sake of this test
 
 using namespace testing;
+using namespace hustle::storage;
 
 class HustleBlockTest : public testing::Test {
  protected:

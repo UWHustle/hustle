@@ -58,7 +58,7 @@ class OperatorResult {
    *
    * @param table The table to append
    */
-  void append(std::shared_ptr<Table> table);
+  void append(std::shared_ptr<DBTable> table);
 
   /**
    * Append a new lazy table to the OperatorResult.
@@ -93,7 +93,7 @@ class OperatorResult {
    * @param table
    * @return a LazyTable
    */
-  LazyTable get_table(const std::shared_ptr<Table>& table);
+  LazyTable get_table(const std::shared_ptr<DBTable>& table);
 
   /**
    * Construct a new table from the OperatorResult
@@ -101,12 +101,12 @@ class OperatorResult {
    * @param col_refs References to the columns to project in the output table.
    * @return A new table containing all columns specified by col_refs
    */
-  std::shared_ptr<Table> materialize(
+  std::shared_ptr<DBTable> materialize(
       const std::vector<ColumnReference>& col_refs);
 
   std::vector<LazyTable> lazy_tables_;
 
-  void set_materialized_col(std::shared_ptr<Table> table, int i,
+  void set_materialized_col(std::shared_ptr<DBTable> table, int i,
                             std::shared_ptr<arrow::ChunkedArray> col);
 };
 

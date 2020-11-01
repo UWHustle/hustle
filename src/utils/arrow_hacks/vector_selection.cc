@@ -1837,7 +1837,7 @@ Result<std::shared_ptr<RecordBatch>> FilterRecordBatch(
   return RecordBatch::Make(batch.schema(), indices->length, columns);
 }
 
-Result<std::shared_ptr<Table>> FilterTable(const Table& table,
+Result<std::shared_ptr<Table>> FilterTable(const DBTable& table,
                                            const Datum& filter,
                                            const FunctionOptions* options,
                                            ExecContext* ctx) {
@@ -1982,7 +1982,7 @@ Result<std::shared_ptr<Table>> TakeTA(const Table& table, const Array& indices,
   return Table::Make(table.schema(), columns);
 }
 
-Result<std::shared_ptr<Table>> TakeTC(const Table& table,
+Result<std::shared_ptr<Table>> TakeTC(const DBTable& table,
                                       const ChunkedArray& indices,
                                       const TakeOptions& options,
                                       ExecContext* ctx) {

@@ -2,11 +2,13 @@ add_library(
         hustle_src_resolver
         plan.h plan.cc
         resolver.h resolver.cc
+        select_resolver.h select_resolver.cc
         cresolver.h cresolver.cc
 )
 
 target_link_libraries(hustle_src_resolver
         hustle_src_parser
+        hustle_src_operators
 )
 
 

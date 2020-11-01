@@ -28,6 +28,8 @@
 #include "storage/table.h"
 #include "utils/arrow_compute_wrappers.h"
 
+using namespace hustle::storage;
+
 namespace hustle::operators {
 
 struct RecordID {
@@ -36,18 +38,18 @@ struct RecordID {
 };
 
 struct ColumnReference {
-  std::shared_ptr<Table> table;
+  std::shared_ptr<DBTable> table;
   std::string col_name;
 };
 
 /**
  * A LazyTable associates a table pointer with a boolean filter and an array
  * of indices. The filter and indices determine which rows of the table are
- * active. A table acquires a filter after a selection is performed on it and
- * indices after a join is performed on it. A LazyTable can be thought of as
- * something between a materialized view and an non-materialized view, since
- * it does not materialize the active rows of the table, but it does contain
- * all the information necessary to materialize the active rows.
+ * active. A table acquires a filter after a selection is performed on it
+ * and indices after a join is performed on it. A LazyTable can be thought
+ * of as something between a materialized view and an non-materialized view,
+ * since it does not materialize the active rows of the table, but it does
+ * contain all the information necessary to materialize the active rows.
  */
 class LazyTable {
  public:
@@ -59,11 +61,11 @@ class LazyTable {
    * @param filter A Boolean ChunkedArray Datum
    * @param indices An INT64 Array Datum
    */
-  LazyTable(std::shared_ptr<Table> table, arrow::Datum filter,
+  LazyTable(std::shared_ptr<DBTable> table, arrow::Datum filter,
             arrow::Datum indices, arrow::Datum index_chunks);
 
   LazyTable(
-      std::shared_ptr<Table> table, arrow::Datum filter, arrow::Datum indices,
+      std::shared_ptr<DBTable> table, arrow::Datum filter, arrow::Datum indices,
       arrow::Datum index_chunks,
       std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table);
 
@@ -89,7 +91,7 @@ class LazyTable {
    */
   std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string col_name);
 
-  std::shared_ptr<Table> table;
+  std::shared_ptr<DBTable> table;
   arrow::Datum filter;   // filters are ChunkedArrays
   arrow::Datum indices;  // indices are Arrays
   arrow::Datum index_chunks;

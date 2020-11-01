@@ -155,7 +155,7 @@ class Aggregate : public Operator {
   std::shared_ptr<OperatorResult> prev_result_, output_result_;
 
   // The new output table containing the group columns and aggregate columns.
-  std::shared_ptr<Table> output_table_;
+  std::shared_ptr<DBTable> output_table_;
 
   std::atomic<int64_t>* aggregate_data_;
   std::vector<const int64_t*> aggregate_col_data_;

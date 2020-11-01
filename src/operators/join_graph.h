@@ -54,7 +54,7 @@ class JoinGraph {
    * @param index
    * @return a table.
    */
-  std::shared_ptr<Table> get_table(int index);
+  std::shared_ptr<DBTable> get_table(int index);
 
   /**
    * Get the predicate group of a particular table
@@ -63,7 +63,7 @@ class JoinGraph {
    * @return A vector of all predicates whose left table is table.
    */
   std::vector<JoinPredicate> get_predicates(
-      const std::shared_ptr<Table>& table);
+      const std::shared_ptr<DBTable>& table);
 
   /**
    * Get the predicate group of the table at index i.
@@ -82,7 +82,7 @@ class JoinGraph {
 
  private:
   // Vector of unique left tables
-  std::vector<std::shared_ptr<Table>> tables_;
+  std::vector<std::shared_ptr<DBTable>> tables_;
   // The vector at adj_[i] corresponds to all join predicates for which
   // tables_[i] is the left table.
   std::vector<std::vector<JoinPredicate>> adj_;
@@ -102,7 +102,7 @@ class JoinGraph {
    * @param table
    * @return The index of table.
    */
-  int find_table(std::shared_ptr<Table> table);
+  int find_table(std::shared_ptr<DBTable> table);
 };
 
 }  // namespace operators
