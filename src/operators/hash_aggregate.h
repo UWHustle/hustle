@@ -127,8 +127,7 @@ private:
   // The (temporary) type for key.
   typedef size_t hash_t;
   // The (temporary) type for value.
-  // Used long long in case we hit int64_t.
-  typedef long long value_t;
+  typedef int64_t value_t;
   // TODO: Refactor the unordered_maps to use phmap::flat_hash_map.
   //  It seems to have great optimization over the hash phrasing.
   typedef std::unordered_map<hash_t, value_t> HashMap;
@@ -141,6 +140,8 @@ private:
   // TODO: Construct a mapping from hash key to group-by column tuples
 
   // Global hash table handles the second phase of hashing.
+  // - HashMap if the aggregate kernel is SUM, COUNT
+  // - MeanHashMap if the aggregate kernel is MEAN
   // TODO: Depending on the strategy, the global_map should be polymorphic.
   void * global_map;
 
