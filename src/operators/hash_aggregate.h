@@ -223,6 +223,8 @@ private:
 
 
   hash_t HashCombine(hash_t seed, hash_t val);
+
+  void SortResult(std::vector<arrow::Datum> &groups, arrow::Datum &aggregates);
 };
 
 }
