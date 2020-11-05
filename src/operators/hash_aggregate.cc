@@ -23,20 +23,6 @@
 #define AGGREGATE_OUTPUT_TABLE "aggregate"
 #define debugmsg(arg) {std::cout << __FILE_NAME__ << ":" << __LINE__ << " " << arg << std::endl;}
 
-#include <cstdlib>
-#include <stdexcept>
-#include <execinfo.h>
-void handler(){
-  void *trace_elems[20];
-  int trace_elem_count(backtrace( trace_elems, 20 ));
-  char **stack_syms(backtrace_symbols( trace_elems, trace_elem_count ));
-  for ( int i = 0 ; i < trace_elem_count ; ++i ){
-    std::cout << stack_syms[i] << "\n";
-  }
-  free( stack_syms );
-  exit(1);
-}
-
 
 namespace hustle::operators {
 
@@ -138,7 +124,6 @@ void HashAggregate::Initialize(Task *ctx) {
   for (auto& group_by : group_by_refs_) {
     auto val = group_by.table->get_schema()->GetFieldByName(group_by.col_name);
     group_by_fields.push_back(val);
-    debugmsg(val->ToString(true));
   }
 
   // Initialize a StructBuilder containing one builder for each group
@@ -186,7 +171,6 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
       auto col_name = aggregate_refs_[0].col_ref.col_name;
       agg_lazy_table_ = prev_result_->get_table(table);
       agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
-      debugmsg(col_name);
     }),
     CreateLambdaTask([this](Task* internal){
       // Partition the chunks.
@@ -200,11 +184,6 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
       for (std::size_t chunk_index = 0; chunk_index < num_chunks; ++chunk_index) {
         auto val = agg_col->chunk(chunk_index)->data()->GetValues<int64_t>(1, 0);
         aggregate_col_data_[chunk_index] = val;
-        debugmsg(
-          "chunk_index=" << chunk_index <<
-          ", chunks=" << num_chunks <<
-          ", length=" << agg_col->chunk(chunk_index)->data()->length <<
-          ", offset=" << *val);
       }
 
       // Distribute tasks to perform the first phase of hash aggregate.
@@ -233,7 +212,7 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
         // First Phase Aggregation
         internal->spawnTask(CreateLambdaTask(
           [this, tid, st, ed](Task * ctx){
-            printf("tid=%zu, st=%d, ed=%d\n", tid, st, ed);
+//            printf("tid=%zu, st=%d, ed=%d\n", tid, st, ed);
             FirstPhaseAggregateChunks(tid, st, ed);
           }
         ));
@@ -449,7 +428,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
   auto kernel = aggregate_refs_[0].kernel;
 
   // Retrieve the proper maps for aggregate
-  std::set_terminate( handler );
   HashMap * count_map = nullptr;
   HashMap * value_map = nullptr;
   if (kernel == SUM || kernel == COUNT){
@@ -533,14 +511,14 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
       case arrow::Type::INT64 :{
         // SUM, COUNT, MEAN
         switch (kernel) {
-          case SUM: {
+          case SUM:
+          case MEAN:{
             auto d = std::static_pointer_cast<arrow::Int64Array>(agg_chunk);
             int64_t b = d->Value(item_index);
             agg_item_value = b;
             break;
           }
-          case COUNT:
-          case MEAN: {
+          case COUNT: {
             agg_item_value = 1;
             break;
           }
@@ -554,7 +532,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
                   << std::endl;
       }
     }
-//    debugmsg(agg_item_value);
 
 
     // 3
@@ -583,14 +560,11 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
       case MEAN:{
         auto it = value_map->find(agg_item_key);
         auto jt = count_map->find(agg_item_key);
-        if (it != value_map->end()){
+        if (it == value_map->end()){
           value_map->insert(std::make_pair(agg_item_key, agg_item_value));
+          count_map->insert(std::make_pair(agg_item_key, 1));
         }else{
           it->second = agg_item_value + it->second;
-        }
-        if (jt != count_map->end()){
-          value_map->insert(std::make_pair(agg_item_key, 1));
-        }else{
           jt->second = 1 + jt->second;
         }
         break;
@@ -603,7 +577,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
     }
 
     // 4
-    auto item = std::tuple(chunk_index, item_index);
 //    tuple_map->insert_or_assign(agg_item_key, item);
 //    tuple_map->insert_or_assign(0, item);
     // TODO: Optimize using the folloiwng code...
@@ -694,7 +667,6 @@ void HashAggregate::Finish(Task* ctx) {
           exit(1);
         }
         group_by_arrays.push_back(array);
-        std::cout << "group_by_arrays: " <<array->ToString() << std::endl;
         break;
       }
       case arrow::Type::INT64 :{
@@ -717,7 +689,6 @@ void HashAggregate::Finish(Task* ctx) {
           exit(1);
         }
         group_by_arrays.push_back(array);
-        std::cout << "group_by_arrays: " <<array->ToString() << std::endl;
         break;
       }
       default:{
@@ -748,7 +719,6 @@ void HashAggregate::Finish(Task* ctx) {
         std::cerr << "Building the array for aggregate column failed." << std::endl;
         exit(1);
       }
-      std::cout << "agg_array: " <<agg_array->ToString() << std::endl;
       break;
     }
     case MEAN: {
@@ -758,14 +728,13 @@ void HashAggregate::Finish(Task* ctx) {
         int chunk_id, item_index;
         auto hash_key = it.first;
         auto value = map->find(hash_key)->second;
-        builder.UnsafeAppend(value);
+        builder.Append(value);
       }
       arrow::Status st = builder.Finish(&agg_array);
       if (!st.ok()) {
         std::cerr << "Building the array for aggregate column failed." << std::endl;
         exit(1);
       }
-      std::cout << "agg_array: " <<agg_array->ToString() << std::endl;
       break;
     }
     default: {
