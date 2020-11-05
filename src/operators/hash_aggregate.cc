@@ -647,6 +647,137 @@ void HashAggregate::InitializeLocalHashTables() {
   }
 }
 
+void HashAggregate::Finish(Task* ctx) {
 
+  // Finish the aggregate and output the column.
+  //  Procedure:
+  //    1. Construct the resulting group-by columns
+  //    2. Construct the resulting aggregate table
+  //    3. Construct the final table for output.
+
+  // 1. Construct the resulting group-by columns
+  std::vector<std::shared_ptr<arrow::Array>> group_by_arrays;
+  group_by_arrays.reserve(group_by_cols_.size());
+
+  for(int i = 0; i < group_by_cols_.size(); i++){
+
+    auto group_by = group_by_cols_.at(i);
+
+    auto group_by_type = group_by.type();
+    auto group_by_type_id = group_by_type->id();
+
+    // The following step assume the iteration of tuple map
+    //    is not going to mutate.
+    // TODO: This is a very very tedious construction of the group_by builder.
+    //  Try to optimize it by using the good features within the arrow.
+    switch (group_by_type_id) {
+      case arrow::Type::STRING :{
+        arrow::StringBuilder builder;
+          for(auto const it: *tuple_map){
+            int chunk_id, item_index;
+            auto hash_key = it.first;
+            std::tie(chunk_id, item_index) = it.second;
+            auto raw_chunk = group_by.chunks().at(chunk_id);
+            auto chunk = std::static_pointer_cast<arrow::StringArray>(raw_chunk);
+            // TODO: Optimize this to make it std::move()?
+            std::string value = chunk->GetString(item_index);
+            builder.UnsafeAppend(value);
+          }
+        std::shared_ptr<arrow::Array> array;
+        arrow::Status st = builder.Finish(&array);
+        if (!st.ok()) {
+          std::cerr << "Building the array for "
+                    << i << "th groupby column failed." << std::endl;
+          exit(1);
+        }
+        group_by_arrays.push_back(array);
+        break;
+      }
+      case arrow::Type::INT64 :{
+        arrow::Int64Builder builder;
+        for(auto const it: *tuple_map){
+          int chunk_id, item_index;
+          auto hash_key = it.first;
+          std::tie(chunk_id, item_index) = it.second;
+          auto raw_chunk = group_by.chunks().at(chunk_id);
+          auto chunk = std::static_pointer_cast<arrow::Int64Array>(raw_chunk);
+          int64_t value = chunk->Value(item_index);
+          builder.UnsafeAppend(value);
+        }
+        std::shared_ptr<arrow::Array> array;
+        arrow::Status st = builder.Finish(&array);
+        if (!st.ok()) {
+          std::cerr << "Building the array for "
+                    << i << "th groupby column failed." << std::endl;
+          exit(1);
+        }
+        group_by_arrays.push_back(array);
+        break;
+      }
+      default:{
+        std::cerr << "Not supported aggregate group by column type: "
+                  << group_by_type_id
+                  << std::endl;
+        exit(1);
+      }
+    }
+  }
+
+  // 2. Construct the resulting aggregate table
+  auto kernel = aggregate_refs_[0].kernel;
+  std::shared_ptr<arrow::Array> agg_array;
+  switch (kernel) {
+    case SUM:
+    case COUNT:{
+      auto map = static_cast<HashMap *>(global_map);
+      arrow::Int64Builder builder;
+      for(auto const it: *tuple_map){
+        auto hash_key = it.first;
+        auto value = map->find(hash_key)->second;
+        builder.UnsafeAppend(value);
+      }
+      arrow::Status st = builder.Finish(&agg_array);
+      if (!st.ok()) {
+        std::cerr << "Building the array for aggregate column failed." << std::endl;
+        exit(1);
+      }
+      break;
+    }
+    case MEAN: {
+      auto map = static_cast<MeanHashMap *>(global_map);
+      arrow::DoubleBuilder builder;
+      for(auto const it: *tuple_map){
+        int chunk_id, item_index;
+        auto hash_key = it.first;
+        auto value = map->find(hash_key)->second;
+        builder.UnsafeAppend(value);
+      }
+      arrow::Status st = builder.Finish(&agg_array);
+      if (!st.ok()) {
+        std::cerr << "Building the array for aggregate column failed." << std::endl;
+        exit(1);
+      }
+      break;
+    }
+    default: {
+      std::cerr << "Not supported kernel" << std::endl;
+      exit(1);
+    }
+
+  }
+
+
+  // 3. Construct the final table for output.
+  std::vector<std::shared_ptr<arrow::ArrayData>> output_table_data;
+  for(auto& group_values : group_by_arrays){
+    auto data = group_values->data();
+    output_table_data.push_back(data);
+  }
+  output_table_data.push_back(agg_array->data());
+
+  output_table_->insert_records(output_table_data);
+  output_result_->append(output_table_);
+
+}
 
 }
