@@ -58,6 +58,20 @@ target_link_libraries(hustle_aggregate_test
         )
 add_test(HustleAggregate_test hustle_aggregate_test)
 
+add_executable(hustle_hash_aggregate_test "tests/hash_aggregate_test.cc")
+target_link_libraries(hustle_hash_aggregate_test
+        gtest
+        gtest_main
+        gmock
+        #        glog
+        ${GFLAGS_LIB_NAME}
+        hustle_src_storage
+        hustle_src_operators
+        hustle_src_optimizer_ExecutionPlan
+        hustle_src_scheduler_Scheduler
+        )
+add_test(HustleHashAggregate_test hustle_hash_aggregate_test)
+
 add_executable(hustle_select_test "tests/select_test.cc")
 target_link_libraries(hustle_select_test
         gtest
