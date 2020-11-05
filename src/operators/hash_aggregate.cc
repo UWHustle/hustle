@@ -510,7 +510,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
       key = HashCombine(key, next_key);
     }
     agg_item_key = key;
-    debugmsg(agg_item_key);
+//    debugmsg(agg_item_key);
 
     // 2
     // TODO: Without a unique operator, we don't need to calculate
@@ -554,7 +554,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
                   << std::endl;
       }
     }
-    debugmsg(agg_item_value);
+//    debugmsg(agg_item_value);
 
 
     // 3
@@ -681,7 +681,10 @@ void HashAggregate::Finish(Task* ctx) {
             auto chunk = std::static_pointer_cast<arrow::StringArray>(raw_chunk);
             // TODO: Optimize this to make it std::move()?
             std::string value = chunk->GetString(item_index);
-            builder.UnsafeAppend(value);
+            // TODO: Try to use the UnsafeAppend here,
+            //  but encounter an error.
+//            builder.UnsafeAppend(value);
+            builder.Append(value);
           }
         std::shared_ptr<arrow::Array> array;
         arrow::Status st = builder.Finish(&array);
@@ -691,6 +694,7 @@ void HashAggregate::Finish(Task* ctx) {
           exit(1);
         }
         group_by_arrays.push_back(array);
+        std::cout << "group_by_arrays: " <<array->ToString() << std::endl;
         break;
       }
       case arrow::Type::INT64 :{
@@ -702,7 +706,8 @@ void HashAggregate::Finish(Task* ctx) {
           auto raw_chunk = group_by.chunks().at(chunk_id);
           auto chunk = std::static_pointer_cast<arrow::Int64Array>(raw_chunk);
           int64_t value = chunk->Value(item_index);
-          builder.UnsafeAppend(value);
+//          builder.UnsafeAppend(value);
+          builder.Append(value);
         }
         std::shared_ptr<arrow::Array> array;
         arrow::Status st = builder.Finish(&array);
@@ -712,6 +717,7 @@ void HashAggregate::Finish(Task* ctx) {
           exit(1);
         }
         group_by_arrays.push_back(array);
+        std::cout << "group_by_arrays: " <<array->ToString() << std::endl;
         break;
       }
       default:{
@@ -734,13 +740,15 @@ void HashAggregate::Finish(Task* ctx) {
       for(auto const it: *tuple_map){
         auto hash_key = it.first;
         auto value = map->find(hash_key)->second;
-        builder.UnsafeAppend(value);
+        builder.Append(value);
+        // UnsafeAppend
       }
       arrow::Status st = builder.Finish(&agg_array);
       if (!st.ok()) {
         std::cerr << "Building the array for aggregate column failed." << std::endl;
         exit(1);
       }
+      std::cout << "agg_array: " <<agg_array->ToString() << std::endl;
       break;
     }
     case MEAN: {
@@ -757,27 +765,93 @@ void HashAggregate::Finish(Task* ctx) {
         std::cerr << "Building the array for aggregate column failed." << std::endl;
         exit(1);
       }
+      std::cout << "agg_array: " <<agg_array->ToString() << std::endl;
       break;
     }
     default: {
       std::cerr << "Not supported kernel" << std::endl;
       exit(1);
     }
-
   }
 
 
-  // 3. Construct the final table for output.
+  // 3. Sort the result
+  std::vector<arrow::Datum> groups;
+  arrow::Datum aggregates;
+
+  groups.reserve(group_by_arrays.size());
+  for(auto & group_by_array : group_by_arrays){
+    auto pt = group_by_array->data();
+    groups.emplace_back(pt);
+  }
+  aggregates.value = agg_array->data();
+
+  SortResult(groups, aggregates);
+
+  // 4. Construct the final table for output.
   std::vector<std::shared_ptr<arrow::ArrayData>> output_table_data;
-  for(auto& group_values : group_by_arrays){
-    auto data = group_values->data();
-    output_table_data.push_back(data);
+  output_table_data.reserve(group_by_arrays.size() + 1);
+  for (auto& group_values : groups) {
+    output_table_data.push_back(group_values.make_array()->data());
   }
-  output_table_data.push_back(agg_array->data());
+  output_table_data.push_back(aggregates.make_array()->data());
 
   output_table_->insert_records(output_table_data);
   output_result_->append(output_table_);
 
+}
+
+void HashAggregate::SortResult(std::vector<arrow::Datum>& groups,
+                           arrow::Datum& aggregates) {
+  // The columns in the GROUP BY and ORDER BY clause may not directly correspond
+  // to the same column, e.g we may have
+  // GROUP BY R.a, R.b
+  // ORDER BY R.b, R.a
+  // order_by_group[i] is the index at which the ith ORDER BY column appears in
+  // the GROUP BY clause. In this example, order_to_group = {1, 0}
+  std::vector<int> order_to_group;
+
+  for (auto& order_by_ref : order_by_refs_) {
+    for (std::size_t j = 0; j < group_by_refs_.size(); ++j) {
+      if (order_by_ref.table == group_by_refs_[j].table) {
+        order_to_group.push_back(j);
+      }
+    }
+  }
+
+  arrow::Datum sorted_indices;
+  arrow::Status status;
+
+  // Assume that indices are correct and that boundschecking is unecessary.
+  // CHANGE TO TRUE IF YOU ARE DEBUGGING
+  arrow::compute::TakeOptions take_options(true);
+
+  // If we are sorting after computing all aggregates, we evaluate the ORDER BY
+  // clause in reverse order.
+  for (int i = order_by_refs_.size() - 1; i >= 0; i--) {
+    auto order_ref = order_by_refs_[i];
+    // A nullptr indicates that we are sorting by the aggregate column
+    // TODO(nicholas): better way to indicate we want to sort the aggregate?
+    if (order_ref.table == nullptr) {
+      status = arrow::compute::SortToIndices(*aggregates.make_array())
+        .Value(&sorted_indices);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+    } else {
+      auto group = groups[order_to_group[i]];
+      status = arrow::compute::SortToIndices(*group.make_array())
+        .Value(&sorted_indices);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+    }
+    status = arrow::compute::Take(aggregates, sorted_indices, take_options)
+      .Value(&aggregates);
+    evaluate_status(status, __FUNCTION__, __LINE__);
+
+    for (auto& group : groups) {
+      status = arrow::compute::Take(group, sorted_indices, take_options)
+        .Value(&group);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+    }
+  }
 }
 
 }
