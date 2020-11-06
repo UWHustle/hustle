@@ -9,6 +9,7 @@ add_library(
         predicate.cc predicate.h
         operator.h
         operator_options.h
+        aggregate_options.h
         fused/select_build_hash.cc fused/select_build_hash.h
         fused/filter_join.cc fused/filter_join.h
         utils/lazy_table.cc utils/lazy_table.h
