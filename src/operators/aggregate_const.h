@@ -6,6 +6,7 @@
 #define HUSTLE_AGGREGATE_CONST_H
 
 #include "operators/operator.h"
+#include "base_aggregate.h"
 
 namespace hustle::operators {
 

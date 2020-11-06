@@ -41,7 +41,7 @@ private:
 
 };
 
-class HashAggregate : public Operator {
+class HashAggregate : public BaseAggregate {
   /**
    * Two-phase aggregate.
    * Procedure:
