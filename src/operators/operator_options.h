@@ -30,7 +30,7 @@ class OperatorOptions {
   explicit OperatorOptions() : parallel_factor_(1.0) {}
   double get_parallel_factor() const { return parallel_factor_; }
 
-  OperatorOptions set_parallel_factor(double parallel_factor) {
+  OperatorOptions & set_parallel_factor(double parallel_factor) {
     parallel_factor_ = parallel_factor;
     return *this;
   }
