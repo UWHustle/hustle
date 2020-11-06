@@ -22,9 +22,18 @@
 
 namespace hustle::operators {
 
-class BaseAggregate: public Operator {};
+class BaseAggregate: public Operator {
+protected:
+
+  explicit BaseAggregate(const size_t query_id)
+  : BaseAggregate(query_id, std::make_shared<OperatorOptions>()){};
+
+  explicit BaseAggregate(const size_t query_id,
+                         std::shared_ptr<OperatorOptions> sharedPtr)
+    : Operator(query_id, sharedPtr) {};
+
+};
 
 }; // namespace hustle::operators
-
 
 #endif //HUSTLE_BASE_AGGREGATE_H
