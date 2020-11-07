@@ -159,7 +159,7 @@ void HashAggregate::Initialize(Task *ctx) {
 
   // Initialize the Tuple Map
   tuple_map = new phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>>();
-  tuple_map->reserve(1024);
+  tuple_map->reserve(64);
 
 }
 
