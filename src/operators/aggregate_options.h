@@ -19,11 +19,9 @@
 #define HUSTLE_AGGREGATE_OPTIONS_H
 
 #include "operator_options.h"
+#include "aggregate_const.h"
 
 namespace hustle::operators {
-
-// Types of aggregate algorithm we can use.
-enum AggregateType { HASH_AGGREGATE, ARROW_AGGREGATE };
 
 /**
  * The AggregateOptions define the scope of configurable parameters that

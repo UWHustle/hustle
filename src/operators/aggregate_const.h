@@ -27,6 +27,9 @@ namespace hustle::operators {
 // Types of aggregates we can perform. COUNT is currently not supported.
 enum AggregateKernel { SUM, COUNT, MEAN };
 
+// Types of aggregate algorithm we can use.
+enum AggregateType { HASH_AGGREGATE, ARROW_AGGREGATE };
+
 /**
  * A reference structure containing all the information needed to perform an
  * aggregate over a column.
