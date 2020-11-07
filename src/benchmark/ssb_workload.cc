@@ -19,6 +19,7 @@
 
 #include "execution/execution_plan.h"
 #include "operators/aggregate.h"
+#include "operators/hash_aggregate.h"
 #include "operators/fused/select_build_hash.h"
 #include "operators/join.h"
 #include "operators/join_graph.h"
@@ -32,6 +33,25 @@
 #include "utils/config.h"
 
 using namespace std::chrono;
+
+// TODO: Use C++ factory to handle the init of BaseAggregate operator
+// Define the Hash Aggregate algorithm.
+//
+#define USE_ARROW_AGGREGATE 0
+#define USE_HASH_AGGREGATE 1
+
+// Define which hash aggregate operator to use.
+//#define HASH_AGGREGATE_TYPE USE_ARROW_AGGREGATE
+#define HASH_AGGREGATE_TYPE USE_HASH_AGGREGATE
+
+// Define the SSB_INIT_AGGREGATE() macro.
+#if HASH_AGGREGATE_TYPE == USE_ARROW_AGGREGATE
+  #define SSB_INIT_AGGREGATE(query_id, prev_result, output_result, aggregate_units,group_by_refs, order_by_refs, options) Aggregate(query_id, prev_result, output_result, aggregate_units, group_by_refs, order_by_refs, options);
+#elif HASH_AGGREGATE_TYPE == USE_HASH_AGGREGATE
+  #define SSB_INIT_AGGREGATE(query_id, prev_result, output_result, aggregate_units, group_by_refs, order_by_refs, options) HashAggregate(query_id, prev_result, output_result, aggregate_units, group_by_refs, order_by_refs, options);
+//#else
+//  assert(false);
+#endif
 
 namespace hustle::operators {
 
@@ -210,8 +230,8 @@ void SSB::q11() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
-                   aggregate_options);
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out,
+                                   {agg_ref}, {}, {}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -292,8 +312,8 @@ void SSB::q12() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
-                   aggregate_options);
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out,
+                                   {agg_ref}, {}, {}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -384,8 +404,8 @@ void SSB::q13() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
-                   aggregate_options);
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out,
+                                   {agg_ref}, {}, {}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -456,9 +476,10 @@ void SSB::q21() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
-                   aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
+  std::vector<ColumnReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -542,9 +563,11 @@ void SSB::q22() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
-                   aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
+  std::vector<ColumnReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
+
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -616,9 +639,11 @@ void SSB::q23() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
-                   aggregate_options);
+
+  std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
+  std::vector<ColumnReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
@@ -703,9 +728,10 @@ void SSB::q31() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_nation_ref, s_nation_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {d_year_ref, c_nation_ref, s_nation_ref};
+  std::vector<ColumnReference> order_by_refs = {d_year_ref, {nullptr, "revenue"}};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -793,9 +819,10 @@ void SSB::q32() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref, s_city_ref};
+  std::vector<ColumnReference> order_by_refs = {d_year_ref, {nullptr, "revenue"}};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -907,9 +934,10 @@ void SSB::q33() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref, s_city_ref};
+  std::vector<ColumnReference> order_by_refs = {d_year_ref, {nullptr, "revenue"}};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -1019,9 +1047,10 @@ void SSB::q34() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref, s_city_ref};
+  std::vector<ColumnReference> order_by_refs = {d_year_ref, {nullptr, "revenue"}};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -1118,9 +1147,10 @@ void SSB::q41() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref},
-                   aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {d_year_ref, c_nation_ref};
+  std::vector<ColumnReference> order_by_refs = {d_year_ref, c_nation_ref};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -1230,10 +1260,10 @@ void SSB::q42() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, s_nation_ref, p_category_ref},
-                   {d_year_ref, s_nation_ref, p_category_ref},
-                   aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {d_year_ref, s_nation_ref, p_category_ref};
+  std::vector<ColumnReference> order_by_refs = {d_year_ref, s_nation_ref, p_category_ref};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -1337,9 +1367,10 @@ void SSB::q43() {
   Join join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, s_city_ref, p_brand1_ref},
-                   {d_year_ref, s_city_ref, p_brand1_ref}, aggregate_options);
+  std::vector<ColumnReference> group_by_refs = {d_year_ref, s_city_ref, p_brand1_ref};
+  std::vector<ColumnReference> order_by_refs = {d_year_ref, s_city_ref, p_brand1_ref};
+  auto agg_op = SSB_INIT_AGGREGATE(0, join_result_out, agg_result_out, {agg_ref},
+                                   group_by_refs, order_by_refs,aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);
