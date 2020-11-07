@@ -41,6 +41,11 @@ int HashAggregateStrategy::suggestedNumTasks() const {
 }
 
 std::tuple<int, int> HashAggregateStrategy::getChunkID(
+  // TODO: We assume each chunk has the same number of data.
+  //   It is not always true. The correct algorithm is to
+  //      linearly traverse the chunkarray.
+  //   Change this algorithm to a generate (and yield the
+  //      result each time we calls it).
   int tid, int totalThreads, int totalNumChunks){
 
   assert(tid >= 0);
@@ -94,7 +99,7 @@ HashAggregate::HashAggregate(const std::size_t query_id,
                              std::vector<ColumnReference> group_by_refs,
                              std::vector<ColumnReference> order_by_refs,
                              std::shared_ptr<OperatorOptions> options)
-  : Operator(query_id, options),
+  : BaseAggregate(query_id, options),
     prev_result_(prev_result),
     output_result_(output_result),
     aggregate_refs_(aggregate_refs),

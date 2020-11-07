@@ -82,7 +82,7 @@ namespace operators {
  * which means the filtered aggregate column with have length 0. Thus, this
  * group will be excluded from the output.
  */
-class Aggregate : public Operator {
+class Aggregate : public BaseAggregate {
  public:
   /**
    * Construct an Aggregate operator. Group by and order by clauses are

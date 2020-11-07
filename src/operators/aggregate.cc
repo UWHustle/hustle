@@ -46,7 +46,7 @@ Aggregate::Aggregate(const std::size_t query_id,
                      std::vector<ColumnReference> group_by_refs,
                      std::vector<ColumnReference> order_by_refs,
                      std::shared_ptr<OperatorOptions> options)
-    : Operator(query_id, options),
+    : BaseAggregate(query_id, options),
       prev_result_(prev_result),
       output_result_(output_result),
       aggregate_refs_(aggregate_refs),

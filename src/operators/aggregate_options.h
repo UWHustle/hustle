@@ -15,29 +15,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_OPERATOR_OPTIONS_H
-#define HUSTLE_OPERATOR_OPTIONS_H
+#ifndef HUSTLE_AGGREGATE_OPTIONS_H
+#define HUSTLE_AGGREGATE_OPTIONS_H
+
+#include "operator_options.h"
+#include "aggregate_const.h"
 
 namespace hustle::operators {
 
-class OperatorOptions {
- public:
-  /**
-   * This class contains set of options or configurable parameters
-   * that we need to pass to the Operator to tune/configure
-   * its execution.
-   */
-  explicit OperatorOptions() : parallel_factor_(1.0) {}
-  double get_parallel_factor() const { return parallel_factor_; }
+/**
+ * The AggregateOptions define the scope of configurable parameters that
+ * user can choose when aggregation happens.
+ * TODO: Expand the options to configurate the aggregation.
+ */
+class AggregateOptions: public OperatorOptions {
+public:
+  explicit AggregateOptions(): aggregateType(AggregateType::ARROW_AGGREGATE) {};
 
-  OperatorOptions & set_parallel_factor(double parallel_factor) {
-    parallel_factor_ = parallel_factor;
+  double get_aggregate_type() const { return aggregateType; }
+  /**
+   * Select the aggregate algorithm (arrow.compute or our own hash aggregate)
+   */
+  AggregateOptions & set_aggregate_type(AggregateType type){
+    aggregateType = type;
     return *this;
   }
 
- protected:
-  double parallel_factor_;
-};
-};  // namespace hustle::operators
+private:
+  AggregateType aggregateType;
 
-#endif  // HUSTLE_OPERATOR_OPTIONS_H
+};
+
+}
+
+#endif //HUSTLE_AGGREGATE_OPTIONS_H
