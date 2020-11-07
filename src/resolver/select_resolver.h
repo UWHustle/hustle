@@ -23,23 +23,71 @@
 #include <string>
 #include <unordered_map>
 
+#include "catalog/catalog.h"
+#include "operators/aggregate.h"
 #include "operators/predicate.h"
 #include "resolver/cresolver.h"
 
 namespace hustle {
 namespace resolver {
+
+using namespace hustle::operators;
+using namespace hustle::catalog;
+
+struct ProjectReference {
+  ColumnReference colRef;
+  std::string alias;
+};
+
 class SelectResolver {
  private:
   std::unordered_map<std::string,
                      std::shared_ptr<hustle::operators::PredicateTree>>
       select_predicates_;
-  std::unordered_map<std::string,
-                     std::shared_ptr<hustle::operators::PredicateTree>>
-      join_predicates_;
+  std::vector<JoinPredicate> join_predicates_;
+  std::vector<AggregateReference> agg_references_;
+  std::vector<ColumnReference> group_by_references_;
+  std::vector<ColumnReference> order_by_references_;
+  std::vector<ProjectReference> project_references_;
 
-  void ResolvePredExpr(Expr* pExpr);
+  std::map<std::string, hustle::operators::AggregateKernel> aggregate_kernels_ =
+      {{"SUM", AggregateKernel::SUM},
+       {"COUNT", AggregateKernel::COUNT},
+       {"MEAN", AggregateKernel::MEAN}};
+
+  Catalog* catalog_;
+
+  bool resolve_status_;
+
+  std::shared_ptr<PredicateTree> ResolvePredExpr(Expr* pExpr);
+  void ResolveJoinPredExpr(Expr* pExpr);
 
  public:
+  SelectResolver(Catalog* catalog) : catalog_(catalog) {}
+  SelectResolver() {
+    // For Test
+    resolve_status_ = true;
+    catalog_ = nullptr;
+  }
+
+  std::vector<JoinPredicate>& get_join_predicates() { return join_predicates_; }
+
+  std::vector<AggregateReference>& get_agg_references() {
+    return agg_references_;
+  }
+
+  std::vector<ColumnReference>& get_groupby_references() {
+    return group_by_references_;
+  }
+
+  std::vector<ColumnReference>& get_orderby_references() {
+    return order_by_references_;
+  }
+
+  std::vector<ProjectReference>& get_project_references() {
+    return project_references_;
+  }
+
   bool ResolveSelectTree(Select* queryTree);
 };
 }  // namespace resolver

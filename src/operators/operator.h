@@ -21,6 +21,7 @@
 #include <cstdlib>
 
 #include "operators/operator_options.h"
+#include "operators/predicate.h"
 #include "operators/utils/operator_result.h"
 #include "scheduler/task.h"
 #include "utils/config.h"

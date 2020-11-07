@@ -59,8 +59,9 @@ int main(int argc, char *argv[]) {
   }
 
   char *sql =
-      "SELECT SUM(R0.c0) FROM r6 AS R0, r0 AS R1 WHERE R0.c1=R1.c0 and "
-      "R0.c0>9854376";
+      "SELECT SUM(R0.c0) FROM r0 AS R0, r1 AS R1 WHERE R0.c1=R1.c1 and "
+      "R0.c1=900 and "
+      "R0.c2>9854376";
   rc = sqlite3_exec(db, sql, callback, (void *)data, &zErrMsg);
 
   if (rc != SQLITE_OK) {

@@ -37,6 +37,8 @@ class HustleDB {
 
   bool dropTable(const std::string &name);
 
+  std::string executeQuery(const std::string &sql);
+
   std::string getPlan(const std::string &sql);
 
   // Not implemented yet.

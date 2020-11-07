@@ -26,6 +26,8 @@
 #include "storage/block.h"
 #include "storage/table.h"
 
+using namespace hustle::storage;
+
 namespace hustle::operators {
 
 enum FilterOperator {
