@@ -50,7 +50,7 @@ protected:
   std::shared_ptr<arrow::Array> expected_T_col_1;
   std::shared_ptr<arrow::Array> expected_T_col_2;
 
-  std::shared_ptr<Table> R, S, T;
+  std::shared_ptr<DBTable> R, S, T;
 
   void SetUp() override {
     arrow::Status status;
