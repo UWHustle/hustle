@@ -10,9 +10,24 @@ add_library(
         sqlite_utils.h
         sqlite_utils.cc
 )
+
+add_library(
+        sqlite_utils_parse
+        sqlite_utils_parse.h
+        sqlite_utils_parse.cc
+)
+
+target_link_libraries(
+        sqlite_utils_parse
+        absl::strings
+        hustle_src_resolver
+        sqlite3
+)
+
 target_link_libraries(
         sqlite_utils
         absl::strings
+        hustle_src_resolver
         sqlite3
 )
 

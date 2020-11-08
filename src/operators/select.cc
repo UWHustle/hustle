@@ -32,14 +32,14 @@
 namespace hustle {
 namespace operators {
 
-Select::Select(const std::size_t query_id, std::shared_ptr<Table> table,
+Select::Select(const std::size_t query_id, std::shared_ptr<DBTable> table,
                std::shared_ptr<OperatorResult> prev_result,
                std::shared_ptr<OperatorResult> output_result,
                std::shared_ptr<PredicateTree> tree)
     : Select(query_id, table, prev_result, output_result, tree,
              std::make_shared<OperatorOptions>()) {}
 
-Select::Select(const std::size_t query_id, std::shared_ptr<Table> table,
+Select::Select(const std::size_t query_id, std::shared_ptr<DBTable> table,
                std::shared_ptr<OperatorResult> prev_result,
                std::shared_ptr<OperatorResult> output_result,
                std::shared_ptr<PredicateTree> tree,

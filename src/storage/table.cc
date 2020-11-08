@@ -26,7 +26,9 @@
 #include "storage/block.h"
 #include "storage/util.h"
 
-Table::Table(std::string name, const std::shared_ptr<arrow::Schema> &schema,
+namespace hustle::storage {
+
+DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
              int block_capacity)
     : table_name(std::move(name)),
       schema(schema),
@@ -38,7 +40,7 @@ Table::Table(std::string name, const std::shared_ptr<arrow::Schema> &schema,
   num_cols = schema->num_fields();
 }
 
-Table::Table(std::string name,
+DBTable::DBTable(std::string name,
              std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
              int block_capacity)
     : table_name(std::move(name)),
@@ -69,7 +71,7 @@ Table::Table(std::string name,
   }
 }
 
-std::shared_ptr<Block> Table::create_block() {
+std::shared_ptr<Block> DBTable::create_block() {
   std::scoped_lock blocks_lock(blocks_mutex);
   int block_id = block_counter++;
   auto block = std::make_shared<Block>(block_id, schema, block_capacity);
@@ -80,7 +82,7 @@ std::shared_ptr<Block> Table::create_block() {
   return block;
 }
 
-void Table::insert_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
+void DBTable::insert_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
   if (input_blocks.empty()) {
     return;
   }
@@ -100,16 +102,16 @@ void Table::insert_blocks(std::vector<std::shared_ptr<Block>> input_blocks) {
   }
 }
 
-int Table::get_num_rows() const { return num_rows; }
+int DBTable::get_num_rows() const { return num_rows; }
 
-int Table::get_num_cols() const { return num_cols; }
+int DBTable::get_num_cols() const { return num_cols; }
 
-std::shared_ptr<Block> Table::get_block(int block_id) const {
+std::shared_ptr<Block> DBTable::get_block(int block_id) const {
   //  std::scoped_lock blocks_lock(blocks_mutex);
   return blocks.at(block_id);
 }
 
-std::shared_ptr<Block> Table::get_block_for_insert() {
+std::shared_ptr<Block> DBTable::get_block_for_insert() {
   std::scoped_lock insert_pool_lock(insert_pool_mutex);
   if (insert_pool.empty()) {
     return create_block();
@@ -121,18 +123,18 @@ std::shared_ptr<Block> Table::get_block_for_insert() {
   return block;
 }
 
-void Table::mark_block_for_insert(const std::shared_ptr<Block> &block) {
+void DBTable::mark_block_for_insert(const std::shared_ptr<Block> &block) {
   std::scoped_lock insert_pool_lock(insert_pool_mutex);
   assert(block->get_bytes_left() > fixed_record_width);
 
   insert_pool[block->get_id()] = block;
 }
 
-std::shared_ptr<arrow::Schema> Table::get_schema() const { return schema; }
+std::shared_ptr<arrow::Schema> DBTable::get_schema() const { return schema; }
 
-size_t Table::get_num_blocks() const { return blocks.size(); }
+size_t DBTable::get_num_blocks() const { return blocks.size(); }
 
-void Table::print() {
+void DBTable::print() {
   if (blocks.empty()) {
     std::cout << "Table is empty." << std::endl;
   } else {
@@ -142,11 +144,11 @@ void Table::print() {
   }
 }
 
-std::unordered_map<int, std::shared_ptr<Block>> Table::get_blocks() {
+std::unordered_map<int, std::shared_ptr<Block>> DBTable::get_blocks() {
   return blocks;
 }
 
-void Table::insert_records(
+void DBTable::insert_records(
     std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   int l = column_data[0]->length;
   int data_size = 0;
@@ -252,7 +254,7 @@ void Table::insert_records(
   num_rows += l;
 }
 // Tuple is passed in as an array of bytes which must be parsed.
-void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
+void DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   std::shared_ptr<Block> block = get_block_for_insert();
 
   int32_t record_size = 0;
@@ -273,7 +275,7 @@ void Table::insert_record(uint8_t *record, int32_t *byte_widths) {
   }
 }
 
-void Table::insert_record(std::vector<std::string_view> values,
+void DBTable::insert_record(std::vector<std::string_view> values,
                           int32_t *byte_widths) {
   std::shared_ptr<Block> block = get_block_for_insert();
 
@@ -295,9 +297,9 @@ void Table::insert_record(std::vector<std::string_view> values,
   }
 }
 
-int Table::get_block_row_offset(int i) const { return block_row_offsets[i]; }
+int DBTable::get_block_row_offset(int i) const { return block_row_offsets[i]; }
 
-std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index) {
+std::shared_ptr<arrow::ChunkedArray> DBTable::get_column(int col_index) {
   if (blocks.empty()) {
     return nullptr;
   }
@@ -309,15 +311,16 @@ std::shared_ptr<arrow::ChunkedArray> Table::get_column(int col_index) {
   return std::make_shared<arrow::ChunkedArray>(array_vector);
 }
 
-std::shared_ptr<arrow::ChunkedArray> Table::get_column_by_name(
+std::shared_ptr<arrow::ChunkedArray> DBTable::get_column_by_name(
     const std::string &name) {
   return get_column(schema->GetFieldIndex(name));
 }
 
-std::shared_ptr<arrow::ChunkedArray> Table::get_valid_column() {
+std::shared_ptr<arrow::ChunkedArray> DBTable::get_valid_column() {
   arrow::ArrayVector array_vector;
   for (int i = 0; i < blocks.size(); i++) {
     array_vector.push_back(blocks[i]->get_valid_column());
   }
   return std::make_shared<arrow::ChunkedArray>(array_vector);
 }
+}  // namespace hustle::storage

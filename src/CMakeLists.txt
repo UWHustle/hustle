@@ -25,11 +25,6 @@ add_executable(
         main.cc
 )
 
-add_executable(
-        hustle_run_test
-        run.cc
-)
-
 set_target_properties(hustle_main
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -47,25 +42,6 @@ target_link_libraries(hustle_main
         ${GFLAGS_LIB_NAME}
         glog
         )
-
-set_target_properties(hustle_run_test
-        PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
-target_link_libraries(hustle_run_test
-        hustleDB
-        hustle_src_catalog
-        hustle_src_storage
-        hustle_src_parser
-        hustle_src_resolver
-        hustle_src_operators
-        hustle_src_scheduler_Scheduler
-        hustle_src_optimizer_ExecutionPlan
-        ${ARROW_SHARED_LIB}
-        ${GFLAGS_LIB_NAME}
-        glog
-        )
-
 
 add_subdirectory(utils)
 add_subdirectory(catalog)

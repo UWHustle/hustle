@@ -21,36 +21,54 @@ int main(int argc, char *argv[]) {
   } else {
     fprintf(stdout, "Opened database successfully\n");
   }
-  char *sql =
-      "CREATE TABLE Friends7(Id INTEGER PRIMARY KEY, Name TEXT, Address TEXT, "
-      "Value INTEGER);"
-      "INSERT INTO Friends7(Name, Address, Value) VALUES ('Tom', 'test', 1);"
-      "INSERT INTO Friends7(Name, Address, Value) VALUES ('Rebecca', 'test', "
-      "2);"
-      "INSERT INTO Friends7(Name, Address, Value) VALUES ('Jim', 'test', 3);"
-      "INSERT INTO Friends7(Name, Address, Value) VALUES ('Roger', 'test', 4);"
-      "INSERT INTO Friends7(Name, Address, Value) VALUES ('Robert', 'test', "
-      "5);";
+  char *sql1, *sql2, *sql3;
+  sql1 =
+      "CREATE TABLE r0( c0 INTEGER PRIMARY KEY, c1 INTEGER, c2  INTEGER, "
+      "c3 "
+      "INTEGER );";
+  sql2 =
+      "CREATE TABLE r1( c0 INTEGER PRIMARY KEY, c1 INTEGER, c2  INTEGER, c3 "
+      "INTEGER );";
+  sql3 =
+      "CREATE TABLE r2( c0 INTEGER PRIMARY KEY, c1 INTEGER, c2  INTEGER, c3 "
+      "INTEGER );";
 
-  rc = sqlite3_exec(db, sql, 0, 0, NULL);
+  printf("Going to create table: \n");
+  rc = sqlite3_exec(db, sql1, callback, (void *)data, &zErrMsg);
 
   if (rc != SQLITE_OK) {
-    fprintf(stderr, "table could exists already/query failed\n");
-
+    sqlite3_free(zErrMsg);
   } else {
-    fprintf(stdout, "Table Friends created successfully\n");
+    fprintf(stdout, "Operation done successfully\n");
   }
 
-  fprintf(stderr, "Going to execute select\n");
-  rc = sqlite3_exec(db, "SELECT SUM(F0.Value) FROM Friends7 AS F0 WHERE Id=3;",
-                    callback, (void *)data, &zErrMsg);
+  rc = sqlite3_exec(db, sql2, callback, (void *)data, &zErrMsg);
+
+  if (rc != SQLITE_OK) {
+    sqlite3_free(zErrMsg);
+  } else {
+    fprintf(stdout, "Operation done successfully\n");
+  }
+
+  rc = sqlite3_exec(db, sql3, callback, (void *)data, &zErrMsg);
+
+  if (rc != SQLITE_OK) {
+    sqlite3_free(zErrMsg);
+  } else {
+    fprintf(stdout, "Operation done successfully\n");
+  }
+
+  char *sql =
+      "SELECT SUM(R0.c0) FROM r0 AS R0, r1 AS R1 WHERE R0.c1=R1.c1 and "
+      "R0.c1=900 and "
+      "R0.c2>9854376";
+  rc = sqlite3_exec(db, sql, callback, (void *)data, &zErrMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
-    exit(-1);
   } else {
-    fprintf(stdout, "Query ececuted successfully\n");
+    fprintf(stdout, "Operation done successfully\n");
   }
   sqlite3_close(db);
   return 0;

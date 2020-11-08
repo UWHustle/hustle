@@ -411,6 +411,18 @@ SQLITE_API int sqlite3_exec(
   char **errmsg                              /* Error msg written here */
 );
 
+// @suryadev - Added to get parse tree for the SQL query. (For Resolver tests)
+typedef struct Select Select;
+
+// @suryadev - Added to get parse tree for the SQL query. (For Resolver tests)
+SQLITE_API Select* sqlite3_select_parse(
+  sqlite3 *db,                /* The database on which the SQL executes */
+  const char *zSql,           /* The SQL to be executed */
+  sqlite3_callback xCallback, /* Invoke this callback routine */
+  void *pArg,                 /* First argument to xCallback() */
+  char **pzErrMsg             /* Write error messages here */
+);
+
 /*
 ** CAPI3REF: Result Codes
 ** KEYWORDS: {result code definitions}

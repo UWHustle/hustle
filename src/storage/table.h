@@ -26,11 +26,13 @@
 
 #include "storage/block.h"
 
+namespace hustle::storage {
+
 /**
  * A Table is collection of Blocks. The Table schema does not include the valid
  * column, i.e. the valid column of each Block is hidden from Table.
  */
-class Table {
+class DBTable {
  public:
   /**
    * Construct an empty table with no blocks.
@@ -39,7 +41,7 @@ class Table {
    * @param schema Table schema, excluding the valid column
    * @param block_capacity Block size
    */
-  Table(std::string name, const std::shared_ptr<arrow::Schema> &schema,
+  DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
         int block_capacity);
 
   /**
@@ -49,7 +51,7 @@ class Table {
    * @param record_batches Vector of RecordBatches read from a file
    * @param block_capacity Block size
    */
-  Table(std::string name,
+  DBTable(std::string name,
         std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
         int block_capacity);
 
@@ -209,7 +211,7 @@ class Table {
 };
 
 template <typename Functor>
-void Table::ForEachBatch(const Functor &functor) const {
+void DBTable::ForEachBatch(const Functor &functor) const {
   size_t batch_size =
       this->get_num_blocks() / std::thread::hardware_concurrency();
   if (batch_size == 0) batch_size = this->get_num_blocks();
@@ -219,4 +221,5 @@ void Table::ForEachBatch(const Functor &functor) const {
   }
 }
 
+}  // namespace hustle::storage
 #endif  // HUSTLE_OFFLINE_TABLE_H

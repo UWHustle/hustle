@@ -29,7 +29,7 @@ using namespace std::chrono;
 SSB* workload;
 
 void read_from_csv() {
-  std::shared_ptr<Table> lo, c, s, p, d;
+  std::shared_ptr<DBTable> lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
       d_schema;
 
@@ -113,7 +113,7 @@ void read_from_csv() {
   p_schema = arrow::schema({p_field1, p_field2, p_field3, p_field4, p_field5,
                             p_field6, p_field7, p_field8, p_field9});
 
-  std::shared_ptr<Table> t;
+  std::shared_ptr<DBTable> t;
   t = read_from_csv_file("../../../ssb/data/customer.tbl", c_schema,
                          20 * BLOCK_SIZE);
   write_to_file("../../../ssb/data/customer.hsl", *t);

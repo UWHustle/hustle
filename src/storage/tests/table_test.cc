@@ -31,6 +31,7 @@
   1024  // Force the block size to 1 KB for the sake of this test
 
 using namespace testing;
+using namespace hustle::storage;
 
 class HustleTableTest : public testing::Test {
  protected:
@@ -97,13 +98,13 @@ class HustleTableTest : public testing::Test {
 };
 
 TEST_F(HustleTableTest, EmptyTable) {
-  Table table("table", schema, BLOCK_SIZE);
+  DBTable table("table", schema, BLOCK_SIZE);
 
   EXPECT_EQ(table.get_num_blocks(), 0);
 }
 
 TEST_F(HustleTableTest, OneBlockTable) {
-  Table table("table", schema, BLOCK_SIZE);
+  DBTable table("table", schema, BLOCK_SIZE);
 
   table.insert_record((uint8_t *)record_string.data(), byte_widths);
 
@@ -111,7 +112,7 @@ TEST_F(HustleTableTest, OneBlockTable) {
 }
 
 TEST_F(HustleTableTest, OneBlockArray) {
-  Table table("table", schema, BLOCK_SIZE);
+  DBTable table("table", schema, BLOCK_SIZE);
 
   table.insert_records(column_data);
 
@@ -119,7 +120,7 @@ TEST_F(HustleTableTest, OneBlockArray) {
 }
 
 TEST_F(HustleTableTest, TwoBlockArray) {
-  Table table("table", schema, BLOCK_SIZE);
+  DBTable table("table", schema, BLOCK_SIZE);
 
   // Inserting three records 14 times. This fits into one block.
   for (int i = 0; i < 14; i++) {
@@ -133,7 +134,7 @@ TEST_F(HustleTableTest, TwoBlockArray) {
 }
 
 TEST_F(HustleTableTest, TwoBlockTable) {
-  Table table("table", schema, BLOCK_SIZE);
+  DBTable table("table", schema, BLOCK_SIZE);
 
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.
@@ -149,7 +150,7 @@ TEST_F(HustleTableTest, TwoBlockTable) {
 }
 
 TEST_F(HustleTableTest, TableIO) {
-  Table table("table", schema, BLOCK_SIZE);
+  DBTable table("table", schema, BLOCK_SIZE);
 
   table.insert_records(column_data);
   table.insert_record((uint8_t *)record_string.data(), byte_widths);
@@ -176,7 +177,7 @@ TEST_F(HustleTableTest, TableIO) {
 }
 
 TEST_F(HustleTableTest, ReadTableFromCSV) {
-  Table table("table", schema, BLOCK_SIZE);
+  DBTable table("table", schema, BLOCK_SIZE);
 
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.

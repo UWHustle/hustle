@@ -55,6 +55,8 @@
  * Array from the corresponding ArrayData. With this approach, we avoid
  * internal consistencies and without having to reconstruct RecordBatches
  */
+
+namespace hustle::storage {
 class Block {
  public:
   //
@@ -297,5 +299,5 @@ class Block {
   template <typename field_size>
   void truncate_column_buffer(int i);
 };
-
+}  // namespace hustle::storage
 #endif  // HUSTLE_OFFLINE_BLOCK_H

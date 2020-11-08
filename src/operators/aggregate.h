@@ -139,8 +139,8 @@ class Aggregate : public BaseAggregate {
   std::shared_ptr<OperatorResult> prev_result_, output_result_;
 
   // The new output table containing the group columns and aggregate columns.
-  std::shared_ptr<Table> output_table_;
-  // The output result of each aggregate group (length = num_aggs_)
+  std::shared_ptr<DBTable> output_table_;
+
   std::atomic<int64_t>* aggregate_data_;
   // Hold the aggregate column data (in chunks)
   std::vector<const int64_t*> aggregate_col_data_;

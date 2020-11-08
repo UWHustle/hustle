@@ -27,6 +27,8 @@
 
 #define ESTIMATED_STR_LEN 30
 
+namespace hustle::storage {
+
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
              int capacity)
     : num_rows(0), num_bytes(0), capacity(capacity), id(id), schema(in_schema) {
@@ -882,3 +884,4 @@ void Block::truncate_column_buffer(int i) {
   auto status = data_buffer->Resize(num_rows * sizeof(int64_t), true);
   evaluate_status(status, __FUNCTION__, __LINE__);
 }
+}  // namespace hustle::storage

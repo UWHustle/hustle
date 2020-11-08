@@ -41,6 +41,7 @@ typedef struct Column Column;
 typedef struct ExprList ExprList;
 typedef struct Expr Expr;
 typedef struct Select Select;
+typedef struct Select Sqlite3Select;
 typedef struct AggInfo AggInfo;
 typedef struct Window Window;
 typedef struct FuncDef FuncDef;

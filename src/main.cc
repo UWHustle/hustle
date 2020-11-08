@@ -37,17 +37,20 @@ int main(int argc, char *argv[]) {
 
   // Get Execution Plan
   std::string query =
-      "EXPLAIN QUERY PLAN select Subscriber.c1 "
+      "select AccessInfo.c4, SUM(Subscriber.c2) \"revenue\""
       "from Subscriber, AccessInfo "
-      "where Subscriber.c1 = AccessInfo.c3 and Subscriber.c2 > 2 and "
-      "AccessInfo.c4 < 5;";
+      "where Subscriber.c1 = AccessInfo.c3 and (Subscriber.c2 > 2 and "
+      "Subscriber.c2 < 5) and (AccessInfo.c3 > 2 or "
+      "AccessInfo.c3 < 5) Group By Subscriber.c2, AccessInfo.c4 Order By "
+      "revenue, AccessInfo.c4;";
 
-  auto parser = std::make_shared<hustle::parser::Parser>();
-  auto resolver =
-      std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
-  parser->parse(query, hustleDB);
-  resolver->resolve(parser->getParseTree());
-  std::cout << resolver->toString(4) << std::endl;
+  hustleDB.executeQuery(query);
+  /* auto parser = std::make_shared<hustle::parser::Parser>();
+   auto resolver =
+       std::make_shared<hustle::resolver::Resolver>(hustleDB.getCatalog());
+   parser->parse(query, hustleDB);
+   resolver->resolve(parser->getParseTree());
+   std::cout << resolver->toString(4) << std::endl;*/
 
   return 0;
 }

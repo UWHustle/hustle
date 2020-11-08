@@ -2,7 +2,9 @@
 
 #include <iostream>
 
-int resolveSelect(Select* queryTree) {
+#include "resolver/select_resolver.h"
+
+int resolveSelect(Sqlite3Select* queryTree) {
   ExprList* pEList = queryTree->pEList;
   Expr* pWhere = queryTree->pWhere;
   ExprList* pGroupBy = queryTree->pGroupBy;
@@ -12,5 +14,8 @@ int resolveSelect(Select* queryTree) {
   // TODO: (@srsuryadev) resolve the select query
   // return 0 if query is supported in column store else return 1
 
+  using hustle::resolver::SelectResolver;
+  SelectResolver* select_resolver = new SelectResolver();
+  select_resolver->ResolveSelectTree(queryTree);
   return 0;
 }

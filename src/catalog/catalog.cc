@@ -93,6 +93,11 @@ Catalog Catalog::CreateCatalog(std::string CatalogPath,
   }
 }
 
+std::shared_ptr<DBTable> Catalog::getTable(size_t table_id) {
+  // TODO: maintain a structure for storing tables in the db
+  return nullptr;
+}
+
 void Catalog::SaveToFile() {
   std::stringstream ss;
   {

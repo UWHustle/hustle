@@ -32,12 +32,15 @@
 #include <optional>
 #include <sstream>
 
-#include "table_schema.h"
 #include "absl/strings/str_cat.h"
 #include "gtest/gtest.h"
 #include "sqlite3/sqlite3.h"
+#include "storage/table.h"
+#include "table_schema.h"
 #include "utils/map_utils.h"
 #include "utils/sqlite_utils.h"
+
+using namespace hustle::storage;
 
 namespace hustle {
 namespace catalog {
@@ -53,6 +56,8 @@ class Catalog {
   std::optional<TableSchema*> TableExists(std::string name);
 
   void print() const;
+
+  std::shared_ptr<DBTable> getTable(size_t table_id);
 
   int getTableIdbyName(const std::string& name) { return name_to_id_[name]; }
 

@@ -46,7 +46,7 @@ class SelectTestFixture : public testing::Test {
   std::shared_ptr<arrow::Array> expected_R_col_2;
   std::shared_ptr<arrow::Array> expected_R_col_3;
 
-  std::shared_ptr<Table> R, S, T;
+  std::shared_ptr<DBTable> R, S, T;
 
   void SetUp() override {
     arrow::Status status;

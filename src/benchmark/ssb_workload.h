@@ -66,7 +66,7 @@ class SSB {
   void q42_lip();
   void q43_lip();
 
-  std::shared_ptr<Table> lo, c, s, p, d;
+  std::shared_ptr<DBTable> lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
       d_schema;
 
@@ -99,7 +99,7 @@ class SSB {
   std::shared_ptr<OperatorOptions> filter_join_options;
   std::shared_ptr<OperatorOptions> aggregate_options;
 
-  std::shared_ptr<Table> out_table;
+  std::shared_ptr<DBTable> out_table;
 
   ColumnReference lo_d_ref;
   ColumnReference lo_p_ref;
