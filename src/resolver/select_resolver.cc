@@ -205,8 +205,6 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
         if (pOrderBy->a[i].pExpr->iColumn >= 0) {
           std::shared_ptr<ColumnReference> colRef;
           if (pOrderBy->a[i].pExpr->op == TK_AGG_FUNCTION) {
-            std::cout << "Orderby col: " << pOrderBy->a[i].u.x.iOrderByCol
-                      << std::endl;
             colRef = std::make_shared<ColumnReference>(ColumnReference{
                 nullptr,
                 (*project_references_)[pOrderBy->a[i].u.x.iOrderByCol - 1]
@@ -223,19 +221,8 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       }
     }
   }
-  std::cout << "project references: " << project_references_->size()
-            << std::endl;
-  std::cout << "aggregate references: " << agg_references_->size() << std::endl;
-  std::cout << "select tables: " << select_predicates_.size() << std::endl;
-  std::cout << "Join Predicates: " << join_predicates_->size() << std::endl;
-  std::cout << "group_by references: " << group_by_references_->size()
-            << std::endl;
-  std::cout << "order_by references: " << order_by_references_->size()
-            << std::endl;
-  std::cout << "project references: " << project_references_->size()
-            << std::endl;
-
-  return true;
+ 
+  return true; // TODO: return true or false based on query resolvability
 }
 }  // namespace resolver
 }  // namespace hustle
