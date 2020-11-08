@@ -38,7 +38,7 @@ target_link_libraries(hustle_resolver_test
         hustle_src_storage
         hustle_src_resolver
         )
-add_test(HustleResolver_test hustle_resolver_test)
+add_test(HustleSQLiteResolver_test hustle_resolver_test)
 
 
 add_executable(hustle_resolver_ssb_test "tests/resolver_ssb_test.cc")
