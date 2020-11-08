@@ -15,29 +15,36 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_OPERATOR_OPTIONS_H
-#define HUSTLE_OPERATOR_OPTIONS_H
+#ifndef HUSTLE_AGGREGATE_CONST_H
+#define HUSTLE_AGGREGATE_CONST_H
+
+#include "operators/operator.h"
+#include "base_aggregate.h"
 
 namespace hustle::operators {
 
-class OperatorOptions {
- public:
-  /**
-   * This class contains set of options or configurable parameters
-   * that we need to pass to the Operator to tune/configure
-   * its execution.
-   */
-  explicit OperatorOptions() : parallel_factor_(1.0) {}
-  double get_parallel_factor() const { return parallel_factor_; }
 
-  OperatorOptions & set_parallel_factor(double parallel_factor) {
-    parallel_factor_ = parallel_factor;
-    return *this;
-  }
+// Types of aggregates we can perform. COUNT is currently not supported.
+enum AggregateKernel { SUM, COUNT, MEAN };
 
- protected:
-  double parallel_factor_;
+// Types of aggregate algorithm we can use.
+enum AggregateType { HASH_AGGREGATE, ARROW_AGGREGATE };
+
+/**
+ * A reference structure containing all the information needed to perform an
+ * aggregate over a column.
+ *
+ * @param kernel The type of aggregate we want to compute
+ * @param agg_name Name of the new aggregate column
+ * @param col_ref A reference to the column over which we want to compute the
+ * aggregate
+ */
+struct AggregateReference {
+  AggregateKernel kernel;
+  std::string agg_name;
+  ColumnReference col_ref;
 };
-};  // namespace hustle::operators
 
-#endif  // HUSTLE_OPERATOR_OPTIONS_H
+}
+
+#endif //HUSTLE_AGGREGATE_CONST_H

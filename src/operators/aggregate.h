@@ -28,27 +28,10 @@
 #include "parallel_hashmap/phmap.h"
 #include "storage/block.h"
 #include "storage/table.h"
+#include "aggregate_const.h"
 
 namespace hustle {
 namespace operators {
-
-// Types of aggregates we can perform. COUNT is currently not supported.
-enum AggregateKernel { SUM, COUNT, MEAN };
-
-/**
- * A reference structure containing all the information needed to perform an
- * aggregate over a column.
- *
- * @param kernel The type of aggregate we want to compute
- * @param agg_name Name of the new aggregate column
- * @param col_ref A reference to the column over which we want to compute the
- * aggregate
- */
-struct AggregateReference {
-  AggregateKernel kernel;
-  std::string agg_name;
-  ColumnReference col_ref;
-};
 
 /**
  * Group = a set of column values, one for each column in the GROUP BY clause
@@ -99,7 +82,7 @@ struct AggregateReference {
  * which means the filtered aggregate column with have length 0. Thus, this
  * group will be excluded from the output.
  */
-class Aggregate : public Operator {
+class Aggregate : public BaseAggregate {
  public:
   /**
    * Construct an Aggregate operator. Group by and order by clauses are
@@ -150,6 +133,7 @@ class Aggregate : public Operator {
   void execute(Task* ctx) override;
 
  private:
+  // Number of groups to aggregate.
   std::size_t num_aggs_;
   // Operator result from an upstream operator and output result will be stored
   std::shared_ptr<OperatorResult> prev_result_, output_result_;
@@ -158,6 +142,7 @@ class Aggregate : public Operator {
   std::shared_ptr<DBTable> output_table_;
 
   std::atomic<int64_t>* aggregate_data_;
+  // Hold the aggregate column data (in chunks)
   std::vector<const int64_t*> aggregate_col_data_;
 
   // References denoting which columns we want to perform an aggregate on
@@ -168,13 +153,15 @@ class Aggregate : public Operator {
 
   // Map group by column names to the actual group column
   std::vector<arrow::Datum> group_by_cols_;
-
+  // Hash the group-by key to the agg_index (initialized in ComputeAggregates)
   phmap::flat_hash_map<int, int> group_agg_index_map_;
+  // Number of unique values in each group by column.
   std::vector<arrow::Datum> unique_values_map_;
   // A vector of Arrays containing the unique values of each of the group
   // by columns.
   std::vector<std::shared_ptr<arrow::Array>> unique_values_;
 
+  arrow::Datum agg_col_;
   // A StructType containing the types of all group by columns
   std::shared_ptr<arrow::DataType> group_type_;
   // We append each aggregate to this after it is computed.
@@ -182,10 +169,10 @@ class Aggregate : public Operator {
   // We append each group to this after we compute the aggregate for that
   // group.
   std::shared_ptr<arrow::StructBuilder> group_builder_;
-  arrow::Datum agg_col_;
-
+  // Construct the group-by key. Initialized in Dynamic Depth Nested Loop.
   std::vector<std::vector<int>> group_id_vec_;
 
+  // Map group-by column name to group_index in the group_by_refs_ table.
   std::unordered_map<std::string, int> group_by_index_map_;
   std::vector<LazyTable> group_by_tables_;
   LazyTable agg_lazy_table_;

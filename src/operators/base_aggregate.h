@@ -15,29 +15,25 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_OPERATOR_OPTIONS_H
-#define HUSTLE_OPERATOR_OPTIONS_H
+#ifndef HUSTLE_BASE_AGGREGATE_H
+#define HUSTLE_BASE_AGGREGATE_H
+
+#include "operator.h"
 
 namespace hustle::operators {
 
-class OperatorOptions {
- public:
-  /**
-   * This class contains set of options or configurable parameters
-   * that we need to pass to the Operator to tune/configure
-   * its execution.
-   */
-  explicit OperatorOptions() : parallel_factor_(1.0) {}
-  double get_parallel_factor() const { return parallel_factor_; }
+class BaseAggregate: public Operator {
+protected:
 
-  OperatorOptions & set_parallel_factor(double parallel_factor) {
-    parallel_factor_ = parallel_factor;
-    return *this;
-  }
+  explicit BaseAggregate(const size_t query_id)
+  : BaseAggregate(query_id, std::make_shared<OperatorOptions>()){};
 
- protected:
-  double parallel_factor_;
+  explicit BaseAggregate(const size_t query_id,
+                         std::shared_ptr<OperatorOptions> sharedPtr)
+    : Operator(query_id, sharedPtr) {};
+
 };
-};  // namespace hustle::operators
 
-#endif  // HUSTLE_OPERATOR_OPTIONS_H
+}; // namespace hustle::operators
+
+#endif //HUSTLE_BASE_AGGREGATE_H

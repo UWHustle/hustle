@@ -36,8 +36,8 @@ using namespace testing;
 using namespace hustle::operators;
 using namespace hustle;
 
-class AggregateTestFixture : public testing::Test {
- protected:
+class HashAggregateTestFixture : public testing::Test {
+protected:
   std::shared_ptr<arrow::Schema> schema;
 
   arrow::Int64Builder int_builder;
@@ -50,7 +50,7 @@ class AggregateTestFixture : public testing::Test {
   std::shared_ptr<arrow::Array> expected_T_col_1;
   std::shared_ptr<arrow::Array> expected_T_col_2;
 
-  std::shared_ptr<DBTable> R, S, T;
+  std::shared_ptr<Table> R, S, T;
 
   void SetUp() override {
     arrow::Status status;
@@ -93,7 +93,7 @@ class AggregateTestFixture : public testing::Test {
  * SELECT avg(R.data) as data_mean
  * FROM R
  */
-TEST_F(AggregateTestFixture, MeanTest) {
+TEST_F(HashAggregateTestFixture, MeanTest) {
   R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
   ColumnReference R_key_ref = {R, "key"};
@@ -104,7 +104,7 @@ TEST_F(AggregateTestFixture, MeanTest) {
   result->append(R);
 
   AggregateReference agg_ref = {AggregateKernel::MEAN, "data_mean", R, "data"};
-  Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+  HashAggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
@@ -119,7 +119,6 @@ TEST_F(AggregateTestFixture, MeanTest) {
   arrow::Status status;
   status = double_builder.Append(((double)150) / 6);
   status = double_builder.Finish(&expected_agg_col_1);
-
   EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
 }
 
@@ -127,7 +126,7 @@ TEST_F(AggregateTestFixture, MeanTest) {
  * SELECT sum(R.data) as data_sum
  * FROM R
  */
-TEST_F(AggregateTestFixture, SumTest) {
+TEST_F(HashAggregateTestFixture, SumTest) {
   R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
   ColumnReference R_key_ref = {R, "key"};
@@ -138,7 +137,7 @@ TEST_F(AggregateTestFixture, SumTest) {
   result->append(R);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
-  Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+  HashAggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
 
@@ -160,34 +159,34 @@ TEST_F(AggregateTestFixture, SumTest) {
  * SELECT count(R.data) as data_count
  * FROM R
  */
-TEST_F(AggregateTestFixture, CountTest) {
-    R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
+TEST_F(HashAggregateTestFixture, CountTest) {
+  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
-    ColumnReference R_key_ref = {R, "key"};
-    ColumnReference R_group_ref = {R, "data"};
+  ColumnReference R_key_ref = {R, "key"};
+  ColumnReference R_group_ref = {R, "data"};
 
-    auto result = std::make_shared<OperatorResult>();
-    auto out_result = std::make_shared<OperatorResult>();
-    result->append(R);
+  auto result = std::make_shared<OperatorResult>();
+  auto out_result = std::make_shared<OperatorResult>();
+  result->append(R);
 
-    AggregateReference agg_ref = {AggregateKernel::COUNT, "data_count", R, "data"};
-    Aggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
+  AggregateReference agg_ref = {AggregateKernel::COUNT, "data_count", R, "data"};
+  HashAggregate agg_op(0, result, out_result, {agg_ref}, {}, {});
 
-    Scheduler &scheduler = Scheduler::GlobalInstance();
-    scheduler.addTask(agg_op.createTask());
+  Scheduler &scheduler = Scheduler::GlobalInstance();
+  scheduler.addTask(agg_op.createTask());
 
-    scheduler.start();
-    scheduler.join();
+  scheduler.start();
+  scheduler.join();
 
-    auto out_table = out_result->materialize({{nullptr, "data_count"}});
-    //    out_table->print();
+  auto out_table = out_result->materialize({{nullptr, "data_count"}});
+  //    out_table->print();
 
-    // Construct expected results
-    arrow::Status status;
-    status = int_builder.Append(6);
-    status = int_builder.Finish(&expected_agg_col_1);
+  // Construct expected results
+  arrow::Status status;
+  status = int_builder.Append(6);
+  status = int_builder.Finish(&expected_agg_col_1);
 
-    EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
 }
 
 /*
@@ -253,7 +252,7 @@ TEST_F(AggregateTestFixture, CountTest) {
  * FROM R
  * GROUP BY R.group
  */
-TEST_F(AggregateTestFixture, SumWithGroupByTest) {
+TEST_F(HashAggregateTestFixture, SumWithGroupByTest) {
   R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
   ColumnReference R_key_ref = {R, "key"};
@@ -264,7 +263,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByTest) {
   result->append(R);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
-  Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
+  HashAggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
                    {R_group_ref});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
@@ -273,7 +272,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByTest) {
   scheduler.join();
 
   auto out_table =
-      out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
+    out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
   //    out_table->print();
 
   // Construct expected results
@@ -285,9 +284,9 @@ TEST_F(AggregateTestFixture, SumWithGroupByTest) {
   status = int_builder.Finish(&expected_agg_col_2);
 
   auto group_col = std::static_pointer_cast<arrow::StringArray>(
-      out_table->get_column(0)->chunk(0));
+    out_table->get_column(0)->chunk(0));
   auto agg_col = std::static_pointer_cast<arrow::Int64Array>(
-      out_table->get_column(1)->chunk(0));
+    out_table->get_column(1)->chunk(0));
 
   for (int i = 0; i < group_col->length(); i++) {
     if (group_col->GetString(i) == "R0") {
@@ -308,7 +307,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByTest) {
  * GROUP BY R.group
  * ORDER BY R.group
  */
-TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
+TEST_F(HashAggregateTestFixture, SumWithGroupByOrderByTest) {
   R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
 
   ColumnReference R_key_ref = {R, "key"};
@@ -319,7 +318,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
   result->append(R);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
-  Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
+  HashAggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
                    {R_group_ref});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
@@ -328,7 +327,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
   scheduler.join();
 
   auto out_table =
-      out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
+    out_result->materialize({{nullptr, "group"}, {nullptr, "data_sum"}});
   //    out_table->print();
 
   // Construct expected results
