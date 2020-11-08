@@ -41,6 +41,9 @@ class HustleDB {
 
   std::string getPlan(const std::string &sql);
 
+  const std::string getSqliteDBPath() {
+    return SqliteDBPath_;
+  }
   // Not implemented yet.
   bool insert();
 

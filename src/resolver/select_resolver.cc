@@ -31,7 +31,7 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
         rRef = {catalog_->getTable(rightExpr->iTable),
                 rightExpr->y.pTab->aCol[rightExpr->iColumn].zName};
         JoinPredicate join_pred = {lRef, arrow::compute::EQUAL, rRef};
-        join_predicates_.emplace_back(join_pred);
+        join_predicates_->emplace_back(join_pred);
       }
       break;
     }
@@ -131,7 +131,7 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
   return predicate_tree;
 }
 
-bool SelectResolver::ResolveSelectTree(Select* queryTree) {
+bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   // Collect all the src tables
   SrcList* pTabList = queryTree->pSrc;
   for (int i = 0; i < pTabList->nSrc; i++) {
@@ -156,17 +156,19 @@ bool SelectResolver::ResolveSelectTree(Select* queryTree) {
         AggregateReference aggRef = {
             aggregate_kernels_[pEList->a[k].pExpr->u.zToken],
             pEList->a[k].zEName, colRef};
-        agg_references_.emplace_back(aggRef);
-        ProjectReference projRef = {colRef, zName};
-        project_references_.emplace_back(projRef);
+        agg_references_->emplace_back(aggRef);
+        std::shared_ptr<ProjectReference> projRef =
+            std::make_shared<ProjectReference>(ProjectReference{colRef, zName});
+        project_references_->emplace_back(projRef);
       }
     } else if (pEList->a[k].pExpr->op == TK_COLUMN ||
                pEList->a[k].pExpr->op == TK_AGG_COLUMN) {
       Expr* expr = pEList->a[k].pExpr;
       ColumnReference colRef = {catalog_->getTable(expr->iTable),
                                 expr->y.pTab->aCol[expr->iColumn].zName};
-      ProjectReference projRef = {colRef};
-      project_references_.emplace_back(projRef);
+      std::shared_ptr<ProjectReference> projRef =
+          std::make_shared<ProjectReference>(ProjectReference{colRef});
+      project_references_->emplace_back(projRef);
     }
   }
 
@@ -184,12 +186,13 @@ bool SelectResolver::ResolveSelectTree(Select* queryTree) {
   if (pGroupBy != NULL) {
     for (int i = 0; i < pGroupBy->nExpr; i++) {
       if (pGroupBy->a[i].pExpr->iColumn >= 1) {
-        ColumnReference colRef = {
-            catalog_->getTable(pGroupBy->a[i].pExpr->iTable),
-            pGroupBy->a[i]
-                .pExpr->y.pTab->aCol[pGroupBy->a[i].pExpr->iColumn]
-                .zName};
-        group_by_references_.emplace_back(colRef);
+        std::shared_ptr<ColumnReference> colRef =
+            std::make_shared<ColumnReference>(ColumnReference{
+                catalog_->getTable(pGroupBy->a[i].pExpr->iTable),
+                pGroupBy->a[i]
+                    .pExpr->y.pTab->aCol[pGroupBy->a[i].pExpr->iColumn]
+                    .zName});
+        group_by_references_->emplace_back(colRef);
       }
     }
   }
@@ -200,31 +203,36 @@ bool SelectResolver::ResolveSelectTree(Select* queryTree) {
     for (int i = 0; i < pOrderBy->nExpr; i++) {
       if (pOrderBy->a[i].u.x.iOrderByCol > 0) {
         if (pOrderBy->a[i].pExpr->iColumn >= 0) {
-          ColumnReference colRef;
+          std::shared_ptr<ColumnReference> colRef;
           if (pOrderBy->a[i].pExpr->op == TK_AGG_FUNCTION) {
-            colRef = {
+            std::cout << "Orderby col: " << pOrderBy->a[i].u.x.iOrderByCol
+                      << std::endl;
+            colRef = std::make_shared<ColumnReference>(ColumnReference{
                 nullptr,
-                project_references_[pOrderBy->a[i].u.x.iOrderByCol].alias};
+                (*project_references_)[pOrderBy->a[i].u.x.iOrderByCol - 1]
+                    ->alias});
           } else {
-            colRef = {catalog_->getTable(pOrderBy->a[i].pExpr->iTable),
-                      pOrderBy->a[i]
-                          .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
-                          .zName};
+            colRef = std::make_shared<ColumnReference>(ColumnReference{
+                catalog_->getTable(pOrderBy->a[i].pExpr->iTable),
+                pOrderBy->a[i]
+                    .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
+                    .zName});
           }
-          order_by_references_.emplace_back(colRef);
+          order_by_references_->emplace_back(colRef);
         }
       }
     }
   }
-
-  std::cout << "project references: " << project_references_.size()
+  std::cout << "project references: " << project_references_->size()
             << std::endl;
-  std::cout << "aggregate references: " << agg_references_.size() << std::endl;
+  std::cout << "aggregate references: " << agg_references_->size() << std::endl;
   std::cout << "select tables: " << select_predicates_.size() << std::endl;
-  std::cout << "Join Predicates: " << join_predicates_.size() << std::endl;
-  std::cout << "group_by references: " << group_by_references_.size()
+  std::cout << "Join Predicates: " << join_predicates_->size() << std::endl;
+  std::cout << "group_by references: " << group_by_references_->size()
             << std::endl;
-  std::cout << "order_by references: " << order_by_references_.size()
+  std::cout << "order_by references: " << order_by_references_->size()
+            << std::endl;
+  std::cout << "project references: " << project_references_->size()
             << std::endl;
 
   return true;

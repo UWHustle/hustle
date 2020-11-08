@@ -4,7 +4,7 @@
 
 #include "resolver/select_resolver.h"
 
-int resolveSelect(Select* queryTree) {
+int resolveSelect(Sqlite3Select* queryTree) {
   ExprList* pEList = queryTree->pEList;
   Expr* pWhere = queryTree->pWhere;
   ExprList* pGroupBy = queryTree->pGroupBy;

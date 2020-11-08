@@ -44,11 +44,14 @@ class SelectResolver {
   std::unordered_map<std::string,
                      std::shared_ptr<hustle::operators::PredicateTree>>
       select_predicates_;
-  std::vector<JoinPredicate> join_predicates_;
-  std::vector<AggregateReference> agg_references_;
-  std::vector<ColumnReference> group_by_references_;
-  std::vector<ColumnReference> order_by_references_;
-  std::vector<ProjectReference> project_references_;
+  std::shared_ptr<std::vector<JoinPredicate>> join_predicates_;
+  std::shared_ptr<std::vector<AggregateReference>> agg_references_;
+  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+      group_by_references_;
+  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+      order_by_references_;
+  std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
+      project_references_;
 
   std::map<std::string, hustle::operators::AggregateKernel> aggregate_kernels_ =
       {{"SUM", AggregateKernel::SUM},
@@ -63,32 +66,52 @@ class SelectResolver {
   void ResolveJoinPredExpr(Expr* pExpr);
 
  public:
-  SelectResolver(Catalog* catalog) : catalog_(catalog) {}
-  SelectResolver() {
-    // For Test
+  SelectResolver(Catalog* catalog) : catalog_(catalog) {
+    join_predicates_ = std::make_shared<std::vector<JoinPredicate>>();
+    agg_references_ = std::make_shared<std::vector<AggregateReference>>();
+    group_by_references_ =
+        std::make_shared<std::vector<std::shared_ptr<ColumnReference>>>();
+    order_by_references_ =
+        std::make_shared<std::vector<std::shared_ptr<ColumnReference>>>();
+    project_references_ =
+        std::make_shared<std::vector<std::shared_ptr<ProjectReference>>>();
+
+    join_predicates_->reserve(5);
+    agg_references_->reserve(5);
+    group_by_references_->reserve(5);
+    order_by_references_->reserve(5);
+    project_references_->reserve(5);
+
     resolve_status_ = true;
-    catalog_ = nullptr;
   }
 
-  std::vector<JoinPredicate>& get_join_predicates() { return join_predicates_; }
+  SelectResolver() : SelectResolver(nullptr) {}
 
-  std::vector<AggregateReference>& get_agg_references() {
+  std::shared_ptr<std::vector<JoinPredicate>> get_join_predicates() {
+    return join_predicates_;
+  }
+
+  std::shared_ptr<std::vector<AggregateReference>> get_agg_references() {
     return agg_references_;
   }
 
-  std::vector<ColumnReference>& get_groupby_references() {
+  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  get_groupby_references() {
     return group_by_references_;
   }
 
-  std::vector<ColumnReference>& get_orderby_references() {
+  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  get_orderby_references() {
     return order_by_references_;
   }
 
-  std::vector<ProjectReference>& get_project_references() {
+  std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
+  get_project_references() {
     return project_references_;
   }
 
-  bool ResolveSelectTree(Select* queryTree);
+  bool ResolveSelectTree(Sqlite3Select* queryTree);
+  bool ResolveSelectTree() { return true; }
 };
 }  // namespace resolver
 }  // namespace hustle
