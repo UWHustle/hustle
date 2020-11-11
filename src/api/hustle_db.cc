@@ -24,14 +24,31 @@
 
 namespace hustle {
 
+std::map<std::string, std::shared_ptr<Catalog>> hustle::HustleDB::catalogs = {};
+
+void HustleDB::addCatalog(std::string db_name,
+                          std::shared_ptr<Catalog> catalog) {
+  auto catalog_itr = hustle::HustleDB::catalogs.find(db_name);
+  if (catalog_itr != hustle::HustleDB::catalogs.end()) {
+    return;
+  }
+  hustle::HustleDB::catalogs[db_name] = catalog;
+}
+
+std::shared_ptr<Catalog> HustleDB::getCatalog(std::string db_name) {
+  return hustle::HustleDB::catalogs[db_name];
+}
+
 HustleDB::HustleDB(std::string DBpath)
     : DBPath_(DBpath),
       CatalogPath_(DBpath + "/" + "catalog.json"),
       SqliteDBPath_(DBpath + "/" + "hustle_sqlite.db"),
-      catalog_(catalog::Catalog::CreateCatalog(CatalogPath_, SqliteDBPath_)) {
+      catalog_(
+          catalog::Catalog::CreateCatalogObject(CatalogPath_, SqliteDBPath_)) {
   if (!std::filesystem::exists(DBpath)) {
     std::filesystem::create_directories(DBpath);
   }
+  this->addCatalog(SqliteDBPath_, catalog_);
 };
 
 std::string HustleDB::getPlan(const std::string &sql) {
@@ -39,16 +56,15 @@ std::string HustleDB::getPlan(const std::string &sql) {
 }
 
 bool HustleDB::createTable(const TableSchema ts) {
-  return catalog_.addTable(ts);
+  return catalog_->addTable(ts);
 }
 
 std::string HustleDB::executeQuery(const std::string &sql) {
   return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
 }
 
-
 bool HustleDB::dropTable(const std::string &name) {
-  return catalog_.dropTable(name);
+  return catalog_->dropTable(name);
 }
 
 bool HustleDB::insert() {

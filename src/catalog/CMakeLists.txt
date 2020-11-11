@@ -14,6 +14,7 @@ target_link_libraries(
         absl::flat_hash_map
         map_utils
         sqlite_utils
+        ${ARROW_SHARED_LIB}
 )
 
 

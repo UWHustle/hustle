@@ -28,6 +28,8 @@ namespace catalog {
 
 enum HustleType { INTEGER, CHAR };
 
+const int kDefaultCharSize = 64;
+
 class ColumnType {
  public:
   ColumnType(HustleType type) : type_(type), size_(std::nullopt){};

@@ -42,7 +42,7 @@ class DBTable {
    * @param block_capacity Block size
    */
   DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
-        int block_capacity);
+          int block_capacity);
 
   /**
    * Construct a table from a vector of RecordBatches read from a file.
@@ -52,8 +52,8 @@ class DBTable {
    * @param block_capacity Block size
    */
   DBTable(std::string name,
-        std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-        int block_capacity);
+          std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+          int block_capacity);
 
   //
   /**
@@ -162,6 +162,8 @@ class DBTable {
   void print();
 
   std::shared_ptr<arrow::ChunkedArray> get_valid_column();
+
+  std::string get_name() const { return table_name; }
 
   int get_num_cols() const;
 

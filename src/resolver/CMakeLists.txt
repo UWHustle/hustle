@@ -10,6 +10,7 @@ target_link_libraries(hustle_src_resolver
         hustle_src_parser
         hustle_src_operators
         hustle_src_catalog
+        hustleDB
 )
 
 

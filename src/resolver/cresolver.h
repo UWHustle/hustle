@@ -696,7 +696,7 @@ struct Schema {
   int cache_size;      /* Number of pages to use in the cache */
 };
 
-int resolveSelect(Select* queryTree);
+int resolveSelect(char* dbName, Select* queryTree);
 
 #ifdef __cplusplus
 }

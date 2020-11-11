@@ -82,7 +82,6 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
   int rc;
 
   rc = sqlite3_open(sqlitePath.c_str(), &db);
-
   if (rc) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n",
             sqlite3_errmsg(db));
@@ -101,7 +100,6 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
     //    fprintf(stdout, "Query ececuted successfully\n");
   }
   sqlite3_close(db);
-
   return true;
 }
 

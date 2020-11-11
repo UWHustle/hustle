@@ -354,7 +354,7 @@ TEST_F(ResolverTest, q1) {
 
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 1);
@@ -379,9 +379,12 @@ TEST_F(ResolverTest, q2) {
       "and lo_discount < 6\n"
       "and lo_quantity < 35;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 1);
@@ -406,9 +409,12 @@ TEST_F(ResolverTest, q3) {
       "and lo_discount < 7\n"
       "and lo_quantity < 40;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 1);
@@ -435,9 +441,12 @@ TEST_F(ResolverTest, q4) {
       "group by d_year, p_brand1\n"
       "order by d_year, p_brand1;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
@@ -464,9 +473,12 @@ TEST_F(ResolverTest, q5) {
       "\tgroup by d_year, p_brand1\n"
       "\torder by d_year, p_brand1;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
@@ -493,9 +505,12 @@ TEST_F(ResolverTest, q6) {
       "\tgroup by d_year, p_brand1\n"
       "\torder by d_year, p_brand1;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
@@ -524,9 +539,12 @@ TEST_F(ResolverTest, q7) {
       "\tgroup by c_nation, s_nation, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
@@ -555,9 +573,12 @@ TEST_F(ResolverTest, q8) {
       "\tgroup by c_city, s_city, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
@@ -586,9 +607,12 @@ TEST_F(ResolverTest, q9) {
       "\tgroup by c_city, s_city, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
@@ -617,9 +641,12 @@ TEST_F(ResolverTest, q10) {
       "\tgroup by c_city, s_city, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
@@ -649,9 +676,12 @@ TEST_F(ResolverTest, q11) {
       "\tgroup by d_year, c_nation\n"
       "\torder by d_year, c_nation;";
 
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.getPlan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
       hustleDB.getSqliteDBPath(), query);
-  SelectResolver select_resolver;
+  SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.get_join_predicates()->size(), 4);
