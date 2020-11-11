@@ -245,6 +245,108 @@ TEST(TableSchema, Serialization) {
   EXPECT_THAT(ts_cereal.getPrimaryKey(), ElementsAre("c1", "c2"));
 }
 
+TEST(TableSchema, basic_arrow_test1) {
+  TableSchema ts("Subscriber");
+
+  EXPECT_EQ(ts.getName(), "Subscriber");
+
+  EXPECT_FALSE(ts.ColumnExists("c1"));
+
+  EXPECT_TRUE(ts.addColumn({"c1", {HustleType::INTEGER}, true, false}));
+
+  EXPECT_TRUE(ts.ColumnExists("c1"));
+  EXPECT_EQ(ts.ColumnExists("c1").value()->getName(), "c1");
+
+  std::shared_ptr<arrow::Schema> arrow_schema = ts.getArrowSchema();
+  EXPECT_EQ(arrow_schema->field_names().size(), 1);
+}
+
+TEST(TableSchema, basic_arrow_test2) {
+  TableSchema ts("Subscriber");
+
+  EXPECT_EQ(ts.getName(), "Subscriber");
+
+  EXPECT_FALSE(ts.ColumnExists("c1"));
+  EXPECT_FALSE(ts.ColumnExists("c2"));
+
+  EXPECT_TRUE(ts.addColumn({"c1", {HustleType::INTEGER}, true, false}));
+  EXPECT_TRUE(ts.addColumn({"c2", {HustleType::CHAR, 10}, false, true}));
+  EXPECT_FALSE(ts.addColumn({"c2", {HustleType::CHAR, 10}, false, true}));
+
+  EXPECT_TRUE(ts.ColumnExists("c1"));
+  EXPECT_EQ(ts.ColumnExists("c1").value()->getName(), "c1");
+  EXPECT_TRUE(ts.ColumnExists("c2"));
+  EXPECT_EQ(ts.ColumnExists("c2").value()->getName(), "c2");
+
+  std::shared_ptr<arrow::Schema> arrow_schema = ts.getArrowSchema();
+  EXPECT_EQ(arrow_schema->field_names().size(), 2);
+}
+
+TEST(TableSchema, arrow_test) {
+  TableSchema ts("Subscriber");
+  EXPECT_EQ(ts.getName(), "Subscriber");
+
+  TableSchema ts_p("Producer");
+  EXPECT_EQ(ts_p.getName(), "Producer");
+
+  EXPECT_FALSE(ts.ColumnExists("c1"));
+  EXPECT_FALSE(ts.ColumnExists("c2"));
+
+  EXPECT_TRUE(ts.addColumn({"c1", {HustleType::INTEGER}, true, false}));
+  EXPECT_TRUE(ts.addColumn({"c2", {HustleType::CHAR, 10}, false, true}));
+  EXPECT_FALSE(ts.addColumn({"c2", {HustleType::CHAR, 10}, false, true}));
+
+  EXPECT_TRUE(ts.ColumnExists("c1"));
+  EXPECT_EQ(ts.ColumnExists("c1").value()->getName(), "c1");
+  EXPECT_TRUE(ts.ColumnExists("c2"));
+  EXPECT_EQ(ts.ColumnExists("c2").value()->getName(), "c2");
+
+  std::shared_ptr<arrow::Schema> arrow_schema = ts.getArrowSchema();
+  EXPECT_EQ(arrow_schema->field_names().size(), 2);
+
+  EXPECT_FALSE(ts_p.ColumnExists("c1"));
+  EXPECT_FALSE(ts_p.ColumnExists("c2"));
+  EXPECT_FALSE(ts_p.ColumnExists("c3"));
+  EXPECT_FALSE(ts_p.ColumnExists("c4"));
+  EXPECT_FALSE(ts_p.ColumnExists("c5"));
+  EXPECT_FALSE(ts_p.ColumnExists("c6"));
+
+  EXPECT_TRUE(ts_p.addColumn({"c1", {HustleType::INTEGER}, true, false}));
+  EXPECT_TRUE(ts_p.addColumn({"c2", {HustleType::CHAR, 10}, false, true}));
+  EXPECT_TRUE(ts_p.addColumn({"c3", {HustleType::INTEGER}, true, false}));
+  EXPECT_TRUE(ts_p.addColumn({"c4", {HustleType::CHAR, 10}, false, true}));
+  EXPECT_TRUE(ts_p.addColumn({"c5", {HustleType::CHAR, 10}, false, true}));
+  EXPECT_TRUE(ts_p.addColumn({"c6", {HustleType::CHAR, 10}, false, true}));
+
+  EXPECT_TRUE(ts_p.ColumnExists("c1"));
+  EXPECT_EQ(ts_p.ColumnExists("c1").value()->getName(), "c1");
+  EXPECT_TRUE(ts_p.ColumnExists("c2"));
+  EXPECT_EQ(ts_p.ColumnExists("c2").value()->getName(), "c2");
+  EXPECT_TRUE(ts_p.ColumnExists("c3"));
+  EXPECT_EQ(ts_p.ColumnExists("c3").value()->getName(), "c3");
+  EXPECT_TRUE(ts_p.ColumnExists("c4"));
+  EXPECT_EQ(ts_p.ColumnExists("c4").value()->getName(), "c4");
+  EXPECT_TRUE(ts_p.ColumnExists("c5"));
+  EXPECT_EQ(ts_p.ColumnExists("c5").value()->getName(), "c5");
+  EXPECT_TRUE(ts_p.ColumnExists("c6"));
+  EXPECT_EQ(ts_p.ColumnExists("c6").value()->getName(), "c6");
+
+  arrow_schema = ts_p.getArrowSchema();
+  EXPECT_EQ(arrow_schema->field_names().size(), 6);
+  EXPECT_EQ((*arrow_schema->field(0)).name(), "c1");
+  EXPECT_EQ((*arrow_schema->field(0)).type(), arrow::int64());
+  EXPECT_EQ((*arrow_schema->field(1)).name(), "c2");
+  EXPECT_EQ((*arrow_schema->field(1)).type(), arrow::utf8());
+  EXPECT_EQ((*arrow_schema->field(2)).name(), "c3");
+  EXPECT_EQ((*arrow_schema->field(2)).type(), arrow::int64());
+  EXPECT_EQ((*arrow_schema->field(3)).name(), "c4");
+  EXPECT_EQ((*arrow_schema->field(3)).type(), arrow::utf8());
+  EXPECT_EQ((*arrow_schema->field(4)).name(), "c5");
+  EXPECT_EQ((*arrow_schema->field(4)).type(), arrow::utf8());
+  EXPECT_EQ((*arrow_schema->field(5)).name(), "c6");
+  EXPECT_EQ((*arrow_schema->field(5)).type(), arrow::utf8());
+}
+
 namespace hustle {
 namespace catalog {
 

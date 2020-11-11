@@ -93,8 +93,24 @@ Catalog Catalog::CreateCatalog(std::string CatalogPath,
   }
 }
 
+std::shared_ptr<Catalog> Catalog::CreateCatalogObject(std::string CatalogPath,
+                                                      std::string SqlitePath) {
+  return std::make_shared<Catalog>(CatalogPath, SqlitePath);
+}
+
 std::shared_ptr<DBTable> Catalog::getTable(size_t table_id) {
   // TODO: maintain a structure for storing tables in the db
+  return nullptr;
+}
+
+std::shared_ptr<DBTable> Catalog::getTable(std::string name) {
+  auto search = name_to_id_.find(name);
+  if (search == name_to_id_.end()) {
+    return nullptr;
+  }
+  if (name_to_id_[name] < table_refs_.size()) {
+    return table_refs_[name_to_id_[name]];
+  }
   return nullptr;
 }
 

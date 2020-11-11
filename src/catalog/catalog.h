@@ -48,6 +48,8 @@ namespace catalog {
 class Catalog {
  public:
   static Catalog CreateCatalog(std::string CatalogPath, std::string SqlitePath);
+  static std::shared_ptr<Catalog> CreateCatalogObject(std::string CatalogPath,
+                                                      std::string SqlitePath);
 
   bool addTable(TableSchema t);
 
@@ -58,6 +60,7 @@ class Catalog {
   void print() const;
 
   std::shared_ptr<DBTable> getTable(size_t table_id);
+  std::shared_ptr<DBTable> getTable(std::string table_name);
 
   int getTableIdbyName(const std::string& name) { return name_to_id_[name]; }
 
@@ -68,17 +71,20 @@ class Catalog {
             CEREAL_NVP(name_to_id_), CEREAL_NVP(tables_));
   }
 
+  Catalog(){};
+
+  Catalog(std::string CatalogPath, std::string SqlitePath)
+      : CatalogPath_(CatalogPath), SqlitePath_(SqlitePath){};
+
  private:
   // Serializes and writes the catalog to a file in json format.
   void SaveToFile();
 
   // TODO(chronis) make private
-  Catalog(){};
-  Catalog(std::string CatalogPath, std::string SqlitePath)
-      : CatalogPath_(CatalogPath), SqlitePath_(SqlitePath){};
 
   std::vector<TableSchema> tables_;
-  absl::flat_hash_map<std::string, int> name_to_id_;
+  std::vector<std::shared_ptr<DBTable>> table_refs_;
+  std::map<std::string, int> name_to_id_;
   std::string CatalogPath_;
   std::string SqlitePath_;
 

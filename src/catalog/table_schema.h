@@ -48,6 +48,10 @@ class TableSchema {
 
   const std::string& getName() const { return name_; }
 
+  const std::shared_ptr<arrow::Schema> getArrowSchema() const {
+    return arrow::schema(fields_);
+  }
+
   void print() const;
 
   template <class Archive>
@@ -60,6 +64,7 @@ class TableSchema {
   std::string name_;
   std::vector<std::string> primary_key_;
   std::vector<ColumnSchema> columns_;
+  std::vector<std::shared_ptr<arrow::Field>> fields_;
   absl::flat_hash_map<std::string, int> name_to_id_;
 };
 

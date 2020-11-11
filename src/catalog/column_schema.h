@@ -22,11 +22,14 @@
 #include <string>
 
 #include "absl/strings/str_cat.h"
+#include "arrow/api.h"
 
 namespace hustle {
 namespace catalog {
 
 enum HustleType { INTEGER, CHAR };
+
+const int kDefaultCharSize = 64;
 
 class ColumnType {
  public:
@@ -86,7 +89,31 @@ class ColumnType {
 class ColumnSchema {
  public:
   ColumnSchema(std::string name, ColumnType type, bool notNull, bool unique)
-      : name_(name), type_(type), notNull_(notNull), unique_(unique){};
+      : name_(name), type_(type), notNull_(notNull), unique_(unique) {
+    switch (type.getHustleType()) {
+      case HustleType::CHAR: {
+        field_ = arrow::field(name, arrow::utf8());
+        break;
+      }
+      case HustleType::INTEGER: {
+        field_ = arrow::field(name, arrow::int64());
+        break;
+      }
+      default: {
+        // not supported
+        // TODO: throw exception
+      }
+    }
+    /*
+    if (type.getHustleType() == HustleType::CHAR) {
+      field_ = arrow::field(name, arrow::utf8());
+    } else if (type.getHustleType() == HustleType::INTEGER) {
+      field_ = arrow::field(name, arrow::int64());
+    } else {
+      // not supported
+      // TODO: throw exception
+    }*/
+  };
 
   // TODO(chronis) make private
   ColumnSchema(){};
@@ -95,6 +122,7 @@ class ColumnSchema {
   const ColumnType &getType() const { return type_; }
   const HustleType &getHustleType() const { return type_.getHustleType(); }
   const std::optional<int> &getTypeSize() const { return type_.getSize(); }
+  const std::shared_ptr<arrow::Field> getField() const { return field_; }
   const bool isUnique() const { return unique_; }
   const bool isNotNull() const { return notNull_; }
 
@@ -116,6 +144,7 @@ class ColumnSchema {
   ColumnType type_;
   bool notNull_;
   bool unique_;
+  std::shared_ptr<arrow::Field> field_;  // support arrow field
 };
 
 }  // namespace catalog

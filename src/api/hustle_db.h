@@ -18,6 +18,7 @@
 #ifndef HUSTLE_HUSTLEDB_H
 #define HUSTLE_HUSTLEDB_H
 
+#include <memory>
 #include <string>
 
 #include "absl/strings/str_cat.h"
@@ -31,6 +32,12 @@ namespace hustle {
 
 class HustleDB {
  public:
+  static std::map<std::string, std::shared_ptr<Catalog>> catalogs;
+
+  static void addCatalog(std::string db_name, std::shared_ptr<Catalog> catalog);
+
+  static std::shared_ptr<Catalog> getCatalog(std::string db_name);
+
   HustleDB(std::string path);
 
   bool createTable(const TableSchema ts);
@@ -41,22 +48,20 @@ class HustleDB {
 
   std::string getPlan(const std::string &sql);
 
-  const std::string getSqliteDBPath() {
-    return SqliteDBPath_;
-  }
+  const std::string getSqliteDBPath() { return SqliteDBPath_; }
   // Not implemented yet.
   bool insert();
 
   // Not implemented yet.
   bool select();
 
-  Catalog *getCatalog() { return &catalog_; }
+  Catalog *getCatalog() { return catalog_.get(); }
 
  private:
   const std::string DBPath_;
   const std::string CatalogPath_;
   const std::string SqliteDBPath_;
-  Catalog catalog_;
+  std::shared_ptr<Catalog> catalog_;
 };
 
 }  // namespace hustle

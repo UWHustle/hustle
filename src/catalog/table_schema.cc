@@ -35,6 +35,7 @@ bool TableSchema::addColumn(ColumnSchema c) {
           c.getName(), name_to_id_)) {
     return false;
   }
+  fields_.push_back(c.getField());
   columns_.push_back(c);
   name_to_id_[c.getName()] = columns_.size() - 1;
   return true;

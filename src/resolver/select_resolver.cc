@@ -26,9 +26,9 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
 
       if ((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
           (rightExpr != NULL && rightExpr->op == TK_COLUMN)) {
-        lRef = {catalog_->getTable(leftExpr->iTable),
+        lRef = {catalog_->getTable(leftExpr->y.pTab->zName),
                 leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
-        rRef = {catalog_->getTable(rightExpr->iTable),
+        rRef = {catalog_->getTable(rightExpr->y.pTab->zName),
                 rightExpr->y.pTab->aCol[rightExpr->iColumn].zName};
         JoinPredicate join_pred = {lRef, arrow::compute::EQUAL, rRef};
         join_predicates_->emplace_back(join_pred);
@@ -97,7 +97,7 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
       if ((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
           (rightExpr != NULL &&
            (rightExpr->op == TK_INTEGER || rightExpr->op == TK_STRING))) {
-        colRef = {catalog_->getTable(leftExpr->iTable),
+        colRef = {catalog_->getTable(leftExpr->y.pTab->zName),
                   leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
         if (rightExpr->op == TK_STRING) {
           datum = arrow::Datum(
@@ -147,7 +147,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     if (pEList->a[k].pExpr->op == TK_AGG_FUNCTION) {
       Expr* expr = pEList->a[k].pExpr->x.pList->a[0].pExpr;
       if (expr->iColumn > 0) {
-        ColumnReference colRef = {catalog_->getTable(expr->iTable),
+        ColumnReference colRef = {catalog_->getTable(expr->y.pTab->zName),
                                   expr->y.pTab->aCol[expr->iColumn].zName};
         char* zName = NULL;
         if (pEList->a[k].zEName != NULL) {
@@ -164,7 +164,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     } else if (pEList->a[k].pExpr->op == TK_COLUMN ||
                pEList->a[k].pExpr->op == TK_AGG_COLUMN) {
       Expr* expr = pEList->a[k].pExpr;
-      ColumnReference colRef = {catalog_->getTable(expr->iTable),
+      ColumnReference colRef = {catalog_->getTable(expr->y.pTab->zName),
                                 expr->y.pTab->aCol[expr->iColumn].zName};
       std::shared_ptr<ProjectReference> projRef =
           std::make_shared<ProjectReference>(ProjectReference{colRef});
@@ -188,7 +188,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       if (pGroupBy->a[i].pExpr->iColumn >= 1) {
         std::shared_ptr<ColumnReference> colRef =
             std::make_shared<ColumnReference>(ColumnReference{
-                catalog_->getTable(pGroupBy->a[i].pExpr->iTable),
+                catalog_->getTable(pGroupBy->a[i].pExpr->y.pTab->zName),
                 pGroupBy->a[i]
                     .pExpr->y.pTab->aCol[pGroupBy->a[i].pExpr->iColumn]
                     .zName});
@@ -211,7 +211,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
                     ->alias});
           } else {
             colRef = std::make_shared<ColumnReference>(ColumnReference{
-                catalog_->getTable(pOrderBy->a[i].pExpr->iTable),
+                catalog_->getTable(pOrderBy->a[i].pExpr->y.pTab->zName),
                 pOrderBy->a[i]
                     .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
                     .zName});
@@ -221,8 +221,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       }
     }
   }
- 
-  return true; // TODO: return true or false based on query resolvability
+  return true;  // TODO: return true or false based on query resolvability
 }
 }  // namespace resolver
 }  // namespace hustle
