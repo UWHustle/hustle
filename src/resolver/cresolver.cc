@@ -97,4 +97,26 @@ void execute(hustle::resolver::SelectResolver* select_resolver,
   }
   // Declare aggregate dependency on join operator
   plan.createLink(join_id, agg_id);
+
+  hustle::Scheduler& scheduler = hustle::HustleDB::getScheduler();
+  scheduler.addTask(&plan);
+  scheduler.start();
+  scheduler.join();
+
+  std::vector<std::shared_ptr<hustle::resolver::ProjectReference>>
+      project_references = *(select_resolver->get_project_references());
+  std::vector<ColumnReference> agg_project_cols;
+  for (auto project_ref : project_references) {
+    if (!project_ref->alias.empty()) {
+      agg_project_cols.emplace_back(
+          ColumnReference{nullptr, project_ref->alias});
+    } else {
+      agg_project_cols.emplace_back(
+          ColumnReference{nullptr, project_ref->colRef.col_name});
+    }
+  }
+
+  std::shared_ptr<hustle::storage::DBTable> out_table =
+      agg_result_out->materialize(agg_project_cols);
+  out_table->print();
 }

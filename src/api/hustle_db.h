@@ -24,6 +24,7 @@
 #include "absl/strings/str_cat.h"
 #include "catalog/catalog.h"
 #include "catalog/table_schema.h"
+#include "scheduler/scheduler.h"
 
 using hustle::catalog::Catalog;
 using hustle::catalog::TableSchema;
@@ -33,6 +34,8 @@ namespace hustle {
 class HustleDB {
  public:
   static std::map<std::string, std::shared_ptr<Catalog>> catalogs;
+
+  static Scheduler &getScheduler() { return Scheduler::GlobalInstance(); }
 
   static void addCatalog(std::string db_name, std::shared_ptr<Catalog> catalog);
 
