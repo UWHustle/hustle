@@ -87,6 +87,12 @@ class SelectResolver {
 
   SelectResolver() : SelectResolver(nullptr) {}
 
+  std::unordered_map<std::string,
+                     std::shared_ptr<hustle::operators::PredicateTree>>&
+  get_select_predicates() {
+    return select_predicates_;
+  }
+
   std::shared_ptr<std::vector<JoinPredicate>> get_join_predicates() {
     return join_predicates_;
   }
