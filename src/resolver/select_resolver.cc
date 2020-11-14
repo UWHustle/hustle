@@ -46,7 +46,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
   if (pExpr == NULL) {
     return nullptr;
   }
-  // std::cout << "Operation " << (int)pExpr->op << std::endl;
   arrow::compute::CompareOperator comparatorOperator;
   FilterOperator connective;
   std::shared_ptr<PredicateTree> predicate_tree = nullptr;
@@ -103,7 +102,7 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
           datum = arrow::Datum(
               std::make_shared<arrow::StringScalar>(rightExpr->u.zToken));
         } else if (rightExpr->op == TK_INTEGER) {
-          datum = arrow::Datum((uint32_t)rightExpr->u.iValue);
+          datum = arrow::Datum((int64_t)rightExpr->u.iValue);
         }
         if (pExpr->op == TK_NE)
           comparatorOperator = arrow::compute::CompareOperator::NOT_EQUAL;

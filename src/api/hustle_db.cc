@@ -59,6 +59,11 @@ bool HustleDB::createTable(const TableSchema ts) {
   return catalog_->addTable(ts);
 }
 
+bool HustleDB::createTable(const TableSchema ts,
+                           std::shared_ptr<DBTable> table_ref) {
+  return catalog_->addTable(ts, table_ref);
+}
+
 std::string HustleDB::executeQuery(const std::string &sql) {
   return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
 }

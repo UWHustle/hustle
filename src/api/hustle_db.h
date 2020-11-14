@@ -45,6 +45,8 @@ class HustleDB {
 
   bool createTable(const TableSchema ts);
 
+  bool createTable(const TableSchema ts, std::shared_ptr<DBTable> table_ref);
+
   bool dropTable(const std::string &name);
 
   std::string executeQuery(const std::string &sql);

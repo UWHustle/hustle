@@ -170,6 +170,24 @@ bool Catalog::addTable(TableSchema t) {
   return true;
 }
 
+bool Catalog::addTable(TableSchema t, std::shared_ptr<DBTable> table_ref) {
+  auto search = name_to_id_.find(t.getName());
+  if (search != name_to_id_.end()) {
+    return false;
+  }
+
+  tables_.push_back(t);
+  table_refs_.push_back(table_ref);
+  name_to_id_[t.getName()] = tables_.size() - 1;
+
+  SaveToFile();
+
+  if (!utils::executeSqliteNoOutput(SqlitePath_, createCreateSql(t))) {
+    std::cerr << "SqliteDB catalog out of sync" << std::endl;
+  }
+  return true;
+}
+
 void Catalog::print() const {
   std::cout << "----------- DATABASE CATALOG --------" << std::endl;
   std::cout << "Catalog File Path: " << CatalogPath_ << std::endl;

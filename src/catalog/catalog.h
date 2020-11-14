@@ -52,6 +52,7 @@ class Catalog {
                                                       std::string SqlitePath);
 
   bool addTable(TableSchema t);
+  bool addTable(TableSchema t, std::shared_ptr<DBTable> table_ref);
 
   bool dropTable(std::string name);
 
