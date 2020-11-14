@@ -104,15 +104,6 @@ class ColumnSchema {
         // TODO: throw exception
       }
     }
-    /*
-    if (type.getHustleType() == HustleType::CHAR) {
-      field_ = arrow::field(name, arrow::utf8());
-    } else if (type.getHustleType() == HustleType::INTEGER) {
-      field_ = arrow::field(name, arrow::int64());
-    } else {
-      // not supported
-      // TODO: throw exception
-    }*/
   };
 
   // TODO(chronis) make private
