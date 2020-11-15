@@ -1,3 +1,20 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 #include "resolver/cresolver.h"
 
 #include <iostream>
@@ -8,42 +25,6 @@
 #include "operators/select.h"
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
-
-std::shared_ptr<hustle::storage::DBTable> execute(
-    std::shared_ptr<hustle::ExecutionPlan> plan,
-    hustle::resolver::SelectResolver* select_resolver, Catalog* catalog);
-
-std::shared_ptr<hustle::ExecutionPlan> createPlan(
-    hustle::resolver::SelectResolver* select_resolver, Catalog* catalog);
-
-int resolveSelect(char* dbName, Sqlite3Select* queryTree) {
-  ExprList* pEList = queryTree->pEList;
-  Expr* pWhere = queryTree->pWhere;
-  ExprList* pGroupBy = queryTree->pGroupBy;
-  Expr* pHaving = queryTree->pHaving;
-  ExprList* pOrderBy = queryTree->pOrderBy;
-
-  // TODO: (@srsuryadev) resolve the select query
-  // return 0 if query is supported in column store else return 1
-  using hustle::resolver::SelectResolver;
-  Catalog* catalog = hustle::HustleDB::getCatalog(dbName).get();
-  if (dbName == NULL || catalog == nullptr) return 0;
-
-  SelectResolver* select_resolver = new SelectResolver(catalog);
-  bool is_resolvable = select_resolver->ResolveSelectTree(queryTree);
-  if (is_resolvable) {
-    std::shared_ptr<hustle::ExecutionPlan> plan =
-        createPlan(select_resolver, catalog);
-    if (plan != nullptr) {
-      std::shared_ptr<hustle::storage::DBTable> outTable =
-          execute(plan, select_resolver, catalog);
-    } else {
-      return 0;
-    }
-  }
-  delete select_resolver;
-  return is_resolvable ? 1 : 0;
-}
 
 std::shared_ptr<hustle::ExecutionPlan> createPlan(
     hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
@@ -160,4 +141,33 @@ std::shared_ptr<hustle::storage::DBTable> execute(
       agg_result_out->materialize(plan->getResultColumns());
   out_table->print();
   return out_table;
+}
+
+int resolveSelect(char* dbName, Sqlite3Select* queryTree) {
+  ExprList* pEList = queryTree->pEList;
+  Expr* pWhere = queryTree->pWhere;
+  ExprList* pGroupBy = queryTree->pGroupBy;
+  Expr* pHaving = queryTree->pHaving;
+  ExprList* pOrderBy = queryTree->pOrderBy;
+
+  // TODO: (@srsuryadev) resolve the select query
+  // return 0 if query is supported in column store else return 1
+  using hustle::resolver::SelectResolver;
+  Catalog* catalog = hustle::HustleDB::getCatalog(dbName).get();
+  if (dbName == NULL || catalog == nullptr) return 0;
+
+  SelectResolver* select_resolver = new SelectResolver(catalog);
+  bool is_resolvable = select_resolver->ResolveSelectTree(queryTree);
+  if (is_resolvable) {
+    std::shared_ptr<hustle::ExecutionPlan> plan =
+        createPlan(select_resolver, catalog);
+    if (plan != nullptr) {
+      std::shared_ptr<hustle::storage::DBTable> outTable =
+          execute(plan, select_resolver, catalog);
+    } else {
+      return 0;
+    }
+  }
+  delete select_resolver;
+  return is_resolvable ? 1 : 0;
 }
