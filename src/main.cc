@@ -5,7 +5,6 @@
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
 #include "parser/parser.h"
-#include "resolver/resolver.h"
 #include "storage/util.h"
 
 int main(int argc, char *argv[]) {
