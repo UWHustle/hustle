@@ -6,7 +6,7 @@ add_library(
         cresolver.h cresolver.cc
 )
 
-target_link_libraries(hustle_src_resolver
+target_link_libraries(hustle_src_resolver PUBLIC
         hustle_src_parser
         hustle_src_operators
         hustle_src_catalog
