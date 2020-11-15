@@ -24,6 +24,7 @@
 #include "absl/strings/str_cat.h"
 #include "catalog/catalog.h"
 #include "catalog/table_schema.h"
+#include "scheduler/scheduler.h"
 
 using hustle::catalog::Catalog;
 using hustle::catalog::TableSchema;
@@ -34,6 +35,8 @@ class HustleDB {
  public:
   static std::map<std::string, std::shared_ptr<Catalog>> catalogs;
 
+  static Scheduler &getScheduler() { return Scheduler::GlobalInstance(); }
+
   static void addCatalog(std::string db_name, std::shared_ptr<Catalog> catalog);
 
   static std::shared_ptr<Catalog> getCatalog(std::string db_name);
@@ -41,6 +44,8 @@ class HustleDB {
   HustleDB(std::string path);
 
   bool createTable(const TableSchema ts);
+
+  bool createTable(const TableSchema ts, std::shared_ptr<DBTable> table_ref);
 
   bool dropTable(const std::string &name);
 

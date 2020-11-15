@@ -46,6 +46,22 @@ class ExecutionPlan : public Task {
     return op_index;
   }
 
+  std::size_t addOperator(std::unique_ptr<Operator> op) {
+    const std::size_t op_index = operators_.size();
+    op->setOperatorIndex(op_index);
+    operators_.emplace_back(std::move(op));
+    return op_index;
+  }
+
+  void setOperatorResult(
+      std::shared_ptr<operators::OperatorResult> operator_result) {
+    result_out_ = operator_result;
+  }
+
+  void setResultColumns(std::vector<operators::ColumnReference> result_cols) {
+    result_cols_ = result_cols;
+  }
+
   const Operator& getOperator(const std::size_t op_index) const {
     return *operators_[op_index];
   }
@@ -61,6 +77,14 @@ class ExecutionPlan : public Task {
     return it == dependents_.end() ? kEmptySet : it->second;
   }
 
+  std::shared_ptr<operators::OperatorResult> getOperatorResult() const {
+    return result_out_;
+  }
+
+  std::vector<operators::ColumnReference>& getResultColumns() {
+    return result_cols_;
+  }
+
   std::size_t size() const { return operators_.size(); }
 
  private:
@@ -68,7 +92,8 @@ class ExecutionPlan : public Task {
 
   std::vector<std::unique_ptr<Operator>> operators_;
   std::unordered_map<std::size_t, std::unordered_set<std::size_t>> dependents_;
-
+  std::shared_ptr<operators::OperatorResult> result_out_;
+  std::vector<operators::ColumnReference> result_cols_;
   static const std::unordered_set<std::size_t> kEmptySet;
 
   DISALLOW_COPY_AND_ASSIGN(ExecutionPlan);

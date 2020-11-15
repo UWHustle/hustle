@@ -15,8 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "resolver/resolver.h"
-
 #include <iostream>
 
 #include "api/hustle_db.h"
