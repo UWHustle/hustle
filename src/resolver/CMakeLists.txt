@@ -11,6 +11,7 @@ target_link_libraries(hustle_src_resolver
         hustle_src_operators
         hustle_src_catalog
         hustle_src_optimizer_ExecutionPlan
+        hustle_src_storage
         hustleDB
 )
 
