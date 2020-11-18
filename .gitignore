@@ -49,3 +49,4 @@ Brewfile.lock.json
 arrow/
 ssb/
 .vscode/
+cmake-3.15.5/
