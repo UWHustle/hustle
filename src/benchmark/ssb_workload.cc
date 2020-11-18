@@ -38,7 +38,7 @@ using namespace std::chrono;
 namespace hustle::operators {
 
 // Flag that control the aggregate factory to use.
-constexpr int aggregate_type = AggregateType::ARROW_AGGREGATE ;
+static int aggregate_type = AggregateType::ARROW_AGGREGATE;
 
 // TODO: Modify this to a proper factory in the future.
 //  For now, this is a convenient way to serve the aggregate
@@ -51,13 +51,13 @@ Operator * get_agg_op(const std::size_t query_id,
               const std::vector<ColumnReference>& order_by_refs,
               const std::shared_ptr<OperatorOptions>& options){
 
-  if constexpr (aggregate_type == AggregateType::ARROW_AGGREGATE){
+  if (aggregate_type == AggregateType::ARROW_AGGREGATE){
     return new Aggregate(
       query_id, prev_result, output_result,
       aggregate_units, group_by_refs, order_by_refs, options);
 
 
-  }else if constexpr (aggregate_type == AggregateType::HASH_AGGREGATE){
+  }else if (aggregate_type == AggregateType::HASH_AGGREGATE){
     return new HashAggregate(
       query_id, prev_result, output_result,
       aggregate_units, group_by_refs, order_by_refs, options);
@@ -68,9 +68,11 @@ Operator * get_agg_op(const std::size_t query_id,
 }
 
 
-SSB::SSB(int SF, bool print) {
+SSB::SSB(int SF, bool print, AggregateType agg_type) {
   print_ = print;
   num_threads_ = std::thread::hardware_concurrency();
+  aggregate_type = agg_type;
+
 
   scheduler = std::make_shared<Scheduler>(num_threads_, true);
   Config::Init("../../../hustle.cfg");
