@@ -24,6 +24,7 @@
 #include "operators/predicate.h"
 #include "scheduler/scheduler.h"
 #include "storage/table.h"
+#include "operators/utils/aggregate_factory.h"
 
 namespace hustle::operators {
 class SSB {
@@ -32,6 +33,7 @@ class SSB {
 
   void execute(ExecutionPlan &plan,
                std::shared_ptr<OperatorResult> &final_result);
+
 
   void q11();
   void q12();
@@ -74,6 +76,7 @@ class SSB {
  private:
   bool print_;
   int num_threads_;
+  AggregateType aggregate_type;
   std::shared_ptr<Scheduler> scheduler;
 
   std::shared_ptr<OperatorResult> lo_result_in;

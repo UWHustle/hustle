@@ -1,7 +1,8 @@
 find_package(benchmark REQUIRED)
 add_library(hustle_src_benchmark
         ssb_workload.cc ssb_workload.h
-        ssb_workload_lip.cc)
+        ssb_workload_lip.cc
+        aggregate_workload.cc aggregate_workload.h)
 
 target_include_directories(hustle_src_benchmark PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_benchmark PUBLIC
@@ -17,7 +18,8 @@ target_link_libraries(hustle_src_benchmark PUBLIC
 
 add_executable(hustle_src_benchmark_main main.cc
         ../utils/bloom_filter.h
-        ../utils/xxHash.h)
+        ../utils/xxHash.h
+        aggregate_workload.cc aggregate_workload.h)
 target_link_libraries(hustle_src_benchmark_main PUBLIC
         hustle_src_benchmark
         benchmark::benchmark
