@@ -34,14 +34,6 @@ class SSB {
   void execute(ExecutionPlan &plan,
                std::shared_ptr<OperatorResult> &final_result);
 
-  BaseAggregate * get_agg_operator(
-    std::size_t query_id,
-    const std::shared_ptr<OperatorResult>& prev_result,
-    const std::shared_ptr<OperatorResult>& output_result,
-    const std::vector<AggregateReference>& aggregate_units,
-    const std::vector<ColumnReference>& group_by_refs,
-    const std::vector<ColumnReference>& order_by_refs,
-    const std::shared_ptr<OperatorOptions>& options);
 
   void q11();
   void q12();
