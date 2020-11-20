@@ -31,6 +31,7 @@ class AggregateWorkload {
 public:
 
   explicit AggregateWorkload(int cardinality, int numGroupby);
+  void setPrint(bool shouldPrint){print_ = shouldPrint;}
 
   void prepareData();
 
@@ -38,7 +39,7 @@ public:
 
 
 private:
-  bool print_;
+  bool print_ = false;
   int cardinality;
   int num_group_by;
   int num_threads_;

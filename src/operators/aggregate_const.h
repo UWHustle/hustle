@@ -34,16 +34,16 @@ enum AggregateType {
   HASH_AGGREGATE, ARROW_AGGREGATE
 };
 
-std::string aggTypeName(AggregateType t) {
-  switch (t) {
-    case HASH_AGGREGATE:
-      return "hash_aggregate";
-    case ARROW_AGGREGATE:
-      return "arrow_aggregate";
-    default:
-      return "unkown_aggregate"
-  }
-}
+//std::string aggTypeName(AggregateType t) {
+//  switch (t) {
+//    case HASH_AGGREGATE:
+//      return "hash_aggregate";
+//    case ARROW_AGGREGATE:
+//      return "arrow_aggregate";
+//    default:
+//      return "unkown_aggregate";
+//  }
+//}
 
 /**
  * A reference structure containing all the information needed to perform an

@@ -320,20 +320,31 @@ int ssb_main(int argc, char *argv[]) {
   return 0;
 }
 
-int aggregate_main(int argc, char *argv[]) {
+void _aggregate_workload(int cardinality, int numGroupBy){
 
-  int cardinality = 10;
-  int numGroupBy = 5;
-
-  std::cout << "Start Hash Aggregate" << std::endl;
   aggregateWorkload = new AggregateWorkload(cardinality, numGroupBy);
+  if constexpr (DEBUG) {
+    aggregateWorkload->setPrint(true);
+  }
   aggregateWorkload->prepareData();
   aggregateWorkload->q1(AggregateType::HASH_AGGREGATE);
 
-  std::cout << "Start Arrow Aggregate" << std::endl;
   aggregateWorkload = new AggregateWorkload(cardinality, numGroupBy);
+  if constexpr (DEBUG) {
+    aggregateWorkload->setPrint(true);
+  }
   aggregateWorkload->prepareData();
   aggregateWorkload->q1(AggregateType::ARROW_AGGREGATE);
+}
+
+int aggregate_main(int argc, char *argv[]) {
+
+  for (int cardinality = 1; cardinality <= 4; ++cardinality) {
+    for (int numGroupBy = 1; numGroupBy <= 8; ++numGroupBy) {
+      _aggregate_workload(cardinality, numGroupBy);
+    }
+  }
+
 
   return 0;
 }
@@ -344,8 +355,7 @@ int main(int argc, char *argv[]) {
 
   if (benchmark_type == AGGREGATE_WORKLOAD) {
     return aggregate_main(argc, argv);
-  }
-  else if (benchmark_type == SSB_WORKLOAD) {
+  } else if (benchmark_type == SSB_WORKLOAD) {
     return ssb_main(argc, argv);
   }
 

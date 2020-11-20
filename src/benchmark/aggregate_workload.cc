@@ -29,7 +29,6 @@ AggregateWorkload::AggregateWorkload(int cardinality, int numGroupby) {
   auto aggregate_parallel_factor = std::thread::hardware_concurrency();
   this->num_threads_ = aggregate_parallel_factor;
 
-  this->print_ = true;
   this->aggregate_options = std::make_shared<OperatorOptions>();
   aggregate_options->set_parallel_factor(aggregate_parallel_factor);
 
