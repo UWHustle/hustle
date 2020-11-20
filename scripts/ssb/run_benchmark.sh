@@ -5,4 +5,4 @@ src_dir=${cur_dir}/../..
 
 # run the benchmark
 cd ${src_dir}/build/src/benchmark/
-./hustle_src_benchmark_main
+./hustle_src_benchmark_main --agg_op $1

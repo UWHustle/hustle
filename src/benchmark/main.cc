@@ -20,19 +20,20 @@
 #include "skew.h"
 #include "ssb_workload.h"
 #include "storage/util.h"
+#include "aggregate_workload.h"
 
 using namespace hustle::operators;
 using namespace std::chrono;
 
 #define DEBUG false
 
-SSB* workload;
+SSB *workload;
+AggregateWorkload *aggregateWorkload;
 
 void read_from_csv() {
   std::shared_ptr<DBTable> lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
-      d_schema;
-
+    d_schema;
   auto field1 = arrow::field("order key", arrow::uint32());
   auto field2 = arrow::field("line number", arrow::int64());
   auto field3 = arrow::field("cust key", arrow::int64());
@@ -63,7 +64,7 @@ void read_from_csv() {
   auto s_field7 = arrow::field("s phone", arrow::utf8());
 
   s_schema = arrow::schema(
-      {s_field1, s_field2, s_field3, s_field4, s_field5, s_field6, s_field7});
+    {s_field1, s_field2, s_field3, s_field4, s_field5, s_field6, s_field7});
 
   auto c_field1 = arrow::field("c cust key", arrow::int64());
   auto c_field2 = arrow::field("c name", arrow::utf8());
@@ -136,79 +137,79 @@ void read_from_csv() {
   std::cout << "read the table files..." << std::endl;
 }
 
-static void query11(benchmark::State& state) {
+static void query11(benchmark::State &state) {
   for (auto _ : state) {
     workload->q11();
   }
 }
 
-static void query12(benchmark::State& state) {
+static void query12(benchmark::State &state) {
   for (auto _ : state) {
     workload->q12();
   }
 }
 
-static void query13(benchmark::State& state) {
+static void query13(benchmark::State &state) {
   for (auto _ : state) {
     workload->q13();
   }
 }
 
-static void query21(benchmark::State& state) {
+static void query21(benchmark::State &state) {
   for (auto _ : state) {
     workload->q21_lip();
   }
 }
 
-static void query22(benchmark::State& state) {
+static void query22(benchmark::State &state) {
   for (auto _ : state) {
     workload->q22_lip();
   }
 }
 
-static void query23(benchmark::State& state) {
+static void query23(benchmark::State &state) {
   for (auto _ : state) {
     workload->q23_lip();
   }
 }
 
-static void query31(benchmark::State& state) {
+static void query31(benchmark::State &state) {
   for (auto _ : state) {
     workload->q31_lip();
   }
 }
 
-static void query32(benchmark::State& state) {
+static void query32(benchmark::State &state) {
   for (auto _ : state) {
     workload->q32_lip();
   }
 }
 
-static void query33(benchmark::State& state) {
+static void query33(benchmark::State &state) {
   for (auto _ : state) {
     workload->q33_lip();
   }
 }
 
-static void query34(benchmark::State& state) {
+static void query34(benchmark::State &state) {
   for (auto _ : state) {
     workload->q34_lip();
   }
 }
 
-static void query41(benchmark::State& state) {
+static void query41(benchmark::State &state) {
   for (auto _ : state) {
     workload->q41_lip();
   }
 }
 
-static void query42(benchmark::State& state) {
+static void query42(benchmark::State &state) {
   for (auto _ : state) {
     workload->q42_lip();
   }
 }
 
-static void query43(benchmark::State& state) {
+static void query43(benchmark::State &state) {
   for (auto _ : state) {
     workload->q43_lip();
   }
@@ -228,12 +229,74 @@ BENCHMARK(query41);
 BENCHMARK(query42);
 BENCHMARK(query43);
 
-int main(int argc, char* argv[]) {
+// TODO: Refactor this using C++ command line arg parser.
+AggregateType get_agg_type(int argc, char *argv[]) {
+  AggregateType agg_type = AggregateType::ARROW_AGGREGATE;
+  for (int i = 1; i < argc; i++) {
+    auto s = std::string(argv[i]);
+    if (s == "--agg_op") {
+      if (i + 1 >= argc) {
+        std::cerr << "Expect aggregate operator!" << std::endl;
+        exit(1);
+      }
+      i += 1;
+      auto v = std::string(argv[i]);
+      if (v.find("hash_aggregate") != ((size_t) -1)) {
+        agg_type = AggregateType::HASH_AGGREGATE;
+        std::cout << "Use Hash Aggregate" << std::endl;
+      } else if (v.find("arrow_aggregate") != ((size_t) -1)) {
+        agg_type = AggregateType::ARROW_AGGREGATE;
+        std::cout << "Use Arrow Aggregate" << std::endl;
+      } else {
+        std::cerr << "Aggregate operator invalid!" << std::endl;
+        exit(1);
+      }
+    }
+  }
+  return agg_type;
+}
+
+#define SSB_WORKLOAD 0
+#define AGGREGATE_WORKLOAD 1
+
+// TODO: Refactor this using C++ command line arg parser.
+int get_test(int argc, char *argv[]) {
+  int bench_type = SSB_WORKLOAD;
+  for (int i = 1; i < argc; i++) {
+    auto s = std::string(argv[i]);
+    if (s == "--agg_op") {
+      if (i + 1 >= argc) {
+        std::cerr << "Expect aggregate operator!" << std::endl;
+        exit(1);
+      }
+      i += 1;
+      auto v = std::string(argv[i]);
+      if (v.find("ssb") != ((size_t) -1)) {
+        bench_type = SSB_WORKLOAD;
+        std::cout << "Benchmark using SSB workload." << std::endl;
+      } else if (v.find("aggregate") != ((size_t) -1)) {
+        bench_type = AGGREGATE_WORKLOAD;
+        std::cout << "Benchmark using aggregate workload" << std::endl;
+      } else {
+        std::cerr << "Expected --benchmark [ssb | aggregate], got " << v
+                  << std::endl;
+        exit(1);
+      }
+    }
+  }
+  return bench_type;
+}
+
+
+int ssb_main(int argc, char *argv[]) {
+
+  AggregateType agg_type = get_agg_type(argc, argv);
+
   std::cout << "Started initializing with the required data ..." << std::endl;
   read_from_csv();
 
   if (DEBUG) {
-    workload = new SSB(0, 1);
+    workload = new SSB(0, true, agg_type);
     workload->q11();
     workload->q12();
     workload->q13();
@@ -248,10 +311,54 @@ int main(int argc, char* argv[]) {
     workload->q42_lip();
     workload->q43_lip();
   } else {
-    workload = new SSB();
+    workload = new SSB(0, false, agg_type);
     ::benchmark::Initialize(&argc, argv);
 
     std::cout << "Stated running benchmarks ..." << std::endl;
     ::benchmark::RunSpecifiedBenchmarks();
   }
+  return 0;
+}
+
+void _aggregate_workload(int cardinality, int numGroupBy){
+
+  aggregateWorkload = new AggregateWorkload(cardinality, numGroupBy);
+  if constexpr (DEBUG) {
+    aggregateWorkload->setPrint(true);
+  }
+  aggregateWorkload->prepareData();
+  aggregateWorkload->q1(AggregateType::HASH_AGGREGATE);
+
+  aggregateWorkload = new AggregateWorkload(cardinality, numGroupBy);
+  if constexpr (DEBUG) {
+    aggregateWorkload->setPrint(true);
+  }
+  aggregateWorkload->prepareData();
+  aggregateWorkload->q1(AggregateType::ARROW_AGGREGATE);
+}
+
+int aggregate_main(int argc, char *argv[]) {
+
+  for (int cardinality = 1; cardinality <= 8; cardinality++) {
+    for (int numGroupBy = 1; numGroupBy <= 8; numGroupBy++) {
+      _aggregate_workload(cardinality, numGroupBy);
+    }
+  }
+
+  return 0;
+}
+
+
+int main(int argc, char *argv[]) {
+  int benchmark_type = get_test(argc, argv);
+
+  if (benchmark_type == AGGREGATE_WORKLOAD) {
+    return aggregate_main(argc, argv);
+
+  } else if (benchmark_type == SSB_WORKLOAD) {
+    return ssb_main(argc, argv);
+  }
+
+  std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;
+  exit(10);
 }

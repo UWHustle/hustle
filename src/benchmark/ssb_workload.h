@@ -18,19 +18,22 @@
 #ifndef HUSTLE_SSB_WORKLOAD_H
 #define HUSTLE_SSB_WORKLOAD_H
 
+#include <operators/aggregate_const.h>
 #include "execution/execution_plan.h"
 #include "operators/operator_options.h"
 #include "operators/predicate.h"
 #include "scheduler/scheduler.h"
 #include "storage/table.h"
+#include "operators/utils/aggregate_factory.h"
 
 namespace hustle::operators {
 class SSB {
  public:
-  explicit SSB(int SF = 1, bool print = false);
+  explicit SSB(int SF, bool print, hustle::operators::AggregateType agg_type);
 
   void execute(ExecutionPlan &plan,
                std::shared_ptr<OperatorResult> &final_result);
+
 
   void q11();
   void q12();
@@ -73,6 +76,7 @@ class SSB {
  private:
   bool print_;
   int num_threads_;
+  AggregateType aggregate_type;
   std::shared_ptr<Scheduler> scheduler;
 
   std::shared_ptr<OperatorResult> lo_result_in;

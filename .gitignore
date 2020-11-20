@@ -48,4 +48,6 @@ debug
 Brewfile.lock.json
 arrow/
 ssb/
+!scripts/ssb/
 .vscode/
+cmake-3.15.5/

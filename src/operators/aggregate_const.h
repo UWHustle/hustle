@@ -25,10 +25,25 @@ namespace hustle::operators {
 
 
 // Types of aggregates we can perform. COUNT is currently not supported.
-enum AggregateKernel { SUM, COUNT, MEAN };
+enum AggregateKernel {
+  SUM, COUNT, MEAN
+};
 
 // Types of aggregate algorithm we can use.
-enum AggregateType { HASH_AGGREGATE, ARROW_AGGREGATE };
+enum AggregateType {
+  HASH_AGGREGATE, ARROW_AGGREGATE
+};
+
+//std::string aggTypeName(AggregateType t) {
+//  switch (t) {
+//    case HASH_AGGREGATE:
+//      return "hash_aggregate";
+//    case ARROW_AGGREGATE:
+//      return "arrow_aggregate";
+//    default:
+//      return "unkown_aggregate";
+//  }
+//}
 
 /**
  * A reference structure containing all the information needed to perform an
