@@ -339,8 +339,8 @@ void _aggregate_workload(int cardinality, int numGroupBy){
 
 int aggregate_main(int argc, char *argv[]) {
 
-  for (int cardinality = 1; cardinality <= 4; ++cardinality) {
-    for (int numGroupBy = 1; numGroupBy <= 8; ++numGroupBy) {
+  for (int cardinality = 1; cardinality <= 8; cardinality++) {
+    for (int numGroupBy = 1; numGroupBy <= 8; numGroupBy++) {
       _aggregate_workload(cardinality, numGroupBy);
     }
   }
