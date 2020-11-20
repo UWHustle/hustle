@@ -25,30 +25,29 @@
 
 namespace hustle::operators {
 
+/**
+ * Return the aggregate operator, with respect to the aggregate_type.
+ *
+ * @param query_id Query ID.
+ * @param aggregate_type AggregateType.
+ * @param prev_result Input for aggregation.
+ * @param output_result Output from the aggregate operator.
+ * @param aggregate_units
+ * @param group_by_refs
+ * @param order_by_refs
+ * @param options
+ * @return
+ */
 BaseAggregate * get_agg_op(
-  const std::size_t query_id,
-  const AggregateType aggregate_type,
+  std::size_t query_id,
+  AggregateType aggregate_type,
   const std::shared_ptr<OperatorResult> &prev_result,
   const std::shared_ptr<OperatorResult> &output_result,
   const std::vector<AggregateReference> &aggregate_units,
   const std::vector<ColumnReference> &group_by_refs,
   const std::vector<ColumnReference> &order_by_refs,
-  const std::shared_ptr<OperatorOptions> &options) {
+  const std::shared_ptr<OperatorOptions> &options);
 
-  if (aggregate_type == AggregateType::ARROW_AGGREGATE) {
-    return new Aggregate(
-      query_id, prev_result, output_result,
-      aggregate_units, group_by_refs, order_by_refs, options);
-
-  } else if (aggregate_type == AggregateType::HASH_AGGREGATE) {
-    return new HashAggregate(
-      query_id, prev_result, output_result,
-      aggregate_units, group_by_refs, order_by_refs, options);
-  } else {
-    throw std::invalid_argument("Unexpected AggregateType");
-  }
-}
-
-}
+} // namespace hustle::operators
 
 #endif //HUSTLE_AGGREGATE_FACTORY_H

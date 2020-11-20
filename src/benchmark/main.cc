@@ -345,7 +345,6 @@ int aggregate_main(int argc, char *argv[]) {
     }
   }
 
-
   return 0;
 }
 
@@ -355,6 +354,7 @@ int main(int argc, char *argv[]) {
 
   if (benchmark_type == AGGREGATE_WORKLOAD) {
     return aggregate_main(argc, argv);
+
   } else if (benchmark_type == SSB_WORKLOAD) {
     return ssb_main(argc, argv);
   }
