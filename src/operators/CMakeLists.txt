@@ -16,7 +16,7 @@ add_library(
         utils/operator_result.cc utils/operator_result.h
         utils/lip.cc utils/lip.h
         ../utils/bloom_filter.h
-        ../utils/xxHash.h base_aggregate.h)
+        ../utils/xxHash.h base_aggregate.h utils/aggregate_factory.cc utils/aggregate_factory.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})

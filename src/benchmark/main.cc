@@ -20,6 +20,7 @@
 #include "skew.h"
 #include "ssb_workload.h"
 #include "storage/util.h"
+#include "aggregate_workload.h"
 
 using namespace hustle::operators;
 using namespace std::chrono;
@@ -27,12 +28,12 @@ using namespace std::chrono;
 #define DEBUG false
 
 SSB *workload;
+AggregateWorkload *aggregateWorkload;
 
 void read_from_csv() {
   std::shared_ptr<DBTable> lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
     d_schema;
-
   auto field1 = arrow::field("order key", arrow::uint32());
   auto field2 = arrow::field("line number", arrow::int64());
   auto field3 = arrow::field("cust key", arrow::int64());
@@ -228,9 +229,8 @@ BENCHMARK(query41);
 BENCHMARK(query42);
 BENCHMARK(query43);
 
-int main(int argc, char *argv[]) {
-
-  // TODO: (Refactor) Use C++ parser to parse these command line args.
+// TODO: Refactor this using C++ command line arg parser.
+AggregateType get_agg_type(int argc, char *argv[]) {
   AggregateType agg_type = AggregateType::ARROW_AGGREGATE;
   for (int i = 1; i < argc; i++) {
     auto s = std::string(argv[i]);
@@ -253,7 +253,44 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+  return agg_type;
+}
 
+#define SSB_WORKLOAD 0
+#define AGGREGATE_WORKLOAD 1
+
+// TODO: Refactor this using C++ command line arg parser.
+int get_test(int argc, char *argv[]) {
+  int bench_type = SSB_WORKLOAD;
+  for (int i = 1; i < argc; i++) {
+    auto s = std::string(argv[i]);
+    if (s == "--agg_op") {
+      if (i + 1 >= argc) {
+        std::cerr << "Expect aggregate operator!" << std::endl;
+        exit(1);
+      }
+      i += 1;
+      auto v = std::string(argv[i]);
+      if (v.find("ssb") != ((size_t) -1)) {
+        bench_type = SSB_WORKLOAD;
+        std::cout << "Benchmark using SSB workload." << std::endl;
+      } else if (v.find("aggregate") != ((size_t) -1)) {
+        bench_type = AGGREGATE_WORKLOAD;
+        std::cout << "Benchmark using aggregate workload" << std::endl;
+      } else {
+        std::cerr << "Expected --benchmark [ssb | aggregate], got " << v
+                  << std::endl;
+        exit(1);
+      }
+    }
+  }
+  return bench_type;
+}
+
+
+int ssb_main(int argc, char *argv[]) {
+
+  AggregateType agg_type = get_agg_type(argc, argv);
 
   std::cout << "Started initializing with the required data ..." << std::endl;
   read_from_csv();
@@ -280,4 +317,38 @@ int main(int argc, char *argv[]) {
     std::cout << "Stated running benchmarks ..." << std::endl;
     ::benchmark::RunSpecifiedBenchmarks();
   }
+  return 0;
+}
+
+int aggregate_main(int argc, char *argv[]) {
+
+  int cardinality = 10;
+  int numGroupBy = 5;
+
+  std::cout << "Start Hash Aggregate" << std::endl;
+  aggregateWorkload = new AggregateWorkload(cardinality, numGroupBy);
+  aggregateWorkload->prepareData();
+  aggregateWorkload->q1(AggregateType::HASH_AGGREGATE);
+
+  std::cout << "Start Arrow Aggregate" << std::endl;
+  aggregateWorkload = new AggregateWorkload(cardinality, numGroupBy);
+  aggregateWorkload->prepareData();
+  aggregateWorkload->q1(AggregateType::ARROW_AGGREGATE);
+
+  return 0;
+}
+
+
+int main(int argc, char *argv[]) {
+  int benchmark_type = get_test(argc, argv);
+
+  if (benchmark_type == AGGREGATE_WORKLOAD) {
+    return aggregate_main(argc, argv);
+  }
+  else if (benchmark_type == SSB_WORKLOAD) {
+    return ssb_main(argc, argv);
+  }
+
+  std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;
+  exit(10);
 }
