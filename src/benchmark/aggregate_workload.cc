@@ -112,12 +112,11 @@ void AggregateWorkload::q1(AggregateType agg_type) {
   scheduler->join();
   container->endEvent(eventName);
 
+  auto out_table = out_result->materialize(output_refs);
   if (print_) {
-    auto out_table = out_result->materialize(output_refs);
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
   }
-
+  simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
 
 };
