@@ -3,6 +3,7 @@ add_library(
         table.h table.cc
         block.h block.cc
         util.h  util.cc
+        cmemlog.h
 )
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR} )

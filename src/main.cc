@@ -259,5 +259,12 @@ int main(int argc, char *argv[]) {
 
   hustleDB.executeQuery(query);
 
+  std::string query2 =
+      "INSERT INTO customer VALUES (7, 'James', "
+      " 'good',"
+      "'Houston', 'Great',"
+      "         'best', 'fit', 'done');";
+  hustleDB.executeQuery(query2);
+
   return 0;
 }
