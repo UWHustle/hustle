@@ -38,10 +38,10 @@ typedef struct DBRecordList DBRecordList;
 typedef struct {
   DBRecordList *record_list;
   int total_size;
-} MemLog;
+} HustleMemLog;
 
-void initialize_memlog(MemLog **mem_log, int initial_size) {
-  *mem_log = (MemLog*)malloc(sizeof(MemLog)); 
+void hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
+  *mem_log = (HustleMemLog*)malloc(sizeof(HustleMemLog)); 
   (*mem_log)->record_list = (DBRecordList *)malloc(initial_size * sizeof(DBRecordList));
   (*mem_log)->total_size = initial_size;
   int table_index = 0;
@@ -54,7 +54,7 @@ void initialize_memlog(MemLog **mem_log, int initial_size) {
 }
 
 
-DBRecord* create_record(const void *data, int nData) {
+DBRecord* hustle_memlog_create_record(const void *data, int nData) {
     DBRecord* record = (DBRecord*) malloc(sizeof(DBRecord));
     record->data = data;
     record->nData = nData;
@@ -62,7 +62,7 @@ DBRecord* create_record(const void *data, int nData) {
     return record;
 }
 
-void insert_record(MemLog *mem_log, DBRecord *record, int table_id) {
+void hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int table_id) {
   if (table_id >= mem_log->total_size) {
     int old_table_list_size = mem_log->total_size;
     mem_log->total_size *= 2;
@@ -88,7 +88,7 @@ void insert_record(MemLog *mem_log, DBRecord *record, int table_id) {
   mem_log->record_list[table_id].curr_size += 1; 
 }
 
-void update_mem_db(MemLog *mem_log) {
+void hustle_memlog_update_db(HustleMemLog *mem_log) {
   int table_index = 0;
   struct DBRecord *tmp_record;
   while (table_index < mem_log->total_size) {
@@ -104,7 +104,7 @@ void update_mem_db(MemLog *mem_log) {
 }
 
 
-void update_mem_db_free(MemLog *mem_log) {
+void hustle_memlog_update_db_free(HustleMemLog *mem_log) {
   int table_index = 0;
   struct DBRecord *tmp_record;
   while (table_index < mem_log->total_size) {
@@ -117,14 +117,15 @@ void update_mem_db_free(MemLog *mem_log) {
 
       free(tmp_record);
     }
+    mem_log->record_list[table_index].head = NULL;
+    mem_log->record_list[table_index].tail = NULL;
+    mem_log->record_list[table_index].curr_size = 0;
     table_index++;
   }
-  free(mem_log->record_list);
-  mem_log->record_list = NULL;
-  mem_log->total_size = 0;
+  
 }
 
-void clear_memlog(MemLog *mem_log) {
+void hustle_memlog_clear(HustleMemLog *mem_log) {
   struct DBRecord *tmp_record;
   int table_index = 0;
   while (table_index < mem_log->total_size) {
@@ -141,8 +142,8 @@ void clear_memlog(MemLog *mem_log) {
   }
 }
 
-void free_memlog(MemLog *mem_log) {
-  clear_memlog(mem_log);
+void hustle_memlog_free(HustleMemLog *mem_log) {
+  hustle_memlog_clear(mem_log);
 
   free(mem_log->record_list);
   free(mem_log);
