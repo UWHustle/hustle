@@ -42,7 +42,6 @@ typedef struct {
 } MemLog;
 
 void initialize_memlog(MemLog **mem_log, int initial_size) {
-  printf("Initialize memlog!");
   *mem_log = (MemLog*)malloc(sizeof(MemLog)); 
   (*mem_log)->record_list = (DBRecordList *)malloc(initial_size * sizeof(DBRecordList));
   (*mem_log)->total_size = initial_size;
@@ -88,7 +87,6 @@ void insert_record(MemLog *mem_log, DBRecord *record, int table_id) {
       mem_log->record_list[table_id].head = record;
   }
   mem_log->record_list[table_id].curr_size += 1; 
-  printf("insert record data: %s\n", record->data);
 }
 
 void update_mem_db(MemLog *mem_log) {
