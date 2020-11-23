@@ -37,7 +37,6 @@ typedef struct DBRecordList DBRecordList;
 
 typedef struct {
   DBRecordList *record_list;
-  int curr_size;
   int total_size;
 } MemLog;
 
@@ -125,8 +124,7 @@ void update_mem_db_free(MemLog *mem_log) {
   mem_log->total_size = 0;
 }
 
-
-void free_memlog(MemLog *mem_log) {
+void clear_memlog(MemLog *mem_log) {
   struct DBRecord *tmp_record;
   int table_index = 0;
   while (table_index < mem_log->total_size) {
@@ -136,10 +134,16 @@ void free_memlog(MemLog *mem_log) {
       head = head->next_record;
       free(tmp_record);
     }
+    mem_log->record_list[table_index].head = NULL;
+    mem_log->record_list[table_index].tail = NULL;
+    mem_log->record_list[table_index].curr_size = 0;
     table_index++;
   }
+}
+
+void free_memlog(MemLog *mem_log) {
+  clear_memlog(mem_log);
 
   free(mem_log->record_list);
-  mem_log->record_list = NULL;
-  mem_log->total_size = 0;
+  free(mem_log);
 }
