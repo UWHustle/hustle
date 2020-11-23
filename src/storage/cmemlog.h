@@ -23,6 +23,7 @@
 struct DBRecordList {
     struct DBRecord *head;
     struct DBRecord *tail;
+    int curr_size;
 };
 
 struct DBRecord {
@@ -36,15 +37,22 @@ typedef struct DBRecordList DBRecordList;
 
 typedef struct {
   DBRecordList *record_list;
+  int curr_size;
   int total_size;
 } MemLog;
 
 void initialize_memlog(MemLog **mem_log, int initial_size) {
+  printf("Initialize memlog!");
   *mem_log = (MemLog*)malloc(sizeof(MemLog)); 
   (*mem_log)->record_list = (DBRecordList *)malloc(initial_size * sizeof(DBRecordList));
-  (*mem_log)->record_list->head = NULL;
-  (*mem_log)->record_list->tail = NULL;
   (*mem_log)->total_size = initial_size;
+  int table_index = 0;
+  while (table_index < (*mem_log)->total_size) {
+    (*mem_log)->record_list[table_index].head = NULL;
+    (*mem_log)->record_list[table_index].tail = NULL;
+    (*mem_log)->record_list[table_index].curr_size = 0;
+    table_index++;
+  }
 }
 
 
@@ -58,9 +66,17 @@ DBRecord* create_record(const void *data, int nData) {
 
 void insert_record(MemLog *mem_log, DBRecord *record, int table_id) {
   if (table_id >= mem_log->total_size) {
+    int old_table_list_size = mem_log->total_size;
     mem_log->total_size *= 2;
-    mem_log->record_list = (DBRecordList **)realloc(
+    mem_log->record_list = (DBRecordList *)realloc(
         mem_log->record_list, mem_log->total_size * sizeof(DBRecordList));
+    int table_index = old_table_list_size;
+    while (table_index < mem_log->total_size) {
+      (*mem_log)->record_list[table_index].head = NULL;
+      (*mem_log)->record_list[table_index].tail = NULL;
+      (*mem_log)->record_list[table_index].curr_size = 0;
+      table_index++;
+    }
   }
 
   DBRecord *tail = mem_log->record_list[table_id].tail;
@@ -71,7 +87,44 @@ void insert_record(MemLog *mem_log, DBRecord *record, int table_id) {
   if (mem_log->record_list[table_id].head == NULL) {
       mem_log->record_list[table_id].head = record;
   }
+  mem_log->record_list[table_id].curr_size += 1; 
   printf("insert record data: %s\n", record->data);
+}
+
+void update_mem_db(MemLog *mem_log) {
+  int table_index = 0;
+  struct DBRecord *tmp_record;
+  while (table_index < mem_log->total_size) {
+    struct DBRecord *head = mem_log->record_list[table_index].head;
+    while (head != NULL) {
+      tmp_record = head;
+      head = head->next_record;
+      
+      // Todo: (@suryadev) update arrow arrays
+    }
+    table_index++;
+  }
+}
+
+
+void update_mem_db_free(MemLog *mem_log) {
+  int table_index = 0;
+  struct DBRecord *tmp_record;
+  while (table_index < mem_log->total_size) {
+    struct DBRecord *head = mem_log->record_list[table_index].head;
+    while (head != NULL) {
+      tmp_record = head;
+      head = head->next_record;
+      
+      // Todo: (@suryadev) update arrow arrays
+
+      free(tmp_record);
+    }
+    table_index++;
+  }
+  free(mem_log->record_list);
+  mem_log->record_list = NULL;
+  mem_log->total_size = 0;
 }
 
 

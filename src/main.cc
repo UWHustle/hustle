@@ -260,10 +260,16 @@ int main(int argc, char *argv[]) {
   hustleDB.executeQuery(query);
 
   std::string query2 =
+      "BEGIN TRANSACTION; "
       "INSERT INTO customer VALUES (7, 'James', "
       " 'good',"
       "'Houston', 'Great',"
-      "         'best', 'fit', 'done');";
+      "         'best', 'fit', 'done');"
+       "INSERT INTO customer VALUES (8, 'James1', "
+      " 'good1',"
+      "'Houston1', 'Great1',"
+      "         'best', 'fit', 'done');"
+      "COMMIT;";
   hustleDB.executeQuery(query2);
 
   return 0;
