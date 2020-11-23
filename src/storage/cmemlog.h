@@ -72,9 +72,9 @@ void insert_record(MemLog *mem_log, DBRecord *record, int table_id) {
         mem_log->record_list, mem_log->total_size * sizeof(DBRecordList));
     int table_index = old_table_list_size;
     while (table_index < mem_log->total_size) {
-      (*mem_log)->record_list[table_index].head = NULL;
-      (*mem_log)->record_list[table_index].tail = NULL;
-      (*mem_log)->record_list[table_index].curr_size = 0;
+      mem_log->record_list[table_index].head = NULL;
+      mem_log->record_list[table_index].tail = NULL;
+      mem_log->record_list[table_index].curr_size = 0;
       table_index++;
     }
   }
