@@ -25,7 +25,7 @@ using namespace testing;
 
 class HustleMemLogTest : public testing::Test {
  protected:
-  void SetUp() override { hustle_memlog_initialize(&hustle_memlog, 100); }
+  void SetUp() override { hustle_memlog_initialize(&hustle_memlog, MEMLOG_INIT_SIZE); }
 
   HustleMemLog* hustle_memlog;
 };
@@ -66,6 +66,22 @@ TEST_F(HustleMemLogTest, MemlogTestForClear) {
   EXPECT_EQ(hustle_memlog->record_list[0].curr_size, 0);
   hustle_memlog_free(hustle_memlog);
 }
+
+
+TEST_F(HustleMemLogTest, MemlogTestExpansion) {
+  DBRecord* record = hustle_memlog_create_record("test", 4);
+  EXPECT_EQ(hustle_memlog->total_size, MEMLOG_INIT_SIZE);
+  hustle_memlog_insert_record(hustle_memlog, record, MEMLOG_INIT_SIZE + 1);
+  EXPECT_EQ(hustle_memlog->total_size, 2 * MEMLOG_INIT_SIZE);
+
+  record = hustle_memlog_create_record("sample", 6);
+  hustle_memlog_insert_record(hustle_memlog, record, MEMLOG_INIT_SIZE + 1);
+  EXPECT_EQ(hustle_memlog->record_list[MEMLOG_INIT_SIZE + 1].curr_size, 2);
+  EXPECT_EQ(hustle_memlog->total_size, 2 * MEMLOG_INIT_SIZE);
+
+  hustle_memlog_free(hustle_memlog);
+}
+
 
 TEST_F(HustleMemLogTest, MemlogTestStatus) {
   DBRecord* record = hustle_memlog_create_record("test", 4);
