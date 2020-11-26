@@ -20,6 +20,7 @@
 #include <filesystem>
 
 #include "catalog/catalog.h"
+#include "scheduler/scheduler.h"
 #include "utils/sqlite_utils.h"
 
 namespace hustle {
@@ -49,6 +50,7 @@ HustleDB::HustleDB(std::string DBpath)
     std::filesystem::create_directories(DBpath);
   }
   this->addCatalog(SqliteDBPath_, catalog_);
+  Scheduler::GlobalInstance().start();
 };
 
 std::string HustleDB::getPlan(const std::string &sql) {
@@ -80,6 +82,10 @@ bool HustleDB::insert() {
 bool HustleDB::select() {
   // TODO(nicholas) once arrow is integrated
   return true;
+}
+
+HustleDB::~HustleDB() {
+  Scheduler::GlobalInstance().join();
 }
 
 }  // namespace hustle

@@ -62,6 +62,8 @@ class HustleDB {
 
   Catalog *getCatalog() { return catalog_.get(); }
 
+   ~HustleDB();
+
  private:
   const std::string DBPath_;
   const std::string CatalogPath_;
