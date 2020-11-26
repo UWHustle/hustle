@@ -22,6 +22,15 @@
 #define MEMLOG_OK 0
 #define MEMLOG_ERROR 1
 
+/**
+ * MemLog is a temporary in-memory store used by the SQLite write transaction
+ * to record the updates and during commit, the records in the Memlog are 
+ * updated to the arrow array.
+ * 
+ * The store is implemented as a array of linked lists, where each slot in the array
+ * represents a table and identified by the table id (SQLite's root page id).
+ * */
+
 struct DBRecordList {
     struct DBRecord *head;
     struct DBRecord *tail;
@@ -39,10 +48,16 @@ typedef struct DBRecord DBRecord;
 typedef struct DBRecordList DBRecordList;
 
 typedef struct {
-  DBRecordList *record_list;
+  DBRecordList *record_list; // array of Linked List, each slot belongs to a table
   int total_size;
 } HustleMemLog;
 
+
+/**
+ * Initialize the memlog for each sqlite db connection
+ * mem_log - pointer to the memlog
+ * initial_size - the initial array size of the store 
+ * */
 Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
   if (initial_size <= 0) {
       return MEMLOG_ERROR;
@@ -60,7 +75,11 @@ Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
   return MEMLOG_OK;
 }
 
-
+/**
+ * Create a DBRecord - each node in the linkedlist.
+ * data - SQLite's data record format with header in the begining
+ * nData - the size of the data
+ * */
 DBRecord* hustle_memlog_create_record(const void *data, int nData) {
     if (data == NULL) {
       return NULL;
@@ -72,6 +91,14 @@ DBRecord* hustle_memlog_create_record(const void *data, int nData) {
     return record;
 }
 
+/**
+ * Insert's the record to the memlog and grows the array size, if the table id
+ * is greater than the array size.
+ * 
+ * mem_log - pointer to the memlog
+ * record - DBRecord needs to be inserted
+ * table_id - root page id of the table
+ * */
 Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int table_id) {
   if (mem_log == NULL || record == NULL) {
     return MEMLOG_ERROR;
@@ -102,6 +129,12 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int 
   return MEMLOG_OK;
 }
 
+/**
+ * Iterate through all the records for a table in the memlog.
+ * 
+ * mem_log - pointer to the memlog
+ * table_id - root page id of the table
+ * */
 DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
   if (mem_log == NULL) {
     return NULL;
@@ -109,6 +142,12 @@ DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
   return &mem_log->record_list[table_id];
 }
 
+
+/**
+ * Update the arrow array with the records present in the memlog
+ * 
+ * mem_log - pointer to the memlog
+ * */
 Status hustle_memlog_update_db(HustleMemLog *mem_log) {
   if (mem_log == NULL) {
     return MEMLOG_ERROR;
@@ -127,7 +166,12 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log) {
   return MEMLOG_OK;
 }
 
-
+/**
+ * Update the arrow array with the records present in the memlog
+ * and free the records in the memlog.
+ * 
+ * mem_log - pointer to the memlog
+ * */
 Status hustle_memlog_update_db_free(HustleMemLog *mem_log) {
   if (mem_log == NULL) {
     return MEMLOG_ERROR;
@@ -151,6 +195,12 @@ Status hustle_memlog_update_db_free(HustleMemLog *mem_log) {
   return MEMLOG_OK;
 }
 
+/**
+ * Make the memlog contents empty by clearing/freeing up
+ * the records in the memlog.
+ * 
+ * mem_log - pointer to the memlog
+ * */
 Status hustle_memlog_clear(HustleMemLog *mem_log) {
   if (mem_log == NULL) {
     return MEMLOG_ERROR;
@@ -172,6 +222,12 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
   return MEMLOG_OK;
 }
 
+/**
+ * Free the memlog, usually used when we close the
+ * sqlite db connection.
+ * 
+ * mem_log - pointer to the memlog
+ * */
 Status hustle_memlog_free(HustleMemLog *mem_log) {
   if (mem_log == NULL) {
     return MEMLOG_ERROR;
