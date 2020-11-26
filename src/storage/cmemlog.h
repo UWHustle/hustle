@@ -120,7 +120,6 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log) {
     while (head != NULL) {
       tmp_record = head;
       head = head->next_record;
-      
       // Todo: (@suryadev) update arrow arrays
     }
     table_index++;
@@ -140,7 +139,6 @@ Status hustle_memlog_update_db_free(HustleMemLog *mem_log) {
     while (head != NULL) {
       tmp_record = head;
       head = head->next_record;
-      
       // Todo: (@suryadev) update arrow arrays
 
       free(tmp_record);
