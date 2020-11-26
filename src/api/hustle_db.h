@@ -60,7 +60,25 @@ class HustleDB {
   // Not implemented yet.
   bool select();
 
+  static bool startScheduler() {
+    if (!Scheduler::GlobalInstance().isActive()) {
+      Scheduler::GlobalInstance().start();
+      return true;
+    }
+    return false;
+  }
+
+  static bool stopScheduler() {
+    if (Scheduler::GlobalInstance().isActive()) {
+      Scheduler::GlobalInstance().join();
+      return true;
+    }
+    return false;
+  }
+
   Catalog *getCatalog() { return catalog_.get(); }
+
+   ~HustleDB() {}
 
  private:
   const std::string DBPath_;

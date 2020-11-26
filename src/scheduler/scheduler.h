@@ -74,6 +74,8 @@ class Scheduler final : public SchedulerInterface {
 
   void clear();
 
+  bool isActive();
+
   std::size_t getTotalNumTaskEvents() const;
 
   template <typename Functor>

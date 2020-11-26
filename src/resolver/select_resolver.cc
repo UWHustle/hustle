@@ -150,6 +150,9 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
 bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   // Collect all the src tables
   SrcList* pTabList = queryTree->pSrc;
+  if (pTabList == NULL) {
+    return false;
+  }
   for (int i = 0; i < pTabList->nSrc; i++) {
     select_predicates_.insert({pTabList->a[i].zName, nullptr});
   }

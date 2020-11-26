@@ -165,6 +165,10 @@ void Scheduler::sendMessage(SchedulerMessage *message) {
   scheduler_msg_queue_.push(std::unique_ptr<SchedulerMessage>(message));
 }
 
+bool Scheduler::isActive() {
+  return thread_ != nullptr;
+}
+
 void Scheduler::start() {
   DCHECK(thread_ == nullptr);
   for (auto &worker : workers_) {

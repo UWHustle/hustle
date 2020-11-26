@@ -25,6 +25,7 @@
 #include "operators/select.h"
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
+#include "scheduler/threading/synchronization_lock.h"
 
 std::shared_ptr<hustle::ExecutionPlan> createPlan(
     hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
@@ -129,17 +130,31 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 std::shared_ptr<hustle::storage::DBTable> execute(
     std::shared_ptr<hustle::ExecutionPlan> plan,
     hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
-  hustle::Scheduler& scheduler = hustle::HustleDB::getScheduler();
-  scheduler.addTask(plan.get());
-  scheduler.start();
-  scheduler.join();
-
+  std::shared_ptr<hustle::storage::DBTable> out_table;
   using namespace hustle::operators;
 
-  std::shared_ptr<OperatorResult> agg_result_out = plan->getOperatorResult();
-  std::shared_ptr<hustle::storage::DBTable> out_table =
-      agg_result_out->materialize(plan->getResultColumns());
-  out_table->print();
+  hustle::Scheduler& scheduler = hustle::HustleDB::getScheduler();
+  SynchronizationLock sync_lock;
+
+  scheduler.addTask(CreateTaskChain(
+      hustle::CreateLambdaTask([&plan](hustle::Task* ctx) {
+        ctx->spawnLambdaTask([&plan](hustle::Task* internal) {
+          if (plan->size() != 0) {
+            internal->spawnTask(plan.get());
+          }
+        });
+      }),
+      hustle::CreateLambdaTask([&plan, &out_table, &sync_lock] {
+        std::shared_ptr<OperatorResult> agg_result_out =
+            plan->getOperatorResult();
+        std::shared_ptr<hustle::storage::DBTable> out_table =
+            agg_result_out->materialize(plan->getResultColumns());
+        out_table->print();
+        sync_lock.release();
+      })));
+
+  sync_lock.wait();
+
   return out_table;
 }
 

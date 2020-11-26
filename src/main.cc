@@ -7,6 +7,48 @@
 #include "parser/parser.h"
 #include "storage/util.h"
 
+#include <stdlib.h> 
+#include <unistd.h> 
+#include <pthread.h> 
+  
+// The function to be executed by all threads 
+void *readQuery(void *db) { 
+   std::string query =
+      "select d_year, s_nation, p_category, sum(lo_revenue) "
+      "as profit1\n"
+      "\tfrom ddate, customer, supplier, part, lineorder\n"
+      "\twhere lo_partkey = p_partkey\n"
+      "\t\tand lo_suppkey = s_suppkey\n"
+      "\t\tand lo_custkey = c_custkey\n"
+      "\t\tand lo_orderdate = d_datekey\n"
+      "\t\tand c_region = 'AMERICA'\n"
+      "\t\tand s_region = 'AMERICA'\n"
+      "\t\tand (d_year = 1997 or d_year = 1998)\n"
+      "\t\tand (p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2')\n"
+      "\tgroup by d_year, s_nation, p_category\n"
+      "\torder by d_year, s_nation, p_category;";
+
+  ((hustle::HustleDB*)db)->executeQuery(query);
+} 
+
+// The function to be executed by all threads 
+void *writeQuery(void *db) { 
+   std::string query =
+      "BEGIN TRANSACTION; "
+      "INSERT INTO customer VALUES (7, 'James', "
+      " 'good',"
+      "'Houston', 'Great',"
+      "         'best', 'fit', 'done');"
+       "INSERT INTO customer VALUES (8, 'James1', "
+      " 'good1',"
+      "'Houston1', 'Great1',"
+      "         'best', 'fit', 'done');"
+      "COMMIT;";
+
+  ((hustle::HustleDB*)db)->executeQuery(query);
+} 
+  
+
 int main(int argc, char *argv[]) {
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
       d_schema;
@@ -231,6 +273,8 @@ int main(int argc, char *argv[]) {
   // EXPECT_FALSE(std::filesystem::exists("db_directory"));
 
   hustle::HustleDB hustleDB("db_directory");
+  // it will only start if it is not running.
+  hustle::HustleDB::startScheduler();
 
   hustleDB.createTable(part, p);
 
@@ -259,5 +303,40 @@ int main(int argc, char *argv[]) {
 
   hustleDB.executeQuery(query);
 
+  std::string query2 =
+      "BEGIN TRANSACTION; "
+      "INSERT INTO customer VALUES (7, 'James', "
+      " 'good',"
+      "'Houston', 'Great',"
+      "         'best', 'fit', 'done');"
+       "INSERT INTO customer VALUES (8, 'James1', "
+      " 'good1',"
+      "'Houston1', 'Great1',"
+      "         'best', 'fit', 'done');"
+      "CREATE TABLE recipes ("
+        "recipe_id INT NOT NULL,"
+        "recipe_name VARCHAR(30) NOT NULL,"
+        "PRIMARY KEY (recipe_id),"
+        "UNIQUE (recipe_name)"
+      ");"
+      "INSERT INTO recipes  "
+      "VALUES (1,'Tacos');"
+      "COMMIT;";
+  hustleDB.executeQuery(query2);
+
+  pthread_t tid1, tid2, tid3; 
+  
+  // Let us create three threads 
+
+  pthread_create(&tid1, NULL, readQuery, (void *)&hustleDB); 
+  pthread_create(&tid2, NULL, readQuery, (void *)&hustleDB); 
+  pthread_create(&tid3, NULL, writeQuery, (void *)&hustleDB); 
+  
+  pthread_join(tid1, NULL); 
+  pthread_join(tid2, NULL); 
+  pthread_join(tid3, NULL); 
+  writeQuery((void *)&hustleDB);
+
+  hustle::HustleDB::stopScheduler();
   return 0;
 }

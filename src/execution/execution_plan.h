@@ -87,6 +87,8 @@ class ExecutionPlan : public Task {
 
   std::size_t size() const { return operators_.size(); }
 
+  ~ExecutionPlan() override {}
+
  private:
   const std::size_t query_id_;
 

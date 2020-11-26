@@ -20,6 +20,7 @@
 #include <filesystem>
 
 #include "catalog/catalog.h"
+#include "scheduler/scheduler.h"
 #include "utils/sqlite_utils.h"
 
 namespace hustle {

@@ -3,6 +3,7 @@ add_library(
         table.h table.cc
         block.h block.cc
         util.h  util.cc
+        cmemlog.h cmemlog.c
 )
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR} )
@@ -46,3 +47,13 @@ target_link_libraries(hustle_util_test
         hustle_src_storage
         )
 add_test(HustleUtilTest hustle_util_test)
+
+add_executable(hustle_memlog_test "tests/memlog_test.cc")
+target_link_libraries(hustle_memlog_test
+        gtest
+        gtest_main
+        gmock
+        ${ARROW_SHARED_LIB}
+        hustle_src_storage
+        )
+add_test(HustleMemlogTest hustle_memlog_test)
