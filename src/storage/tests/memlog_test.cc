@@ -112,7 +112,8 @@ TEST_F(HustleMemLogTest, MemlogTestExpansion) {
   EXPECT_EQ(hustle_memlog->record_list[MEMLOG_INIT_SIZE + 1].curr_size, 2);
   EXPECT_EQ(hustle_memlog->total_size, 2 * (MEMLOG_INIT_SIZE + 1));
 
-  hustle_memlog_free(hustle_memlog);
+  status = hustle_memlog_free(hustle_memlog);
+  EXPECT_EQ(status, MEMLOG_OK);
 }
 
 
