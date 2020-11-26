@@ -57,8 +57,12 @@ class HustleDB {
   // Not implemented yet.
   bool insert();
 
+  bool stop();
+
   // Not implemented yet.
   bool select();
+
+  bool start();
 
   Catalog *getCatalog() { return catalog_.get(); }
 
