@@ -22,7 +22,7 @@
 
 /**
  * Initialize the memlog for each sqlite db connection
- * mem_log - pointer to the memlog
+ * mem_log - double-pointer to the memlog
  * initial_size - the initial array size of the store 
  * */
 Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
@@ -72,7 +72,7 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int 
   }
   if (table_id >= mem_log->total_size) {
     int old_table_list_size = mem_log->total_size;
-    mem_log->total_size *= 2;
+    mem_log->total_size = 2 * table_id;
     mem_log->record_list = (DBRecordList *)realloc(
         mem_log->record_list, mem_log->total_size * sizeof(DBRecordList));
     int table_index = old_table_list_size;
@@ -103,34 +103,10 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int 
  * table_id - root page id of the table
  * */
 DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
-  if (mem_log == NULL) {
+  if (mem_log == NULL || table_id >= mem_log->total_size) {
     return NULL;
   }
   return &mem_log->record_list[table_id];
-}
-
-
-/**
- * Update the arrow array with the records present in the memlog
- * 
- * mem_log - pointer to the memlog
- * */
-Status hustle_memlog_update_db(HustleMemLog *mem_log) {
-  if (mem_log == NULL) {
-    return MEMLOG_ERROR;
-  }
-  int table_index = 0;
-  struct DBRecord *tmp_record;
-  while (table_index < mem_log->total_size) {
-    struct DBRecord *head = mem_log->record_list[table_index].head;
-    while (head != NULL) {
-      tmp_record = head;
-      head = head->next_record;
-      // Todo: (@suryadev) update arrow arrays
-    }
-    table_index++;
-  }
-  return MEMLOG_OK;
 }
 
 /**
@@ -138,8 +114,9 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log) {
  * and free the records in the memlog.
  * 
  * mem_log - pointer to the memlog
+ * is_free - whether to free the records after updating
  * */
-Status hustle_memlog_update_db_free(HustleMemLog *mem_log) {
+Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free){
   if (mem_log == NULL) {
     return MEMLOG_ERROR;
   }
@@ -152,7 +129,9 @@ Status hustle_memlog_update_db_free(HustleMemLog *mem_log) {
       head = head->next_record;
       // Todo: (@suryadev) update arrow arrays
 
-      free(tmp_record);
+      if (is_free) {
+        free(tmp_record);
+      }
     }
     mem_log->record_list[table_index].head = NULL;
     mem_log->record_list[table_index].tail = NULL;

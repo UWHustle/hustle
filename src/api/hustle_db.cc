@@ -50,7 +50,6 @@ HustleDB::HustleDB(std::string DBpath)
     std::filesystem::create_directories(DBpath);
   }
   this->addCatalog(SqliteDBPath_, catalog_);
-  this->start();
 };
 
 std::string HustleDB::getPlan(const std::string &sql) {
@@ -82,26 +81,6 @@ bool HustleDB::insert() {
 bool HustleDB::select() {
   // TODO(nicholas) once arrow is integrated
   return true;
-}
-
-bool HustleDB::start() {
-  if (!Scheduler::GlobalInstance().isActive()) {
-    Scheduler::GlobalInstance().start();
-    return true;
-  }
-  return false;
-}
-
-bool HustleDB::stop() {
- if (Scheduler::GlobalInstance().isActive()) {
-      Scheduler::GlobalInstance().join();
-      return true;
-  }
-  return false;
-}
-
-HustleDB::~HustleDB() {
-  this->stop();
 }
 
 }  // namespace hustle

@@ -273,6 +273,8 @@ int main(int argc, char *argv[]) {
   // EXPECT_FALSE(std::filesystem::exists("db_directory"));
 
   hustle::HustleDB hustleDB("db_directory");
+  // it will only start if it is not running.
+  hustle::HustleDB::startScheduler();
 
   hustleDB.createTable(part, p);
 
@@ -335,5 +337,6 @@ int main(int argc, char *argv[]) {
   pthread_join(tid3, NULL); 
   writeQuery((void *)&hustleDB);
 
+  hustle::HustleDB::stopScheduler();
   return 0;
 }

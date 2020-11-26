@@ -22,6 +22,9 @@ extern "C" {
 #define MEMLOG_OK 0
 #define MEMLOG_ERROR 1
 
+#define MEMLOG_UPDATE_FREE 1
+#define MEMLOG_ONLY_UPDATE 0
+
 /**
  * MemLog is a temporary in-memory store used by the SQLite write transaction
  * to record the updates and during commit, the records in the Memlog are 
@@ -55,7 +58,7 @@ typedef struct {
 
 /**
  * Initialize the memlog for each sqlite db connection
- * mem_log - pointer to the memlog
+ * mem_log - double-pointer to the memlog
  * initial_size - the initial array size of the store 
  * */
 Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size);
@@ -88,18 +91,12 @@ DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id);
 
 /**
  * Update the arrow array with the records present in the memlog
- * 
- * mem_log - pointer to the memlog
- * */
-Status hustle_memlog_update_db(HustleMemLog *mem_log);
-
-/**
- * Update the arrow array with the records present in the memlog
  * and free the records in the memlog.
  * 
  * mem_log - pointer to the memlog
+ * is_free - whether to free the records after updating
  * */
-Status hustle_memlog_update_db_free(HustleMemLog *mem_log);
+Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free);
 
 /**
  * Make the memlog contents empty by clearing/freeing up
