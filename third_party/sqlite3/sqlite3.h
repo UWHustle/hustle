@@ -33,6 +33,8 @@
 #ifndef SQLITE3_H
 #define SQLITE3_H
 #include <stdarg.h>     /* Needed for the definition of va_list */
+#define _GNU_SOURCE         /* See feature_test_macros(7) */
+#include <sys/mman.h>
 
 /*
 ** Make sure we can call this stuff from C++.
