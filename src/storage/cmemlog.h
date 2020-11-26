@@ -14,9 +14,9 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-#include <stdlib.h>
-#include <stdio.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MEMLOG_INIT_SIZE 100
 #define MEMLOG_OK 0
@@ -58,38 +58,14 @@ typedef struct {
  * mem_log - pointer to the memlog
  * initial_size - the initial array size of the store 
  * */
-Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
-  if (initial_size <= 0) {
-      return MEMLOG_ERROR;
-  }
-  *mem_log = (HustleMemLog*)malloc(sizeof(HustleMemLog)); 
-  (*mem_log)->record_list = (DBRecordList *)malloc(initial_size * sizeof(DBRecordList));
-  (*mem_log)->total_size = initial_size;
-  int table_index = 0;
-  while (table_index < (*mem_log)->total_size) {
-    (*mem_log)->record_list[table_index].head = NULL;
-    (*mem_log)->record_list[table_index].tail = NULL;
-    (*mem_log)->record_list[table_index].curr_size = 0;
-    table_index++;
-  }
-  return MEMLOG_OK;
-}
+Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size);
 
 /**
  * Create a DBRecord - each node in the linkedlist.
  * data - SQLite's data record format with header in the begining
  * nData - the size of the data
  * */
-DBRecord* hustle_memlog_create_record(const void *data, int nData) {
-    if (data == NULL) {
-      return NULL;
-    }
-    DBRecord* record = (DBRecord*) malloc(sizeof(DBRecord));
-    record->data = data;
-    record->nData = nData;
-    record->next_record = NULL;
-    return record;
-}
+DBRecord* hustle_memlog_create_record(const void *data, int nData);
 
 /**
  * Insert's the record to the memlog and grows the array size, if the table id
@@ -99,35 +75,7 @@ DBRecord* hustle_memlog_create_record(const void *data, int nData) {
  * record - DBRecord needs to be inserted
  * table_id - root page id of the table
  * */
-Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int table_id) {
-  if (mem_log == NULL || record == NULL) {
-    return MEMLOG_ERROR;
-  }
-  if (table_id >= mem_log->total_size) {
-    int old_table_list_size = mem_log->total_size;
-    mem_log->total_size *= 2;
-    mem_log->record_list = (DBRecordList *)realloc(
-        mem_log->record_list, mem_log->total_size * sizeof(DBRecordList));
-    int table_index = old_table_list_size;
-    while (table_index < mem_log->total_size) {
-      mem_log->record_list[table_index].head = NULL;
-      mem_log->record_list[table_index].tail = NULL;
-      mem_log->record_list[table_index].curr_size = 0;
-      table_index++;
-    }
-  }
-
-  DBRecord *tail = mem_log->record_list[table_id].tail;
-  mem_log->record_list[table_id].tail = record;
-  if (tail != NULL) {
-    tail->next_record = record;
-  }
-  if (mem_log->record_list[table_id].head == NULL) {
-      mem_log->record_list[table_id].head = record;
-  }
-  mem_log->record_list[table_id].curr_size += 1; 
-  return MEMLOG_OK;
-}
+Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int table_id) ;
 
 /**
  * Iterate through all the records for a table in the memlog.
@@ -135,12 +83,7 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int 
  * mem_log - pointer to the memlog
  * table_id - root page id of the table
  * */
-DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
-  if (mem_log == NULL) {
-    return NULL;
-  }
-  return &mem_log->record_list[table_id];
-}
+DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id);
 
 
 /**
@@ -148,23 +91,7 @@ DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
  * 
  * mem_log - pointer to the memlog
  * */
-Status hustle_memlog_update_db(HustleMemLog *mem_log) {
-  if (mem_log == NULL) {
-    return MEMLOG_ERROR;
-  }
-  int table_index = 0;
-  struct DBRecord *tmp_record;
-  while (table_index < mem_log->total_size) {
-    struct DBRecord *head = mem_log->record_list[table_index].head;
-    while (head != NULL) {
-      tmp_record = head;
-      head = head->next_record;
-      // Todo: (@suryadev) update arrow arrays
-    }
-    table_index++;
-  }
-  return MEMLOG_OK;
-}
+Status hustle_memlog_update_db(HustleMemLog *mem_log);
 
 /**
  * Update the arrow array with the records present in the memlog
@@ -172,28 +99,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log) {
  * 
  * mem_log - pointer to the memlog
  * */
-Status hustle_memlog_update_db_free(HustleMemLog *mem_log) {
-  if (mem_log == NULL) {
-    return MEMLOG_ERROR;
-  }
-  int table_index = 0;
-  struct DBRecord *tmp_record;
-  while (table_index < mem_log->total_size) {
-    struct DBRecord *head = mem_log->record_list[table_index].head;
-    while (head != NULL) {
-      tmp_record = head;
-      head = head->next_record;
-      // Todo: (@suryadev) update arrow arrays
-
-      free(tmp_record);
-    }
-    mem_log->record_list[table_index].head = NULL;
-    mem_log->record_list[table_index].tail = NULL;
-    mem_log->record_list[table_index].curr_size = 0;
-    table_index++;
-  }
-  return MEMLOG_OK;
-}
+Status hustle_memlog_update_db_free(HustleMemLog *mem_log);
 
 /**
  * Make the memlog contents empty by clearing/freeing up
@@ -201,26 +107,7 @@ Status hustle_memlog_update_db_free(HustleMemLog *mem_log) {
  * 
  * mem_log - pointer to the memlog
  * */
-Status hustle_memlog_clear(HustleMemLog *mem_log) {
-  if (mem_log == NULL) {
-    return MEMLOG_ERROR;
-  }
-  struct DBRecord *tmp_record;
-  int table_index = 0;
-  while (table_index < mem_log->total_size) {
-    struct DBRecord *head = mem_log->record_list[table_index].head;
-    while (head != NULL) {
-      tmp_record = head;
-      head = head->next_record;
-      free(tmp_record);
-    }
-    mem_log->record_list[table_index].head = NULL;
-    mem_log->record_list[table_index].tail = NULL;
-    mem_log->record_list[table_index].curr_size = 0;
-    table_index++;
-  }
-  return MEMLOG_OK;
-}
+Status hustle_memlog_clear(HustleMemLog *mem_log);
 
 /**
  * Free the memlog, usually used when we close the
@@ -228,13 +115,8 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
  * 
  * mem_log - pointer to the memlog
  * */
-Status hustle_memlog_free(HustleMemLog *mem_log) {
-  if (mem_log == NULL) {
-    return MEMLOG_ERROR;
-  }
-  hustle_memlog_clear(mem_log);
+Status hustle_memlog_free(HustleMemLog *mem_log);
 
-  free(mem_log->record_list);
-  free(mem_log);
-  return MEMLOG_OK;
+#ifdef __cplusplus
 }
+#endif
