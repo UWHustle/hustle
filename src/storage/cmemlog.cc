@@ -15,22 +15,39 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <stdlib.h>
-#include <stdio.h>
 #include "cmemlog.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <map>
+#include <mutex>
+#include <string>
+#include <iostream>
+
+// Maps the Btree root id to hustle table id
+static std::map<int, std::map<int, std::string>> table_map;
+static std::mutex instance_lock;
+
+void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
+  std::lock_guard<std::mutex> lock(instance_lock);
+  printf("DB id: %d\n", db_id);
+  table_map[db_id][root_page_id] = std::string(table_name);
+  std::cout << "Updated value: " <<  table_map[db_id][root_page_id] << std::endl;
+}
 
 /**
  * Initialize the memlog for each sqlite db connection
  * mem_log - double-pointer to the memlog
- * initial_size - the initial array size of the store 
+ * initial_size - the initial array size of the store
  * */
 Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
   if (initial_size <= 0) {
-      return MEMLOG_ERROR;
+    return MEMLOG_ERROR;
   }
-  *mem_log = (HustleMemLog*)malloc(sizeof(HustleMemLog)); 
-  (*mem_log)->record_list = (DBRecordList *)malloc(initial_size * sizeof(DBRecordList));
+  *mem_log = (HustleMemLog *)malloc(sizeof(HustleMemLog));
+  (*mem_log)->record_list =
+      (DBRecordList *)malloc(initial_size * sizeof(DBRecordList));
   (*mem_log)->total_size = initial_size;
   int table_index = 0;
   while (table_index < (*mem_log)->total_size) {
@@ -47,26 +64,27 @@ Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
  * data - SQLite's data record format with header in the begining
  * nData - the size of the data
  * */
-DBRecord* hustle_memlog_create_record(const void *data, int nData) {
-    if (data == NULL) {
-      return NULL;
-    }
-    DBRecord* record = (DBRecord*) malloc(sizeof(DBRecord));
-    record->data = data;
-    record->nData = nData;
-    record->next_record = NULL;
-    return record;
+DBRecord *hustle_memlog_create_record(const void *data, int nData) {
+  if (data == NULL) {
+    return NULL;
+  }
+  DBRecord *record = (DBRecord *)malloc(sizeof(DBRecord));
+  record->data = data;
+  record->nData = nData;
+  record->next_record = NULL;
+  return record;
 }
 
 /**
  * Insert's the record to the memlog and grows the array size, if the table id
  * is greater than the array size.
- * 
+ *
  * mem_log - pointer to the memlog
  * record - DBRecord needs to be inserted
  * table_id - root page id of the table
  * */
-Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int table_id) {
+Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
+                                   int table_id) {
   if (mem_log == NULL || record == NULL) {
     return MEMLOG_ERROR;
   }
@@ -90,19 +108,19 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int 
     tail->next_record = record;
   }
   if (mem_log->record_list[table_id].head == NULL) {
-      mem_log->record_list[table_id].head = record;
+    mem_log->record_list[table_id].head = record;
   }
-  mem_log->record_list[table_id].curr_size += 1; 
+  mem_log->record_list[table_id].curr_size += 1;
   return MEMLOG_OK;
 }
 
 /**
  * Iterate through all the records for a table in the memlog.
- * 
+ *
  * mem_log - pointer to the memlog
  * table_id - root page id of the table
  * */
-DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
+DBRecordList *hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
   if (mem_log == NULL || table_id >= mem_log->total_size) {
     return NULL;
   }
@@ -112,11 +130,11 @@ DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
 /**
  * Update the arrow array with the records present in the memlog
  * and free the records in the memlog.
- * 
+ *
  * mem_log - pointer to the memlog
  * is_free - whether to free the records after updating
  * */
-Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free){
+Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
   if (mem_log == NULL) {
     return MEMLOG_ERROR;
   }
@@ -128,7 +146,8 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free){
       tmp_record = head;
       head = head->next_record;
       // Todo: (@suryadev) update arrow arrays
-
+      printf("Update Table Name %s\n", table_map[DEFAULT_DB_ID][table_index].c_str());
+      std::cout << "Table update name:" << table_map[DEFAULT_DB_ID][table_index] << std::endl;
       if (is_free) {
         free(tmp_record);
       }
@@ -144,7 +163,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free){
 /**
  * Make the memlog contents empty by clearing/freeing up
  * the records in the memlog.
- * 
+ *
  * mem_log - pointer to the memlog
  * */
 Status hustle_memlog_clear(HustleMemLog *mem_log) {
@@ -171,7 +190,7 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
 /**
  * Free the memlog, usually used when we close the
  * sqlite db connection.
- * 
+ *
  * mem_log - pointer to the memlog
  * */
 Status hustle_memlog_free(HustleMemLog *mem_log) {
