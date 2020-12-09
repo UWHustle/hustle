@@ -19,6 +19,7 @@
 #define HUSTLE_OFFLINE_BLOCK_H
 
 #include <arrow/api.h>
+#include "utils/bit_utils.h"
 
 #define BLOCK_SIZE (1 << 20)
 

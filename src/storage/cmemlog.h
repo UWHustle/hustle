@@ -25,19 +25,22 @@ extern "C" {
 #define MEMLOG_UPDATE_FREE 1
 #define MEMLOG_ONLY_UPDATE 0
 
+#define DEFAULT_DB_ID 0
+
 /**
  * MemLog is a temporary in-memory store used by the SQLite write transaction
- * to record the updates and during commit, the records in the Memlog are 
+ * to record the updates and during commit, the records in the Memlog are
  * updated to the arrow array.
- * 
- * The store is implemented as a array of linked lists, where each slot in the array
- * represents a table and identified by the table id (SQLite's root page id).
+ *
+ * The store is implemented as a array of linked lists, where each slot in the
+ * array represents a table and identified by the table id (SQLite's root page
+ * id).
  * */
 
 struct DBRecordList {
-    struct DBRecord *head;
-    struct DBRecord *tail;
-    int curr_size;
+  struct DBRecord *head;
+  struct DBRecord *tail;
+  int curr_size;
 };
 
 struct DBRecord {
@@ -51,48 +54,52 @@ typedef struct DBRecord DBRecord;
 typedef struct DBRecordList DBRecordList;
 
 typedef struct {
-  DBRecordList *record_list; // array of Linked List, each slot belongs to a table
+  DBRecordList
+      *record_list;  // array of Linked List, each slot belongs to a table
   int total_size;
+  char *db_name;
 } HustleMemLog;
-
 
 /**
  * Initialize the memlog for each sqlite db connection
  * mem_log - double-pointer to the memlog
- * initial_size - the initial array size of the store 
+ * initial_size - the initial array size of the store
  * */
-Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size);
+Status hustle_memlog_initialize(HustleMemLog **mem_log, char *db_name,
+                                int initial_size);
+
+void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name);
 
 /**
  * Create a DBRecord - each node in the linkedlist.
  * data - SQLite's data record format with header in the begining
  * nData - the size of the data
  * */
-DBRecord* hustle_memlog_create_record(const void *data, int nData);
+DBRecord *hustle_memlog_create_record(const void *data, int nData);
 
 /**
  * Insert's the record to the memlog and grows the array size, if the table id
  * is greater than the array size.
- * 
+ *
  * mem_log - pointer to the memlog
  * record - DBRecord needs to be inserted
  * table_id - root page id of the table
  * */
-Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record, int table_id) ;
+Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
+                                   int table_id);
 
 /**
  * Iterate through all the records for a table in the memlog.
- * 
+ *
  * mem_log - pointer to the memlog
  * table_id - root page id of the table
  * */
-DBRecordList* hustle_memlog_get_records(HustleMemLog *mem_log, int table_id);
-
+DBRecordList *hustle_memlog_get_records(HustleMemLog *mem_log, int table_id);
 
 /**
  * Update the arrow array with the records present in the memlog
  * and free the records in the memlog.
- * 
+ *
  * mem_log - pointer to the memlog
  * is_free - whether to free the records after updating
  * */
@@ -101,7 +108,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free);
 /**
  * Make the memlog contents empty by clearing/freeing up
  * the records in the memlog.
- * 
+ *
  * mem_log - pointer to the memlog
  * */
 Status hustle_memlog_clear(HustleMemLog *mem_log);
@@ -109,7 +116,7 @@ Status hustle_memlog_clear(HustleMemLog *mem_log);
 /**
  * Free the memlog, usually used when we close the
  * sqlite db connection.
- * 
+ *
  * mem_log - pointer to the memlog
  * */
 Status hustle_memlog_free(HustleMemLog *mem_log);

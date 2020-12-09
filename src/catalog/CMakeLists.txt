@@ -27,5 +27,6 @@ target_link_libraries(hustle_catalog_test
         sqlite3
         absl::container absl::hash
         absl::flat_hash_map
+        hustleDB
         )
 add_test(HustleCatalog_test hustle_catalog_test)
