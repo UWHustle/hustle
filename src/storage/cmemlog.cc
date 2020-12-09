@@ -167,10 +167,13 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
     while (head != NULL) {
       tmp_record = head;
       u32 hdrLen;
+      // Read header len in the record
       u32 nBytes = getVarint32((const unsigned char *)head->data, hdrLen);
       u32 idx = nBytes;
       const unsigned char *hdr = (const unsigned char *)head->data;
       std::vector<int32_t> byte_widths;
+      /* read the col width from the record and user serialTypeLen 
+          to convert to exact col width */
       while (idx < hdrLen) {
         u32 typeLen;
         nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
@@ -186,6 +189,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         for (size_t i = 0; i < len; i++) {
           widths[i] = byte_widths[i];
         }
+        // Insert record to the arrow table
         table->insert_record(record_data + hdrLen, widths);
       }
 
