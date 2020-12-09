@@ -57,6 +57,7 @@ typedef struct {
   DBRecordList
       *record_list;  // array of Linked List, each slot belongs to a table
   int total_size;
+  char *db_name;
 } HustleMemLog;
 
 /**
@@ -64,7 +65,8 @@ typedef struct {
  * mem_log - double-pointer to the memlog
  * initial_size - the initial array size of the store
  * */
-Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size);
+Status hustle_memlog_initialize(HustleMemLog **mem_log, char *db_name,
+                                int initial_size);
 
 void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name);
 

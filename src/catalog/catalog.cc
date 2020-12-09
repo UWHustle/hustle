@@ -38,6 +38,7 @@ namespace {
 // Creates the sql statement tom create the table described by TableSchema ts
 std::string createCreateSql(const TableSchema &ts) {
   std::string sql;
+  absl::StrAppend(&sql, "BEGIN;");
   absl::StrAppend(&sql, "CREATE TABLE ", ts.getName(), "(");
 
   const std::vector<ColumnSchema> &cols = ts.getColumns();
@@ -64,6 +65,7 @@ std::string createCreateSql(const TableSchema &ts) {
     absl::StrAppend(&sql, ")");
   }
   absl::StrAppend(&sql, ");");
+  absl::StrAppend(&sql, "COMMIT;");
 
   return sql;
 }

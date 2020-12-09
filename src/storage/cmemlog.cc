@@ -17,13 +17,18 @@
 
 #include "cmemlog.h"
 
+#include <arrow/io/api.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include <iostream>
 #include <map>
 #include <mutex>
 #include <string>
-#include <iostream>
+
+#include "api/hustle_db.h"
+#include "record_transformer.h"
 
 // Maps the Btree root id to hustle table id
 static std::map<int, std::map<int, std::string>> table_map;
@@ -31,9 +36,7 @@ static std::mutex instance_lock;
 
 void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
   std::lock_guard<std::mutex> lock(instance_lock);
-  printf("DB id: %d\n", db_id);
   table_map[db_id][root_page_id] = std::string(table_name);
-  std::cout << "Updated value: " <<  table_map[db_id][root_page_id] << std::endl;
 }
 
 /**
@@ -41,7 +44,8 @@ void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
  * mem_log - double-pointer to the memlog
  * initial_size - the initial array size of the store
  * */
-Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
+Status hustle_memlog_initialize(HustleMemLog **mem_log, char *db_name,
+                                int initial_size) {
   if (initial_size <= 0) {
     return MEMLOG_ERROR;
   }
@@ -49,6 +53,7 @@ Status hustle_memlog_initialize(HustleMemLog **mem_log, int initial_size) {
   (*mem_log)->record_list =
       (DBRecordList *)malloc(initial_size * sizeof(DBRecordList));
   (*mem_log)->total_size = initial_size;
+  (*mem_log)->db_name = db_name;
   int table_index = 0;
   while (table_index < (*mem_log)->total_size) {
     (*mem_log)->record_list[table_index].head = NULL;
@@ -68,8 +73,12 @@ DBRecord *hustle_memlog_create_record(const void *data, int nData) {
   if (data == NULL) {
     return NULL;
   }
+  u32 num;
   DBRecord *record = (DBRecord *)malloc(sizeof(DBRecord));
-  record->data = data;
+  int nBytes = getVarint32((const unsigned char *)data, num);
+  record->data = (const void *)malloc(nData);
+  memcpy((void *)record->data, data, nData);
+  // record->data = data;
   record->nData = nData;
   record->next_record = NULL;
   return record;
@@ -138,16 +147,49 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
   if (mem_log == NULL) {
     return MEMLOG_ERROR;
   }
+  using namespace hustle;
+
+  std::shared_ptr<catalog::Catalog> catalog =
+      HustleDB::getCatalog(mem_log->db_name);
+
   int table_index = 0;
   struct DBRecord *tmp_record;
   while (table_index < mem_log->total_size) {
     struct DBRecord *head = mem_log->record_list[table_index].head;
+    auto search = table_map[DEFAULT_DB_ID].find(table_index);
+    if (search == table_map[DEFAULT_DB_ID].end()) {
+      table_index++;
+      continue;
+    }
+   
+    auto table =
+        catalog->getTable(table_map[DEFAULT_DB_ID][table_index].c_str());
     while (head != NULL) {
       tmp_record = head;
+      u32 hdrLen;
+      u32 nBytes = getVarint32((const unsigned char *)head->data, hdrLen);
+      u32 idx = nBytes;
+      const unsigned char *hdr = (const unsigned char *)head->data;
+      std::vector<int32_t> byte_widths;
+      while (idx < hdrLen) {
+        u32 typeLen;
+        nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
+        byte_widths.emplace_back(serialTypeLen(typeLen));
+        idx += nBytes;
+      }
+
+       // Todo: (@suryadev) handle update and delete
+      uint8_t *record_data = (uint8_t *)head->data;
+      if (table != nullptr) {
+        size_t len = byte_widths.size();
+        int32_t widths[len];
+        for (size_t i = 0; i < len; i++) {
+          widths[i] = byte_widths[i];
+        }
+        table->insert_record(record_data + hdrLen, widths);
+      }
+
       head = head->next_record;
-      // Todo: (@suryadev) update arrow arrays
-      printf("Update Table Name %s\n", table_map[DEFAULT_DB_ID][table_index].c_str());
-      std::cout << "Table update name:" << table_map[DEFAULT_DB_ID][table_index] << std::endl;
       if (is_free) {
         free(tmp_record);
       }

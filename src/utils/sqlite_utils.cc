@@ -80,10 +80,7 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
     fprintf(stderr, "Can't open sqlite catalog database: %s\n",
             sqlite3_errmsg(db));
     return false;
-  } else {
-    //    fprintf(stdout, "Opened database successfully\n");
-  }
-
+  } 
   rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {

@@ -7,12 +7,17 @@
 #include "parser/parser.h"
 #include "storage/util.h"
 
+
+#include "catalog/catalog.h"
+#include "sqlite3/sqlite3.h"
+
 #include <stdlib.h> 
 #include <unistd.h> 
 #include <pthread.h> 
   
 // The function to be executed by all threads 
 void *readQuery(void *db) { 
+  std::cout << "IN READ QUERY " << std::endl;
    std::string query =
       "select d_year, s_nation, p_category, sum(lo_revenue) "
       "as profit1\n"
@@ -29,23 +34,71 @@ void *readQuery(void *db) {
       "\torder by d_year, s_nation, p_category;";
 
   ((hustle::HustleDB*)db)->executeQuery(query);
+   std::cout << "IN READ QUERY COMPLETED" << std::endl;
+} 
+
+// The function to be executed by all threads 
+void *readQuery2(void *db) { 
+  std::cout << "IN READ QUERY " << std::endl;
+   std::string query =
+      "select c_region, sum(lo_revenue) "
+      "as profit1\n"
+      "\tfrom customer, lineorder\n"
+      "\twhere \n"
+      "\t\tlo_custkey = c_custkey\n"
+      "\t\t and c_mktsegment = 'done' \n"
+      "\tgroup by  c_region\n"
+      "\torder by  c_region;";
+
+  ((hustle::HustleDB*)db)->executeQuery(query);
+   std::cout << "IN READ QUERY COMPLETED" << std::endl;
 } 
 
 // The function to be executed by all threads 
 void *writeQuery(void *db) { 
    std::string query =
       "BEGIN TRANSACTION; "
-      "INSERT INTO customer VALUES (7, 'James', "
+      "INSERT INTO customer VALUES (800224, 'James', "
       " 'good',"
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
-       "INSERT INTO customer VALUES (8, 'James1', "
+       "INSERT INTO customer VALUES (800225, 'James1', "
       " 'good1',"
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
 
   ((hustle::HustleDB*)db)->executeQuery(query);
+} 
+
+
+void *writeQuery2(void *db) { 
+   std::cout << "In write query" << std::endl;
+   std::string query =
+      "BEGIN TRANSACTION; "
+      "INSERT INTO lineorder VALUES (7, 4, 800224,"
+      "163073, 48,"
+      "19960404, '3-MEDIUM', 0, 28, 3180996, 13526467, 2, 3085567, 68164, 4, 19960702, 'TRUCKS');"
+    /*    "INSERT INTO lineorder VALUES (1, 1, "
+      "3,"
+      "155190, 828,"
+      "19960130, '3-MEDIUM', 0, 17, 2116823, 10523209, 4, 2032150, 74711, 2, 19960311, 'TRUCK');"
+        "INSERT INTO lineorder VALUES (1, 2, "
+      "3,"
+      "67310, 163,"
+      "19960130, '2-HIGH', 0, 36, 4598316, 10523209, 9, 4184467, 76638, 6, 19960327, 'MAIL');"
+      "INSERT INTO lineorder VALUES (1, 3, "
+      "3,"
+      "63700, 71,"
+      "19960130, '2-HIGH', 0, 8, 1330960, 10523209, 10, 1197862, 99822, 2, 19960402, 'REG AIR');";
+       "INSERT INTO lineorder VALUES (1, 4, "
+      "3,"
+      "2132, 943,"
+      "19960130, '2-HIGH', 0, 28, 2895564, 10523206, 9, 2634962, 62046, 6, 19960427, 'AIR');"*/
+      "COMMIT;";
+
+  ((hustle::HustleDB*)db)->executeQuery(query);
+   std::cout << "Not In write query" << std::endl;
 } 
   
 
@@ -276,15 +329,14 @@ int main(int argc, char *argv[]) {
   // it will only start if it is not running.
   hustle::HustleDB::startScheduler();
 
-  hustleDB.createTable(part, p);
-
   hustleDB.createTable(supplier, s);
 
-  hustleDB.createTable(customer, c);
+  hustleDB.createTable(customer, c); 
 
   hustleDB.createTable(ddate, d);
-
+  hustleDB.createTable(part, p);
   hustleDB.createTable(lineorder, lo);
+  
 
   std::string query =
       "select d_year, s_nation, p_category, sum(lo_revenue) "
@@ -305,11 +357,11 @@ int main(int argc, char *argv[]) {
 
   std::string query2 =
       "BEGIN TRANSACTION; "
-      "INSERT INTO customer VALUES (7, 'James', "
+      "INSERT INTO customer VALUES (1, 'James', "
       " 'good',"
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
-       "INSERT INTO customer VALUES (8, 'James1', "
+       "INSERT INTO customer VALUES (1, 'James1', "
       " 'good1',"
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
@@ -322,7 +374,7 @@ int main(int argc, char *argv[]) {
       "INSERT INTO recipes  "
       "VALUES (1,'Tacos');"
       "COMMIT;";
-  hustleDB.executeQuery(query2);
+  //hustleDB.executeQuery(query2);
 
   pthread_t tid1, tid2, tid3; 
   
@@ -336,6 +388,9 @@ int main(int argc, char *argv[]) {
   pthread_join(tid2, NULL); 
   pthread_join(tid3, NULL); 
   writeQuery((void *)&hustleDB);
+  writeQuery2((void *)&hustleDB);
+  readQuery((void *)&hustleDB);
+  readQuery2((void *)&hustleDB);
 
   hustle::HustleDB::stopScheduler();
   return 0;

@@ -642,11 +642,21 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
   auto status = data_buffer->Resize(data_buffer->size() + byte_width, false);
   evaluate_status(status, __FUNCTION__, __LINE__);
 
-  auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
-  std::memcpy(dest, record_value, byte_width);
-
-  head += byte_width;
-  column_sizes[i] += byte_width;
+  if (byte_width >= sizeof(field_size)) {
+    auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
+    std::memcpy(dest, record_value, byte_width);
+    head += byte_width;
+    column_sizes[i] += byte_width;
+  } else {
+    // TODO(suryadev): Study the scope for optimization
+    auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
+    uint8_t* value = (uint8_t*) calloc(sizeof(field_size), sizeof(uint8_t));
+    std::memcpy(value, utils::reverse_bytes(record_value, byte_width), byte_width);
+    std::memcpy(dest, value, sizeof(field_size));
+    head += byte_width;
+    column_sizes[i] += sizeof(field_size);
+  }
+ 
   columns[i]->length++;
 }
 

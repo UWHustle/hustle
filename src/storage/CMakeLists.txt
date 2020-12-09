@@ -4,6 +4,7 @@ add_library(
         block.h block.cc
         util.h  util.cc
         cmemlog.h cmemlog.cc
+        record_transformer.h
 )
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR} )
@@ -14,7 +15,8 @@ target_link_libraries(hustle_src_storage PUBLIC
         absl::container
         absl::hash
         absl::flat_hash_map
-        hustle_src_catalog)
+        hustle_src_catalog
+        hustleDB)
 
 
 add_executable(hustle_table_test "tests/table_test.cc")

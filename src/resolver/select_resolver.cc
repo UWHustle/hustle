@@ -204,7 +204,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   ExprList* pGroupBy = queryTree->pGroupBy;
   if (pGroupBy != NULL) {
     for (int i = 0; i < pGroupBy->nExpr; i++) {
-      if (pGroupBy->a[i].pExpr->iColumn >= 1) {
+      if (pGroupBy->a[i].pExpr->iColumn >= 0) {
         std::shared_ptr<ColumnReference> colRef =
             std::make_shared<ColumnReference>(ColumnReference{
                 catalog_->getTable(pGroupBy->a[i].pExpr->y.pTab->zName),
