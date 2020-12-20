@@ -264,7 +264,7 @@ int get_test(int argc, char *argv[]) {
   int bench_type = SSB_WORKLOAD;
   for (int i = 1; i < argc; i++) {
     auto s = std::string(argv[i]);
-    if (s == "--agg_op") {
+    if (s == "--test") {
       if (i + 1 >= argc) {
         std::cerr << "Expect aggregate operator!" << std::endl;
         exit(1);
