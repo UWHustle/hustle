@@ -19,6 +19,7 @@
 #define HUSTLE_OFFLINE_BLOCK_H
 
 #include <arrow/api.h>
+#include <map>
 #include "utils/bit_utils.h"
 
 #define BLOCK_SIZE (1 << 20)
@@ -58,6 +59,12 @@
  */
 
 namespace hustle::storage {
+
+struct BlockInfo {
+  int32_t blockId;
+  int32_t rowNum;
+};
+
 class Block {
  public:
   //
@@ -150,6 +157,9 @@ class Block {
    */
   bool get_valid(unsigned int row_index) const;
 
+  bool get_valid(std::shared_ptr<arrow::ArrayData> valid, 
+                                      unsigned int row_index) const;
+
   //
   /**
    * Set the valid bit to val at row_index
@@ -179,6 +189,10 @@ class Block {
    * @param bytes Number of bytes added to the Block.
    */
   void increment_num_bytes(unsigned int bytes);
+
+  std::vector<std::shared_ptr<arrow::ArrayData>> get_columns() {
+      return columns;
+  }
 
   /**
    * Get the Block's RecordBatch
@@ -210,6 +224,10 @@ class Block {
 
   int get_num_cols() const;
 
+  std::map<int, int>& get_row_id_map() {
+      return row_id_map;
+  }
+
   /**
    * Insert a record into the Block.
    *
@@ -220,7 +238,9 @@ class Block {
    * should be listed in the same order as they appear in the Block's schema.
    * @return True if insertion was successful, false otherwise.
    */
-  bool insert_record(uint8_t *record, int32_t *byte_widths);
+  int insert_record(uint8_t *record, int32_t *byte_widths);
+
+  int insert_record(int rowId, uint8_t *record, int32_t *byte_widths);
 
   /**
    * Insert one or more records into the Block as a vector of ArrayData.
@@ -234,6 +254,11 @@ class Block {
    * number of elements.
    * @return True if insertion was successful, false otherwise.
    */
+  bool insert_records(
+      std::map<int, BlockInfo>& block_map,
+      std::map<int, int>& row_map,
+      std::shared_ptr<arrow::Array> valid_column,
+      std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
   bool insert_records(
       std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
@@ -256,6 +281,8 @@ class Block {
   std::vector<int> column_sizes;
 
   std::vector<int32_t> field_sizes_;
+
+  std::map<int, int> row_id_map;
 
   /**
    * Compute the number of bytes in the block. This function is only called

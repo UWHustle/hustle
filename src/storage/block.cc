@@ -259,10 +259,18 @@ int Block::get_free_row_index() const {
   return -1;
 }
 
+
+bool Block::get_valid(std::shared_ptr<arrow::ArrayData> valid_arr, 
+                                      unsigned int row_index) const {
+  auto *data = valid_arr->GetMutableValues<uint8_t>(1, 0);
+  uint8_t byte = data[row_index / 8];
+  return ((byte >> (row_index % 8u)) & 1u) == 1u;
+}
+
 bool Block::get_valid(unsigned int row_index) const {
   auto *data = valid->GetMutableValues<uint8_t>(1, 0);
   uint8_t byte = data[row_index / 8];
-  return (byte >> (row_index % 8u)) == 1u;
+  return ((byte >> (row_index % 8u)) & 1u) == 1u;
 }
 
 void Block::set_valid(unsigned int row_index, bool val) {
@@ -270,7 +278,7 @@ void Block::set_valid(unsigned int row_index, bool val) {
   if (val) {
     data[row_index / 8] |= (1u << (row_index % 8u));
   } else {
-    data[row_index / 8] &= (1u << (row_index % 8u));
+    data[row_index / 8] &=  ~(1u << (row_index % 8u));
   }
 }
 
@@ -362,6 +370,96 @@ void Block::print() {
 
 // Note that this funciton assumes that the valid column is in column_data
 bool Block::insert_records(
+    std::map<int, BlockInfo>& block_map,
+    std::map<int, int>& row_map,
+    std::shared_ptr<arrow::Array> valid_column,
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
+  int l = column_data[0]->length;
+
+  // TODO(nicholas): Optimize this. Calls to schema->field(i) is non-
+  //  neglible since we call it once for each column of each record.
+  int column_types[num_cols];
+  std::cout << "col length: " << l << std::endl;
+  for (int i = 0; i < num_cols; i++) {
+    column_types[i] = schema->field(i)->type()->id();
+  }
+
+  int reduced_count = 0;
+  auto *filter_data =  valid_column->data()->GetMutableValues<uint8_t>(1, 0);
+  for (int row = 0; row < l; row++) {
+    int record_size = 0;
+
+    for (int i = 0; i < num_cols; i++) {
+      switch (column_types[i]) {
+        case arrow::Type::STRING: {
+          // TODO(nicholas) schema offsets!!!!
+          auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
+          record_size += offsets[row + 1] - offsets[row];
+          break;
+        }
+        case arrow::Type::FIXED_SIZE_BINARY: {
+          int byte_width =
+              schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+          record_size += byte_width;
+          break;
+        }
+        case arrow::Type::DOUBLE:
+        case arrow::Type::INT64: {
+          int byte_width = sizeof(int64_t);
+          record_size += byte_width;
+          break;
+        }
+        case arrow::Type::UINT32: {
+          int byte_width = sizeof(uint32_t);
+          record_size += byte_width;
+          break;
+        }
+        case arrow::Type::UINT16: {
+          int byte_width = sizeof(uint16_t);
+          record_size += byte_width;
+          break;
+        }
+        case arrow::Type::UINT8: {
+          int byte_width = sizeof(uint8_t);
+          record_size += byte_width;
+          break;
+        }
+        default: {
+          throw std::logic_error(
+              std::string("Cannot compute record width. Unsupported type: ") +
+              schema->field(i)->type()->ToString());
+        }
+      }
+    }
+
+    std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
+
+    for (int i = 0; i < column_data.size(); i++) {
+      auto sliced_data = column_data[i]->Slice(row, 1);
+
+      sliced_column_data.push_back(sliced_data);
+    }
+
+    if ((filter_data[row / 8] >> (row % 8u) & 1u) == 1u) {
+      std::cout << "Row: " << row << std::endl;
+      int row_id = row_map[row + reduced_count];
+      this->row_id_map[row] = row_id;
+      BlockInfo blockInfo = block_map[row_id];
+      std::cout << "Row num --  " << blockInfo.rowNum << "  reduced count -- "<< reduced_count << std::endl;
+      block_map[row_id] = {blockInfo.blockId, row};
+      this->insert_records(sliced_column_data);
+      //data_size += record_size;
+    } else {
+       reduced_count++;
+       std::cout << "Not Row: " << row << std::endl;
+    }
+    // num_rows++;
+    std::cout << "num rows: " << num_rows << std::endl;
+  }
+}
+
+// Note that this funciton assumes that the valid column is in column_data
+bool Block::insert_records(
     std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   if (column_data[0]->length == 0) {
     return true;
@@ -375,7 +473,7 @@ bool Block::insert_records(
 
   status = valid_buffer->Resize(valid_buffer->size() + n / 8 + 1, false);
   valid_buffer->ZeroPadding();  // Ensure the additional byte is zeroed
-
+  std::cout << "Number of lemen to be inserted: " << n << std::endl;
   // TODO(nicholas)
   for (int k = 0; k < n; k++) {
     set_valid(num_rows + k, true);
@@ -539,8 +637,14 @@ void Block::insert_values_in_column(int i, int offset,
   increment_num_bytes(data_size);
 }
 
+int Block::insert_record(int rowId, uint8_t *record, int32_t *byte_widths) {
+  int rowNum = this->insert_record(record, byte_widths);
+  row_id_map[rowNum] = rowId;
+  return rowNum;
+}
+
 // Return true is insertion was successful, false otherwise
-bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
+int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
   int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
@@ -548,7 +652,8 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
 
   // record does not fit in the block.
   if (record_size > get_bytes_left()) {
-    return false;
+    std::cout << "record does not fit" << std::endl;
+    return -1;
   }
 
   arrow::Status status;
@@ -630,7 +735,7 @@ bool Block::insert_record(uint8_t *record, int32_t *byte_widths) {
   increment_num_bytes(head);
   increment_num_rows();
 
-  return true;
+  return num_rows - 1;
 }
 
 template <typename field_size>
@@ -650,13 +755,14 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
   } else {
     // TODO(suryadev): Study the scope for optimization
     auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
-    uint8_t* value = (uint8_t*) calloc(sizeof(field_size), sizeof(uint8_t));
-    std::memcpy(value, utils::reverse_bytes(record_value, byte_width), byte_width);
+    uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
+    std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
+                byte_width);
     std::memcpy(dest, value, sizeof(field_size));
     head += byte_width;
     column_sizes[i] += sizeof(field_size);
   }
- 
+
   columns[i]->length++;
 }
 

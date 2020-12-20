@@ -33,10 +33,10 @@ class HustleMemLogTest : public testing::Test {
 };
 
 TEST_F(HustleMemLogTest, MemlogTestForInsertion) {
-  DBRecord* record = hustle_memlog_create_record("test", 4);
+  DBRecord* record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 0, "test", 4);
   int status = hustle_memlog_insert_record(hustle_memlog, record, 0);
   EXPECT_EQ(status, MEMLOG_OK);
-  record = hustle_memlog_create_record("sample", 6);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 1, "sample", 6);
   status = hustle_memlog_insert_record(hustle_memlog, record, 0);
 
   DBRecordList* recordList = hustle_memlog_get_records(hustle_memlog, 0);
@@ -52,17 +52,17 @@ TEST_F(HustleMemLogTest, MemlogTestForInsertion) {
 }
 
 TEST_F(HustleMemLogTest, MemlogTestForMultipleInsertion) {
-  DBRecord* record = hustle_memlog_create_record("test", 4);
+  DBRecord* record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 0, "test", 4);
   int status = hustle_memlog_insert_record(hustle_memlog, record, 0);
   EXPECT_EQ(status, MEMLOG_OK);
-  record = hustle_memlog_create_record("sample", 6);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 1, "sample", 6);
   status = hustle_memlog_insert_record(hustle_memlog, record, 0);
   EXPECT_EQ(status, MEMLOG_OK);
 
-  record = hustle_memlog_create_record("test2", 5);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 2, "test2", 5);
   status = hustle_memlog_insert_record(hustle_memlog, record, 1);
   EXPECT_EQ(status, MEMLOG_OK);
-  record = hustle_memlog_create_record("sample2", 7);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 3, "sample2", 7);
   status = hustle_memlog_insert_record(hustle_memlog, record, 1);
   EXPECT_EQ(status, MEMLOG_OK);
 
@@ -85,10 +85,10 @@ TEST_F(HustleMemLogTest, MemlogTestForMultipleInsertion) {
 }
 
 TEST_F(HustleMemLogTest, MemlogTestForClear) {
-  DBRecord* record = hustle_memlog_create_record("test", 4);
+  DBRecord* record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 0, "test", 4);
   int status = hustle_memlog_insert_record(hustle_memlog, record, 0);
   EXPECT_EQ(status, MEMLOG_OK);
-  record = hustle_memlog_create_record("sample", 6);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 1, "sample", 6);
   status = hustle_memlog_insert_record(hustle_memlog, record, 0);
   EXPECT_EQ(status, MEMLOG_OK);
   EXPECT_EQ(hustle_memlog->record_list[0].curr_size, 2);
@@ -101,14 +101,14 @@ TEST_F(HustleMemLogTest, MemlogTestForClear) {
 }
 
 TEST_F(HustleMemLogTest, MemlogTestExpansion) {
-  DBRecord* record = hustle_memlog_create_record("test", 4);
+  DBRecord* record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 0, "test", 4);
   EXPECT_EQ(hustle_memlog->total_size, MEMLOG_INIT_SIZE);
   int status =
       hustle_memlog_insert_record(hustle_memlog, record, MEMLOG_INIT_SIZE + 1);
   EXPECT_EQ(status, MEMLOG_OK);
   EXPECT_EQ(hustle_memlog->total_size, 2 * (MEMLOG_INIT_SIZE + 1));
 
-  record = hustle_memlog_create_record("sample", 6);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 1, "sample", 6);
   status =
       hustle_memlog_insert_record(hustle_memlog, record, MEMLOG_INIT_SIZE + 1);
   EXPECT_EQ(status, MEMLOG_OK);
@@ -120,11 +120,11 @@ TEST_F(HustleMemLogTest, MemlogTestExpansion) {
 }
 
 TEST_F(HustleMemLogTest, MemlogTestStatus) {
-  DBRecord* record = hustle_memlog_create_record("test", 4);
+  DBRecord* record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 0, "test", 4);
   int status = hustle_memlog_insert_record(hustle_memlog, record, 0);
   EXPECT_EQ(status, MEMLOG_OK);
 
-  record = hustle_memlog_create_record("sample", 6);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 1, "sample", 6);
   status = hustle_memlog_insert_record(hustle_memlog, record, 0);
   EXPECT_EQ(status, MEMLOG_OK);
 

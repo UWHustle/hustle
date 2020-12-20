@@ -22,6 +22,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <map>
 #include <utility>
 
 #include "storage/block.h"
@@ -101,8 +102,14 @@ class DBTable {
    * @param byte_widths Byte width of each value to be inserted. Byte widths
    * should be listed in the same order as they appear in the Block's schema.
    */
-  void insert_record(uint8_t *record, int32_t *byte_widths);
+  BlockInfo insert_record(uint8_t *record, int32_t *byte_widths);
 
+  BlockInfo insert_record(int rowId, uint8_t *record, int32_t *byte_widths);
+
+  void insert_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
+
+  void update_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
+  void delete_record(uint32_t rowId);
   /**
    * Insert one or more records into the Table as a vector of ArrayData.
    * This insertion method would be used to insert the results of a query,
@@ -182,6 +189,9 @@ class DBTable {
   // Initialized to BLOCK_SIZE
   int block_capacity;
 
+  // row id to block info
+  std::map<int, BlockInfo> block_map;
+  
   std::unordered_map<int, std::shared_ptr<Block>> blocks;
 
   std::mutex blocks_mutex;

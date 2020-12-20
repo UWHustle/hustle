@@ -69,13 +69,14 @@ Status hustle_memlog_initialize(HustleMemLog **mem_log, char *db_name,
  * data - SQLite's data record format with header in the begining
  * nData - the size of the data
  * */
-DBRecord *hustle_memlog_create_record(const void *data, int nData) {
-  if (data == NULL) {
+DBRecord *hustle_memlog_create_record(int mode, int rowId, const void *data,
+                                      int nData) {
+  if (data == NULL && mode != MEMLOG_HUSTLE_DELETE) {
     return NULL;
   }
-  u32 num;
   DBRecord *record = (DBRecord *)malloc(sizeof(DBRecord));
-  int nBytes = getVarint32((const unsigned char *)data, num);
+  record->mode = mode;
+  record->rowId = rowId;
   record->data = (const void *)malloc(nData);
   memcpy((void *)record->data, data, nData);
   // record->data = data;
@@ -94,7 +95,7 @@ DBRecord *hustle_memlog_create_record(const void *data, int nData) {
  * */
 Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
                                    int table_id) {
-  if (mem_log == NULL || record == NULL) {
+  if (mem_log == NULL || (record == NULL && record->mode != MEMLOG_HUSTLE_DELETE)) {
     return MEMLOG_ERROR;
   }
   if (table_id >= mem_log->total_size) {
@@ -158,39 +159,52 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
     struct DBRecord *head = mem_log->record_list[table_index].head;
     auto search = table_map[DEFAULT_DB_ID].find(table_index);
     if (search == table_map[DEFAULT_DB_ID].end()) {
+       //printf("here in delete -continue");
       table_index++;
       continue;
     }
-   
+
     auto table =
         catalog->getTable(table_map[DEFAULT_DB_ID][table_index].c_str());
     while (head != NULL) {
       tmp_record = head;
-      u32 hdrLen;
-      // Read header len in the record
-      u32 nBytes = getVarint32((const unsigned char *)head->data, hdrLen);
-      u32 idx = nBytes;
-      const unsigned char *hdr = (const unsigned char *)head->data;
-      std::vector<int32_t> byte_widths;
-      /* read the col width from the record and user serialTypeLen 
-          to convert to exact col width */
-      while (idx < hdrLen) {
-        u32 typeLen;
-        nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
-        byte_widths.emplace_back(serialTypeLen(typeLen));
-        idx += nBytes;
-      }
 
-       // Todo: (@suryadev) handle update and delete
-      uint8_t *record_data = (uint8_t *)head->data;
-      if (table != nullptr) {
-        size_t len = byte_widths.size();
-        int32_t widths[len];
-        for (size_t i = 0; i < len; i++) {
-          widths[i] = byte_widths[i];
+      if (head->mode == MEMLOG_HUSTLE_DELETE) {
+         printf("here in delete");
+        table->delete_record(head->rowId);
+
+      } else {
+        u32 hdrLen;
+        // Read header len in the record
+        u32 nBytes = getVarint32((const unsigned char *)head->data, hdrLen);
+        u32 idx = nBytes;
+        const unsigned char *hdr = (const unsigned char *)head->data;
+        std::vector<int32_t> byte_widths;
+        /* read the col width from the record and user serialTypeLen
+            to convert to exact col width */
+        while (idx < hdrLen) {
+          u32 typeLen;
+          nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
+          byte_widths.emplace_back(serialTypeLen(typeLen));
+          idx += nBytes;
         }
-        // Insert record to the arrow table
-        table->insert_record(record_data + hdrLen, widths);
+
+        // Todo: (@suryadev) handle update and delete
+        uint8_t *record_data = (uint8_t *)head->data;
+        if (table != nullptr) {
+          size_t len = byte_widths.size();
+          int32_t widths[len];
+          for (size_t i = 0; i < len; i++) {
+            widths[i] = byte_widths[i];
+          }
+          // Insert record to the arrow table
+          printf("Data: %s\n", record_data);
+          if (head->mode == MEMLOG_HUSTLE_INSERT) {
+            table->insert_record(head->rowId, record_data + hdrLen, widths);
+          } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
+            table->update_record(head->rowId, record_data + hdrLen, widths);
+          }
+        }
       }
 
       head = head->next_record;
