@@ -19,6 +19,7 @@
 
 #include "skew.h"
 #include "ssb_workload.h"
+#include "tatp_workload.h"
 #include "storage/util.h"
 #include "aggregate_workload.h"
 
@@ -350,7 +351,8 @@ int aggregate_main(int argc, char *argv[]) {
 
 
 int main(int argc, char *argv[]) {
-  int benchmark_type = get_test(argc, argv);
+  TATP tatp;
+  /*int benchmark_type = get_test(argc, argv);
 
   if (benchmark_type == AGGREGATE_WORKLOAD) {
     return aggregate_main(argc, argv);
@@ -360,5 +362,5 @@ int main(int argc, char *argv[]) {
   }
 
   std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;
-  exit(10);
+  exit(10);*/
 }
