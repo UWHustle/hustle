@@ -294,7 +294,7 @@ BlockInfo DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   }
 
   int32_t rowNum = block->insert_record(record, byte_widths);
-  std::cout << "rowNum  " << rowNum << std::endl; 
+  //std::cout << "rowNum  " << rowNum << std::endl; 
   num_rows++;
 
   if (block->get_bytes_left() > fixed_record_width) {
@@ -304,13 +304,13 @@ BlockInfo DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   return {block->get_id(), rowNum};
 }
 
-void DBTable::insert_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
+void DBTable::insert_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
   block_map[rowId] = insert_record(record, byte_widths);
-  std::cout << "[INSERT]:  " << rowId << " " << block_map[rowId].rowNum << std::endl;
+  //std::cout << "[INSERT]:  " << rowId << " " << block_map[rowId].rowNum << std::endl;
 }
 
 void DBTable::update_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
-   std::cout << "[UPDATE]:  " << rowId << std::endl;
+  // std::cout << "[UPDATE]:  " << rowId << std::endl;
   this->delete_record(rowId);
   block_map[rowId] = insert_record(record, byte_widths);
 }
@@ -319,17 +319,17 @@ void DBTable::update_record(uint32_t rowId, uint8_t *record, int32_t *byte_width
 void DBTable::delete_record(uint32_t rowId) {
   BlockInfo blockInfo = block_map[rowId];
   std::shared_ptr<Block> block = this->get_block(blockInfo.blockId);
-  std::cout << "block size: " << block->get_num_rows() << std::endl;
-  std::cout << "In delete " << rowId << " " <<blockInfo.rowNum << std::endl;
+  //std::cout << "block size: " << block->get_num_rows() << std::endl;
+  //std::cout << "In delete " << rowId << " " <<blockInfo.rowNum << std::endl;
   block->set_valid(blockInfo.rowNum, false);
-  block->print();
+  //block->print();
   auto updatedBlock = std::make_shared<Block>(blockInfo.blockId, schema, 
                                                           block_capacity);
-  std::cout << "block size - updated1: " << updatedBlock->get_num_rows() << std::endl;
+  //std::cout << "block size - updated1: " << updatedBlock->get_num_rows() << std::endl;
   updatedBlock->insert_records(block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
-  std::cout << "block size - updated: " << updatedBlock->get_num_rows() << std::endl;
+  //std::cout << "block size - updated: " << updatedBlock->get_num_rows() << std::endl;
   blocks[blockInfo.blockId] = updatedBlock;
-  updatedBlock->print();
+  //updatedBlock->print();
   //blocks[blockInfo.blockId] = nullptr;
   if (insert_pool.find(blockInfo.blockId) != insert_pool.end()) {
     insert_pool[blockInfo.blockId] = updatedBlock;

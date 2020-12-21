@@ -379,7 +379,7 @@ bool Block::insert_records(
   // TODO(nicholas): Optimize this. Calls to schema->field(i) is non-
   //  neglible since we call it once for each column of each record.
   int column_types[num_cols];
-  std::cout << "col length: " << l << std::endl;
+  //std::cout << "col length: " << l << std::endl;
   for (int i = 0; i < num_cols; i++) {
     column_types[i] = schema->field(i)->type()->id();
   }
@@ -441,20 +441,20 @@ bool Block::insert_records(
     }
 
     if ((filter_data[row / 8] >> (row % 8u) & 1u) == 1u) {
-      std::cout << "Row: " << row << std::endl;
+      //std::cout << "Row: " << row << std::endl;
       int row_id = row_map[row + reduced_count];
       this->row_id_map[row] = row_id;
       BlockInfo blockInfo = block_map[row_id];
-      std::cout << "Row num --  " << blockInfo.rowNum << "  reduced count -- "<< reduced_count << std::endl;
+      //std::cout << "Row num --  " << blockInfo.rowNum << "  reduced count -- "<< reduced_count << std::endl;
       block_map[row_id] = {blockInfo.blockId, row};
       this->insert_records(sliced_column_data);
       //data_size += record_size;
     } else {
        reduced_count++;
-       std::cout << "Not Row: " << row << std::endl;
+       //std::cout << "Not Row: " << row << std::endl;
     }
     // num_rows++;
-    std::cout << "num rows: " << num_rows << std::endl;
+    //std::cout << "num rows: " << num_rows << std::endl;
   }
 }
 
@@ -473,7 +473,7 @@ bool Block::insert_records(
 
   status = valid_buffer->Resize(valid_buffer->size() + n / 8 + 1, false);
   valid_buffer->ZeroPadding();  // Ensure the additional byte is zeroed
-  std::cout << "Number of lemen to be inserted: " << n << std::endl;
+  // std::cout << "Number of lemen to be inserted: " << n << std::endl;
   // TODO(nicholas)
   for (int k = 0; k < n; k++) {
     set_valid(num_rows + k, true);

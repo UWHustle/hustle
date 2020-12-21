@@ -106,7 +106,7 @@ class DBTable {
 
   BlockInfo insert_record(int rowId, uint8_t *record, int32_t *byte_widths);
 
-  void insert_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
+  void insert_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
 
   void update_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
   void delete_record(uint32_t rowId);

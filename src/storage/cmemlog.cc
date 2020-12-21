@@ -170,7 +170,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
       tmp_record = head;
 
       if (head->mode == MEMLOG_HUSTLE_DELETE) {
-         printf("here in delete");
+        //printf("here in delete");
         table->delete_record(head->rowId);
 
       } else {
@@ -185,6 +185,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         while (idx < hdrLen) {
           u32 typeLen;
           nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
+          //printf("type len length: %d\n", typeLen);
           byte_widths.emplace_back(serialTypeLen(typeLen));
           idx += nBytes;
         }
@@ -193,14 +194,17 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         uint8_t *record_data = (uint8_t *)head->data;
         if (table != nullptr) {
           size_t len = byte_widths.size();
+          //printf("Byte widht length: %d\n", len);
           int32_t widths[len];
           for (size_t i = 0; i < len; i++) {
+            //printf("width: %d\n", byte_widths[i]);
             widths[i] = byte_widths[i];
           }
           // Insert record to the arrow table
-          printf("Data: %s\n", record_data);
+          //printf("Data: %s\n", record_data);
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
-            table->insert_record(head->rowId, record_data + hdrLen, widths);
+           // printf("In Insert\n", record_data);
+            table->insert_record_table(head->rowId, record_data + hdrLen, widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
             table->update_record(head->rowId, record_data + hdrLen, widths);
           }
