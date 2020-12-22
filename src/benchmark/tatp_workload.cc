@@ -222,10 +222,11 @@ void TATP::CreateTable() {
   hustleDB.createTable(special_facility, sf);
   hustleDB.createTable(call_forwarding, cf);
 
- for (int i  = 9; i < 1000; i++) {
+ std::cout << "Subscriber insert" << std::endl;
+ for (int i  = 9; i < 10000; i++) {
     std::string query =
         "BEGIN TRANSACTION; "
-        "INSERT INTO Subscriber VALUES ("+std::to_string(i)+", 'hello"+std::to_string(i)+"', 131321,"
+        "INSERT INTO Subscriber VALUES ("+std::to_string(i)+", 'h"+std::to_string(i)+"', 131321,"
         "131321, 131321,"
         "131321, 131321, 131321, 131321, 131321,"
         "131321, 1131321, 131321, 131321, 131321,"
@@ -236,7 +237,9 @@ void TATP::CreateTable() {
         "COMMIT;";
     hustleDB.executeQuery(query);
  }
- for (int i  = 9; i < 1000; i++) {
+ std::cout << "Subscriber insert ends" << std::endl;
+
+ for (int i  = 9; i < 10000; i++) {
     std::string query =
         "BEGIN TRANSACTION; "
         "INSERT INTO Access_Info VALUES ("+std::to_string(i)+", 131321,"
@@ -246,7 +249,7 @@ void TATP::CreateTable() {
     hustleDB.executeQuery(query);
  }
 
- for (int i  = 9; i < 1000; i++) {
+ for (int i  = 9; i < 10000; i++) {
     std::string query =
         "BEGIN TRANSACTION; "
         "INSERT INTO Special_Facility VALUES ("+std::to_string(i)+", "+std::to_string(i)+", 131321,"
@@ -256,7 +259,7 @@ void TATP::CreateTable() {
     hustleDB.executeQuery(query);
  }
 
-  for (int i  = 9; i < 1000; i++) {
+  for (int i  = 9; i < 10000; i++) {
     std::string query =
         "BEGIN TRANSACTION; "
         "INSERT INTO Call_Forwarding VALUES ("+std::to_string(i)+", "+std::to_string(i)+", 131,"
@@ -299,7 +302,7 @@ void TATP::CreateTable() {
     "AND end_time\> 1000;";
  container = simple_profiler.getContainer();
  container->startEvent("tatp - 2");
- hustleDB.executeQuery(query2);
+ //hustleDB.executeQuery(query2);
  container->endEvent("tatp - 2");
  simple_profiler.summarizeToStream(std::cout);
  simple_profiler.clear();
@@ -404,7 +407,7 @@ std::cout << "Verify Query 5: " << std::endl;
  std::cout << "Query 7" << std::endl;
  std::string query7 =
         "DELETE FROM Call_Forwarding "
-        "WHERE cf_s_id = 1111111;";
+        "WHERE cf_s_id = 11;";
  container = simple_profiler.getContainer();
  container->startEvent("tatp - 7");
  hustleDB.executeQuery(query5);

@@ -383,7 +383,7 @@ bool Block::insert_records(
   for (int i = 0; i < num_cols; i++) {
     column_types[i] = schema->field(i)->type()->id();
   }
-
+  int data_size = 0;
   int reduced_count = 0;
   auto *filter_data =  valid_column->data()->GetMutableValues<uint8_t>(1, 0);
   for (int row = 0; row < l; row++) {
@@ -440,6 +440,10 @@ bool Block::insert_records(
       sliced_column_data.push_back(sliced_data);
     }
 
+    if (record_size + num_bytes > capacity) {
+      std::cout << "Exceeds!" << std::endl;
+    }
+
     if ((filter_data[row / 8] >> (row % 8u) & 1u) == 1u) {
       //std::cout << "Row: " << row << std::endl;
       int row_id = row_map[row + reduced_count];
@@ -447,6 +451,7 @@ bool Block::insert_records(
       BlockInfo blockInfo = block_map[row_id];
       //std::cout << "Row num --  " << blockInfo.rowNum << "  reduced count -- "<< reduced_count << std::endl;
       block_map[row_id] = {blockInfo.blockId, row};
+      //std::cout << "Update "  << row << std::endl;
       this->insert_records(sliced_column_data);
       //data_size += record_size;
     } else {
@@ -480,7 +485,7 @@ bool Block::insert_records(
   }
 
   valid->length += n;
-
+  int initial_bytes = num_bytes;
   // NOTE: buffers do NOT account for Slice offsets!!!
   int offset = column_data[0]->offset;
 
@@ -610,6 +615,7 @@ bool Block::insert_records(
             schema->field(i)->type()->ToString());
     }
   }
+ // std::cout << "Row bytes - " << (num_bytes - initial_bytes) << std::endl;
   num_rows += n;
   return true;
 }
@@ -637,19 +643,13 @@ void Block::insert_values_in_column(int i, int offset,
   increment_num_bytes(data_size);
 }
 
-int Block::insert_record(int rowId, uint8_t *record, int32_t *byte_widths) {
-  int rowNum = this->insert_record(record, byte_widths);
-  row_id_map[rowNum] = rowId;
-  return rowNum;
-}
-
 // Return true is insertion was successful, false otherwise
 int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
   int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
   }
-
+  //std::cout << "bytes left: " << get_bytes_left() << std::endl;
   // record does not fit in the block.
   if (record_size > get_bytes_left()) {
     std::cout << "record does not fit" << std::endl;
@@ -666,7 +666,7 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
   evaluate_status(status, __FUNCTION__, __LINE__);
   set_valid(num_rows, true);
   valid->length++;
-
+  int initial_bytes = num_bytes;
   // Position in the record array
   int head = 0;
 
@@ -705,6 +705,7 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
         columns[i]->length++;
         column_sizes[i] += byte_widths[i];
         head += byte_widths[i];
+        //increment_num_bytes(byte_widths[i]);
         break;
       }
       case arrow::Type::DOUBLE:
@@ -733,6 +734,7 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
     }
   }
   increment_num_bytes(head);
+  //std::cout << "bytes: " << num_bytes - initial_bytes << std::endl;
   increment_num_rows();
 
   return num_rows - 1;
@@ -744,7 +746,7 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
   auto data_buffer =
       std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
 
-  auto status = data_buffer->Resize(data_buffer->size() + byte_width, false);
+  auto status = data_buffer->Resize(data_buffer->size() + sizeof(field_size), false);
   evaluate_status(status, __FUNCTION__, __LINE__);
 
   if (byte_width >= sizeof(field_size)) {
@@ -755,11 +757,17 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
   } else {
     // TODO(suryadev): Study the scope for optimization
     auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
+    //std::cout << "Num rows: " << num_rows << " " << capacity << std::endl;
     uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
     std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
                 byte_width);
     std::memcpy(dest, value, sizeof(field_size));
-    head += byte_width;
+    free(value);
+    //std::cout << "field size: " << sizeof(field_size) << std::endl;
+    //head += sizeof(field_size);
+   // head += 2;
+   increment_num_bytes(sizeof(field_size));
+   // head += byte_width;
     column_sizes[i] += sizeof(field_size);
   }
 

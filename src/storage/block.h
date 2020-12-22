@@ -224,6 +224,10 @@ class Block {
 
   int get_num_cols() const;
 
+  int get_capacity() {
+      return capacity;
+  }
+
   std::map<int, int>& get_row_id_map() {
       return row_id_map;
   }
@@ -239,8 +243,6 @@ class Block {
    * @return True if insertion was successful, false otherwise.
    */
   int insert_record(uint8_t *record, int32_t *byte_widths);
-
-  int insert_record(int rowId, uint8_t *record, int32_t *byte_widths);
 
   /**
    * Insert one or more records into the Block as a vector of ArrayData.

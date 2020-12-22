@@ -254,31 +254,6 @@ void DBTable::insert_records(
   num_rows += l;
 }
 
-
-BlockInfo DBTable::insert_record(int rowId, uint8_t *record, int32_t *byte_widths) {
-  std::shared_ptr<Block> block = get_block_for_insert();
-
-  int32_t record_size = 0;
-  for (int i = 0; i < num_cols; i++) {
-    record_size += byte_widths[i];
-  }
-
-  auto test = block->get_bytes_left();
-  if (block->get_bytes_left() < record_size) {
-    block = create_block();
-  }
-
-  int32_t rowNum = block->insert_record(rowId, record, byte_widths);
-  num_rows++;
-
-  if (block->get_bytes_left() > fixed_record_width) {
-    insert_pool[block->get_id()] = block;
-  }
-
-  return {block->get_id(), rowNum};
-}
-
-
 // Tuple is passed in as an array of bytes which must be parsed.
 BlockInfo DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   std::shared_ptr<Block> block = get_block_for_insert();
@@ -294,7 +269,7 @@ BlockInfo DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   }
 
   int32_t rowNum = block->insert_record(record, byte_widths);
-  //std::cout << "rowNum  " << rowNum << std::endl; 
+  //std::cout << "Insert row num  " << rowNum << std::endl; 
   num_rows++;
 
   if (block->get_bytes_left() > fixed_record_width) {
@@ -323,8 +298,9 @@ void DBTable::delete_record(uint32_t rowId) {
   //std::cout << "In delete " << rowId << " " <<blockInfo.rowNum << std::endl;
   block->set_valid(blockInfo.rowNum, false);
   //block->print();
+  //std::cout << "Current Block capacity " << block->get_capacity() << " " << block->get_num_rows() << std::endl;
   auto updatedBlock = std::make_shared<Block>(blockInfo.blockId, schema, 
-                                                          block_capacity);
+                                                          block->get_capacity());
   //std::cout << "block size - updated1: " << updatedBlock->get_num_rows() << std::endl;
   updatedBlock->insert_records(block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
   //std::cout << "block size - updated: " << updatedBlock->get_num_rows() << std::endl;
