@@ -766,8 +766,8 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
     //std::cout << "field size: " << sizeof(field_size) << std::endl;
     //head += sizeof(field_size);
    // head += 2;
-   increment_num_bytes(sizeof(field_size));
-   // head += byte_width;
+    increment_num_bytes(sizeof(field_size));
+    //head += byte_width;
     column_sizes[i] += sizeof(field_size);
   }
 
