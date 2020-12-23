@@ -706,7 +706,6 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
         columns[i]->length++;
         column_sizes[i] += byte_widths[i];
         head += byte_widths[i];
-        std::cerr << "string insert" << byte_widths[i] << std::endl;
         increment_num_bytes(byte_widths[i]);
         break;
       }
@@ -757,7 +756,6 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
     column_sizes[i] += byte_width;
     increment_num_bytes(byte_width);
   } else {
-    std::cerr << "Block insert else part" << std::endl;
     // TODO(suryadev): Study the scope for optimization
     auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
     //std::cout << "Num rows: " << num_rows << " " << capacity << std::endl;
