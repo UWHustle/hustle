@@ -375,92 +375,31 @@ void Block::insert_records(
     std::map<int, int>& row_map,
     std::shared_ptr<arrow::Array> valid_column,
     std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
-  int l = column_data[0]->length;
-
-  // TODO(nicholas): Optimize this. Calls to schema->field(i) is non-
-  //  neglible since we call it once for each column of each record.
+  int col_length = column_data[0]->length;
   int column_types[num_cols];
-  //std::cout << "col length: " << l << std::endl;
   for (int i = 0; i < num_cols; i++) {
     column_types[i] = schema->field(i)->type()->id();
   }
   int data_size = 0;
   int reduced_count = 0;
   auto *filter_data =  valid_column->data()->GetMutableValues<uint8_t>(1, 0);
-  for (int row = 0; row < l; row++) {
-    int record_size = 0;
-
-    for (int i = 0; i < num_cols; i++) {
-      switch (column_types[i]) {
-        case arrow::Type::STRING: {
-          // TODO(nicholas) schema offsets!!!!
-          auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
-          record_size += offsets[row + 1] - offsets[row];
-          break;
-        }
-        case arrow::Type::FIXED_SIZE_BINARY: {
-          int byte_width =
-              schema->field(i)->type()->layout().FixedWidth(1).byte_width;
-          record_size += byte_width;
-          break;
-        }
-        case arrow::Type::DOUBLE:
-        case arrow::Type::INT64: {
-          int byte_width = sizeof(int64_t);
-          record_size += byte_width;
-          break;
-        }
-        case arrow::Type::UINT32: {
-          int byte_width = sizeof(uint32_t);
-          record_size += byte_width;
-          break;
-        }
-        case arrow::Type::UINT16: {
-          int byte_width = sizeof(uint16_t);
-          record_size += byte_width;
-          break;
-        }
-        case arrow::Type::UINT8: {
-          int byte_width = sizeof(uint8_t);
-          record_size += byte_width;
-          break;
-        }
-        default: {
-          throw std::logic_error(
-              std::string("Cannot compute record width. Unsupported type: ") +
-              schema->field(i)->type()->ToString());
-        }
-      }
-    }
-
+  for (int row = 0; row < col_length; row++) {
     std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
 
     for (int i = 0; i < column_data.size(); i++) {
       auto sliced_data = column_data[i]->Slice(row, 1);
-
       sliced_column_data.push_back(sliced_data);
     }
 
-    if (record_size + num_bytes > capacity) {
-      std::cout << "Exceeds!" << std::endl;
-    }
-
     if ((filter_data[row / 8] >> (row % 8u) & 1u) == 1u) {
-      //std::cout << "Row: " << row << std::endl;
       int row_id = row_map[row + reduced_count];
       this->row_id_map[row] = row_id;
       BlockInfo blockInfo = block_map[row_id];
-      //std::cout << "Row num --  " << blockInfo.rowNum << "  reduced count -- "<< reduced_count << std::endl;
       block_map[row_id] = {blockInfo.blockId, row};
-      //std::cout << "Update "  << row << std::endl;
       this->insert_records(sliced_column_data);
-      //data_size += record_size;
     } else {
        reduced_count++;
-       //std::cout << "Not Row: " << row << std::endl;
     }
-    // num_rows++;
-    //std::cout << "num rows: " << num_rows << std::endl;
   }
 }
 
