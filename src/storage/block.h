@@ -256,7 +256,7 @@ class Block {
    * number of elements.
    * @return True if insertion was successful, false otherwise.
    */
-  bool insert_records(
+  void insert_records(
       std::map<int, BlockInfo>& block_map,
       std::map<int, int>& row_map,
       std::shared_ptr<arrow::Array> valid_column,

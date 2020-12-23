@@ -370,7 +370,7 @@ void Block::print() {
 }
 
 // Note that this funciton assumes that the valid column is in column_data
-bool Block::insert_records(
+void Block::insert_records(
     std::map<int, BlockInfo>& block_map,
     std::map<int, int>& row_map,
     std::shared_ptr<arrow::Array> valid_column,
