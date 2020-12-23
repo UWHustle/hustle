@@ -93,6 +93,8 @@ class DBTable {
 
   size_t get_num_blocks() const;
 
+  int get_record_size(int32_t *byte_widths);
+
   /**
    * Insert a record into a block in the insert pool.
    *

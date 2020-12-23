@@ -254,16 +254,46 @@ void DBTable::insert_records(
   num_rows += l;
 }
 
+int DBTable::get_record_size(int32_t *byte_widths) {
+  int record_size = 0;
+  int num_cols = get_num_cols();
+  for (int i = 0; i < num_cols; i++) {
+    switch (schema->field(i)->type()->id()) {
+      case arrow::Type::STRING: {
+        record_size += byte_widths[i];
+        break;
+      }
+      case arrow::Type::DOUBLE:
+      case arrow::Type::INT64: {
+        record_size += sizeof(int64_t);
+        break;
+      }
+      case arrow::Type::UINT32: {
+        record_size += sizeof(uint32_t);
+        break;
+      }
+      case arrow::Type::UINT16: {
+        record_size += sizeof(uint16_t);
+        break;
+      }
+      case arrow::Type::UINT8: {
+        record_size += sizeof(uint8_t);
+        break;
+      }
+      default:
+        throw std::logic_error(
+            std::string("unsupported type: ") +
+            schema->field(i)->type()->ToString());
+    }
+  }
+  return record_size;
+}
+
 // Tuple is passed in as an array of bytes which must be parsed.
 BlockInfo DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   std::shared_ptr<Block> block = get_block_for_insert();
 
-  int32_t record_size = 0;
-  for (int i = 0; i < num_cols; i++) {
-    record_size += byte_widths[i];
-  }
-
-  auto test = block->get_bytes_left();
+  int32_t record_size = this->get_record_size(byte_widths);
   if (block->get_bytes_left() < record_size) {
     block = create_block();
   }
@@ -294,7 +324,7 @@ void DBTable::update_record(uint32_t rowId, uint8_t *record, int32_t *byte_width
 void DBTable::delete_record(uint32_t rowId) {
   BlockInfo blockInfo = block_map[rowId];
   std::shared_ptr<Block> block = this->get_block(blockInfo.blockId);
-  //std::cout << "block size: " << block->get_num_rows() << std::endl;
+  std::cout << "block size: " << block->get_num_rows() << std::endl;
   //std::cout << "In delete " << rowId << " " <<blockInfo.rowNum << std::endl;
   block->set_valid(blockInfo.rowNum, false);
   //block->print();
@@ -303,7 +333,7 @@ void DBTable::delete_record(uint32_t rowId) {
                                                           block->get_capacity());
   //std::cout << "block size - updated1: " << updatedBlock->get_num_rows() << std::endl;
   updatedBlock->insert_records(block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
-  //std::cout << "block size - updated: " << updatedBlock->get_num_rows() << std::endl;
+  std::cout << "block size - updated: " << updatedBlock->get_num_rows() << std::endl;
   blocks[blockInfo.blockId] = updatedBlock;
   //updatedBlock->print();
   //blocks[blockInfo.blockId] = nullptr;

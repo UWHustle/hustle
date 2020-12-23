@@ -296,6 +296,7 @@ void Block::decrement_num_rows() {
 
 void Block::increment_num_bytes(unsigned int n_bytes) {
   if (num_bytes + n_bytes > capacity) {
+    std::cout << "num bytes: " << num_bytes << " " << n_bytes << " " << capacity << std::endl;
     throw std::runtime_error(
         "Incremented number of bytes stored in block beyond "
         "capacity:");
@@ -705,7 +706,7 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
         columns[i]->length++;
         column_sizes[i] += byte_widths[i];
         head += byte_widths[i];
-        //increment_num_bytes(byte_widths[i]);
+        increment_num_bytes(byte_widths[i]);
         break;
       }
       case arrow::Type::DOUBLE:
@@ -733,7 +734,6 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
             schema->field(i)->type()->ToString());
     }
   }
-  increment_num_bytes(head);
   //std::cout << "bytes: " << num_bytes - initial_bytes << std::endl;
   increment_num_rows();
 
@@ -762,12 +762,10 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
     std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
                 byte_width);
     std::memcpy(dest, value, sizeof(field_size));
+
     free(value);
-    //std::cout << "field size: " << sizeof(field_size) << std::endl;
-    //head += sizeof(field_size);
-   // head += 2;
     increment_num_bytes(sizeof(field_size));
-    //head += byte_width;
+    head += byte_width;
     column_sizes[i] += sizeof(field_size);
   }
 
