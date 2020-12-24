@@ -259,6 +259,7 @@ AggregateType get_agg_type(int argc, char *argv[]) {
 
 #define SSB_WORKLOAD 0
 #define AGGREGATE_WORKLOAD 1
+#define TATP_WORKLOAD 2
 
 // TODO: Refactor this using C++ command line arg parser.
 int get_test(int argc, char *argv[]) {
@@ -275,6 +276,9 @@ int get_test(int argc, char *argv[]) {
       if (v.find("ssb") != ((size_t)-1)) {
         bench_type = SSB_WORKLOAD;
         std::cout << "Benchmark using SSB workload." << std::endl;
+      } else if (v.find("tatp") != ((size_t)-1)) {
+        bench_type = TATP_WORKLOAD;
+        std::cout << "Benchmark using aggregate workload" << std::endl;
       } else if (v.find("aggregate") != ((size_t)-1)) {
         bench_type = AGGREGATE_WORKLOAD;
         std::cout << "Benchmark using aggregate workload" << std::endl;
@@ -346,17 +350,17 @@ int aggregate_main(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-  TATP tatp;
-  tatp.RunBenchmark();
-  /*int benchmark_type = get_test(argc, argv);
+  int benchmark_type = get_test(argc, argv);
 
   if (benchmark_type == AGGREGATE_WORKLOAD) {
     return aggregate_main(argc, argv);
-
   } else if (benchmark_type == SSB_WORKLOAD) {
     return ssb_main(argc, argv);
+  } else if (benchmark_type == TATP_WORKLOAD) {
+    TATP tatp;
+    tatp.RunBenchmark();
   }
 
   std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;
-  exit(10);*/
+  exit(10);
 }
