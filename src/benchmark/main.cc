@@ -359,6 +359,7 @@ int main(int argc, char *argv[]) {
   } else if (benchmark_type == TATP_WORKLOAD) {
     TATP tatp;
     tatp.RunBenchmark();
+    return 0;
   }
 
   std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;
