@@ -63,38 +63,58 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
    * Get the join predicates and the previous results to construct
    * the join operators.
    */
-  JoinGraph join_graph({*(select_resolver->get_join_predicates())});
+  std::cout << "Num join pred: " << (*(select_resolver->get_join_predicates())).size() << std::endl;
+  
 
-  std::shared_ptr<OperatorResult> join_result_out =
-      std::make_shared<OperatorResult>();
-  std::unique_ptr<Join> join_op =
-      std::make_unique<Join>(0, select_result, join_result_out, join_graph);
+  bool is_join_op = true;
+  std::shared_ptr<OperatorResult> join_result_out;
+  std::unique_ptr<Join> join_op;
+  if ((*(select_resolver->get_join_predicates())).size() != 0) {
+     JoinGraph join_graph({*(select_resolver->get_join_predicates())});
+     join_result_out =
+        std::make_shared<OperatorResult>();
+     join_op =
+        std::make_unique<Join>(0, select_result, join_result_out, join_graph);
+  } else {
+    is_join_op = false;
+    join_result_out = select_result[0];
+  }
 
+  
+  bool is_agg_op = true;
   std::shared_ptr<std::vector<AggregateReference>> agg_refs =
       (select_resolver->get_agg_references());
+  std::cout << "Num agg refs: " << (*(agg_refs)).size() << std::endl;
 
-  assert(agg_refs->size() == 1);  // currently supports one agg op
+  
   std::shared_ptr<OperatorResult> agg_result_out =
       std::make_shared<OperatorResult>();
+  std::unique_ptr<Aggregate> agg_op;
 
-  /**
-   * Group by references and order by references from select resolver
-   */
-  auto group_by_ref_ptrs = *(select_resolver->get_groupby_references());
-  std::vector<ColumnReference> group_by_refs(group_by_ref_ptrs.size());
-  std::transform(
-      group_by_ref_ptrs.begin(), group_by_ref_ptrs.end(), group_by_refs.begin(),
-      [](std::shared_ptr<hustle::operators::ColumnReference> x) { return *x; });
+  if (agg_refs->size() != 0) {
+    assert(agg_refs->size() == 1);  // currently supports one agg op
+    /**
+     * Group by references and order by references from select resolver
+     */
+    auto group_by_ref_ptrs = *(select_resolver->get_groupby_references());
+    std::vector<ColumnReference> group_by_refs(group_by_ref_ptrs.size());
+    std::transform(
+        group_by_ref_ptrs.begin(), group_by_ref_ptrs.end(), group_by_refs.begin(),
+        [](std::shared_ptr<hustle::operators::ColumnReference> x) { return *x; });
 
-  auto order_by_ref_ptrs = *(select_resolver->get_orderby_references());
-  std::vector<ColumnReference> order_by_refs(order_by_ref_ptrs.size());
-  std::transform(
-      order_by_ref_ptrs.begin(), order_by_ref_ptrs.end(), order_by_refs.begin(),
-      [](std::shared_ptr<hustle::operators::ColumnReference> x) { return *x; });
+    auto order_by_ref_ptrs = *(select_resolver->get_orderby_references());
+    std::vector<ColumnReference> order_by_refs(order_by_ref_ptrs.size());
+    std::transform(
+        order_by_ref_ptrs.begin(), order_by_ref_ptrs.end(), order_by_refs.begin(),
+        [](std::shared_ptr<hustle::operators::ColumnReference> x) { return *x; });
 
-  std::unique_ptr<Aggregate> agg_op =
-      std::make_unique<Aggregate>(0, join_result_out, agg_result_out, *agg_refs,
-                                  group_by_refs, order_by_refs);
+    agg_op =
+        std::make_unique<Aggregate>(0, join_result_out, agg_result_out, *agg_refs,
+                                    group_by_refs, order_by_refs);
+  } else {
+     is_agg_op = false;
+     agg_result_out = join_result_out;
+  }
 
   // Build the output columns for the result
   std::vector<std::shared_ptr<hustle::resolver::ProjectReference>>
@@ -113,17 +133,29 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   std::shared_ptr<hustle::ExecutionPlan> plan =
       std::make_shared<hustle::ExecutionPlan>(0);
 
-  auto join_id = plan->addOperator(std::move(join_op));
+  size_t join_id, agg_id;
+
+  if (is_agg_op) {
+    agg_id = plan->addOperator(std::move(agg_op));
+  }
+
+  if (is_join_op) {
+    join_id = plan->addOperator(std::move(join_op));
+  }
 
   for (auto& select_op : select_operators) {
     auto select_id = plan->addOperator(std::move(select_op));
-    plan->createLink(select_id, join_id);
+    if (is_join_op) {
+      plan->createLink(select_id, join_id);
+    }
   }
-  auto agg_id = plan->addOperator(std::move(agg_op));
+
   // Declare aggregate dependency on join operator
-  plan->createLink(join_id, agg_id);
-  plan->setResultColumns(agg_project_cols);
+  if (is_agg_op) {
+    plan->createLink(join_id, agg_id);
+  } 
   plan->setOperatorResult(agg_result_out);
+  plan->setResultColumns(agg_project_cols);
   return plan;
 }
 

@@ -57,11 +57,35 @@ void *writeQuery(void *db) {
       "INSERT INTO customer VALUES (800224, 'James', "
       " 'good',"
       "'Houston', 'Great',"
-      "         'best', 'fit', 'done');"
+      "         'best1', 'fit', 'done');"
        "INSERT INTO customer VALUES (800225, 'James1', "
       " 'good1',"
       "'Houston1', 'Great1',"
-      "         'best', 'fit', 'done');"
+      "         'best2', 'fit', 'done');"
+      "INSERT INTO customer VALUES (800226, 'James1', "
+      " 'good1',"
+      "'Houston1', 'Great1',"
+      "         'best3', 'fit', 'done');"
+      "COMMIT;";
+
+  ((hustle::HustleDB*)db)->executeQuery(query);
+} 
+
+// The function to be executed by all threads 
+void *updateQuery(void *db) { 
+   std::string query =
+      "BEGIN TRANSACTION;"
+      "UPDATE customer set c_region = 'fine' where c_custkey=800224;"
+      "COMMIT;";
+
+  ((hustle::HustleDB*)db)->executeQuery(query);
+} 
+
+
+void *deleteQuery(void *db) { 
+   std::string query =
+      "BEGIN TRANSACTION;"
+      "DELETE FROM customer where c_custkey=800226;"
       "COMMIT;";
 
   ((hustle::HustleDB*)db)->executeQuery(query);
@@ -73,6 +97,9 @@ void *writeQuery2(void *db) {
    std::string query =
       "BEGIN TRANSACTION; "
       "INSERT INTO lineorder VALUES (7, 4, 800224,"
+      "163073, 48,"
+      "19960404, '3-MEDIUM', 0, 28, 3180996, 13526467, 2, 3085567, 68164, 4, 19960702, 'TRUCKS');"
+        "INSERT INTO lineorder VALUES (8, 4, 800225,"
       "163073, 48,"
       "19960404, '3-MEDIUM', 0, 28, 3180996, 13526467, 2, 3085567, 68164, 4, 19960702, 'TRUCKS');"
       "COMMIT;";
@@ -290,8 +317,28 @@ int main(int argc, char *argv[]) {
   lineorder.addColumn(lo_shipmode);
   lineorder.setPrimaryKey({});
   lo_schema = lineorder.getArrowSchema();
-
+/*
   std::shared_ptr<DBTable> t;
+
+   t = read_from_csv_file("../ssb/data/customer.tbl", c_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../ssb/data/customer.hsl", *t);
+
+  t = read_from_csv_file("../ssb/data/supplier.tbl", s_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../ssb/data/supplier.hsl", *t);
+
+  t = read_from_csv_file("../ssb/data/date.tbl", d_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../ssb/data/date.hsl", *t);
+
+  t = read_from_csv_file("../ssb/data/part.tbl", p_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../ssb/data/part.hsl", *t);
+
+  t = read_from_csv_file("../ssb/data/lineorder.tbl", lo_schema,
+                         20 * BLOCK_SIZE);
+  write_to_file("../ssb/data/lineorder.hsl", *t);*/
 
   std::cout << "read the table files..." << std::endl;
   std::shared_ptr<DBTable> lo, c, s, p, d;
@@ -300,6 +347,8 @@ int main(int argc, char *argv[]) {
   p = read_from_file("../ssb/data/part.hsl");
   c = read_from_file("../ssb/data/customer.hsl");
   s = read_from_file("../ssb/data/supplier.hsl");
+
+  c = std::make_shared<hustle::storage::DBTable>("table", c_schema, BLOCK_SIZE);
 
   std::filesystem::remove_all("db_directory");
   // EXPECT_FALSE(std::filesystem::exists("db_directory"));
@@ -353,22 +402,29 @@ int main(int argc, char *argv[]) {
       "INSERT INTO recipes  "
       "VALUES (1,'Tacos');"
       "COMMIT;";
-  //hustleDB.executeQuery(query2);
+  hustleDB.executeQuery(query2);
 
   pthread_t tid1, tid2, tid3; 
   
   // Let us create three threads 
 
   pthread_create(&tid1, NULL, readQuery, (void *)&hustleDB); 
-  pthread_create(&tid2, NULL, readQuery, (void *)&hustleDB); 
+  pthread_create(&tid2, NULL, readQuery, (void *)&hustleDB);
   pthread_create(&tid3, NULL, writeQuery, (void *)&hustleDB); 
   
   pthread_join(tid1, NULL); 
   pthread_join(tid2, NULL); 
   pthread_join(tid3, NULL); 
+
   writeQuery((void *)&hustleDB);
   writeQuery2((void *)&hustleDB);
   readQuery((void *)&hustleDB);
+  readQuery2((void *)&hustleDB);
+
+  updateQuery((void *)&hustleDB);
+  readQuery2((void *)&hustleDB);
+
+  deleteQuery((void *)&hustleDB);
   readQuery2((void *)&hustleDB);
 
   hustle::HustleDB::stopScheduler();

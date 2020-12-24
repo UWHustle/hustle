@@ -153,7 +153,7 @@ TEST_F(HustleBlockTest, EmptyBlock) {
 
 TEST_F(HustleBlockTest, OneInsertBlock) {
   Block block(0, schema, BLOCK_SIZE);
-  bool result =
+  int row_index =
       block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
 
   valid =
@@ -164,7 +164,7 @@ TEST_F(HustleBlockTest, OneInsertBlock) {
   column4 = std::static_pointer_cast<arrow::Int64Array>(block.get_column(3));
 
   int row = 0;
-  EXPECT_EQ(result, true);
+  EXPECT_EQ(row_index, 0);
   EXPECT_EQ(block.get_num_rows(), 1);
   EXPECT_EQ(valid->Value(row), true);
   EXPECT_EQ(column1->Value(row), 4242);
@@ -239,10 +239,10 @@ TEST_F(HustleBlockTest, FullBlock) {
   }
 
   // This block cannot hold a 9th copy of the first record
-  bool result =
+  int row_index =
       block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
 
-  EXPECT_EQ(result, false);
+  EXPECT_EQ(row_index, -1);
   EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE - 912);
 }
 

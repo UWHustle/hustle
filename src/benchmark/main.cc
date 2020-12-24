@@ -17,10 +17,11 @@
 
 #include <benchmark/benchmark.h>
 
+#include "aggregate_workload.h"
 #include "skew.h"
 #include "ssb_workload.h"
 #include "storage/util.h"
-#include "aggregate_workload.h"
+#include "tatp_workload.h"
 
 using namespace hustle::operators;
 using namespace std::chrono;
@@ -33,7 +34,7 @@ AggregateWorkload *aggregateWorkload;
 void read_from_csv() {
   std::shared_ptr<DBTable> lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
-    d_schema;
+      d_schema;
   auto field1 = arrow::field("order key", arrow::uint32());
   auto field2 = arrow::field("line number", arrow::int64());
   auto field3 = arrow::field("cust key", arrow::int64());
@@ -64,7 +65,7 @@ void read_from_csv() {
   auto s_field7 = arrow::field("s phone", arrow::utf8());
 
   s_schema = arrow::schema(
-    {s_field1, s_field2, s_field3, s_field4, s_field5, s_field6, s_field7});
+      {s_field1, s_field2, s_field3, s_field4, s_field5, s_field6, s_field7});
 
   auto c_field1 = arrow::field("c cust key", arrow::int64());
   auto c_field2 = arrow::field("c name", arrow::utf8());
@@ -241,10 +242,10 @@ AggregateType get_agg_type(int argc, char *argv[]) {
       }
       i += 1;
       auto v = std::string(argv[i]);
-      if (v.find("hash_aggregate") != ((size_t) -1)) {
+      if (v.find("hash_aggregate") != ((size_t)-1)) {
         agg_type = AggregateType::HASH_AGGREGATE;
         std::cout << "Use Hash Aggregate" << std::endl;
-      } else if (v.find("arrow_aggregate") != ((size_t) -1)) {
+      } else if (v.find("arrow_aggregate") != ((size_t)-1)) {
         agg_type = AggregateType::ARROW_AGGREGATE;
         std::cout << "Use Arrow Aggregate" << std::endl;
       } else {
@@ -258,23 +259,27 @@ AggregateType get_agg_type(int argc, char *argv[]) {
 
 #define SSB_WORKLOAD 0
 #define AGGREGATE_WORKLOAD 1
+#define TATP_WORKLOAD 2
 
 // TODO: Refactor this using C++ command line arg parser.
 int get_test(int argc, char *argv[]) {
   int bench_type = SSB_WORKLOAD;
   for (int i = 1; i < argc; i++) {
     auto s = std::string(argv[i]);
-    if (s == "--agg_op") {
+    if (s == "--test") {
       if (i + 1 >= argc) {
         std::cerr << "Expect aggregate operator!" << std::endl;
         exit(1);
       }
       i += 1;
       auto v = std::string(argv[i]);
-      if (v.find("ssb") != ((size_t) -1)) {
+      if (v.find("ssb") != ((size_t)-1)) {
         bench_type = SSB_WORKLOAD;
         std::cout << "Benchmark using SSB workload." << std::endl;
-      } else if (v.find("aggregate") != ((size_t) -1)) {
+      } else if (v.find("tatp") != ((size_t)-1)) {
+        bench_type = TATP_WORKLOAD;
+        std::cout << "Benchmark using aggregate workload" << std::endl;
+      } else if (v.find("aggregate") != ((size_t)-1)) {
         bench_type = AGGREGATE_WORKLOAD;
         std::cout << "Benchmark using aggregate workload" << std::endl;
       } else {
@@ -287,9 +292,7 @@ int get_test(int argc, char *argv[]) {
   return bench_type;
 }
 
-
 int ssb_main(int argc, char *argv[]) {
-
   AggregateType agg_type = get_agg_type(argc, argv);
 
   std::cout << "Started initializing with the required data ..." << std::endl;
@@ -320,8 +323,7 @@ int ssb_main(int argc, char *argv[]) {
   return 0;
 }
 
-void _aggregate_workload(int cardinality, int numGroupBy){
-
+void _aggregate_workload(int cardinality, int numGroupBy) {
   aggregateWorkload = new AggregateWorkload(cardinality, numGroupBy);
   if constexpr (DEBUG) {
     aggregateWorkload->setPrint(true);
@@ -338,7 +340,6 @@ void _aggregate_workload(int cardinality, int numGroupBy){
 }
 
 int aggregate_main(int argc, char *argv[]) {
-
   for (int cardinality = 1; cardinality <= 8; cardinality++) {
     for (int numGroupBy = 1; numGroupBy <= 8; numGroupBy++) {
       _aggregate_workload(cardinality, numGroupBy);
@@ -348,15 +349,17 @@ int aggregate_main(int argc, char *argv[]) {
   return 0;
 }
 
-
 int main(int argc, char *argv[]) {
   int benchmark_type = get_test(argc, argv);
 
   if (benchmark_type == AGGREGATE_WORKLOAD) {
     return aggregate_main(argc, argv);
-
   } else if (benchmark_type == SSB_WORKLOAD) {
     return ssb_main(argc, argv);
+  } else if (benchmark_type == TATP_WORKLOAD) {
+    TATP tatp;
+    tatp.RunBenchmark();
+    return 0;
   }
 
   std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;

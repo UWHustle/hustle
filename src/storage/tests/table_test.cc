@@ -243,10 +243,133 @@ TEST_F(HustleTableTest, Insert) {
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> c = std::make_shared<DBTable>("customer_table_test", c_schema, 4);
+  std::shared_ptr<DBTable> c = std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory");
   hustleDB.createTable(customer, c); 
   hustleDB.executeQuery(query);
   EXPECT_EQ(c->get_num_rows(), 2);
   EXPECT_EQ(c->get_num_cols(), 8);
 }
+
+TEST_F(HustleTableTest, Update) {
+  std::filesystem::remove("catalog.json");
+  std::filesystem::remove("hustle_sqlite.db");
+  std::filesystem::remove_all("db_directory2");
+  // Create table customer
+  hustle::catalog::TableSchema customer_table("customer_table");
+  hustle::catalog::ColumnSchema c_suppkey(
+      "c_custkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+  hustle::catalog::ColumnSchema c_name(
+      "c_name", {hustle::catalog::HustleType::CHAR, 25}, true, false);
+  hustle::catalog::ColumnSchema c_address(
+      "c_address", {hustle::catalog::HustleType::CHAR, 25}, true, false);
+  hustle::catalog::ColumnSchema c_city(
+      "c_city", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+  hustle::catalog::ColumnSchema c_nation(
+      "c_nation", {hustle::catalog::HustleType::CHAR, 15}, true, false);
+  hustle::catalog::ColumnSchema c_region(
+      "c_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
+  hustle::catalog::ColumnSchema c_phone(
+      "c_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
+  hustle::catalog::ColumnSchema c_mktsegment(
+      "c_mktsegment", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+  customer_table.addColumn(c_suppkey);
+  customer_table.addColumn(c_name);
+  customer_table.addColumn(c_address);
+  customer_table.addColumn(c_city);
+  customer_table.addColumn(c_nation);
+  customer_table.addColumn(c_region);
+  customer_table.addColumn(c_phone);
+  customer_table.addColumn(c_mktsegment);
+  customer_table.setPrimaryKey({});
+  std::shared_ptr<arrow::Schema> customer_schema = customer_table.getArrowSchema();
+
+  std::string query =
+      "BEGIN TRANSACTION; "
+      "INSERT INTO customer_table VALUES (800224, 'James', "
+      " 'good',"
+      "'Houston', 'Great',"
+      "         'best', 'fit', 'done');"
+      "COMMIT;";
+  std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
+  hustle::HustleDB hustleDB("db_directory2");
+  hustleDB.createTable(customer_table, customer_table_ptr); 
+  hustleDB.executeQuery(query);
+
+  query =
+      "BEGIN TRANSACTION;"
+      "UPDATE customer_table set c_region = 'fine' where c_custkey=800224;"
+      "COMMIT;";
+
+  hustleDB.executeQuery(query);
+  auto col = std::static_pointer_cast<arrow::StringArray>(customer_table_ptr->
+                                                          get_column(5)->chunk(0));
+
+  EXPECT_EQ(col->GetString(0), "fine");
+  EXPECT_EQ(customer_table_ptr->get_num_rows(), 1);
+
+  EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
+  EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
+}
+
+
+TEST_F(HustleTableTest, Delete) {
+  std::filesystem::remove("catalog.json");
+  std::filesystem::remove("hustle_sqlite.db");
+  std::filesystem::remove_all("db_directory2");
+  // Create table customer
+  hustle::catalog::TableSchema customer_table("customer_table_d");
+  hustle::catalog::ColumnSchema c_suppkey(
+      "c_custkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+  hustle::catalog::ColumnSchema c_name(
+      "c_name", {hustle::catalog::HustleType::CHAR, 25}, true, false);
+  hustle::catalog::ColumnSchema c_address(
+      "c_address", {hustle::catalog::HustleType::CHAR, 25}, true, false);
+  hustle::catalog::ColumnSchema c_city(
+      "c_city", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+  hustle::catalog::ColumnSchema c_nation(
+      "c_nation", {hustle::catalog::HustleType::CHAR, 15}, true, false);
+  hustle::catalog::ColumnSchema c_region(
+      "c_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
+  hustle::catalog::ColumnSchema c_phone(
+      "c_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
+  hustle::catalog::ColumnSchema c_mktsegment(
+      "c_mktsegment", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+  customer_table.addColumn(c_suppkey);
+  customer_table.addColumn(c_name);
+  customer_table.addColumn(c_address);
+  customer_table.addColumn(c_city);
+  customer_table.addColumn(c_nation);
+  customer_table.addColumn(c_region);
+  customer_table.addColumn(c_phone);
+  customer_table.addColumn(c_mktsegment);
+  customer_table.setPrimaryKey({});
+  std::shared_ptr<arrow::Schema> customer_schema = customer_table.getArrowSchema();
+
+  std::string query =
+      "BEGIN TRANSACTION; "
+      "INSERT INTO customer_table_d VALUES (800224, 'James', "
+      " 'good',"
+      "'Houston', 'Great',"
+      "         'best', 'fit', 'done');"
+      "COMMIT;";
+  std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>("customer_table_d", customer_schema, BLOCK_SIZE);
+  hustle::HustleDB hustleDB("db_directory3");
+  hustleDB.createTable(customer_table, customer_table_ptr); 
+  hustleDB.executeQuery(query);
+
+  query =
+      "BEGIN TRANSACTION;"
+      "DELETE FROM customer_table_d where c_custkey=800224;"
+      "COMMIT;";
+
+  hustleDB.executeQuery(query);
+  auto col = std::static_pointer_cast<arrow::StringArray>(customer_table_ptr->
+                                                          get_column(5)->chunk(0));
+
+  EXPECT_EQ(customer_table_ptr->get_num_rows(), 0);
+
+  EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
+  EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
+}
+

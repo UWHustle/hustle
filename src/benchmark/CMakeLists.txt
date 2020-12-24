@@ -1,6 +1,7 @@
 find_package(benchmark REQUIRED)
 add_library(hustle_src_benchmark
         ssb_workload.cc ssb_workload.h
+        tatp_workload.cc tatp_workload.h
         ssb_workload_lip.cc
         aggregate_workload.cc aggregate_workload.h)
 

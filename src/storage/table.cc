@@ -253,25 +253,86 @@ void DBTable::insert_records(
 
   num_rows += l;
 }
+
+int DBTable::get_record_size(int32_t *byte_widths) {
+  int record_size = 0;
+  int num_cols = get_num_cols();
+  for (int i = 0; i < num_cols; i++) {
+    switch (schema->field(i)->type()->id()) {
+      case arrow::Type::STRING: {
+        record_size += byte_widths[i];
+        break;
+      }
+      case arrow::Type::DOUBLE:
+      case arrow::Type::INT64: {
+        record_size += sizeof(int64_t);
+        break;
+      }
+      case arrow::Type::UINT32: {
+        record_size += sizeof(uint32_t);
+        break;
+      }
+      case arrow::Type::UINT16: {
+        record_size += sizeof(uint16_t);
+        break;
+      }
+      case arrow::Type::UINT8: {
+        record_size += sizeof(uint8_t);
+        break;
+      }
+      default:
+        throw std::logic_error(
+            std::string("unsupported type: ") +
+            schema->field(i)->type()->ToString());
+    }
+  }
+  return record_size;
+}
+
 // Tuple is passed in as an array of bytes which must be parsed.
-void DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
+BlockInfo DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   std::shared_ptr<Block> block = get_block_for_insert();
 
-  int32_t record_size = 0;
-  for (int i = 0; i < num_cols; i++) {
-    record_size += byte_widths[i];
-  }
-
-  auto test = block->get_bytes_left();
+  int32_t record_size = this->get_record_size(byte_widths);
   if (block->get_bytes_left() < record_size) {
     block = create_block();
   }
 
-  block->insert_record(record, byte_widths);
+  int32_t rowNum = block->insert_record(record, byte_widths);
   num_rows++;
 
   if (block->get_bytes_left() > fixed_record_width) {
     insert_pool[block->get_id()] = block;
+  }
+
+  return {block->get_id(), rowNum};
+}
+
+void DBTable::insert_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
+  block_map[rowId] = insert_record(record, byte_widths);
+}
+
+void DBTable::update_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
+  this->delete_record_table(rowId);
+  this->insert_record_table(rowId, record, byte_widths);
+}
+
+
+void DBTable::delete_record_table(uint32_t rowId) {
+  auto block_map_it = block_map.find(rowId);
+  if (block_map_it == block_map.end()) {
+    return;
+  }
+  BlockInfo blockInfo = block_map_it->second;
+  std::shared_ptr<Block> block = this->get_block(blockInfo.blockId);
+  block->set_valid(blockInfo.rowNum, false);
+  auto updatedBlock = std::make_shared<Block>(blockInfo.blockId, schema, 
+                                                          block->get_capacity());
+  updatedBlock->insert_records(block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
+  blocks[blockInfo.blockId] = updatedBlock;
+  num_rows--;
+  if (insert_pool.find(blockInfo.blockId) != insert_pool.end()) {
+    insert_pool[blockInfo.blockId] = updatedBlock;
   }
 }
 
