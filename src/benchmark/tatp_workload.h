@@ -18,6 +18,10 @@
 #ifndef HUSTLE_TATP_WORKLOAD_H
 #define HUSTLE_TATP_WORKLOAD_H
 
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include <iostream>
 
 #include "api/hustle_db.h"
@@ -25,40 +29,37 @@
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
 #include "parser/parser.h"
-#include "storage/util.h"
-
-
-#include "catalog/catalog.h"
 #include "sqlite3/sqlite3.h"
-
-#include <stdlib.h> 
-#include <unistd.h> 
-#include <pthread.h> 
+#include "storage/util.h"
 
 namespace hustle::operators {
 class TATP {
-    public:
-         TATP();
+ public:
+  TATP();
 
-          void RunBenchmark();
+  void RunBenchmark();
 
-    private:
-          void CreateTable();
+  ~TATP();
 
-          void RunQuery1();
+ private:
+  std::shared_ptr<HustleDB> hustle_db;
 
-          void RunQuery2();
+  void CreateTable();
 
-          void RunQuery3();
+  void RunQuery1();
 
-          void RunQuery4();
+  void RunQuery2();
 
-          void RunQuery5();
+  void RunQuery3();
 
-          void RunQuery6();
+  void RunQuery4();
 
-          void RunQuery7();
+  void RunQuery5();
+
+  void RunQuery6();
+
+  void RunQuery7();
 };
-}
+}  // namespace hustle::operators
 
 #endif  // HUSTLE_TATP_WORKLOAD_H
