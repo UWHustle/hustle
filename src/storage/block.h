@@ -260,12 +260,13 @@ class Block {
    * number of elements.
    * @return True if insertion was successful, false otherwise.
    */
+  bool insert_records(
+      std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
+
   void insert_records(
       std::map<int, BlockInfo>& block_map,
       std::map<int, int>& row_map,
       std::shared_ptr<arrow::Array> valid_column,
-      std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
-  bool insert_records(
       std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
   bool insert_record(std::vector<std::string_view> record,

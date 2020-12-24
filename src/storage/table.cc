@@ -312,13 +312,13 @@ void DBTable::insert_record_table(uint32_t rowId, uint8_t *record, int32_t *byte
   block_map[rowId] = insert_record(record, byte_widths);
 }
 
-void DBTable::update_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
-  this->delete_record(rowId);
-  block_map[rowId] = insert_record(record, byte_widths);
+void DBTable::update_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
+  this->delete_record_table(rowId);
+  this->insert_record_table(rowId, record, byte_widths);
 }
 
 
-void DBTable::delete_record(uint32_t rowId) {
+void DBTable::delete_record_table(uint32_t rowId) {
   auto block_map_it = block_map.find(rowId);
   if (block_map_it == block_map.end()) {
     return;

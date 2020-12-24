@@ -381,9 +381,7 @@ int main(int argc, char *argv[]) {
       "\tgroup by d_year, s_nation, p_category\n"
       "\torder by d_year, s_nation, p_category;";
 
-  std::cout << "Query in 1" << std::endl;  
-  //hustleDB.executeQuery(query);
-  std::cout << "Query in 2" << std::endl;  
+  hustleDB.executeQuery(query);
 
   std::string query2 =
       "BEGIN TRANSACTION; "
@@ -404,26 +402,23 @@ int main(int argc, char *argv[]) {
       "INSERT INTO recipes  "
       "VALUES (1,'Tacos');"
       "COMMIT;";
-  //hustleDB.executeQuery(query2);
+  hustleDB.executeQuery(query2);
 
   pthread_t tid1, tid2, tid3; 
   
   // Let us create three threads 
 
-  /*pthread_create(&tid1, NULL, readQuery, (void *)&hustleDB); 
-  pthread_create(&tid2, NULL, readQuery, (void *)&hustleDB); */
-  //pthread_create(&tid3, NULL, writeQuery, (void *)&hustleDB); 
+  pthread_create(&tid1, NULL, readQuery, (void *)&hustleDB); 
+  pthread_create(&tid2, NULL, readQuery, (void *)&hustleDB);
+  pthread_create(&tid3, NULL, writeQuery, (void *)&hustleDB); 
   
-  /*pthread_join(tid1, NULL); 
-  pthread_join(tid2, NULL); */
-  //pthread_join(tid3, NULL); 
-  std::cout << "Query in 3" << std::endl;  
+  pthread_join(tid1, NULL); 
+  pthread_join(tid2, NULL); 
+  pthread_join(tid3, NULL); 
+
   writeQuery((void *)&hustleDB);
-  std::cout << "Query in 4" << std::endl; 
   writeQuery2((void *)&hustleDB);
-  std::cout << "Query in 5" << std::endl; 
-  //readQuery((void *)&hustleDB);
-  std::cout << "Query in 6" << std::endl; 
+  readQuery((void *)&hustleDB);
   readQuery2((void *)&hustleDB);
 
   updateQuery((void *)&hustleDB);

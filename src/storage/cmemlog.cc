@@ -173,7 +173,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
       tmp_record = head;
 
       if (head->mode == MEMLOG_HUSTLE_DELETE) {
-        table->delete_record(head->rowId);
+        table->delete_record_table(head->rowId);
       } else {
         u32 hdrLen;
         // Read header len in the record
@@ -202,7 +202,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
             table->insert_record_table(head->rowId, record_data + hdrLen, widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
-            table->update_record(head->rowId, record_data + hdrLen, widths);
+            table->update_record_table(head->rowId, record_data + hdrLen, widths);
           }
         }
       }

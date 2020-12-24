@@ -109,8 +109,9 @@ class DBTable {
 
   void insert_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
 
-  void update_record(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
-  void delete_record(uint32_t rowId);
+  void update_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
+  
+  void delete_record_table(uint32_t rowId);
   /**
    * Insert one or more records into the Table as a vector of ArrayData.
    * This insertion method would be used to insert the results of a query,

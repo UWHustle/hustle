@@ -296,7 +296,6 @@ void Block::decrement_num_rows() {
 
 void Block::increment_num_bytes(unsigned int n_bytes) {
   if (num_bytes + n_bytes > capacity) {
-    std::cout << "num bytes: " << num_bytes << " " << n_bytes << " " << capacity << std::endl;
     throw std::runtime_error(
         "Incremented number of bytes stored in block beyond "
         "capacity:");
@@ -418,14 +417,12 @@ bool Block::insert_records(
 
   status = valid_buffer->Resize(valid_buffer->size() + n / 8 + 1, false);
   valid_buffer->ZeroPadding();  // Ensure the additional byte is zeroed
-  // std::cout << "Number of lemen to be inserted: " << n << std::endl;
   // TODO(nicholas)
   for (int k = 0; k < n; k++) {
     set_valid(num_rows + k, true);
   }
 
   valid->length += n;
-  int initial_bytes = num_bytes;
   // NOTE: buffers do NOT account for Slice offsets!!!
   int offset = column_data[0]->offset;
 
@@ -555,7 +552,6 @@ bool Block::insert_records(
             schema->field(i)->type()->ToString());
     }
   }
- // std::cout << "Row bytes - " << (num_bytes - initial_bytes) << std::endl;
   num_rows += n;
   return true;
 }
@@ -591,7 +587,6 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
   }
   // record does not fit in the block.
   if (record_size > get_bytes_left()) {
-    std::cout << "record does not fit" << std::endl;
     return -1;
   }
 
@@ -605,7 +600,6 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
   evaluate_status(status, __FUNCTION__, __LINE__);
   set_valid(num_rows, true);
   valid->length++;
-  int initial_bytes = num_bytes;
   // Position in the record array
   int head = 0;
 
@@ -672,7 +666,6 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
             schema->field(i)->type()->ToString());
     }
   }
-  //std::cout << "bytes: " << num_bytes - initial_bytes << std::endl;
   increment_num_rows();
 
   return num_rows - 1;
@@ -696,7 +689,6 @@ void Block::insert_value_in_column(int i, int &head, uint8_t *record_value,
   } else {
     // TODO(suryadev): Study the scope for optimization
     auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
-    //std::cout << "Num rows: " << num_rows << " " << capacity << std::endl;
     uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
     std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
                 byte_width);
