@@ -330,6 +330,7 @@ void DBTable::delete_record(uint32_t rowId) {
                                                           block->get_capacity());
   updatedBlock->insert_records(block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
   blocks[blockInfo.blockId] = updatedBlock;
+  num_rows--;
   if (insert_pool.find(blockInfo.blockId) != insert_pool.end()) {
     insert_pool[blockInfo.blockId] = updatedBlock;
   }
