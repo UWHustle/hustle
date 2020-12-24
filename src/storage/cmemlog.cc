@@ -166,13 +166,15 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
 
     auto table =
         catalog->getTable(table_map[DEFAULT_DB_ID][table_index].c_str());
+    if (table == nullptr) {
+      table_index++;
+      continue;
+    }
     while (head != NULL) {
       tmp_record = head;
 
       if (head->mode == MEMLOG_HUSTLE_DELETE) {
-        //printf("here in delete");
         table->delete_record(head->rowId);
-
       } else {
         u32 hdrLen;
         // Read header len in the record

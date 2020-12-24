@@ -134,15 +134,14 @@ bool Catalog::dropTable(std::string name) {
     return false;
   }
 
-  tables_.erase(tables_.begin());
-  name_to_id_.erase(search);
-
-  SaveToFile();
-
   if (!utils::executeSqliteNoOutput(SqlitePath_,
                                     absl::StrCat("DROP TABLE ", name, ";"))) {
     std::cerr << "SqliteDB catalog out of sync" << std::endl;
   }
+
+  tables_.erase(tables_.begin());
+  name_to_id_.erase(search);
+  SaveToFile();
   return true;
 }
 
@@ -163,7 +162,6 @@ bool Catalog::addTable(TableSchema t) {
 
   tables_.push_back(t);
   name_to_id_[t.getName()] = tables_.size() - 1;
-
   SaveToFile();
 
   if (!utils::executeSqliteNoOutput(SqlitePath_, createCreateSql(t))) {
