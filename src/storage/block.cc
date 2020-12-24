@@ -36,7 +36,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
 
   num_cols = schema->num_fields();
 
-  int fixed_record_width = compute_fixed_record_width(schema);
+  this->fixed_record_width = compute_fixed_record_width(schema);
   field_sizes_ = get_field_sizes(schema);
   int num_string_cols = 0;
   for (const auto &field : schema->fields()) {
@@ -589,7 +589,6 @@ int Block::insert_record(uint8_t *record, int32_t *byte_widths) {
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
   }
-  //std::cout << "bytes left: " << get_bytes_left() << std::endl;
   // record does not fit in the block.
   if (record_size > get_bytes_left()) {
     std::cout << "record does not fit" << std::endl;

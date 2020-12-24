@@ -224,6 +224,10 @@ class Block {
 
   int get_num_cols() const;
 
+  int get_fixed_record_width() const {
+      return fixed_record_width;
+  }
+
   int get_capacity() {
       return capacity;
   }
@@ -302,6 +306,8 @@ class Block {
 
   // Initialized to BLOCK_SIZE
   int capacity;
+
+  int fixed_record_width;
 
   // Number of rows in the Block, including valid and invalid rows.
   int num_rows;
