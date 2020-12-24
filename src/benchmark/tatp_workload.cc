@@ -223,9 +223,9 @@ void TATP::CreateTable() {
   hustleDB.createTable(call_forwarding, cf);
 
  std::cout << "Subscriber insert" << std::endl;
- for (int i  = 9; i < 20; i++) {
-    std::string query =
-        "BEGIN TRANSACTION; "
+ std::string query =  "BEGIN TRANSACTION; ";
+ for (int i  = 9; i < 100000; i++) {
+     query +=
         "INSERT INTO Subscriber VALUES ("+std::to_string(i)+", 'h"+std::to_string(i)+"', 131321,"
         "131321, 131321,"
         "131321, 131321, 131321, 131321, 131321,"
@@ -233,41 +233,43 @@ void TATP::CreateTable() {
         "131321, 131321, 131321, 131321, 131321,"
         "131321, 131321, 131321, 131321, 131321,"
         "131321, 131321, 131321, 131321, 131321,"
-        "131321, 131321, 131321, 131321);"
-        "COMMIT;";
-    hustleDB.executeQuery(query);
+        "131321, 131321, 131321, 131321);";
  }
- std::cout << "Subscriber insert ends" << std::endl;
+ query +=  "COMMIT;";
+ hustleDB.executeQuery(query);
 
- for (int i  = 9; i < 20; i++) {
-    std::string query =
-        "BEGIN TRANSACTION; "
+ query =  "BEGIN TRANSACTION; ";
+ for (int i  = 9; i < 100000; i++) {
+    query +=
         "INSERT INTO Access_Info VALUES ("+std::to_string(i)+", 131321,"
         "131321, 131321,"
-        "'LOW', 'Great');"
-        "COMMIT;";
-    hustleDB.executeQuery(query);
+        "'LOW', 'Great');";
  }
+ query +=  "COMMIT;";
+ hustleDB.executeQuery(query);
+ std::cout << "access info insert ends" << std::endl;
 
- for (int i  = 9; i < 20; i++) {
-    std::string query =
-        "BEGIN TRANSACTION; "
+ query =  "BEGIN TRANSACTION; ";
+ for (int i  = 9; i < 100000; i++) {
+    query +=
         "INSERT INTO Special_Facility VALUES ("+std::to_string(i)+", "+std::to_string(i)+", 131321,"
         "131321, 131321,"
-        "'great');"
-        "COMMIT;";
-    hustleDB.executeQuery(query);
+        "'great');";
+   // hustleDB.executeQuery(query);
  }
+ query +=  "COMMIT;";
+ hustleDB.executeQuery(query);
 
-  for (int i  = 9; i < 20; i++) {
-    std::string query =
-        "BEGIN TRANSACTION; "
+ query =  "BEGIN TRANSACTION; ";
+  for (int i  = 9; i < 100000; i++) {
+   query +=
         "INSERT INTO Call_Forwarding VALUES ("+std::to_string(i)+", "+std::to_string(i)+", 131,"
         "131321,"
-        "'great');"
-        "COMMIT;";
-    hustleDB.executeQuery(query);
+        "'great');";
+   // hustleDB.executeQuery(query);
  }
+ query +=  "COMMIT;";
+ hustleDB.executeQuery(query);
 
  std::cout << "Query1 : " << std::endl;
  std::string query1 = "SELECT s_id, sub_nbr,"
@@ -298,11 +300,11 @@ void TATP::CreateTable() {
     "AND sf_s_id=10 "
     "AND sf_sf_type=10 "
     "AND is_active=131321 "
-    "AND start_time\<=1000 "
-    "AND end_time\> 1000;";
+    "AND start_time <=1000 "
+    "AND end_time > 1000;";
  container = simple_profiler.getContainer();
  container->startEvent("tatp - 2");
- //hustleDB.executeQuery(query2);
+ hustleDB.executeQuery(query2);
  container->endEvent("tatp - 2");
  simple_profiler.summarizeToStream(std::cout);
  simple_profiler.clear();
