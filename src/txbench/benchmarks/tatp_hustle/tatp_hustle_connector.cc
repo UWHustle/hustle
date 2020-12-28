@@ -25,8 +25,8 @@ void txbench::TATPHustleConnector::getSubscriberData(
       "FROM Subscriber "
       "WHERE s_id=" +
       std::to_string(s_id) + ";";
-   hustle_db->executeQuery(query);
-   std::cout << "query done - select - 1" << std::endl;
+  hustle_db->executeQuery(query);
+  // std::cout << "query done - select - 1" << std::endl;
 }
 
 void txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
@@ -38,20 +38,19 @@ void txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
       "FROM Special_Facility, Call_Forwarding "
       "WHERE "
       "cf_s_id=sf_s_id "
-      "AND cf_sf_type=sf_sf_type "
-      "AND sf_s_id=" +
+      "AND (sf_s_id=" +
       std::to_string(s_id) +
       " "
       "AND sf_sf_type=" +
       std::to_string(sf_type) +
       " "
-      "AND is_active=1 "
-      "AND start_time<=" +
+      "AND is_active=1) "
+      "AND (start_time<=" +
       std::to_string(start_time) +
       " "
       "AND end_time>" +
-      std::to_string(end_time) + ";";
-     //hustle_db->executeQuery(query);
+      std::to_string(end_time) + ");";
+  hustle_db->executeQuery(query);
 }
 
 void txbench::TATPHustleConnector::getAccessData(int s_id, int ai_type,
@@ -63,8 +62,8 @@ void txbench::TATPHustleConnector::getAccessData(int s_id, int ai_type,
       "FROM Access_Info "
       "WHERE s_id=" +
       std::to_string(s_id) + " AND ai_type=" + std::to_string(ai_type) + ";";
-   hustle_db->executeQuery(query);
-  std::cout << "query done - select - 3" << std::endl;
+  hustle_db->executeQuery(query);
+  // std::cout << "query done - select - 3" << std::endl;
 }
 
 void txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
@@ -77,7 +76,7 @@ void txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
       " "
       "WHERE s_id=" +
       std::to_string(s_id) + ";";
-   hustle_db->executeQuery(query1);
+  hustle_db->executeQuery(query1);
   std::string query2 =
       "UPDATE Special_Facility "
       "SET data_a=" +
@@ -86,10 +85,10 @@ void txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
       "WHERE sf_s_id=" +
       std::to_string(s_id) +
       " "
-      "AND sf_type=" +
+      "AND sf_sf_type=" +
       std::to_string(sf_type) + ";";
-       hustle_db->executeQuery(query2);
-       std::cout << "query done - update - 4" << std::endl;
+  hustle_db->executeQuery(query2);
+  // std::cout << "query done - update - 4" << std::endl;
 }
 
 void txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
@@ -101,8 +100,8 @@ void txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
       " "
       "WHERE sub_nbr='" +
       sub_nbr + "';";
-   hustle_db->executeQuery(query);
-   std::cout << "query done - update" << std::endl;
+  hustle_db->executeQuery(query);
+  // std::cout << "query done - update" << std::endl;
 }
 
 void txbench::TATPHustleConnector::insertCallForwarding(
@@ -114,8 +113,8 @@ void txbench::TATPHustleConnector::insertCallForwarding(
       sub_nbr + "', " + std::to_string(sf_type) + "," +
       std::to_string(start_time) + "," + std::to_string(end_time) + "," +
       std::to_string(end_time) + ");";
-   hustle_db->executeQuery(query);
-   std::cout << "query done - insert" << std::endl;
+  hustle_db->executeQuery(query);
+  // std::cout << "query done - insert" << std::endl;
 }
 
 void txbench::TATPHustleConnector::deleteCallForwarding(
@@ -128,6 +127,6 @@ void txbench::TATPHustleConnector::deleteCallForwarding(
       ""
       " AND start_time=" +
       std::to_string(start_time) + ";";
-   hustle_db->executeQuery(query);
-   std::cout << "query done - delete" << std::endl;
+  hustle_db->executeQuery(query);
+  // std::cout << "query done - delete" << std::endl;
 }

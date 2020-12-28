@@ -2,7 +2,7 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-  int n_workers = 1;
+  int n_workers = 7;
   int warmup_duration = 5;
   int measurement_duration = 15;
   int n_rows = 100000;

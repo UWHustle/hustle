@@ -38,8 +38,8 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       int start_time = start_times_possible[rg_.random_int(0, 2)];
       int end_time = rg_.random_int(1, 24);
       std::string numberx;
-      //connector_->getNewDestination(s_id, sf_type, start_time, end_time,
-      //                              &numberx);
+      connector_->getNewDestination(s_id, sf_type, start_time, end_time,
+                                    &numberx);
 
     } else if (transaction_type < 80) {
       // GET_ACCESS_DATA
