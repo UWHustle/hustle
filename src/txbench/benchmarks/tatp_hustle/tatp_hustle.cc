@@ -4,8 +4,8 @@
 int main(int argc, char **argv) {
   int n_workers = 1;
   int warmup_duration = 5;
-  int measurement_duration = 10;
-  int n_rows = 1000;
+  int measurement_duration = 15;
+  int n_rows = 100000;
 
   if (argc == 5) {
     n_workers = std::stoi(argv[1]);

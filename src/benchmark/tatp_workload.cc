@@ -224,7 +224,7 @@ void TATP::CreateTable() {
 
   std::cout << "Subscriber insert" << std::endl;
   std::string query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Subscriber VALUES (" + std::to_string(i) + ", 'h" +
              std::to_string(i) +
              "', 131321,"
@@ -240,7 +240,7 @@ void TATP::CreateTable() {
   hustle_db->executeQuery(query);
 
   query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Access_Info VALUES (" + std::to_string(i) +
              ", 131321,"
              "131321, 131321,"
@@ -251,7 +251,7 @@ void TATP::CreateTable() {
   std::cout << "access info insert ends" << std::endl;
 
   query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Special_Facility VALUES (" + std::to_string(i) +
              ", " + std::to_string(i) +
              ", 131321,"
@@ -263,7 +263,7 @@ void TATP::CreateTable() {
   hustle_db->executeQuery(query);
 
   query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Call_Forwarding VALUES (" + std::to_string(i) + ", " +
              std::to_string(i) +
              ", 131,"

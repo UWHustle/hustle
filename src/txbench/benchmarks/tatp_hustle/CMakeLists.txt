@@ -24,4 +24,15 @@ target_link_libraries(
         tatp_hustle
         txbench
         tatp
+	hustleDB
+        hustle_src_catalog
+        hustle_src_storage
+        hustle_src_parser
+        hustle_src_resolver
+        hustle_src_operators
+        hustle_src_scheduler_Scheduler
+        hustle_src_optimizer_ExecutionPlan
+        ${ARROW_SHARED_LIB}
+        ${GFLAGS_LIB_NAME}
+        glog
 )
