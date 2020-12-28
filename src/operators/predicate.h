@@ -69,6 +69,17 @@ class Node {
 
   // Should only be access if is_leaf() is true
   std::shared_ptr<Predicate> predicate_;
+
+  void print() {
+    if (is_leaf()) {
+      std::cout << predicate_->col_ref_.col_name << " comp:" <<  predicate_->comparator_ <<  " " << 
+      "val" << std::endl;
+      return;
+    } 
+    left_child_->print();
+    std::cout << "CONNECTIVE: " << connective_ << std::endl;
+    right_child_->print();
+  }
 };
 
 /**
@@ -101,6 +112,9 @@ class PredicateTree {
  public:
   explicit PredicateTree(std::shared_ptr<Node> root);
   std::shared_ptr<Node> root_;
+  int table_id_;
+  std::string table_name_;
+
 };
 
 }  // namespace hustle::operators

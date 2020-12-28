@@ -66,7 +66,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
   arrow::compute::CompareOperator comparatorOperator;
   FilterOperator connective;
   std::shared_ptr<PredicateTree> predicate_tree = nullptr;
-
   switch (pExpr->op) {
     case TK_INTEGER:
     case TK_STRING:
@@ -93,8 +92,9 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
                                                FilterOperator::AND);
           predicate_tree = std::make_shared<PredicateTree>(connective_node);
         }
-
-        select_predicates_[leftExpr->pLeft->y.pTab->zName] = predicate_tree;
+        predicate_tree->table_id_ = lpred_tree->table_id_;
+        predicate_tree->table_name_ = lpred_tree->table_name_;
+        select_predicates_[predicate_tree->table_name_] = predicate_tree;
       }
       break;
     }
@@ -109,7 +109,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
 
       ColumnReference colRef;
       arrow::Datum datum;
-
       if ((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
           (rightExpr != NULL &&
            (rightExpr->op == TK_INTEGER || rightExpr->op == TK_STRING))) {
@@ -138,7 +137,8 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         auto predicate_node = std::make_shared<PredicateNode>(
             std::make_shared<Predicate>(predicate));
         predicate_tree = std::make_shared<PredicateTree>(predicate_node);
-
+        predicate_tree->table_id_ = leftExpr->iTable;
+        predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
         select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
       }
       break;
