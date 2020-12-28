@@ -49,6 +49,7 @@ HustleDB::HustleDB(std::string DBpath)
   if (!std::filesystem::exists(DBpath)) {
     std::filesystem::create_directories(DBpath);
   }
+  utils::initialize_sqlite3();
   this->addCatalog(SqliteDBPath_, catalog_);
 };
 

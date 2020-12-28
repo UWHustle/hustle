@@ -66,6 +66,7 @@ static void pack(int64_t length, const uint8_t *arr,
 }
 
 static uint8_t* reverse_bytes(uint8_t* arr, int num_bytes) {
+    if (num_bytes == 0) return arr;
     uint8_t temp_value;
     uint32_t start_index = 0, end_index = num_bytes - 1;
     while (start_index < end_index) {

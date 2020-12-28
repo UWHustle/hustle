@@ -21,7 +21,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/strings/str_cat.h"
 #include "catalog/catalog.h"
 #include "catalog/table_schema.h"
 #include "scheduler/scheduler.h"

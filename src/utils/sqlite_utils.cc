@@ -40,6 +40,14 @@ static int callback_print_plan(void *result, int argc, char **argv,
 
 }  // namespace
 
+void initialize_sqlite3() {
+  int rc = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL config initialization error\n");
+    exit(1);
+  }
+  sqlite3_initialize();
+}
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // Returns
 std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
@@ -49,19 +57,22 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
   int rc;
   std::string result;
 
-  rc = sqlite3_open(sqlitePath.c_str(), &db);
+  rc = sqlite3_open_v2(
+      sqlitePath.c_str(), &db,
+      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
+      nullptr);
 
   if (rc) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n",
             sqlite3_errmsg(db));
-  } 
+  }
 
   rc = sqlite3_exec(db, sql.c_str(), callback_print_plan, &result, &zErrMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
-  } 
+  }
   sqlite3_close(db);
 
   return result;
@@ -75,19 +86,22 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
   char *zErrMsg = 0;
   int rc;
 
-  rc = sqlite3_open(sqlitePath.c_str(), &db);
+  rc = sqlite3_open_v2(
+      sqlitePath.c_str(), &db,
+      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
+      nullptr);
   if (rc) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n",
             sqlite3_errmsg(db));
     return false;
-  } 
+  }
   rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
     return false;
-  } 
+  }
   sqlite3_close(db);
   return true;
 }
