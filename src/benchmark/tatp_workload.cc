@@ -277,6 +277,7 @@ void TATP::CreateTable() {
 
 void TATP::RunBenchmark() {
   this->RunQuery1();
+  this->RunQuery2();
   this->RunQuery3();
   this->RunQuery4();
   this->RunQuery5();
@@ -312,12 +313,12 @@ void TATP::RunQuery2() {
       "FROM Special_Facility, Call_Forwarding "
       "WHERE "
       "cf_s_id=sf_s_id "
-      "AND cf_sf_type=sf_sf_type "
-      "AND sf_s_id=10 "
+     // "AND cf_sf_type=sf_sf_type "
+      "AND (sf_s_id=10 "
       "AND sf_sf_type=10 "
-      "AND is_active=131321 "
-      "AND start_time <=1000 "
-      "AND end_time > 1000;";
+      "AND is_active=131321 )"
+      "AND (start_time <=1000 "
+      "AND end_time > 1000);";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 2");
   hustle_db->executeQuery(query2);
