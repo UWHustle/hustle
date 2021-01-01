@@ -20,6 +20,7 @@
 
 #include <arrow/api.h>
 #include <map>
+#include <iostream>
 #include "utils/bit_utils.h"
 
 #define BLOCK_SIZE (1 << 20)
@@ -275,6 +276,17 @@ class Block {
   bool insert_records(
       std::vector<std::shared_ptr<arrow::ArrayData>> column_data,
       int32_t offset, int64_t length);
+
+  template <typename field_size>
+  inline void update_value_in_column(int col_num, int row_num, uint8_t *record_value,
+                                   int byte_width) {
+    auto *dest = columns[col_num]->GetMutableValues<field_size>(1, row_num);
+    uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
+    std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
+                byte_width);
+    std::memcpy(dest, value, sizeof(field_size));
+    free(value);
+  }
 
   void truncate_buffers();
 

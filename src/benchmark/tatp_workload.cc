@@ -455,7 +455,7 @@ void TATP::RunQuery7() {
   query7 =
       "SELECT cf_s_id, start_time, end_time "
       "FROM Call_Forwarding "
-      "WHERE cf_s_id=1111111;";
+      "WHERE cf_s_id=11;";
   hustle_db->executeQuery(query7);
 }
 

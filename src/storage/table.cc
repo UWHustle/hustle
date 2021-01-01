@@ -29,7 +29,7 @@
 namespace hustle::storage {
 
 DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
-             int block_capacity)
+                 int block_capacity)
     : table_name(std::move(name)),
       schema(schema),
       block_counter(0),
@@ -40,9 +40,10 @@ DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
   num_cols = schema->num_fields();
 }
 
-DBTable::DBTable(std::string name,
-             std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-             int block_capacity)
+DBTable::DBTable(
+    std::string name,
+    std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+    int block_capacity)
     : table_name(std::move(name)),
       block_counter(0),
       num_rows(0),
@@ -281,9 +282,8 @@ int DBTable::get_record_size(int32_t *byte_widths) {
         break;
       }
       default:
-        throw std::logic_error(
-            std::string("unsupported type: ") +
-            schema->field(i)->type()->ToString());
+        throw std::logic_error(std::string("unsupported type: ") +
+                               schema->field(i)->type()->ToString());
     }
   }
   return record_size;
@@ -308,15 +308,63 @@ BlockInfo DBTable::insert_record(uint8_t *record, int32_t *byte_widths) {
   return {block->get_id(), rowNum};
 }
 
-void DBTable::insert_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
+void DBTable::insert_record_table(uint32_t rowId, uint8_t *record,
+                                  int32_t *byte_widths) {
   block_map[rowId] = insert_record(record, byte_widths);
 }
 
-void DBTable::update_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
-  this->delete_record_table(rowId);
-  this->insert_record_table(rowId, record, byte_widths);
+void DBTable::update_record_table(uint32_t rowId, int nUpdateMetaInfo,
+                                  UpdateMetaInfo *updateMetaInfo,
+                                  uint8_t *record, int32_t *byte_widths) {
+  auto block_map_it = block_map.find(rowId);
+  if (block_map_it == block_map.end()) {
+    return;
+  }
+  BlockInfo blockInfo = block_map_it->second;
+  int row_num = blockInfo.rowNum;
+  std::shared_ptr<Block> block = this->get_block(blockInfo.blockId);
+  int offset = 0;
+  int curr_offset_col = 0;
+  for (int i = 0; i < nUpdateMetaInfo; i++) {
+    int col_num = updateMetaInfo[i].colNum;
+    while (col_num > curr_offset_col) {
+      offset += byte_widths[curr_offset_col];
+      curr_offset_col++;
+    }
+    switch (schema->field(col_num)->type()->id()) {
+      case arrow::Type::STRING: {
+        this->delete_record_table(rowId);
+        this->insert_record_table(rowId, record, byte_widths);
+        return;
+      }
+      case arrow::Type::DOUBLE:
+      case arrow::Type::INT64: {
+        block->update_value_in_column<int64_t>(col_num, row_num,
+                                               record + offset, byte_widths[col_num]);
+        break;
+      }
+      case arrow::Type::UINT32: {
+        block->update_value_in_column<uint32_t>(
+            col_num, row_num, record + offset, byte_widths[i]);
+        break;
+      }
+      case arrow::Type::UINT16: {
+        block->update_value_in_column<uint32_t>(
+            col_num, row_num, record + offset, byte_widths[i]);
+        break;
+      }
+      case arrow::Type::UINT8: {
+        block->update_value_in_column<uint8_t>(col_num, row_num,
+                                               record + offset, byte_widths[i]);
+        break;
+      }
+      default:
+        throw std::logic_error(
+            std::string("Cannot insert tuple with unsupported type: ") +
+            schema->field(i)->type()->ToString());
+    }
+  }
 }
-
 
 void DBTable::delete_record_table(uint32_t rowId) {
   auto block_map_it = block_map.find(rowId);
@@ -326,9 +374,10 @@ void DBTable::delete_record_table(uint32_t rowId) {
   BlockInfo blockInfo = block_map_it->second;
   std::shared_ptr<Block> block = this->get_block(blockInfo.blockId);
   block->set_valid(blockInfo.rowNum, false);
-  auto updatedBlock = std::make_shared<Block>(blockInfo.blockId, schema, 
-                                                          block->get_capacity());
-  updatedBlock->insert_records(block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
+  auto updatedBlock =
+      std::make_shared<Block>(blockInfo.blockId, schema, block->get_capacity());
+  updatedBlock->insert_records(block_map, block->get_row_id_map(),
+                               block->get_valid_column(), block->get_columns());
   blocks[blockInfo.blockId] = updatedBlock;
   num_rows--;
   if (insert_pool.find(blockInfo.blockId) != insert_pool.end()) {
@@ -337,7 +386,7 @@ void DBTable::delete_record_table(uint32_t rowId) {
 }
 
 void DBTable::insert_record(std::vector<std::string_view> values,
-                          int32_t *byte_widths) {
+                            int32_t *byte_widths) {
   std::shared_ptr<Block> block = get_block_for_insert();
 
   int32_t record_size = 0;

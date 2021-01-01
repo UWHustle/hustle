@@ -43,8 +43,8 @@ static int callback_print_plan(void *result, int argc, char **argv,
 void initialize_sqlite3() {
   int rc = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
   if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL config initialization error\n");
-    exit(1);
+    fprintf(stderr, "SQL config already in use and initialized.\n");
+    return;
   }
   sqlite3_initialize();
 }

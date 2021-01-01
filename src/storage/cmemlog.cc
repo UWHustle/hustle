@@ -95,7 +95,8 @@ DBRecord *hustle_memlog_create_record(int mode, int rowId, const void *data,
  * */
 Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
                                    int table_id) {
-  if (mem_log == NULL || (record == NULL && record->mode != MEMLOG_HUSTLE_DELETE)) {
+  if (mem_log == NULL ||
+      (record == NULL && record->mode != MEMLOG_HUSTLE_DELETE)) {
     return MEMLOG_ERROR;
   }
   if (table_id >= mem_log->total_size) {
@@ -200,9 +201,12 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
           }
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
-            table->insert_record_table(head->rowId, record_data + hdrLen, widths);
+            table->insert_record_table(head->rowId, record_data + hdrLen,
+                                       widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
-            table->update_record_table(head->rowId, record_data + hdrLen, widths);
+            table->update_record_table(head->rowId, head->nUpdateMetaInfo,
+                                       head->updateMetaInfo,
+                                       record_data + hdrLen, widths);
           }
         }
       }

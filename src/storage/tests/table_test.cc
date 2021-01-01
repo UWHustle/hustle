@@ -272,7 +272,7 @@ TEST_F(HustleTableTest, Update) {
   hustle::catalog::ColumnSchema c_phone(
       "c_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
   hustle::catalog::ColumnSchema c_mktsegment(
-      "c_mktsegment", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+      "c_mktsegment", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
   customer_table.addColumn(c_suppkey);
   customer_table.addColumn(c_name);
   customer_table.addColumn(c_address);
@@ -289,7 +289,7 @@ TEST_F(HustleTableTest, Update) {
       "INSERT INTO customer_table VALUES (800224, 'James', "
       " 'good',"
       "'Houston', 'Great',"
-      "         'best', 'fit', 'done');"
+      "         'best', 'fit', 12);"
       "COMMIT;";
   std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory2");
@@ -310,6 +310,22 @@ TEST_F(HustleTableTest, Update) {
 
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
+
+  auto int_col = std::static_pointer_cast<arrow::Int64Array>(customer_table_ptr->
+                                                          get_column(7)->chunk(0));
+  EXPECT_EQ(int_col->Value(0), 12);
+  query =
+      "BEGIN TRANSACTION;"
+      "UPDATE customer_table set c_mktsegment = 1123 where c_custkey=800224;"
+      "COMMIT;";
+  hustleDB.executeQuery(query);
+
+  EXPECT_EQ(int_col->Value(0), 1123);
+  EXPECT_EQ(customer_table_ptr->get_num_rows(), 1);
+
+  EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
+  EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
+
 }
 
 
