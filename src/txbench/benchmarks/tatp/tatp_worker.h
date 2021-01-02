@@ -15,10 +15,30 @@ public:
 
   void run(std::atomic_bool &terminate, std::atomic_int &commit_count) override;
 
+  void print(int commit_count) override;
+
+  double getTime1() override { return (1.0*time_1_)/w_trans_count; }
+  
+  double getTime2() override { return (1.0*time_2_)/w_trans_count; }
+  
+  double getTime3() override { return (1.0*time_3_)/w_trans_count; }
+  
+  double getTime4() override { return (1.0*time_4_)/w_trans_count; }
+
+  double getTime5() override { return (1.0*time_5_)/w_trans_count; }
+
+  double getTime6() override { return (1.0*time_6_)/w_trans_count; }
+
+  double getTime7() override { return (1.0*time_7_)/w_trans_count; }
+
 private:
   int n_rows_;
 
   int a_val_;
+
+  int w_trans_count;
+
+  double time_1_, time_2_, time_3_, time_4_, time_5_, time_6_, time_7_;
 
   std::unique_ptr<TATPConnector> connector_;
 

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <chrono>
 
 txbench::TATPHustleConnector::TATPHustleConnector(const std::string &host,
                                                   int port,
@@ -9,7 +10,10 @@ txbench::TATPHustleConnector::TATPHustleConnector(const std::string &host,
   hustle_db = txbench::TATPHustleBenchmark::getHustleDB();
 }
 
-void txbench::TATPHustleConnector::getSubscriberData(
+using clock1 = std::chrono::system_clock;
+using sec = std::chrono::duration<double>;
+
+double txbench::TATPHustleConnector::getSubscriberData(
     int s_id, std::string *sub_nbr, std::array<bool, 10> &bit,
     std::array<int, 10> &hex, std::array<int, 10> &byte2, int *msc_location,
     int *vlr_location) {
@@ -25,11 +29,14 @@ void txbench::TATPHustleConnector::getSubscriberData(
       "FROM Subscriber "
       "WHERE s_id=" +
       std::to_string(s_id) + ";";
+  const auto before = clock1::now();
   hustle_db->executeQuery(query);
+  const sec duration = clock1::now() - before;
+  return duration.count();
   // std::cout << "query done - select - 1" << std::endl;
 }
 
-void txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
+double txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
                                                      int start_time,
                                                      int end_time,
                                                      std::string *numberx) {
@@ -50,10 +57,13 @@ void txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
       " "
       "AND end_time>" +
       std::to_string(end_time) + ");";
+  const auto before = clock1::now();
   hustle_db->executeQuery(query);
+  const sec duration = clock1::now() - before;
+  return duration.count();
 }
 
-void txbench::TATPHustleConnector::getAccessData(int s_id, int ai_type,
+double txbench::TATPHustleConnector::getAccessData(int s_id, int ai_type,
                                                  int *data1, int *data2,
                                                  std::string *data3,
                                                  std::string *data4) {
@@ -62,13 +72,16 @@ void txbench::TATPHustleConnector::getAccessData(int s_id, int ai_type,
       "FROM Access_Info "
       "WHERE s_id=" +
       std::to_string(s_id) + " AND ai_type=" + std::to_string(ai_type) + ";";
+  const auto before = clock1::now();
   hustle_db->executeQuery(query);
+  const sec duration = clock1::now() - before;
+  return duration.count();
   // std::cout << "query done - select - 3" << std::endl;
 }
 
-void txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
+double txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
                                                         int sf_type,
-                                                        int data_a) {
+                                                    int data_a) {
   std::string query1 =
       "UPDATE Subscriber "
       "SET bit_1=" +
@@ -76,7 +89,6 @@ void txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
       " "
       "WHERE s_id=" +
       std::to_string(s_id) + ";";
-  hustle_db->executeQuery(query1);
   std::string query2 =
       "UPDATE Special_Facility "
       "SET data_a=" +
@@ -87,11 +99,15 @@ void txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
       " "
       "AND sf_sf_type=" +
       std::to_string(sf_type) + ";";
+  const auto before = clock1::now();
+  hustle_db->executeQuery(query1);
   hustle_db->executeQuery(query2);
+  const sec duration = clock1::now() - before;
+  return duration.count();
   // std::cout << "query done - update - 4" << std::endl;
 }
 
-void txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
+double txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
                                                   int vlr_location) {
   std::string query =
       "UPDATE Subscriber "
@@ -100,11 +116,14 @@ void txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
       " "
       "WHERE sub_nbr='" +
       sub_nbr + "';";
+  const auto before = clock1::now();
   hustle_db->executeQuery(query);
+  const sec duration = clock1::now() - before;
+  return duration.count();
   // std::cout << "query done - update" << std::endl;
 }
 
-void txbench::TATPHustleConnector::insertCallForwarding(
+double txbench::TATPHustleConnector::insertCallForwarding(
     const std::string &sub_nbr, int sf_type, int start_time, int end_time,
     const std::string &numberx) {
   std::string query =
@@ -113,11 +132,14 @@ void txbench::TATPHustleConnector::insertCallForwarding(
       sub_nbr + "', " + std::to_string(sf_type) + "," +
       std::to_string(start_time) + "," + std::to_string(end_time) + "," +
       std::to_string(end_time) + ");";
+  const auto before = clock1::now();
   hustle_db->executeQuery(query);
+  const sec duration = clock1::now() - before;
+  return duration.count();
   // std::cout << "query done - insert" << std::endl;
 }
 
-void txbench::TATPHustleConnector::deleteCallForwarding(
+double txbench::TATPHustleConnector::deleteCallForwarding(
     const std::string &sub_nbr, int sf_type, int start_time) {
   std::string query =
       "DELETE FROM Call_Forwarding "
@@ -127,6 +149,10 @@ void txbench::TATPHustleConnector::deleteCallForwarding(
       ""
       " AND start_time=" +
       std::to_string(start_time) + ";";
+
+  const auto before = clock1::now();
   hustle_db->executeQuery(query);
+  const sec duration = clock1::now() - before;
+  return duration.count();
   // std::cout << "query done - delete" << std::endl;
 }

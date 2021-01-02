@@ -177,7 +177,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
             plan->getOperatorResult();
         std::shared_ptr<hustle::storage::DBTable> out_table =
             agg_result_out->materialize(plan->getResultColumns());
-        out_table->print();
+        //out_table->print();
         sync_lock.release();
       })));
 
