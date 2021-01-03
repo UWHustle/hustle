@@ -201,9 +201,11 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
           }
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
+            //std::cout << "Insert record " << std::endl;
             table->insert_record_table(head->rowId, record_data + hdrLen,
                                        widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
+            //std::cout << "Update record " << std::endl;
             table->update_record_table(head->rowId, head->nUpdateMetaInfo,
                                        head->updateMetaInfo,
                                        record_data + hdrLen, widths);

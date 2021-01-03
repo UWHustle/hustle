@@ -50,6 +50,8 @@ class HustleDB {
 
   std::string executeQuery(const std::string &sql);
 
+  bool executeNoOutputQuery(const std::string &sql);
+
   std::string getPlan(const std::string &sql);
 
   const std::string getSqliteDBPath() { return SqliteDBPath_; }

@@ -88,13 +88,14 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
 
   rc = sqlite3_open_v2(
       sqlitePath.c_str(), &db,
-      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
+      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX,
       nullptr);
   if (rc) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n",
             sqlite3_errmsg(db));
     return false;
   }
+  sqlite3_busy_timeout(db, 1000);
   rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {
