@@ -30,17 +30,18 @@ double txbench::Benchmark::run() {
   std::atomic_bool terminate = false;
   std::atomic_int transaction_count = 0;
 
-  std::atomic<double>	 time_1 = 0.0, time_2 = 0.0, time_3 = 0.0, time_4 = 0.0, time_5 = 0.0, time_6 = 0.0, time_7 = 0.0;
+  std::vector<std::unique_ptr<std::atomic<double>>> query_time;
+  query_time.resize(NUM_QUERIES);  
+  for (auto& query_time_ptr : query_time) {
+    query_time_ptr = std::make_unique<std::atomic<double>>(0.0);   // init atomic ints to 0.0
+  }
+  int worker_count = 0;
   for (const auto &worker : workers) {
     threads.emplace_back([&] { 
       worker->run(terminate, transaction_count); 
-      time_1 = time_1 +  worker->getTime1();
-      time_2 = time_2 +  worker->getTime2();
-      time_3 = time_3 +  worker->getTime3();
-      time_4 = time_4 +  worker->getTime4();
-      time_5 = time_5 +  worker->getTime5();
-      time_6 = time_6 +  worker->getTime6();
-      time_7 = time_7 +  worker->getTime7();
+      for (int i = 0; i < NUM_QUERIES; i++) {
+        *query_time[i] = *query_time[i] + worker->getTime(i);
+      }
     });
   }
   
@@ -57,13 +58,9 @@ double txbench::Benchmark::run() {
     thread.join();
   }
 
-  std::cout << "Query 1 Time: " << 1.0 * time_1 / n_workers_ << std::endl;
-  std::cout << "Query 2 Time: " << 1.0 * time_2 / n_workers_ << std::endl;
-  std::cout << "Query 3 Time: " << 1.0 * time_3 / n_workers_ << std::endl;
-  std::cout << "Query 4 Time: " << 1.0 * time_4 / n_workers_ << std::endl;
-  std::cout << "Query 5 Time: " << 1.0 * time_5 / n_workers_ << std::endl;
-  std::cout << "Query 6 Time: " << 1.0 * time_6 / n_workers_ << std::endl;
-  std::cout << "Query 7 Time: " << 1.0 * time_7 / n_workers_ << std::endl;
+  for (int i = 0; i < NUM_QUERIES; i++) {
+     std::cout << "Query "<<i<<" Time: " << 1.0 * (*query_time[i]) / n_workers_ << std::endl;
+  }
   int measurement_transaction_count =
       total_transaction_count - warmup_transaction_count;
   double tps = (double)measurement_transaction_count / measurement_duration_;

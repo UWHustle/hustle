@@ -13,13 +13,7 @@ public:
                    std::atomic_int &commit_count) = 0;
   virtual void print(int commit_count) = 0;
 
-  virtual double getTime1() = 0;
-  virtual double getTime2() = 0;
-  virtual double getTime3() = 0;
-  virtual double getTime4() = 0;
-  virtual double getTime5() = 0;
-  virtual double getTime6() = 0;
-  virtual double getTime7() = 0;
+  virtual double getTime(int query_id) = 0;
 };
 
 } // namespace txbench

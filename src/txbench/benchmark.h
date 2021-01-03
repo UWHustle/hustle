@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+#define NUM_QUERIES 7
+
 namespace txbench {
 
 class Benchmark {

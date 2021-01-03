@@ -4,6 +4,8 @@
 #include <array>
 #include <string>
 
+#define NUM_QUERIES 7
+
 namespace txbench {
 
 class TATPConnector {
