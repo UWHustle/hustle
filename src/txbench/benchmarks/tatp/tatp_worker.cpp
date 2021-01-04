@@ -12,6 +12,7 @@ txbench::TATPWorker::TATPWorker(int n_rows,
       a_val_(n_rows <= 1000000 ? 65535
                                : n_rows <= 10000000 ? 1048575 : 2097151),
       connector_(std::move(connector)) {
+  w_trans_count = 0;
   query_time_ = (double *)calloc(NUM_QUERIES, sizeof(double));
   s_trans_count_ = (int *)calloc(NUM_QUERIES, sizeof(int));
 }
