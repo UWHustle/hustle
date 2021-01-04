@@ -95,7 +95,7 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
             sqlite3_errmsg(db));
     return false;
   }
-  sqlite3_busy_timeout(db, 1000);
+  sqlite3_busy_timeout(db, 2000);
   rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {
