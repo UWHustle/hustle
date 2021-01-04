@@ -250,9 +250,6 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
     while (head != NULL) {
       tmp_record = head;
       head = head->next_record;
-      if (tmp_record->updateMetaInfo != NULL) {
-        free(tmp_record->updateMetaInfo);
-      }
       uint8_t *record_data = (uint8_t *)tmp_record->data;
       free(record_data);
       free(tmp_record);
