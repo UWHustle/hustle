@@ -59,8 +59,8 @@ struct UpdateMetaInfo {
 struct DBRecord {
   int mode;
   int rowId;
-  const void *data;
   int nData;
+  const void *data;
   int nUpdateMetaInfo;
   struct UpdateMetaInfo* updateMetaInfo;
   struct DBRecord *next_record;

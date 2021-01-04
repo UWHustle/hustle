@@ -79,7 +79,8 @@ DBRecord *hustle_memlog_create_record(int mode, int rowId, const void *data,
   record->rowId = rowId;
   record->data = (const void *)malloc(nData);
   memcpy((void *)record->data, data, nData);
-  // record->data = data;
+  record->nUpdateMetaInfo = 0;
+  record->updateMetaInfo = NULL;
   record->nData = nData;
   record->next_record = NULL;
   return record;
@@ -215,6 +216,9 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
 
       head = head->next_record;
       if (is_free) {
+        if (tmp_record->updateMetaInfo != NULL) {
+          free(tmp_record->updateMetaInfo);
+        }
         uint8_t *record_data = (uint8_t *)tmp_record->data;
         free(record_data);
         free(tmp_record);
@@ -245,6 +249,11 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
     while (head != NULL) {
       tmp_record = head;
       head = head->next_record;
+      if (tmp_record->updateMetaInfo != NULL) {
+        free(tmp_record->updateMetaInfo);
+      }
+      uint8_t *record_data = (uint8_t *)tmp_record->data;
+      free(record_data);
       free(tmp_record);
     }
     mem_log->record_list[table_index].head = NULL;
