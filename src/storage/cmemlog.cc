@@ -216,8 +216,9 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
 
       head = head->next_record;
       if (is_free) {
-        if (tmp_record->updateMetaInfo != NULL) {
-          free(tmp_record->updateMetaInfo);
+        if (tmp_record->mode == MEMLOG_HUSTLE_UPDATE) {
+          UpdateMetaInfo* updateMetaInfo = tmp_record->updateMetaInfo;
+          free(updateMetaInfo);
         }
         uint8_t *record_data = (uint8_t *)tmp_record->data;
         free(record_data);
