@@ -123,7 +123,11 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
     }
     w_trans_count++;
     commit_count++;
+    if (w_trans_count == 1000) {
+      break;
+    }
   }
+ 
   this->print(w_trans_count);
 }
 
