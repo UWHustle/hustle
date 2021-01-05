@@ -55,6 +55,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
           std::make_unique<hustle::operators::Select>(
               0, table_ptr, input_result, output_result, predicate_tree);
       select_operators.emplace_back(std::move(select));
+     std::shared_ptr<PredicateTree> pred =  predicate_tree;
     }
     select_result.emplace_back(output_result);
   }
@@ -62,10 +63,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   /**
    * Get the join predicates and the previous results to construct
    * the join operators.
-   */
-  std::cout << "Num join pred: " << (*(select_resolver->get_join_predicates())).size() << std::endl;
-  
-
+   */  
   bool is_join_op = true;
   std::shared_ptr<OperatorResult> join_result_out;
   std::unique_ptr<Join> join_op;
@@ -84,8 +82,6 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   bool is_agg_op = true;
   std::shared_ptr<std::vector<AggregateReference>> agg_refs =
       (select_resolver->get_agg_references());
-  std::cout << "Num agg refs: " << (*(agg_refs)).size() << std::endl;
-
   
   std::shared_ptr<OperatorResult> agg_result_out =
       std::make_shared<OperatorResult>();
@@ -181,7 +177,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
             plan->getOperatorResult();
         std::shared_ptr<hustle::storage::DBTable> out_table =
             agg_result_out->materialize(plan->getResultColumns());
-        out_table->print();
+        //out_table->print();
         sync_lock.release();
       })));
 

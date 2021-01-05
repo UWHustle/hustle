@@ -18,13 +18,14 @@
 #ifndef HUSTLE_OFFLINE_TABLE_H
 #define HUSTLE_OFFLINE_TABLE_H
 
+#include <map>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <unordered_map>
-#include <map>
 #include <utility>
 
+#include "cmemlog.h"
 #include "storage/block.h"
 
 namespace hustle::storage {
@@ -106,11 +107,13 @@ class DBTable {
    */
   BlockInfo insert_record(uint8_t *record, int32_t *byte_widths);
 
+  void insert_record_table(uint32_t rowId, uint8_t *record,
+                           int32_t *byte_widths);
 
-  void insert_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
+  void update_record_table(uint32_t rowId, int nUpdateMetaInfo,
+                           UpdateMetaInfo *updateMetaInfo, uint8_t *record,
+                           int32_t *byte_widths);
 
-  void update_record_table(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
-  
   void delete_record_table(uint32_t rowId);
   /**
    * Insert one or more records into the Table as a vector of ArrayData.
@@ -193,7 +196,7 @@ class DBTable {
 
   // row id to block info
   std::map<int, BlockInfo> block_map;
-  
+
   std::unordered_map<int, std::shared_ptr<Block>> blocks;
 
   std::mutex blocks_mutex;

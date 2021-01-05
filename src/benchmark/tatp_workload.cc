@@ -224,7 +224,7 @@ void TATP::CreateTable() {
 
   std::cout << "Subscriber insert" << std::endl;
   std::string query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Subscriber VALUES (" + std::to_string(i) + ", 'h" +
              std::to_string(i) +
              "', 131321,"
@@ -240,7 +240,7 @@ void TATP::CreateTable() {
   hustle_db->executeQuery(query);
 
   query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Access_Info VALUES (" + std::to_string(i) +
              ", 131321,"
              "131321, 131321,"
@@ -251,7 +251,7 @@ void TATP::CreateTable() {
   std::cout << "access info insert ends" << std::endl;
 
   query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Special_Facility VALUES (" + std::to_string(i) +
              ", " + std::to_string(i) +
              ", 131321,"
@@ -263,7 +263,7 @@ void TATP::CreateTable() {
   hustle_db->executeQuery(query);
 
   query = "BEGIN TRANSACTION; ";
-  for (int i = 9; i < 100000; i++) {
+  for (int i = 9; i < 1000000; i++) {
     query += "INSERT INTO Call_Forwarding VALUES (" + std::to_string(i) + ", " +
              std::to_string(i) +
              ", 131,"
@@ -277,6 +277,7 @@ void TATP::CreateTable() {
 
 void TATP::RunBenchmark() {
   this->RunQuery1();
+  this->RunQuery2();
   this->RunQuery3();
   this->RunQuery4();
   this->RunQuery5();
@@ -312,12 +313,12 @@ void TATP::RunQuery2() {
       "FROM Special_Facility, Call_Forwarding "
       "WHERE "
       "cf_s_id=sf_s_id "
-      "AND cf_sf_type=sf_sf_type "
-      "AND sf_s_id=10 "
+     // "AND cf_sf_type=sf_sf_type "
+      "AND (sf_s_id=10 "
       "AND sf_sf_type=10 "
-      "AND is_active=131321 "
-      "AND start_time <=1000 "
-      "AND end_time > 1000;";
+      "AND is_active=131321 )"
+      "AND (start_time <=1000 "
+      "AND end_time > 1000);";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 2");
   hustle_db->executeQuery(query2);
@@ -454,7 +455,7 @@ void TATP::RunQuery7() {
   query7 =
       "SELECT cf_s_id, start_time, end_time "
       "FROM Call_Forwarding "
-      "WHERE cf_s_id=1111111;";
+      "WHERE cf_s_id=11;";
   hustle_db->executeQuery(query7);
 }
 

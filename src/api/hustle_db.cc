@@ -49,6 +49,7 @@ HustleDB::HustleDB(std::string DBpath)
   if (!std::filesystem::exists(DBpath)) {
     std::filesystem::create_directories(DBpath);
   }
+  utils::initialize_sqlite3();
   this->addCatalog(SqliteDBPath_, catalog_);
 };
 
@@ -67,6 +68,10 @@ bool HustleDB::createTable(const TableSchema ts,
 
 std::string HustleDB::executeQuery(const std::string &sql) {
   return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
+}
+
+bool HustleDB::executeNoOutputQuery(const std::string &sql) {
+  return utils::executeSqliteNoOutput(SqliteDBPath_, sql);
 }
 
 bool HustleDB::dropTable(const std::string &name) {

@@ -14,6 +14,10 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+
+#ifndef HUSTLE_MEMLOG_H
+#define HUSTLE_MEMLOG_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,14 +51,22 @@ struct DBRecordList {
   int curr_size;
 };
 
+struct UpdateMetaInfo {
+  int tableId;
+  int colNum;
+};
+
 struct DBRecord {
   int mode;
   int rowId;
-  const void *data;
   int nData;
+  const void *data;
+  int nUpdateMetaInfo;
+  struct UpdateMetaInfo* updateMetaInfo;
   struct DBRecord *next_record;
 };
 
+typedef struct UpdateMetaInfo UpdateMetaInfo;
 typedef int Status;
 typedef struct DBRecord DBRecord;
 typedef struct DBRecordList DBRecordList;
@@ -131,3 +143,5 @@ Status hustle_memlog_free(HustleMemLog *mem_log);
 #ifdef __cplusplus
 }
 #endif
+
+#endif  // HUSTLE_MEMLOG_H

@@ -21,7 +21,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/strings/str_cat.h"
 #include "catalog/catalog.h"
 #include "catalog/table_schema.h"
 #include "scheduler/scheduler.h"
@@ -50,6 +49,8 @@ class HustleDB {
   bool dropTable(const std::string &name);
 
   std::string executeQuery(const std::string &sql);
+
+  bool executeNoOutputQuery(const std::string &sql);
 
   std::string getPlan(const std::string &sql);
 

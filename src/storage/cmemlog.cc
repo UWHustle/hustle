@@ -79,7 +79,8 @@ DBRecord *hustle_memlog_create_record(int mode, int rowId, const void *data,
   record->rowId = rowId;
   record->data = (const void *)malloc(nData);
   memcpy((void *)record->data, data, nData);
-  // record->data = data;
+  record->nUpdateMetaInfo = 0;
+  record->updateMetaInfo = NULL;
   record->nData = nData;
   record->next_record = NULL;
   return record;
@@ -95,7 +96,8 @@ DBRecord *hustle_memlog_create_record(int mode, int rowId, const void *data,
  * */
 Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
                                    int table_id) {
-  if (mem_log == NULL || (record == NULL && record->mode != MEMLOG_HUSTLE_DELETE)) {
+  if (mem_log == NULL ||
+      (record == NULL && record->mode != MEMLOG_HUSTLE_DELETE)) {
     return MEMLOG_ERROR;
   }
   if (table_id >= mem_log->total_size) {
@@ -200,15 +202,24 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
           }
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
-            table->insert_record_table(head->rowId, record_data + hdrLen, widths);
+            //std::cout << "Insert record " << std::endl;
+            table->insert_record_table(head->rowId, record_data + hdrLen,
+                                       widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
-            table->update_record_table(head->rowId, record_data + hdrLen, widths);
+            //std::cout << "Update record " << std::endl;
+            table->update_record_table(head->rowId, head->nUpdateMetaInfo,
+                                       head->updateMetaInfo,
+                                       record_data + hdrLen, widths);
           }
         }
       }
 
       head = head->next_record;
       if (is_free) {
+        if (tmp_record->mode == MEMLOG_HUSTLE_UPDATE) {
+          UpdateMetaInfo* updateMetaInfo = tmp_record->updateMetaInfo;
+          //free(updateMetaInfo);
+        }
         uint8_t *record_data = (uint8_t *)tmp_record->data;
         free(record_data);
         free(tmp_record);
@@ -239,6 +250,8 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
     while (head != NULL) {
       tmp_record = head;
       head = head->next_record;
+      uint8_t *record_data = (uint8_t *)tmp_record->data;
+      free(record_data);
       free(tmp_record);
     }
     mem_log->record_list[table_index].head = NULL;

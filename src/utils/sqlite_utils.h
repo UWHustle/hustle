@@ -21,6 +21,8 @@
 namespace hustle {
 namespace utils {
 
+void initialize_sqlite3();
+
 // Executes the sql query specified in sql on the database at sqlitePath,
 // no output is returned.
 bool executeSqliteNoOutput(const std::string &sqlitePath,
