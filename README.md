@@ -38,14 +38,22 @@ ctest --output-on-failure
 
 You can use the following commands to run the ssb benchmark, (before running the below commands make sure you have built the executable from the source files using the steps provided in the previous section).
 
-To generate the ssb benchmark data
+To generate the ssb benchmark data, 
 
 ```
-sh ./scripts/ssb/gen_benchmark_data.sh
+sh ./scripts/ssb/gen_benchmark_data.sh ${SCALE_FACTOR}
 ```
+(Usually scale factor can be 1 or 10).
+
 
 To run the ssb benchmark,
 
 ```
-sh ./scripts/ssb/run_benchmark.sh
+sh ./scripts/ssb/run_benchmark.sh ssb [arrow_aggregate | hash_aggregate]
+```
+
+To run the tatp benchmark,
+
+```
+sh ./scripts/tatp/run_benchmark.sh 
 ```
