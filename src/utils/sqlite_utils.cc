@@ -67,6 +67,13 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
             sqlite3_errmsg(db));
   }
 
+  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan, &result, &zErrMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error: %s\n", zErrMsg);
+    sqlite3_free(zErrMsg);
+  }
+
   rc = sqlite3_exec(db, sql.c_str(), callback_print_plan, &result, &zErrMsg);
 
   if (rc != SQLITE_OK) {
@@ -85,6 +92,7 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
   sqlite3 *db;
   char *zErrMsg = 0;
   int rc;
+  std::string result;
 
   rc = sqlite3_open_v2(
       sqlitePath.c_str(), &db,
@@ -96,6 +104,14 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
     return false;
   }
   sqlite3_busy_timeout(db, 2000);
+
+  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan, &result, &zErrMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error: %s\n", zErrMsg);
+    sqlite3_free(zErrMsg);
+  }
+
   rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {
