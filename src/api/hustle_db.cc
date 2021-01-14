@@ -66,6 +66,10 @@ bool HustleDB::createTable(const TableSchema ts,
   return catalog_->addTable(ts, table_ref);
 }
 
+void HustleDB::loadTables() {
+  utils::loadTables(SqliteDBPath_);
+}
+
 std::string HustleDB::executeQuery(const std::string &sql) {
   return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
 }

@@ -17,8 +17,8 @@
 
 #include <iostream>
 
-#include "absl/strings/str_cat.h"
 #include "sqlite3/sqlite3.h"
+#include "absl/strings/str_cat.h"
 
 namespace hustle {
 namespace utils {
@@ -48,6 +48,17 @@ void initialize_sqlite3() {
   }
   sqlite3_initialize();
 }
+
+void loadTables(const std::string &sqlitePath) {
+  sqlite3 *db;
+  int rc = sqlite3_open_v2(
+      sqlitePath.c_str(), &db,
+      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
+      nullptr);
+  sqlite3_load_hustle(db);
+  sqlite3_close(db);
+}
+
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // Returns
 std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
@@ -67,7 +78,8 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
             sqlite3_errmsg(db));
   }
 
-  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan, &result, &zErrMsg);
+  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan,
+                    &result, &zErrMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -105,7 +117,8 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
   }
   sqlite3_busy_timeout(db, 2000);
 
-  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan, &result, &zErrMsg);
+  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan,
+                    &result, &zErrMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);

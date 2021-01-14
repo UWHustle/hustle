@@ -229,6 +229,7 @@ class DBTable {
 
 template <typename Functor>
 void DBTable::ForEachBatch(const Functor &functor) const {
+  if (this->get_num_blocks() == 0) return;
   size_t batch_size =
       this->get_num_blocks() / std::thread::hardware_concurrency();
   if (batch_size == 0) batch_size = this->get_num_blocks();
