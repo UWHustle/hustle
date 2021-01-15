@@ -15,10 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include "utils/sqlite_utils.h"
+
 #include <iostream>
 
-#include "sqlite3/sqlite3.h"
 #include "absl/strings/str_cat.h"
+#include "sqlite3/sqlite3.h"
 
 namespace hustle {
 namespace utils {
@@ -49,13 +51,17 @@ void initialize_sqlite3() {
   sqlite3_initialize();
 }
 
-void loadTables(const std::string &sqlitePath) {
+void loadTables(const std::string &sqlitePath,
+                std::map<std::string, int> &tables) {
   sqlite3 *db;
   int rc = sqlite3_open_v2(
       sqlitePath.c_str(), &db,
       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
       nullptr);
-  sqlite3_load_hustle(db);
+  for (auto const &table_elem : tables) {
+    std::cout << "table elem: " << table_elem.first << std::endl;
+    sqlite3_load_hustle(db, table_elem.first.c_str());
+  }
   sqlite3_close(db);
 }
 

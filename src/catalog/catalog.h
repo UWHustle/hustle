@@ -63,6 +63,8 @@ class Catalog {
   std::shared_ptr<DBTable> getTable(size_t table_id);
   std::shared_ptr<DBTable> getTable(std::string table_name);
 
+  std::map<std::string, int>& getTables(){ return name_to_id_; }
+
   int getTableIdbyName(const std::string& name) { return name_to_id_[name]; }
 
   // Used by cereal for serialization/deserialization
