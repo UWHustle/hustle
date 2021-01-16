@@ -52,15 +52,15 @@ void initialize_sqlite3() {
 }
 
 void loadTables(const std::string &sqlitePath,
-                std::map<std::string, int> &tables) {
+                std::vector<std::string> tables) {
   sqlite3 *db;
   int rc = sqlite3_open_v2(
       sqlitePath.c_str(), &db,
       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
       nullptr);
-  for (auto const &table_elem : tables) {
-    std::cout << "table elem: " << table_elem.first << std::endl;
-    sqlite3_load_hustle(db, table_elem.first.c_str());
+  for (auto const &table_name : tables) {
+    std::cout << "table elem: " << table_name << std::endl;
+    sqlite3_load_hustle(db, table_name.c_str());
   }
   sqlite3_close(db);
 }

@@ -45,6 +45,17 @@ using namespace hustle::storage;
 namespace hustle {
 namespace catalog {
 
+class TableInfo {
+  public:
+    TableSchema table_schema;
+    std::shared_ptr<DBTable> table;
+
+    template <class Archive>
+    void serialize(Archive& archive) {
+      archive(CEREAL_NVP(table_schema));
+    }
+};
+
 class Catalog {
  public:
   static Catalog CreateCatalog(std::string CatalogPath, std::string SqlitePath);
@@ -53,6 +64,8 @@ class Catalog {
 
   bool addTable(TableSchema t);
   bool addTable(TableSchema t, std::shared_ptr<DBTable> table_ref);
+
+  bool deleteTable(std::string name);
 
   bool dropTable(std::string name);
 
@@ -63,15 +76,29 @@ class Catalog {
   std::shared_ptr<DBTable> getTable(size_t table_id);
   std::shared_ptr<DBTable> getTable(std::string table_name);
 
-  std::map<std::string, int>& getTables(){ return name_to_id_; }
+  std::vector<std::string> getTables(){ 
+    std::vector<std::string> result;
+    std::transform(tables_.begin(), tables_.end(),
+    std::inserter(result, result.end()),
+      [](auto table_info) { return table_info.first; });
+    return result;
+  }
 
-  int getTableIdbyName(const std::string& name) { return name_to_id_[name]; }
+  std::vector<TableSchema> getTableSchemas(){ 
+    std::vector<TableSchema> tables;
+    std::transform(tables_.begin(), tables_.end(),
+    std::inserter(tables, tables.end()),
+      [](auto table_info) { return table_info.second.table_schema; });
+    return tables;
+  }
 
   // Used by cereal for serialization/deserialization
   template <class Archive>
   void serialize(Archive& archive) {
+    std::vector<TableSchema> tables;
+
     archive(CEREAL_NVP(CatalogPath_), CEREAL_NVP(SqlitePath_),
-            CEREAL_NVP(name_to_id_), CEREAL_NVP(tables_));
+     CEREAL_NVP(tables_));
   }
 
   Catalog(){};
@@ -84,10 +111,8 @@ class Catalog {
   void SaveToFile();
 
   // TODO(chronis) make private
-
-  std::vector<TableSchema> tables_;
   std::vector<std::shared_ptr<DBTable>> table_refs_;
-  std::map<std::string, int> name_to_id_;
+  std::map<std::string, TableInfo> tables_;
   std::string CatalogPath_;
   std::string SqlitePath_;
 

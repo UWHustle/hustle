@@ -82,6 +82,10 @@ bool HustleDB::dropTable(const std::string &name) {
   return catalog_->dropTable(name);
 }
 
+bool HustleDB::deleteTable(const std::string &name) {
+  return catalog_->deleteTable(name);
+}
+
 bool HustleDB::insert() {
   // TODO(nicholas) once arrow is integrated
   return true;
