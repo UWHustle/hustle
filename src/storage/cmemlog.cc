@@ -39,6 +39,22 @@ void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
   table_map[db_id][root_page_id] = std::string(table_name);
 }
 
+void memlog_remove_table_mapping(int db_id, char* db_name, char *tbl_name) {
+  std::lock_guard<std::mutex> lock(instance_lock);
+  using namespace hustle;
+  std::shared_ptr<catalog::Catalog> catalog = HustleDB::getCatalog(std::string(db_name));
+  auto table_itr = table_map[db_id].begin();
+  std::string tbl_name_str = std::string(tbl_name);
+  while (table_itr != table_map[db_id].end()) {
+
+    if (table_itr->second.compare(tbl_name_str) == 0) {
+      table_map[db_id].erase(table_itr->first);
+      catalog->dropTable(tbl_name_str);
+    }
+    table_itr++;
+  }
+}
+
 /**
  * Initialize the memlog for each sqlite db connection
  * mem_log - double-pointer to the memlog
@@ -202,11 +218,11 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
           }
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
-            //std::cout << "Insert record " << std::endl;
+            // std::cout << "Insert record " << std::endl;
             table->insert_record_table(head->rowId, record_data + hdrLen,
                                        widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
-            //std::cout << "Update record " << std::endl;
+            std::cout << "Update record " << std::endl;
             table->update_record_table(head->rowId, head->nUpdateMetaInfo,
                                        head->updateMetaInfo,
                                        record_data + hdrLen, widths);
@@ -217,8 +233,8 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
       head = head->next_record;
       if (is_free) {
         if (tmp_record->mode == MEMLOG_HUSTLE_UPDATE) {
-          UpdateMetaInfo* updateMetaInfo = tmp_record->updateMetaInfo;
-          //free(updateMetaInfo);
+          UpdateMetaInfo *updateMetaInfo = tmp_record->updateMetaInfo;
+          // free(updateMetaInfo);
         }
         uint8_t *record_data = (uint8_t *)tmp_record->data;
         free(record_data);
