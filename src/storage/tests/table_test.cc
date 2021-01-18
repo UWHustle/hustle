@@ -466,7 +466,7 @@ TEST_F(HustleTableTest, Load) {
   hustleDB.executeQuery(query);
 
   auto int_col =
-      std::static_pointer_cast<arrow::Int64Array>(c->get_column(7)->chunk(0));
-  EXPECT_EQ(int_col->Value(0), 1123);
+      std::static_pointer_cast<arrow::StringArray>(c->get_column(1)->chunk(0));
+  EXPECT_EQ(int_col->GetString(0), "James1");
   EXPECT_EQ(c->get_num_rows(), 1);
 }

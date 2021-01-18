@@ -19,6 +19,7 @@
 #define HUSTLE_SQLITE_UTILS_H
 
 #include <map>
+#include <vector>
 
 namespace hustle {
 namespace utils {
