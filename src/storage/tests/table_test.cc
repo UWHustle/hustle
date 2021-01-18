@@ -445,7 +445,7 @@ TEST_F(HustleTableTest, Load) {
   EXPECT_EQ(c->get_num_rows(), 2);
   EXPECT_EQ(c->get_num_cols(), 8);
 
-  hustleDB.clearMemTable("customer_table_test");
+  hustleDB.dropMemTable("customer_table_test");
   c = std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustleDB.createTable(customer, c);
   hustleDB.loadTables();

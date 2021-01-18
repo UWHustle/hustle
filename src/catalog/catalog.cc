@@ -134,7 +134,7 @@ bool Catalog::dropTable(std::string name) {
   return true;
 }
 
-bool Catalog::clearMemTable(std::string name) {
+bool Catalog::dropMemTable(std::string name) {
   auto search = tables_.find(name);
   if (search == tables_.end()) {
     return false;

@@ -82,8 +82,8 @@ bool HustleDB::dropTable(const std::string &name) {
   return catalog_->dropTable(name);
 }
 
-bool HustleDB::clearMemTable(const std::string &name) {
-  return catalog_->clearMemTable(name);
+bool HustleDB::dropMemTable(const std::string &name) {
+  return catalog_->dropMemTable(name);
 }
 
 bool HustleDB::insert() {

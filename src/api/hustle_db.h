@@ -50,7 +50,7 @@ class HustleDB {
 
   bool dropTable(const std::string &name);
 
-  bool clearMemTable(const std::string &name);
+  bool dropMemTable(const std::string &name);
 
   std::string executeQuery(const std::string &sql);
 
