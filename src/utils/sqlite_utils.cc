@@ -30,8 +30,7 @@ namespace {
 // The callback function used by sqlite
 static int callback_print_plan(void *result, int argc, char **argv,
                                char **azColName) {
-  int i;
-  for (i = 0; i < argc; i++) {
+  for (int i = 0; i < argc; i++) {
     if (std::strcmp(azColName[i], "detail") == 0) {
       absl::StrAppend((std::string *)result, argv[i]);
       absl::StrAppend((std::string *)result, "\n");
