@@ -65,7 +65,7 @@ class Catalog {
   bool addTable(TableSchema t);
   bool addTable(TableSchema t, std::shared_ptr<DBTable> table_ref);
 
-  bool deleteTable(std::string name);
+  bool clearMemTable(std::string name);
 
   bool dropTable(std::string name);
 

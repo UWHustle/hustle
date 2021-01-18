@@ -129,11 +129,12 @@ bool Catalog::dropTable(std::string name) {
   if (!utils::executeSqliteNoOutput(SqlitePath_,
                                     absl::StrCat("DROP TABLE ", name, ";"))) {
     std::cerr << "SqliteDB catalog out of sync" << std::endl;
+    return false;
   }
-  return this->deleteTable(name);
+  return true;
 }
 
-bool Catalog::deleteTable(std::string name) {
+bool Catalog::clearMemTable(std::string name) {
   auto search = tables_.find(name);
   if (search == tables_.end()) {
     return false;

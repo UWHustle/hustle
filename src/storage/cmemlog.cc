@@ -46,10 +46,10 @@ void memlog_remove_table_mapping(int db_id, char* db_name, char *tbl_name) {
   auto table_itr = table_map[db_id].begin();
   std::string tbl_name_str = std::string(tbl_name);
   while (table_itr != table_map[db_id].end()) {
-
     if (table_itr->second.compare(tbl_name_str) == 0) {
       table_map[db_id].erase(table_itr->first);
-      catalog->dropTable(tbl_name_str);
+      catalog->clearMemTable(tbl_name_str);
+      break;
     }
     table_itr++;
   }
