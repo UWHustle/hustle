@@ -82,15 +82,15 @@ TEST(HustleDB, DropTable) {
   ts.setPrimaryKey({"c1", "c2"});
   EXPECT_TRUE(hustleDB.createTable(ts));
 
-  EXPECT_TRUE(hustleDB.getCatalog()->TableExists(ts.getName()));
+  EXPECT_TRUE(hustle::HustleDB::getCatalog("db_directory/db_dir_nested/hustle_sqlite.db")->TableExists(ts.getName()));
 
   EXPECT_TRUE(
       std::filesystem::exists("db_directory/db_dir_nested/catalog.json"));
   EXPECT_TRUE(
       std::filesystem::exists("db_directory/db_dir_nested/hustle_sqlite.db"));
-
+  
   EXPECT_TRUE(hustleDB.dropTable(ts.getName()));
-  EXPECT_FALSE(hustleDB.getCatalog()->TableExists(ts.getName()));
+  EXPECT_FALSE(hustle::HustleDB::getCatalog("db_directory/db_dir_nested/hustle_sqlite.db")->TableExists(ts.getName()));
 
   EXPECT_TRUE(
       std::filesystem::exists("db_directory/db_dir_nested/catalog.json"));
