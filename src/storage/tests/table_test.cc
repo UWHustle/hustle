@@ -16,13 +16,14 @@
 // under the License.
 
 #include "storage/table.h"
-#include "api/hustle_db.h"
+
 #include <arrow/io/api.h>
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 
+#include "api/hustle_db.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "storage/util.h"
@@ -198,7 +199,6 @@ TEST_F(HustleTableTest, ReadTableFromCSV) {
       *table.get_block(1)->get_records()));
 }
 
-
 TEST_F(HustleTableTest, Insert) {
   std::filesystem::remove("catalog.json");
   std::filesystem::remove("hustle_sqlite.db");
@@ -238,14 +238,15 @@ TEST_F(HustleTableTest, Insert) {
       " 'good',"
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
-       "INSERT INTO customer_table_test VALUES (800225, 'James1', "
+      "INSERT INTO customer_table_test VALUES (800225, 'James1', "
       " 'good1',"
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> c = std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
+  std::shared_ptr<DBTable> c =
+      std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory");
-  hustleDB.createTable(customer, c); 
+  hustleDB.createTable(customer, c);
   hustleDB.executeQuery(query);
   EXPECT_EQ(c->get_num_rows(), 2);
   EXPECT_EQ(c->get_num_cols(), 8);
@@ -282,7 +283,8 @@ TEST_F(HustleTableTest, Update) {
   customer_table.addColumn(c_phone);
   customer_table.addColumn(c_mktsegment);
   customer_table.setPrimaryKey({});
-  std::shared_ptr<arrow::Schema> customer_schema = customer_table.getArrowSchema();
+  std::shared_ptr<arrow::Schema> customer_schema =
+      customer_table.getArrowSchema();
 
   std::string query =
       "BEGIN TRANSACTION; "
@@ -291,9 +293,10 @@ TEST_F(HustleTableTest, Update) {
       "'Houston', 'Great',"
       "         'best', 'fit', 12);"
       "COMMIT;";
-  std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
+  std::shared_ptr<DBTable> customer_table_ptr =
+      std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory2");
-  hustleDB.createTable(customer_table, customer_table_ptr); 
+  hustleDB.createTable(customer_table, customer_table_ptr);
   hustleDB.executeQuery(query);
 
   query =
@@ -302,8 +305,8 @@ TEST_F(HustleTableTest, Update) {
       "COMMIT;";
 
   hustleDB.executeQuery(query);
-  auto col = std::static_pointer_cast<arrow::StringArray>(customer_table_ptr->
-                                                          get_column(5)->chunk(0));
+  auto col = std::static_pointer_cast<arrow::StringArray>(
+      customer_table_ptr->get_column(5)->chunk(0));
 
   EXPECT_EQ(col->GetString(0), "fine");
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 1);
@@ -311,8 +314,8 @@ TEST_F(HustleTableTest, Update) {
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
 
-  auto int_col = std::static_pointer_cast<arrow::Int64Array>(customer_table_ptr->
-                                                          get_column(7)->chunk(0));
+  auto int_col = std::static_pointer_cast<arrow::Int64Array>(
+      customer_table_ptr->get_column(7)->chunk(0));
   EXPECT_EQ(int_col->Value(0), 12);
   query =
       "BEGIN TRANSACTION;"
@@ -325,9 +328,7 @@ TEST_F(HustleTableTest, Update) {
 
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
-
 }
-
 
 TEST_F(HustleTableTest, Delete) {
   std::filesystem::remove("catalog.json");
@@ -360,7 +361,8 @@ TEST_F(HustleTableTest, Delete) {
   customer_table.addColumn(c_phone);
   customer_table.addColumn(c_mktsegment);
   customer_table.setPrimaryKey({});
-  std::shared_ptr<arrow::Schema> customer_schema = customer_table.getArrowSchema();
+  std::shared_ptr<arrow::Schema> customer_schema =
+      customer_table.getArrowSchema();
 
   std::string query =
       "BEGIN TRANSACTION; "
@@ -369,9 +371,10 @@ TEST_F(HustleTableTest, Delete) {
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>("customer_table_d", customer_schema, BLOCK_SIZE);
+  std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>(
+      "customer_table_d", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory3");
-  hustleDB.createTable(customer_table, customer_table_ptr); 
+  hustleDB.createTable(customer_table, customer_table_ptr);
   hustleDB.executeQuery(query);
 
   query =
@@ -380,8 +383,8 @@ TEST_F(HustleTableTest, Delete) {
       "COMMIT;";
 
   hustleDB.executeQuery(query);
-  auto col = std::static_pointer_cast<arrow::StringArray>(customer_table_ptr->
-                                                          get_column(5)->chunk(0));
+  auto col = std::static_pointer_cast<arrow::StringArray>(
+      customer_table_ptr->get_column(5)->chunk(0));
 
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 0);
 
@@ -389,3 +392,81 @@ TEST_F(HustleTableTest, Delete) {
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
 }
 
+TEST_F(HustleTableTest, Load) {
+  std::filesystem::remove("catalog.json");
+  std::filesystem::remove("hustle_sqlite.db");
+  std::filesystem::remove_all("db_directory");
+  std::filesystem::remove_all("db_directory5");
+  // Create table customer
+  hustle::catalog::TableSchema customer("customer_table_test");
+  hustle::catalog::ColumnSchema c_suppkey(
+      "c_custkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+  hustle::catalog::ColumnSchema c_name(
+      "c_name", {hustle::catalog::HustleType::CHAR, 25}, true, false);
+  hustle::catalog::ColumnSchema c_address(
+      "c_address", {hustle::catalog::HustleType::CHAR, 25}, true, false);
+  hustle::catalog::ColumnSchema c_city(
+      "c_city", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+  hustle::catalog::ColumnSchema c_nation(
+      "c_nation", {hustle::catalog::HustleType::CHAR, 15}, true, false);
+  hustle::catalog::ColumnSchema c_region(
+      "c_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
+  hustle::catalog::ColumnSchema c_phone(
+      "c_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
+  hustle::catalog::ColumnSchema c_mktsegment(
+      "c_mktsegment", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+  customer.addColumn(c_suppkey);
+  customer.addColumn(c_name);
+  customer.addColumn(c_address);
+  customer.addColumn(c_city);
+  customer.addColumn(c_nation);
+  customer.addColumn(c_region);
+  customer.addColumn(c_phone);
+  customer.addColumn(c_mktsegment);
+  customer.setPrimaryKey({});
+  std::shared_ptr<arrow::Schema> c_schema = customer.getArrowSchema();
+
+  std::string query =
+      "BEGIN TRANSACTION; "
+      "INSERT INTO customer_table_test VALUES (800224, 'James', "
+      " 'good',"
+      "'Houston', 'Great',"
+      "         'best', 'fit', 'done');"
+      "INSERT INTO customer_table_test VALUES (800225, 'James1', "
+      " 'good1',"
+      "'Houston1', 'Great1',"
+      "         'best', 'fit', 'done');"
+      "COMMIT;";
+  std::shared_ptr<DBTable> c =
+      std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
+  hustle::HustleDB hustleDB("db_directory5");
+  hustleDB.createTable(customer, c);
+  hustleDB.executeQuery(query);
+  EXPECT_EQ(c->get_num_rows(), 2);
+  EXPECT_EQ(c->get_num_cols(), 8);
+
+  hustleDB.dropMemTable("customer_table_test");
+  c = std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
+  hustleDB.createTable(customer, c);
+  hustleDB.loadTables();
+  EXPECT_EQ(c->get_num_rows(), 2);
+
+  query =
+      "BEGIN TRANSACTION;"
+      "DELETE FROM customer_table_test where c_custkey=800224;"
+      "COMMIT;";
+  hustleDB.executeQuery(query);
+  EXPECT_EQ(c->get_num_rows(), 1);
+
+  query =
+      "BEGIN TRANSACTION;"
+      "UPDATE customer_table_test set c_mktsegment = 1123 where "
+      "c_custkey=800225;"
+      "COMMIT;";
+  hustleDB.executeQuery(query);
+
+  auto int_col =
+      std::static_pointer_cast<arrow::StringArray>(c->get_column(1)->chunk(0));
+  EXPECT_EQ(int_col->GetString(0), "James1");
+  EXPECT_EQ(c->get_num_rows(), 1);
+}

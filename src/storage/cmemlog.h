@@ -88,6 +88,8 @@ Status hustle_memlog_initialize(HustleMemLog **mem_log, char *db_name,
 
 void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name);
 
+void memlog_remove_table_mapping(int db_id, char* db_name, char *table_name);
+
 /**
  * Create a DBRecord - each node in the linkedlist.
  * data - SQLite's data record format with header in the begining

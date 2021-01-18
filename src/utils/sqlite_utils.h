@@ -18,10 +18,15 @@
 #ifndef HUSTLE_SQLITE_UTILS_H
 #define HUSTLE_SQLITE_UTILS_H
 
+#include <map>
+#include <vector>
+
 namespace hustle {
 namespace utils {
 
 void initialize_sqlite3();
+
+void loadTables(const std::string &sqlitePath, std::vector<std::string> tables);
 
 // Executes the sql query specified in sql on the database at sqlitePath,
 // no output is returned.

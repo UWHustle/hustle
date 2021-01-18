@@ -87,7 +87,7 @@ Catalog Catalog::CreateCatalog(std::string CatalogPath,
     }
     // Rebuild the sqlite db catalog.
     for (const auto &t : catalog.tables_) {
-      utils::executeSqliteNoOutput(SqlitePath, createCreateSql(t));
+      utils::executeSqliteNoOutput(SqlitePath, createCreateSql(t.second.table_schema));
     }
     return catalog;
   } else {
@@ -106,14 +106,11 @@ std::shared_ptr<DBTable> Catalog::getTable(size_t table_id) {
 }
 
 std::shared_ptr<DBTable> Catalog::getTable(std::string name) {
-  auto search = name_to_id_.find(name);
-  if (search == name_to_id_.end()) {
+  auto search = tables_.find(name);
+  if (search == tables_.end()) {
     return nullptr;
   }
-  if (name_to_id_[name] < table_refs_.size()) {
-    return table_refs_[name_to_id_[name]];
-  }
-  return nullptr;
+  return tables_[name].table;
 }
 
 void Catalog::SaveToFile() {
@@ -129,57 +126,44 @@ void Catalog::SaveToFile() {
 }
 
 bool Catalog::dropTable(std::string name) {
-  auto search = name_to_id_.find(name);
-  if (search == name_to_id_.end()) {
-    return false;
-  }
-
   if (!utils::executeSqliteNoOutput(SqlitePath_,
                                     absl::StrCat("DROP TABLE ", name, ";"))) {
     std::cerr << "SqliteDB catalog out of sync" << std::endl;
+    return false;
   }
+  return true;
+}
 
-  tables_.erase(tables_.begin());
-  name_to_id_.erase(search);
+bool Catalog::dropMemTable(std::string name) {
+  auto search = tables_.find(name);
+  if (search == tables_.end()) {
+    return false;
+  }
+  tables_.erase(search);
   SaveToFile();
   return true;
 }
 
 std::optional<TableSchema *> Catalog::TableExists(std::string name) {
-  auto search = name_to_id_.find(name);
-  if (search == name_to_id_.end()) {
+  auto search = tables_.find(name);
+  if (search == tables_.end()) {
     return std::nullopt;
   }
 
-  return &tables_[name_to_id_[name]];
+  return &tables_[name].table_schema;
 }
 
 bool Catalog::addTable(TableSchema t) {
-  auto search = name_to_id_.find(t.getName());
-  if (search != name_to_id_.end()) {
-    return false;
-  }
-
-  tables_.push_back(t);
-  name_to_id_[t.getName()] = tables_.size() - 1;
-  SaveToFile();
-
-  if (!utils::executeSqliteNoOutput(SqlitePath_, createCreateSql(t))) {
-    std::cerr << "SqliteDB catalog out of sync" << std::endl;
-  }
-  return true;
+  return this->addTable(t, nullptr);
 }
 
 bool Catalog::addTable(TableSchema t, std::shared_ptr<DBTable> table_ref) {
-  auto search = name_to_id_.find(t.getName());
-  if (search != name_to_id_.end()) {
+ auto search = tables_.find(t.getName());
+  if (search != tables_.end()) {
     return false;
   }
 
-  tables_.push_back(t);
-  table_refs_.push_back(table_ref);
-  name_to_id_[t.getName()] = tables_.size() - 1;
-
+  tables_[t.getName()] = {t, table_ref};
   SaveToFile();
 
   if (!utils::executeSqliteNoOutput(SqlitePath_, createCreateSql(t))) {
@@ -193,7 +177,7 @@ void Catalog::print() const {
   std::cout << "Catalog File Path: " << CatalogPath_ << std::endl;
   std::cout << "Sqlite Catalog File Path: " << SqlitePath_ << std::endl;
   for (const auto &t : tables_) {
-    t.print();
+    t.second.table_schema.print();
   }
   std::cout << "----------- ----------- --------" << std::endl;
 }

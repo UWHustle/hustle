@@ -415,6 +415,9 @@ SQLITE_API int sqlite3_exec(
   char **errmsg                              /* Error msg written here */
 );
 
+SQLITE_API int sqlite3_load_hustle(sqlite3 *db, const char* tblName);
+
+
 // @suryadev - Added to get parse tree for the SQL query. (For Resolver tests)
 typedef struct Select Select;
 

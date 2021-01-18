@@ -66,6 +66,10 @@ bool HustleDB::createTable(const TableSchema ts,
   return catalog_->addTable(ts, table_ref);
 }
 
+void HustleDB::loadTables() {
+  utils::loadTables(SqliteDBPath_, hustle::HustleDB::catalogs[SqliteDBPath_]->getTables());
+}
+
 std::string HustleDB::executeQuery(const std::string &sql) {
   return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
 }
@@ -76,6 +80,10 @@ bool HustleDB::executeNoOutputQuery(const std::string &sql) {
 
 bool HustleDB::dropTable(const std::string &name) {
   return catalog_->dropTable(name);
+}
+
+bool HustleDB::dropMemTable(const std::string &name) {
+  return catalog_->dropMemTable(name);
 }
 
 bool HustleDB::insert() {

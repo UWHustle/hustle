@@ -15,6 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include "utils/sqlite_utils.h"
+
 #include <iostream>
 
 #include "absl/strings/str_cat.h"
@@ -28,8 +30,7 @@ namespace {
 // The callback function used by sqlite
 static int callback_print_plan(void *result, int argc, char **argv,
                                char **azColName) {
-  int i;
-  for (i = 0; i < argc; i++) {
+  for (int i = 0; i < argc; i++) {
     if (std::strcmp(azColName[i], "detail") == 0) {
       absl::StrAppend((std::string *)result, argv[i]);
       absl::StrAppend((std::string *)result, "\n");
@@ -48,6 +49,21 @@ void initialize_sqlite3() {
   }
   sqlite3_initialize();
 }
+
+void loadTables(const std::string &sqlitePath,
+                std::vector<std::string> tables) {
+  sqlite3 *db;
+  int rc = sqlite3_open_v2(
+      sqlitePath.c_str(), &db,
+      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
+      nullptr);
+  for (auto const &table_name : tables) {
+    std::cout << "table elem: " << table_name << std::endl;
+    sqlite3_load_hustle(db, table_name.c_str());
+  }
+  sqlite3_close(db);
+}
+
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // Returns
 std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
@@ -65,6 +81,14 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
   if (rc) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n",
             sqlite3_errmsg(db));
+  }
+
+  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan,
+                    &result, &zErrMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error: %s\n", zErrMsg);
+    sqlite3_free(zErrMsg);
   }
 
   rc = sqlite3_exec(db, sql.c_str(), callback_print_plan, &result, &zErrMsg);
@@ -85,6 +109,7 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
   sqlite3 *db;
   char *zErrMsg = 0;
   int rc;
+  std::string result;
 
   rc = sqlite3_open_v2(
       sqlitePath.c_str(), &db,
@@ -96,6 +121,15 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
     return false;
   }
   sqlite3_busy_timeout(db, 2000);
+
+  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan,
+                    &result, &zErrMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error: %s\n", zErrMsg);
+    sqlite3_free(zErrMsg);
+  }
+
   rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {
