@@ -84,8 +84,6 @@ public:
 
   void execute(Task* ctx) override;
 
-  void Clear() override;
-
   void set_prev_result(std::shared_ptr<OperatorResult> prev_result) {
     prev_result_ = prev_result;
   }
