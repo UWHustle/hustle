@@ -76,6 +76,8 @@ class LIP : public Operator {
    */
   void execute(Task *ctx) override;
 
+  void Clear() override {}
+
  private:
   std::unordered_map<std::string, std::vector<std::vector<int64_t>>>
       out_fk_cols_;

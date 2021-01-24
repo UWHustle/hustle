@@ -82,6 +82,8 @@ class FilterJoin : public Operator {
    */
   void execute(Task *ctx) override;
 
+  void Clear() override {}
+
  private:
   // Row indices of the fact table that successfully probed all Bloom filters.
   std::vector<std::vector<uint32_t>> lip_indices_;

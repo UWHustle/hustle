@@ -195,6 +195,28 @@ void Join::BuildHashTable(int join_id,
   }
 }
 
+void Join::Clear() {
+  lefts_.clear();
+  rights_.clear();
+  left_col_names_.clear();
+  right_col_names_.clear();
+  prev_result_vec_.clear();
+  prev_result_ = nullptr;
+  output_result_ = nullptr;
+  hash_tables_.clear();
+
+  new_left_indices_vector_.clear();
+  new_right_indices_vector_.clear();
+
+  left_index_chunks_vector_.clear();
+  right_index_chunks_vector_.clear();
+
+  joined_indices_.clear();
+  joined_index_chunks_.clear();
+  finished_.clear();
+}
+
+
 void Join::ProbeHashTableBlock(
     int join_id, const std::shared_ptr<arrow::ChunkedArray> &probe_col,
     const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i,

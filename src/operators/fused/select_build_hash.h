@@ -70,6 +70,8 @@ class SelectBuildHash : public Select {
    */
   void execute(Task *ctx) override;
 
+  void Clear() override {}
+
  private:
   ColumnReference join_column_;
 

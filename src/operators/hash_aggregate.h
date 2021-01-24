@@ -70,19 +70,43 @@ public:
   HashAggregate(const std::size_t query_id,
             std::shared_ptr<OperatorResult> prev_result,
             std::shared_ptr<OperatorResult> output_result,
-            std::vector<AggregateReference> aggregate_units,
+            std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs);
 
   HashAggregate(const std::size_t query_id,
             std::shared_ptr<OperatorResult> prev_result,
             std::shared_ptr<OperatorResult> output_result,
-            std::vector<AggregateReference> aggregate_units,
+            std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs,
             std::shared_ptr<OperatorOptions> options);
 
   void execute(Task* ctx) override;
+
+  void Clear() override;
+
+  void set_prev_result(std::shared_ptr<OperatorResult> prev_result) {
+    prev_result_ = prev_result;
+  }
+
+  void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+    output_result_ = output_result;
+  }
+
+  void set_aggregate_refs(std::vector<AggregateReference> aggregate_refs) {
+    aggregate_refs_ = aggregate_refs;
+  }
+
+  void set_groupby_refs(std::vector<ColumnReference> group_by_refs) {
+    group_by_refs_ = group_by_refs;
+  }
+
+  void set_orderby_refs(std::vector<ColumnReference> order_by_refs) {
+    order_by_refs_ = order_by_refs;
+  }
+
+  void Clear() override {}
 
 private:
   // Operator result from an upstream operator and output result will be stored
@@ -215,12 +239,6 @@ private:
    * @param internal The scheduler object.
    */
   void SecondPhaseAggregate(Task* internal);
-
-
-
-
-
-
 
   hash_t HashCombine(hash_t seed, hash_t val);
 

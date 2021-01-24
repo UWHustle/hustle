@@ -67,6 +67,24 @@ class Select : public Operator {
    */
   void execute(Task *ctx) override;
 
+  void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+    output_result_ = output_result;
+  }
+
+  void set_table(std::shared_ptr<DBTable> table) {
+    table_ = table;
+  }
+
+  void set_tree(std::shared_ptr<PredicateTree> tree) {
+    tree_ = tree;
+  }
+
+  void Initialize() {
+    filters_.resize(table_->get_num_blocks());
+  }
+
+  void Clear() override;
+
  protected:
   std::shared_ptr<DBTable> table_;
   std::shared_ptr<OperatorResult> output_result_;
