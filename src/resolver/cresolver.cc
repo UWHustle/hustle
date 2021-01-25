@@ -22,6 +22,7 @@
 #include "api/hustle_db.h"
 #include "catalog/catalog.h"
 #include "execution/execution_plan.h"
+#include "operators/fused/filter_join.h"
 #include "operators/select.h"
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
@@ -40,6 +41,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
    * Iterate the through select predicates and src tables
    * to construct the select operators.
    */
+  bool is_predicate_avail = false;
   for (auto const& [table_name, predicate_tree] : select_predicates) {
     std::shared_ptr<OperatorResult> input_result =
         std::make_shared<OperatorResult>();
@@ -50,12 +52,13 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     if (predicate_tree == nullptr) {
       output_result->append(table_ptr);
     } else {
+      is_predicate_avail = true;
       input_result->append(table_ptr);
       std::unique_ptr<hustle::operators::Select> select =
           std::make_unique<hustle::operators::Select>(
               0, table_ptr, input_result, output_result, predicate_tree);
       select_operators.emplace_back(std::move(select));
-     std::shared_ptr<PredicateTree> pred =  predicate_tree;
+      std::shared_ptr<PredicateTree> pred = predicate_tree;
     }
     select_result.emplace_back(output_result);
   }
@@ -63,26 +66,30 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   /**
    * Get the join predicates and the previous results to construct
    * the join operators.
-   */  
+   */
   bool is_join_op = true;
   std::shared_ptr<OperatorResult> join_result_out;
-  std::unique_ptr<Join> join_op;
+  std::unique_ptr<Join> join_op = nullptr;
+  std::unique_ptr<FilterJoin> filter_join_op = nullptr;
   if ((*(select_resolver->get_join_predicates())).size() != 0) {
-     JoinGraph join_graph({*(select_resolver->get_join_predicates())});
-     join_result_out =
-        std::make_shared<OperatorResult>();
-     join_op =
-        std::make_unique<Join>(0, select_result, join_result_out, join_graph);
+    JoinGraph join_graph({*(select_resolver->get_join_predicates())});
+    join_result_out = std::make_shared<OperatorResult>();
+    if (is_predicate_avail) {
+      filter_join_op = std::make_unique<FilterJoin>(
+          0, select_result, join_result_out, join_graph);
+    } else {
+      join_op =
+          std::make_unique<Join>(0, select_result, join_result_out, join_graph);
+    }
   } else {
     is_join_op = false;
     join_result_out = select_result[0];
   }
 
-  
   bool is_agg_op = true;
   std::shared_ptr<std::vector<AggregateReference>> agg_refs =
       (select_resolver->get_agg_references());
-  
+
   std::shared_ptr<OperatorResult> agg_result_out =
       std::make_shared<OperatorResult>();
   std::unique_ptr<Aggregate> agg_op;
@@ -94,22 +101,26 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
      */
     auto group_by_ref_ptrs = *(select_resolver->get_groupby_references());
     std::vector<ColumnReference> group_by_refs(group_by_ref_ptrs.size());
-    std::transform(
-        group_by_ref_ptrs.begin(), group_by_ref_ptrs.end(), group_by_refs.begin(),
-        [](std::shared_ptr<hustle::operators::ColumnReference> x) { return *x; });
+    std::transform(group_by_ref_ptrs.begin(), group_by_ref_ptrs.end(),
+                   group_by_refs.begin(),
+                   [](std::shared_ptr<hustle::operators::ColumnReference> x) {
+                     return *x;
+                   });
 
     auto order_by_ref_ptrs = *(select_resolver->get_orderby_references());
     std::vector<ColumnReference> order_by_refs(order_by_ref_ptrs.size());
-    std::transform(
-        order_by_ref_ptrs.begin(), order_by_ref_ptrs.end(), order_by_refs.begin(),
-        [](std::shared_ptr<hustle::operators::ColumnReference> x) { return *x; });
+    std::transform(order_by_ref_ptrs.begin(), order_by_ref_ptrs.end(),
+                   order_by_refs.begin(),
+                   [](std::shared_ptr<hustle::operators::ColumnReference> x) {
+                     return *x;
+                   });
 
     agg_op =
-        std::make_unique<Aggregate>(0, join_result_out, agg_result_out, *agg_refs,
-                                    group_by_refs, order_by_refs);
+        std::make_unique<Aggregate>(0, join_result_out, agg_result_out,
+                                    *agg_refs, group_by_refs, order_by_refs);
   } else {
-     is_agg_op = false;
-     agg_result_out = join_result_out;
+    is_agg_op = false;
+    agg_result_out = join_result_out;
   }
 
   // Build the output columns for the result
@@ -136,7 +147,11 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   }
 
   if (is_join_op) {
-    join_id = plan->addOperator(std::move(join_op));
+    if (join_op != nullptr) {
+      join_id = plan->addOperator(std::move(join_op));
+    } else {
+      join_id = plan->addOperator(std::move(filter_join_op));
+    }
   }
 
   for (auto& select_op : select_operators) {
@@ -149,7 +164,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   // Declare aggregate dependency on join operator
   if (is_agg_op) {
     plan->createLink(join_id, agg_id);
-  } 
+  }
   plan->setOperatorResult(agg_result_out);
   plan->setResultColumns(agg_project_cols);
   return plan;
@@ -177,7 +192,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
             plan->getOperatorResult();
         std::shared_ptr<hustle::storage::DBTable> out_table =
             agg_result_out->materialize(plan->getResultColumns());
-        //out_table->print();
+        // out_table->print();
         sync_lock.release();
       })));
 
