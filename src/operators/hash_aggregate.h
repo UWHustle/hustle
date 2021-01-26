@@ -84,23 +84,23 @@ public:
 
   void execute(Task* ctx) override;
 
-  void set_prev_result(std::shared_ptr<OperatorResult> prev_result) {
+  inline void set_prev_result(std::shared_ptr<OperatorResult> prev_result) {
     prev_result_ = prev_result;
   }
 
-  void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
     output_result_ = output_result;
   }
 
-  void set_aggregate_refs(std::vector<AggregateReference> aggregate_refs) {
+  inline void set_aggregate_refs(std::vector<AggregateReference> aggregate_refs) {
     aggregate_refs_ = aggregate_refs;
   }
 
-  void set_groupby_refs(std::vector<ColumnReference> group_by_refs) {
+  inline void set_groupby_refs(std::vector<ColumnReference> group_by_refs) {
     group_by_refs_ = group_by_refs;
   }
 
-  void set_orderby_refs(std::vector<ColumnReference> order_by_refs) {
+  inline void set_orderby_refs(std::vector<ColumnReference> order_by_refs) {
     order_by_refs_ = order_by_refs;
   }
 

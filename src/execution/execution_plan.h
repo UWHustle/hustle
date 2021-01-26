@@ -41,14 +41,14 @@ class ExecutionPlan : public Task {
 
   std::size_t addOperator(Operator* op) {
     const std::size_t op_index = operators_.size();
-    op->setOperatorIndex(op_index);
+    op->set_operator_index(op_index);
     operators_.emplace_back(op);
     return op_index;
   }
 
   std::size_t addOperator(std::unique_ptr<Operator> op) {
     const std::size_t op_index = operators_.size();
-    op->setOperatorIndex(op_index);
+    op->set_operator_index(op_index);
     operators_.emplace_back(std::move(op));
     return op_index;
   }

@@ -67,15 +67,15 @@ class Select : public Operator {
    */
   void execute(Task *ctx) override;
 
-  void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
     output_result_ = output_result;
   }
 
-  void set_table(std::shared_ptr<DBTable> table) {
+  inline void set_table(std::shared_ptr<DBTable> table) {
     table_ = table;
   }
 
-  void set_tree(std::shared_ptr<PredicateTree> tree) {
+  inline void set_tree(std::shared_ptr<PredicateTree> tree) {
     tree_ = tree;
   }
 
