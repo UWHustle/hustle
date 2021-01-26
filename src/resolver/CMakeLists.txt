@@ -5,7 +5,6 @@ add_library(
 )
 
 target_link_libraries(hustle_src_resolver PUBLIC
-        hustle_src_parser
         hustle_src_operators
         hustle_src_catalog
         hustle_src_optimizer_ExecutionPlan
