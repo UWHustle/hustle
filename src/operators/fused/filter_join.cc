@@ -107,6 +107,9 @@ void FilterJoin::BuildFilters(Task *ctx) {
 
           bloom_filter->set_memory(1);
           bloom_filter->set_fact_fk_name(fact_fk_col_names_[table_idx]);
+          if (dim_tables_[table_idx].hash_table_ == nullptr) {
+             throw "hash table for the dimension relation not constructed";
+          }
           dim_filters_[table_idx] = {bloom_filter,
                                      dim_tables_[table_idx].hash_table_};
         })));
