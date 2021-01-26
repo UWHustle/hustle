@@ -44,7 +44,8 @@ class SelectResolver {
   std::unordered_map<std::string,
                      std::shared_ptr<hustle::operators::PredicateTree>>
       select_predicates_;
-  std::shared_ptr<std::vector<JoinPredicate>> join_predicates_;
+
+  std::unordered_map<std::string, JoinPredicate> join_predicates_;
   std::shared_ptr<std::vector<AggregateReference>> agg_references_;
   std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
       group_by_references_;
@@ -67,7 +68,6 @@ class SelectResolver {
 
  public:
   SelectResolver(Catalog* catalog) : catalog_(catalog) {
-    join_predicates_ = std::make_shared<std::vector<JoinPredicate>>();
     agg_references_ = std::make_shared<std::vector<AggregateReference>>();
     group_by_references_ =
         std::make_shared<std::vector<std::shared_ptr<ColumnReference>>>();
@@ -76,7 +76,6 @@ class SelectResolver {
     project_references_ =
         std::make_shared<std::vector<std::shared_ptr<ProjectReference>>>();
 
-    join_predicates_->reserve(5);
     agg_references_->reserve(5);
     group_by_references_->reserve(5);
     order_by_references_->reserve(5);
@@ -93,7 +92,7 @@ class SelectResolver {
     return select_predicates_;
   }
 
-  std::shared_ptr<std::vector<JoinPredicate>> get_join_predicates() {
+  std::unordered_map<std::string, JoinPredicate> get_join_predicates() {
     return join_predicates_;
   }
 

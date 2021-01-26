@@ -23,6 +23,7 @@
 #include "catalog/catalog.h"
 #include "execution/execution_plan.h"
 #include "operators/fused/filter_join.h"
+#include "operators/fused/select_build_hash.h"
 #include "operators/select.h"
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
@@ -42,6 +43,8 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
    * to construct the select operators.
    */
   bool is_predicate_avail = false;
+  auto join_predicate_map = select_resolver->get_join_predicates();
+
   for (auto const& [table_name, predicate_tree] : select_predicates) {
     std::shared_ptr<OperatorResult> input_result =
         std::make_shared<OperatorResult>();
@@ -54,9 +57,15 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     } else {
       is_predicate_avail = true;
       input_result->append(table_ptr);
-      std::unique_ptr<hustle::operators::Select> select =
-          std::make_unique<hustle::operators::Select>(
-              0, table_ptr, input_result, output_result, predicate_tree);
+      std::unique_ptr<hustle::operators::Select> select;
+      if (join_predicate_map.find(table_name) == join_predicate_map.end()) {
+        select = std::make_unique<hustle::operators::Select>(
+            0, table_ptr, input_result, output_result, predicate_tree);
+      } else {
+        select = std::make_unique<hustle::operators::SelectBuildHash>(
+            0, table_ptr, input_result, output_result, predicate_tree,
+            join_predicate_map[table_name].right_col_ref_);
+      }
       select_operators.emplace_back(std::move(select));
       std::shared_ptr<PredicateTree> pred = predicate_tree;
     }
@@ -71,8 +80,12 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   std::shared_ptr<OperatorResult> join_result_out;
   std::unique_ptr<Join> join_op = nullptr;
   std::unique_ptr<FilterJoin> filter_join_op = nullptr;
-  if ((*(select_resolver->get_join_predicates())).size() != 0) {
-    JoinGraph join_graph({*(select_resolver->get_join_predicates())});
+  if (join_predicate_map.size() != 0) {
+    std::vector<JoinPredicate> join_predicates(join_predicate_map.size());
+    std::transform(join_predicate_map.begin(), join_predicate_map.end(),
+                   join_predicates.begin(),
+                   [](auto& pred) { return pred.second; });
+    JoinGraph join_graph({join_predicates});
     join_result_out = std::make_shared<OperatorResult>();
     if (is_predicate_avail) {
       filter_join_op = std::make_unique<FilterJoin>(
