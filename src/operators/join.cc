@@ -196,13 +196,14 @@ void Join::BuildHashTable(int join_id,
 }
 
 void Join::Clear() {
+  prev_result_.reset();
+  output_result_.reset();
+
   lefts_.clear();
   rights_.clear();
   left_col_names_.clear();
   right_col_names_.clear();
   prev_result_vec_.clear();
-  prev_result_ = nullptr;
-  output_result_ = nullptr;
   hash_tables_.clear();
 
   new_left_indices_vector_.clear();

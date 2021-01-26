@@ -573,9 +573,9 @@ void Aggregate::SortResult(std::vector<arrow::Datum>& groups,
 void Aggregate::Clear() {
   num_aggs_ = 0;
 
-  prev_result_ = nullptr;
-  output_result_ = nullptr;
-  output_table_ = nullptr;
+  prev_result_.reset();
+  output_result_.reset();
+  output_table_.reset();
 
   aggregate_col_data_.clear();
   aggregate_refs_.clear();
