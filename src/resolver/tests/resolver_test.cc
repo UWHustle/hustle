@@ -22,7 +22,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "operators/predicate.h"
-#include "parser/parser.h"
 #include "resolver/cresolver.h"
 #include "resolver/select_resolver.h"
 #include "sqlite3/sqlite3.h"
@@ -30,7 +29,7 @@
 
 using namespace testing;
 using namespace hustle::resolver;
-using nlohmann::json;
+//using nlohmann::json;
 
 class ResolverTest : public Test {
  public:

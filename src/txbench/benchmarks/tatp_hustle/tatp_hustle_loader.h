@@ -6,7 +6,6 @@
 #include "catalog/catalog.h"
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
-#include "parser/parser.h"
 #include "sqlite3/sqlite3.h"
 #include "storage/util.h"
 

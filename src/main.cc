@@ -4,7 +4,6 @@
 #include "catalog/catalog.h"
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
-#include "parser/parser.h"
 #include "storage/util.h"
 
 
