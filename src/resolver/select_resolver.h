@@ -86,32 +86,32 @@ class SelectResolver {
 
   SelectResolver() : SelectResolver(nullptr) {}
 
-  std::unordered_map<std::string,
+  inline std::unordered_map<std::string,
                      std::shared_ptr<hustle::operators::PredicateTree>>&
-  get_select_predicates() {
+  select_predicates() {
     return select_predicates_;
   }
 
-  std::unordered_map<std::string, JoinPredicate> get_join_predicates() {
+  inline std::unordered_map<std::string, JoinPredicate> join_predicates() {
     return join_predicates_;
   }
 
-  std::shared_ptr<std::vector<AggregateReference>> get_agg_references() {
+  inline std::shared_ptr<std::vector<AggregateReference>> agg_references() {
     return agg_references_;
   }
 
-  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
-  get_groupby_references() {
+  inline std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  groupby_references() {
     return group_by_references_;
   }
 
-  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
-  get_orderby_references() {
+  inline std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  orderby_references() {
     return order_by_references_;
   }
 
-  std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
-  get_project_references() {
+  inline std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
+  project_references() {
     return project_references_;
   }
 

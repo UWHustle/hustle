@@ -373,14 +373,14 @@ TEST_F(ResolverTest, q1) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 1);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 1);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 0);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 1);
+  EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
 TEST_F(ResolverTest, q2) {
@@ -410,14 +410,14 @@ TEST_F(ResolverTest, q2) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 1);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 1);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 0);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 1);
+  EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
 TEST_F(ResolverTest, q3) {
@@ -447,14 +447,14 @@ TEST_F(ResolverTest, q3) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 1);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 1);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 0);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 1);
+  EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
 TEST_F(ResolverTest, q4) {
@@ -486,14 +486,14 @@ TEST_F(ResolverTest, q4) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q5) {
@@ -525,14 +525,14 @@ TEST_F(ResolverTest, q5) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q6) {
@@ -564,14 +564,14 @@ TEST_F(ResolverTest, q6) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q7) {
@@ -605,14 +605,14 @@ TEST_F(ResolverTest, q7) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q8) {
@@ -646,14 +646,14 @@ TEST_F(ResolverTest, q8) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q9) {
@@ -687,14 +687,14 @@ TEST_F(ResolverTest, q9) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q10) {
@@ -728,14 +728,14 @@ TEST_F(ResolverTest, q10) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q11) {
@@ -770,14 +770,14 @@ TEST_F(ResolverTest, q11) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q12) {
@@ -814,14 +814,14 @@ TEST_F(ResolverTest, q12) {
   SelectResolver select_resolver(hustleDB.getCatalog());
 
   select_resolver.ResolveSelectTree(queryTree);
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 3);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q13) {
@@ -858,12 +858,12 @@ TEST_F(ResolverTest, q13) {
   SelectResolver select_resolver(hustleDB.getCatalog());
 
   select_resolver.ResolveSelectTree(queryTree);
-  EXPECT_EQ(select_resolver.get_join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 3);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }

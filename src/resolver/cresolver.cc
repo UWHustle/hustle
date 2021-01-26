@@ -33,7 +33,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
   using namespace hustle::operators;
   std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
-      select_predicates = select_resolver->get_select_predicates();
+      select_predicates = select_resolver->select_predicates();
 
   std::vector<std::shared_ptr<OperatorResult>> select_result;
   std::vector<std::unique_ptr<hustle::operators::Select>> select_operators;
@@ -43,7 +43,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
    * to construct the select operators.
    */
   bool is_predicate_avail = false;
-  auto join_predicate_map = select_resolver->get_join_predicates();
+  auto join_predicate_map = select_resolver->join_predicates();
 
   for (auto const& [table_name, predicate_tree] : select_predicates) {
     std::shared_ptr<OperatorResult> input_result =
@@ -101,7 +101,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 
   bool is_agg_op = true;
   std::shared_ptr<std::vector<AggregateReference>> agg_refs =
-      (select_resolver->get_agg_references());
+      (select_resolver->agg_references());
 
   std::shared_ptr<OperatorResult> agg_result_out =
       std::make_shared<OperatorResult>();
@@ -112,7 +112,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     /**
      * Group by references and order by references from select resolver
      */
-    auto group_by_ref_ptrs = *(select_resolver->get_groupby_references());
+    auto group_by_ref_ptrs = *(select_resolver->groupby_references());
     std::vector<ColumnReference> group_by_refs(group_by_ref_ptrs.size());
     std::transform(group_by_ref_ptrs.begin(), group_by_ref_ptrs.end(),
                    group_by_refs.begin(),
@@ -120,7 +120,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
                      return *x;
                    });
 
-    auto order_by_ref_ptrs = *(select_resolver->get_orderby_references());
+    auto order_by_ref_ptrs = *(select_resolver->orderby_references());
     std::vector<ColumnReference> order_by_refs(order_by_ref_ptrs.size());
     std::transform(order_by_ref_ptrs.begin(), order_by_ref_ptrs.end(),
                    order_by_refs.begin(),
@@ -138,7 +138,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 
   // Build the output columns for the result
   std::vector<std::shared_ptr<hustle::resolver::ProjectReference>>
-      project_references = *(select_resolver->get_project_references());
+      project_references = *(select_resolver->project_references());
   std::vector<ColumnReference> agg_project_cols;
   for (auto project_ref : project_references) {
     if (!project_ref->alias.empty()) {
