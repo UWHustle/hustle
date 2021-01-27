@@ -196,12 +196,12 @@ void txbench::TATPHustleLoader::load() {
 
   std::shared_ptr<DBTable> s, ai, sf, cf;
 
-  s = std::make_shared<hustle::storage::DBTable>("table", s_schema, BLOCK_SIZE);
-  ai = std::make_shared<hustle::storage::DBTable>("table", ai_schema,
+  s = std::make_shared<hustle::storage::DBTable>("Subscriber", s_schema, BLOCK_SIZE);
+  ai = std::make_shared<hustle::storage::DBTable>("Access_Info", ai_schema,
                                                   BLOCK_SIZE);
-  sf = std::make_shared<hustle::storage::DBTable>("table", sf_schema,
+  sf = std::make_shared<hustle::storage::DBTable>("Special_Facility", sf_schema,
                                                   BLOCK_SIZE);
-  cf = std::make_shared<hustle::storage::DBTable>("table", cf_schema,
+  cf = std::make_shared<hustle::storage::DBTable>("Call_Forwarding", cf_schema,
                                                   BLOCK_SIZE);
 
   hustle_db->createTable(subscriber, s);

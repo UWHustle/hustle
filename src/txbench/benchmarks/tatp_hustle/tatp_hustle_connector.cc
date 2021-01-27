@@ -35,7 +35,6 @@ double txbench::TATPHustleConnector::getSubscriberData(
   }
   const sec duration = clock1::now() - before;
   return duration.count();
-  // std::cout << "query done - select - 1" << std::endl;
 }
 
 double txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
@@ -50,7 +49,7 @@ double txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
       "AND (sf_s_id=" +
       std::to_string(s_id) +
       " "
-      "AND sf_sf_type=" +
+     "AND sf_sf_type=" +
       std::to_string(sf_type) +
       " "
       "AND is_active=1) "
@@ -82,7 +81,6 @@ double txbench::TATPHustleConnector::getAccessData(int s_id, int ai_type,
   }
   const sec duration = clock1::now() - before;
   return duration.count();
-  // std::cout << "query done - select - 3" << std::endl;
 }
 
 double txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
@@ -113,7 +111,6 @@ double txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
   }
   const sec duration = clock1::now() - before;
   return duration.count();
-  // std::cout << "query done - update - 4" << std::endl;
 }
 
 double txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
@@ -131,7 +128,6 @@ double txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
   }
   const sec duration = clock1::now() - before;
   return duration.count();
-  // std::cout << "query done - update" << std::endl;
 }
 
 double txbench::TATPHustleConnector::insertCallForwarding(
@@ -149,7 +145,6 @@ double txbench::TATPHustleConnector::insertCallForwarding(
   }
   const sec duration = clock1::now() - before;
   return duration.count();
-  // std::cout << "query done - insert" << std::endl;
 }
 
 double txbench::TATPHustleConnector::deleteCallForwarding(
@@ -169,5 +164,4 @@ double txbench::TATPHustleConnector::deleteCallForwarding(
   }
   const sec duration = clock1::now() - before;
   return duration.count();
-  // std::cout << "query done - delete" << std::endl;
 }

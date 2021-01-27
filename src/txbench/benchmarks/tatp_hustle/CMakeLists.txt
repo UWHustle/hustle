@@ -27,7 +27,6 @@ target_link_libraries(
 	hustleDB
         hustle_src_catalog
         hustle_src_storage
-        hustle_src_parser
         hustle_src_resolver
         hustle_src_operators
         hustle_src_scheduler_Scheduler

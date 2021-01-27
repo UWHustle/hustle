@@ -67,6 +67,24 @@ class Join : public Operator {
    */
   void execute(Task *ctx) override;
 
+  void Clear() override;
+
+  inline void set_prev_result(std::vector<std::shared_ptr<OperatorResult>> prev_result) {
+    prev_result_vec_ = prev_result;
+  }
+
+  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+    output_result_ = output_result;
+  }
+
+  inline void set_join_graph(JoinGraph join_graph) { graph_ = join_graph; }
+
+  void Initialize() {
+    prev_result_ = std::make_shared<OperatorResult>();
+    joined_indices_.resize(2);
+    joined_index_chunks_.resize(2);
+  }
+
  private:
   // lefts_[i] = the left table in the ith join
   // rights_[i] = the right table in the ith join

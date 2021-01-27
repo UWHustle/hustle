@@ -276,6 +276,10 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
   }
 }
 
+void Select::Clear() {
+  filters_.clear();
+}
+
 template <typename T, typename Op>
 arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
                             const ColumnReference &col_ref, const T &value,

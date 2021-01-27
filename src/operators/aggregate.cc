@@ -570,6 +570,23 @@ void Aggregate::SortResult(std::vector<arrow::Datum>& groups,
   }
 }
 
+void Aggregate::Clear() {
+  num_aggs_ = 0;
+
+  prev_result_.reset();
+  output_result_.reset();
+  output_table_.reset();
+
+  aggregate_col_data_.clear();
+  aggregate_refs_.clear();
+  group_by_refs_.clear(); 
+  order_by_refs_.clear();
+  group_by_cols_.clear();
+  group_agg_index_map_.clear();
+  unique_values_map_.clear();
+  unique_values_.clear();
+}
+
 void Aggregate::Finish() {
   arrow::Status status;
 

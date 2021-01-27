@@ -39,6 +39,18 @@ void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
   table_map[db_id][root_page_id] = std::string(table_name);
 }
 
+void memlog_add_column_change(int db_id, int root_page_id, char* column_info) {
+  std::string new_column = std::string(column_info); 
+  std::vector<std::string> result; 
+  std::istringstream iss(new_column); 
+  std::string s;
+  while (iss >> s) { 
+    result.push_back(s);
+  } 
+
+  // TODO (@suryadev): Update the hustle schema based on the sqlite3 changes
+}
+
 void memlog_remove_table_mapping(int db_id, char* db_name, char *tbl_name) {
   std::lock_guard<std::mutex> lock(instance_lock);
   using namespace hustle;

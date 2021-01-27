@@ -22,7 +22,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "operators/predicate.h"
-#include "parser/parser.h"
 #include "resolver/cresolver.h"
 #include "resolver/select_resolver.h"
 #include "sqlite3/sqlite3.h"
@@ -30,9 +29,13 @@
 
 using namespace testing;
 using namespace hustle::resolver;
-using nlohmann::json;
+//using nlohmann::json;
 
 class ResolverTest : public Test {
+ public:
+  static hustle::catalog::TableSchema part, supplier, customer, ddate,
+      lineorder;
+  static std::shared_ptr<DBTable> lo, d, p, c, s;
   void SetUp() override {
     /**
       CREATE TABLE part
@@ -116,7 +119,7 @@ class ResolverTest : public Test {
     hustle::HustleDB hustleDB("db_directory");
 
     // Create table part
-    hustle::catalog::TableSchema part("part");
+    // hustle::catalog::TableSchema part("part");
     hustle::catalog::ColumnSchema p_partkey(
         "p_partkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
     hustle::catalog::ColumnSchema p_name(
@@ -135,21 +138,19 @@ class ResolverTest : public Test {
         "p_size", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
     hustle::catalog::ColumnSchema p_container(
         "p_container", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-    part.addColumn(p_partkey);
-    part.addColumn(p_name);
-    part.addColumn(p_mfgr);
-    part.addColumn(p_category);
-    part.addColumn(p_brand1);
-    part.addColumn(p_color);
-    part.addColumn(p_type);
-    part.addColumn(p_size);
-    part.addColumn(p_container);
-    part.setPrimaryKey({});
-
-    hustleDB.createTable(part);
+    ResolverTest::part.addColumn(p_partkey);
+    ResolverTest::part.addColumn(p_name);
+    ResolverTest::part.addColumn(p_mfgr);
+    ResolverTest::part.addColumn(p_category);
+    ResolverTest::part.addColumn(p_brand1);
+    ResolverTest::part.addColumn(p_color);
+    ResolverTest::part.addColumn(p_type);
+    ResolverTest::part.addColumn(p_size);
+    ResolverTest::part.addColumn(p_container);
+    ResolverTest::part.setPrimaryKey({});
 
     // Create table supplier
-    hustle::catalog::TableSchema supplier("supplier");
+    // hustle::catalog::TableSchema supplier("supplier");
     hustle::catalog::ColumnSchema s_suppkey(
         "s_suppkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
     hustle::catalog::ColumnSchema s_name(
@@ -164,19 +165,17 @@ class ResolverTest : public Test {
         "s_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
     hustle::catalog::ColumnSchema s_phone(
         "s_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
-    supplier.addColumn(s_suppkey);
-    supplier.addColumn(s_name);
-    supplier.addColumn(s_address);
-    supplier.addColumn(s_city);
-    supplier.addColumn(s_nation);
-    supplier.addColumn(s_region);
-    supplier.addColumn(s_phone);
-    supplier.setPrimaryKey({});
-
-    hustleDB.createTable(supplier);
+    ResolverTest::supplier.addColumn(s_suppkey);
+    ResolverTest::supplier.addColumn(s_name);
+    ResolverTest::supplier.addColumn(s_address);
+    ResolverTest::supplier.addColumn(s_city);
+    ResolverTest::supplier.addColumn(s_nation);
+    ResolverTest::supplier.addColumn(s_region);
+    ResolverTest::supplier.addColumn(s_phone);
+    ResolverTest::supplier.setPrimaryKey({});
 
     // Create table customer
-    hustle::catalog::TableSchema customer("customer");
+    // hustle::catalog::TableSchema customer("customer");
     hustle::catalog::ColumnSchema c_suppkey(
         "c_custkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
     hustle::catalog::ColumnSchema c_name(
@@ -193,20 +192,18 @@ class ResolverTest : public Test {
         "c_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
     hustle::catalog::ColumnSchema c_mktsegment(
         "c_mktsegment", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-    customer.addColumn(c_suppkey);
-    customer.addColumn(c_name);
-    customer.addColumn(c_address);
-    customer.addColumn(c_city);
-    customer.addColumn(c_nation);
-    customer.addColumn(c_region);
-    customer.addColumn(c_phone);
-    customer.addColumn(c_mktsegment);
-    customer.setPrimaryKey({});
-
-    hustleDB.createTable(customer);
+    ResolverTest::customer.addColumn(c_suppkey);
+    ResolverTest::customer.addColumn(c_name);
+    ResolverTest::customer.addColumn(c_address);
+    ResolverTest::customer.addColumn(c_city);
+    ResolverTest::customer.addColumn(c_nation);
+    ResolverTest::customer.addColumn(c_region);
+    ResolverTest::customer.addColumn(c_phone);
+    ResolverTest::customer.addColumn(c_mktsegment);
+    ResolverTest::customer.setPrimaryKey({});
 
     // Create table ddate
-    hustle::catalog::TableSchema ddate("ddate");
+    // hustle::catalog::TableSchema ddate("ddate");
     hustle::catalog::ColumnSchema d_datekey(
         "d_datekey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
     hustle::catalog::ColumnSchema d_date(
@@ -250,29 +247,27 @@ class ResolverTest : public Test {
         "d_holidayfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
     hustle::catalog::ColumnSchema d_weekdayfl(
         "d_weekdayfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
-    ddate.addColumn(d_datekey);
-    ddate.addColumn(d_date);
-    ddate.addColumn(d_dayofweek);
-    ddate.addColumn(d_month);
-    ddate.addColumn(d_year);
-    ddate.addColumn(d_yearmonthnum);
-    ddate.addColumn(d_yearmonth);
-    ddate.addColumn(d_daynuminweek);
-    ddate.addColumn(d_daynuminmonth);
-    ddate.addColumn(d_daynuminyear);
-    ddate.addColumn(d_monthnuminyear);
-    ddate.addColumn(d_weeknuminyear);
-    ddate.addColumn(d_sellingseason);
-    ddate.addColumn(d_lastdayinweekfl);
-    ddate.addColumn(d_lastdayinmonthfl);
-    ddate.addColumn(d_holidayfl);
-    ddate.addColumn(d_weekdayfl);
-    ddate.setPrimaryKey({});
-
-    hustleDB.createTable(ddate);
+    ResolverTest::ddate.addColumn(d_datekey);
+    ResolverTest::ddate.addColumn(d_date);
+    ResolverTest::ddate.addColumn(d_dayofweek);
+    ResolverTest::ddate.addColumn(d_month);
+    ResolverTest::ddate.addColumn(d_year);
+    ResolverTest::ddate.addColumn(d_yearmonthnum);
+    ResolverTest::ddate.addColumn(d_yearmonth);
+    ResolverTest::ddate.addColumn(d_daynuminweek);
+    ResolverTest::ddate.addColumn(d_daynuminmonth);
+    ResolverTest::ddate.addColumn(d_daynuminyear);
+    ResolverTest::ddate.addColumn(d_monthnuminyear);
+    ResolverTest::ddate.addColumn(d_weeknuminyear);
+    ResolverTest::ddate.addColumn(d_sellingseason);
+    ResolverTest::ddate.addColumn(d_lastdayinweekfl);
+    ResolverTest::ddate.addColumn(d_lastdayinmonthfl);
+    ResolverTest::ddate.addColumn(d_holidayfl);
+    ResolverTest::ddate.addColumn(d_weekdayfl);
+    ResolverTest::ddate.setPrimaryKey({});
 
     // Create table lineorder
-    hustle::catalog::TableSchema lineorder("lineorder");
+    // hustle::catalog::TableSchema lineorder("lineorder");
     hustle::catalog::ColumnSchema lo_orderkey(
         "lo_orderkey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
     hustle::catalog::ColumnSchema lo_linenumber(
@@ -313,31 +308,54 @@ class ResolverTest : public Test {
         false);
     hustle::catalog::ColumnSchema lo_shipmode(
         "lo_shipmode", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-    lineorder.addColumn(lo_orderkey);
-    lineorder.addColumn(lo_linenumber);
-    lineorder.addColumn(lo_custkey);
-    lineorder.addColumn(lo_partkey);
-    lineorder.addColumn(lo_suppkey);
-    lineorder.addColumn(lo_orderdate);
-    lineorder.addColumn(lo_orderpriority);
-    lineorder.addColumn(lo_shippriority);
-    lineorder.addColumn(lo_quantity);
-    lineorder.addColumn(lo_extendedprice);
-    lineorder.addColumn(lo_ordertotalprice);
-    lineorder.addColumn(lo_discount);
-    lineorder.addColumn(lo_revenue);
-    lineorder.addColumn(lo_supplycost);
-    lineorder.addColumn(lo_tax);
-    lineorder.addColumn(lo_commitdate);
-    lineorder.addColumn(lo_shipmode);
-    lineorder.setPrimaryKey({});
+    ResolverTest::lineorder.addColumn(lo_orderkey);
+    ResolverTest::lineorder.addColumn(lo_linenumber);
+    ResolverTest::lineorder.addColumn(lo_custkey);
+    ResolverTest::lineorder.addColumn(lo_partkey);
+    ResolverTest::lineorder.addColumn(lo_suppkey);
+    ResolverTest::lineorder.addColumn(lo_orderdate);
+    ResolverTest::lineorder.addColumn(lo_orderpriority);
+    ResolverTest::lineorder.addColumn(lo_shippriority);
+    ResolverTest::lineorder.addColumn(lo_quantity);
+    ResolverTest::lineorder.addColumn(lo_extendedprice);
+    ResolverTest::lineorder.addColumn(lo_ordertotalprice);
+    ResolverTest::lineorder.addColumn(lo_discount);
+    ResolverTest::lineorder.addColumn(lo_revenue);
+    ResolverTest::lineorder.addColumn(lo_supplycost);
+    ResolverTest::lineorder.addColumn(lo_tax);
+    ResolverTest::lineorder.addColumn(lo_commitdate);
+    ResolverTest::lineorder.addColumn(lo_shipmode);
+    ResolverTest::lineorder.setPrimaryKey({});
 
-    hustleDB.createTable(lineorder);
+    ResolverTest::lo = std::make_shared<hustle::storage::DBTable>(
+        "lineorder", ResolverTest::lineorder.getArrowSchema(), BLOCK_SIZE);
+    ResolverTest::c = std::make_shared<hustle::storage::DBTable>(
+        "customer", ResolverTest::customer.getArrowSchema(), BLOCK_SIZE);
+    ResolverTest::s = std::make_shared<hustle::storage::DBTable>(
+        "supplier", ResolverTest::supplier.getArrowSchema(), BLOCK_SIZE);
+    ResolverTest::p = std::make_shared<hustle::storage::DBTable>(
+        "part", ResolverTest::part.getArrowSchema(), BLOCK_SIZE);
+    ResolverTest::d = std::make_shared<hustle::storage::DBTable>(
+        "ddate", ResolverTest::ddate.getArrowSchema(), BLOCK_SIZE);
   }
 };
 
+hustle::catalog::TableSchema ResolverTest::part("part"),
+    ResolverTest::supplier("supplier"), ResolverTest::customer("customer"),
+    ResolverTest::ddate("ddate"), ResolverTest::lineorder("lineorder");
+
+std::shared_ptr<DBTable> ResolverTest::lo, ResolverTest::d, ResolverTest::p,
+    ResolverTest::c, ResolverTest::s;
+
 TEST_F(ResolverTest, q1) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_extendedprice) as "
@@ -355,18 +373,25 @@ TEST_F(ResolverTest, q1) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 1);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 1);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 0);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 1);
+  EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
 TEST_F(ResolverTest, q2) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_extendedprice) as "
@@ -385,18 +410,25 @@ TEST_F(ResolverTest, q2) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 1);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 1);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 0);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 1);
+  EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
 TEST_F(ResolverTest, q3) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_extendedprice) as "
@@ -415,18 +447,25 @@ TEST_F(ResolverTest, q3) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 1);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 1);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 0);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 1);
+  EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
 TEST_F(ResolverTest, q4) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_revenue), d_year, p_brand1\n"
@@ -447,18 +486,25 @@ TEST_F(ResolverTest, q4) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q5) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_revenue), d_year, p_brand1\n"
@@ -479,18 +525,25 @@ TEST_F(ResolverTest, q5) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q6) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_revenue), d_year, p_brand1\n"
@@ -511,18 +564,25 @@ TEST_F(ResolverTest, q6) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q7) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_nation, s_nation, d_year, sum(lo_revenue) "
@@ -545,18 +605,25 @@ TEST_F(ResolverTest, q7) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q8) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_city, s_city, d_year, sum(lo_revenue) as "
@@ -579,18 +646,25 @@ TEST_F(ResolverTest, q8) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q9) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_city, s_city, d_year, sum(lo_revenue) as "
@@ -613,18 +687,25 @@ TEST_F(ResolverTest, q9) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q10) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_city, s_city, d_year, sum(lo_revenue) as "
@@ -647,18 +728,25 @@ TEST_F(ResolverTest, q10) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 3);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 3);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q11) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select d_year, c_nation, "
@@ -682,18 +770,25 @@ TEST_F(ResolverTest, q11) {
   SelectResolver select_resolver(hustleDB.getCatalog());
   select_resolver.ResolveSelectTree(queryTree);
 
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 4);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 2);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 2);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 2);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 3);
+  EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
 TEST_F(ResolverTest, q12) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select d_year, s_nation, p_category, sum(lo_revenue) "
@@ -719,18 +814,25 @@ TEST_F(ResolverTest, q12) {
   SelectResolver select_resolver(hustleDB.getCatalog());
 
   select_resolver.ResolveSelectTree(queryTree);
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 4);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 3);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
 TEST_F(ResolverTest, q13) {
+  std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select d_year, s_city, p_brand1, sum(lo_revenue) as "
@@ -756,12 +858,12 @@ TEST_F(ResolverTest, q13) {
   SelectResolver select_resolver(hustleDB.getCatalog());
 
   select_resolver.ResolveSelectTree(queryTree);
-  EXPECT_EQ(select_resolver.get_join_predicates()->size(), 4);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
 
-  EXPECT_EQ(select_resolver.get_agg_references()->size(), 1);
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
-  EXPECT_EQ(select_resolver.get_groupby_references()->size(), 3);
-  EXPECT_EQ(select_resolver.get_orderby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 3);
 
-  EXPECT_EQ(select_resolver.get_project_references()->size(), 4);
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }

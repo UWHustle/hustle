@@ -28,6 +28,11 @@
 #include "operators/predicate.h"
 #include "resolver/cresolver.h"
 
+/* The default is chosen heuristically by looking at the standard
+** queries in the benchmark and extending that to the pratical convention.
+*/
+#define DEFAULT_OPERATORS_SIZE 5
+
 namespace hustle {
 namespace resolver {
 
@@ -44,7 +49,8 @@ class SelectResolver {
   std::unordered_map<std::string,
                      std::shared_ptr<hustle::operators::PredicateTree>>
       select_predicates_;
-  std::shared_ptr<std::vector<JoinPredicate>> join_predicates_;
+
+  std::unordered_map<std::string, JoinPredicate> join_predicates_;
   std::shared_ptr<std::vector<AggregateReference>> agg_references_;
   std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
       group_by_references_;
@@ -67,7 +73,6 @@ class SelectResolver {
 
  public:
   SelectResolver(Catalog* catalog) : catalog_(catalog) {
-    join_predicates_ = std::make_shared<std::vector<JoinPredicate>>();
     agg_references_ = std::make_shared<std::vector<AggregateReference>>();
     group_by_references_ =
         std::make_shared<std::vector<std::shared_ptr<ColumnReference>>>();
@@ -76,43 +81,42 @@ class SelectResolver {
     project_references_ =
         std::make_shared<std::vector<std::shared_ptr<ProjectReference>>>();
 
-    join_predicates_->reserve(5);
-    agg_references_->reserve(5);
-    group_by_references_->reserve(5);
-    order_by_references_->reserve(5);
-    project_references_->reserve(5);
+    agg_references_->reserve(DEFAULT_OPERATORS_SIZE);
+    group_by_references_->reserve(DEFAULT_OPERATORS_SIZE);
+    order_by_references_->reserve(DEFAULT_OPERATORS_SIZE);
+    project_references_->reserve(DEFAULT_OPERATORS_SIZE);
 
     resolve_status_ = true;
   }
 
   SelectResolver() : SelectResolver(nullptr) {}
 
-  std::unordered_map<std::string,
-                     std::shared_ptr<hustle::operators::PredicateTree>>&
-  get_select_predicates() {
+  inline std::unordered_map<std::string,
+                            std::shared_ptr<hustle::operators::PredicateTree>>&
+  select_predicates() {
     return select_predicates_;
   }
 
-  std::shared_ptr<std::vector<JoinPredicate>> get_join_predicates() {
+  inline std::unordered_map<std::string, JoinPredicate> join_predicates() {
     return join_predicates_;
   }
 
-  std::shared_ptr<std::vector<AggregateReference>> get_agg_references() {
+  inline std::shared_ptr<std::vector<AggregateReference>> agg_references() {
     return agg_references_;
   }
 
-  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
-  get_groupby_references() {
+  inline std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  groupby_references() {
     return group_by_references_;
   }
 
-  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
-  get_orderby_references() {
+  inline std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  orderby_references() {
     return order_by_references_;
   }
 
-  std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
-  get_project_references() {
+  inline std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
+  project_references() {
     return project_references_;
   }
 

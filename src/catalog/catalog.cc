@@ -21,16 +21,6 @@
 #include <iostream>
 #include <string>
 
-extern const int SERIAL_BLOCK_SIZE = 4096;
-char tableList[SERIAL_BLOCK_SIZE];
-char project[SERIAL_BLOCK_SIZE];
-char loopPred[SERIAL_BLOCK_SIZE];
-char otherPred[SERIAL_BLOCK_SIZE];
-char aggregate[SERIAL_BLOCK_SIZE];
-char groupBy[SERIAL_BLOCK_SIZE];
-char orderBy[SERIAL_BLOCK_SIZE];
-char *currPos = nullptr;
-
 namespace hustle {
 namespace catalog {
 

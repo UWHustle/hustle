@@ -49,7 +49,7 @@ void ExecutionPlan::execute() {
 
   for (std::unique_ptr<Operator> &op : operators_) {
     DCHECK(op != nullptr);
-    const std::size_t op_index = op->getOperatorIndex();
+    const std::size_t op_index = op->operator_index();
     const Continuation op_cont = scheduler->allocateContinuation();
 
     const TaskID op_task_id =

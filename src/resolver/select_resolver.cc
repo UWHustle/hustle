@@ -17,6 +17,7 @@
 
 #include "resolver/select_resolver.h"
 
+#include <algorithm>
 #include <memory>
 
 namespace hustle {
@@ -43,12 +44,22 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
 
       if ((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
           (rightExpr != NULL && rightExpr->op == TK_COLUMN)) {
-        lRef = {catalog_->getTable(leftExpr->y.pTab->zName),
-                leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
-        rRef = {catalog_->getTable(rightExpr->y.pTab->zName),
-                rightExpr->y.pTab->aCol[rightExpr->iColumn].zName};
+        auto table_1 = catalog_->getTable(leftExpr->y.pTab->zName);
+        auto table_2 = catalog_->getTable(rightExpr->y.pTab->zName);
+        ColumnReference lRef = {
+            table_1, leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
+        ColumnReference rRef = {
+            table_2, rightExpr->y.pTab->aCol[rightExpr->iColumn].zName};
+
+        if ((table_1 != nullptr && table_1->get_num_rows()) <
+            (table_2 != nullptr && table_2->get_num_rows())) {
+          std::swap(lRef, rRef);
+        }
+
         JoinPredicate join_pred = {lRef, arrow::compute::EQUAL, rRef};
-        join_predicates_->emplace_back(join_pred);
+        if (rRef.table != nullptr) {
+          join_predicates_[rRef.table->get_name()] = join_pred;
+        }
       }
       break;
     }

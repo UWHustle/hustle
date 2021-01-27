@@ -86,6 +86,8 @@ typedef struct {
 Status hustle_memlog_initialize(HustleMemLog **mem_log, char *db_name,
                                 int initial_size);
 
+void memlog_add_column_change(int db_id, int root_page_id, char* column_info);
+
 void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name);
 
 void memlog_remove_table_mapping(int db_id, char* db_name, char *table_name);

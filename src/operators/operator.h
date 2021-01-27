@@ -33,12 +33,21 @@ class Operator {
  public:
   virtual void execute(Task *ctx) = 0;
 
-  std::size_t getOperatorIndex() const { return op_index_; }
+  virtual void Clear() = 0;
 
-  void setOperatorIndex(const std::size_t op_index) { op_index_ = op_index; }
+  inline std::size_t operator_index() const { return op_index_; }
 
-  std::size_t getQueryId() const { return query_id_; }
-  std::shared_ptr<OperatorResult> result_;
+  inline void set_operator_index(const std::size_t op_index) { op_index_ = op_index; }
+
+  inline void set_query_id(std::size_t query_id) {
+    query_id_ = query_id;
+  }
+
+  inline void set_operator_options( std::shared_ptr<OperatorOptions> options) {
+    options_ = options;
+  }
+
+  inline std::size_t query_id() const { return query_id_; }
 
   // TODO(nicholas): Make private
   Task *createTask() {
@@ -52,8 +61,10 @@ class Operator {
     });
   }
 
+  std::shared_ptr<OperatorResult> result_;
+
  protected:
-  explicit Operator(const std::size_t query_id) : query_id_(query_id) {
+  explicit Operator(std::size_t query_id) : query_id_(query_id) {
     options_ = std::make_shared<OperatorOptions>();
   }
 
@@ -62,7 +73,7 @@ class Operator {
       : query_id_(query_id), options_(options) {}
 
   std::shared_ptr<OperatorOptions> options_;
-  const std::size_t query_id_;
+  std::size_t query_id_;
 
  private:
   std::size_t op_index_;
