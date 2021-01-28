@@ -212,7 +212,7 @@ void write_to_file(const char* path, hustle::storage::DBTable& table) {
   for (int i = 0; i < blocks.size(); i++) {
     // IMPORTANT: The buffer size must be consistent with the ArrayData
     // length, or else data will not be properly written to file.
-    blocks[i]->truncate_buffers();
+    blocks[i]->TruncateBuffers();
     status = record_batch_writer->WriteRecordBatch(*blocks[i]->get_records());
     evaluate_status(status, __FUNCTION__, __LINE__);
   }
@@ -385,7 +385,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
       byte_widths[index] = values[index].length();
     }
 
-    out_table->insert_record(values, byte_widths);
+    out_table->InsertRecord(values, byte_widths);
   }
   return out_table;
 }

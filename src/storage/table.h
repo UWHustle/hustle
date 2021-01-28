@@ -43,8 +43,7 @@ class DBTable {
    * @param schema Table schema, excluding the valid column
    * @param block_capacity Block size
    */
-  DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
-          int block_capacity);
+  DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema, int block_capacity);
 
   /**
    * Construct a table from a vector of RecordBatches read from a file.
@@ -53,17 +52,21 @@ class DBTable {
    * @param record_batches Vector of RecordBatches read from a file
    * @param block_capacity Block size
    */
-  DBTable(std::string name,
-          std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-          int block_capacity);
+  DBTable(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches, int block_capacity);
 
-  //
   /**
    * Create an empty Block to be added to the Table.
    *
    * @return An empty Block.
    */
-  std::shared_ptr<Block> create_block();
+  inline std::shared_ptr<Block> CreateBlock() {
+    std::scoped_lock blocks_lock(blocks_mutex);
+    int block_id = block_counter++;
+    auto block = std::make_shared<Block>(block_id, schema, block_capacity);
+    blocks.emplace(block_id, block);
+    block_row_offsets.push_back(num_rows);
+    return block;
+  }
 
   /**
    * Add a vector of blocks to the table. This functions does not check if
@@ -72,29 +75,42 @@ class DBTable {
    *
    * @param intput_blocks Vector of blocks to be inserted into the table.
    */
-  void insert_blocks(std::vector<std::shared_ptr<Block>> intput_blocks);
+  void InsertBlocks(std::vector<std::shared_ptr<Block>> intput_blocks);
 
   /**
    * @param block_id Block ID
    * @return Block with the specified ID
    */
-  std::shared_ptr<Block> get_block(int block_id) const;
+  inline std::shared_ptr<Block> get_block(int block_id) const {return blocks.at(block_id);}
 
   /**
    * @return Block from the insert_pool
    */
-  std::shared_ptr<Block> get_block_for_insert();
+  inline std::shared_ptr<Block> GetBlockForInsert() {
+    std::scoped_lock insert_pool_lock(insert_pool_mutex);
+    if (insert_pool.empty()) {
+      return CreateBlock();
+    }
+    auto iter = insert_pool.begin();
+    std::shared_ptr<Block> block = iter->second;
+    insert_pool.erase(iter->first);
+    return block;
+  }
 
   /**
    * @param block Block to be added to the insert pool
    */
-  void mark_block_for_insert(const std::shared_ptr<Block> &block);
+  inline void MarkBlockForInsert(const std::shared_ptr<Block> &block) {
+    std::scoped_lock insert_pool_lock(insert_pool_mutex);
+    assert(block->get_bytes_left() > fixed_record_width);
+    insert_pool[block->get_id()] = block;
+  }
 
-  int get_num_rows() const;
+  inline int get_num_rows() const {return num_rows;}
 
-  size_t get_num_blocks() const;
+  inline size_t get_num_blocks() const {return blocks.size();}
 
-  int get_record_size(int32_t *byte_widths);
+  int GetRecordSize(int32_t *byte_widths);
 
   /**
    * Insert a record into a block in the insert pool.
@@ -105,16 +121,32 @@ class DBTable {
    * @param byte_widths Byte width of each value to be inserted. Byte widths
    * should be listed in the same order as they appear in the Block's schema.
    */
-  BlockInfo insert_record(uint8_t *record, int32_t *byte_widths);
+  BlockInfo InsertRecord(uint8_t *record, int32_t *byte_widths);
 
-  void insert_record_table(uint32_t rowId, uint8_t *record,
-                           int32_t *byte_widths);
+  /**
+   *
+   * @param rowId
+   * @param record
+   * @param byte_widths
+   */
+  inline void InsertRecordTable(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
+    block_map[rowId] = InsertRecord(record, byte_widths);
+  }
 
-  void update_record_table(uint32_t rowId, int nUpdateMetaInfo,
+  /**
+   *
+   * @param rowId
+   * @param nUpdateMetaInfo
+   * @param updateMetaInfo
+   * @param record
+   * @param byte_widths
+   */
+  void UpdateRecordTable(uint32_t rowId, int nUpdateMetaInfo,
                            UpdateMetaInfo *updateMetaInfo, uint8_t *record,
                            int32_t *byte_widths);
 
-  void delete_record_table(uint32_t rowId);
+  void DeleteRecordTable(uint32_t rowId);
+
   /**
    * Insert one or more records into the Table as a vector of ArrayData.
    * This insertion method would be used to insert the results of a query,
@@ -127,19 +159,18 @@ class DBTable {
    * number of elements.
    * @return True if insertion was successful, false otherwise.
    */
-  void insert_records(
-      std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
+  void InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
   /**
    * @return The Table's schema, excluding the valid column of the underlying
    * Blocks
    */
-  std::shared_ptr<arrow::Schema> get_schema() const;
+  inline std::shared_ptr<arrow::Schema> get_schema() const {return schema;}
 
   /**
    * @return A map storing the Table's Blocks
    */
-  std::unordered_map<int, std::shared_ptr<Block>> get_blocks();
+  inline std::unordered_map<int, std::shared_ptr<Block>> get_blocks() {return blocks;}
 
   /**
    * Return the number of rows that appear before a specific block in the
@@ -148,7 +179,7 @@ class DBTable {
    * @param i Block index
    * @return The number of rows that appear before block i in the table.
    */
-  int get_block_row_offset(int i) const;
+  inline int get_block_row_offset(int i) const {return block_row_offsets[i];}
 
   /**
    * Return a specific column as a ChunkedArray over all blocks in the table.
@@ -156,7 +187,14 @@ class DBTable {
    * @param i Column index
    * @return a ChunkedArray of column i over all blocks in the table.
    */
-  std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+  inline std::shared_ptr<arrow::ChunkedArray> get_column(int ColumnIndex) {
+    if (blocks.empty()) {return nullptr;}
+    arrow::ArrayVector array_vector;
+    for (int i = 0; i < blocks.size(); i++) {
+      array_vector.push_back(blocks[i]->get_column(ColumnIndex));
+    }
+    return std::make_shared<arrow::ChunkedArray>(array_vector);
+  }
 
   /**
    * Return a specific column as a ChunkedArray over all blocks in the table.
@@ -164,23 +202,36 @@ class DBTable {
    * @param name Column name
    * @return a ChunkedArray of column "name" over all blocks in the table.
    */
-  std::shared_ptr<arrow::ChunkedArray> get_column_by_name(
-      const std::string &name);
+  inline std::shared_ptr<arrow::ChunkedArray> get_column_by_name(const std::string &name) {
+    return get_column(schema->GetFieldIndex(name));
+  }
 
   /**
-   * Print the contents of all blocks in the table, including the valid
-   * column.
+   * Print the contents of all blocks in the table, including the valid column.
    */
-  void print();
+  inline void print() {
+    if (blocks.empty()) {
+      std::cout << "Table is empty." << std::endl;
+    } else {
+      for (int i = 0; i < blocks.size(); i++) {
+        blocks[i]->print();
+      }
+    }
+  }
 
-  std::shared_ptr<arrow::ChunkedArray> get_valid_column();
+  inline std::shared_ptr<arrow::ChunkedArray> get_valid_column(){
+    arrow::ArrayVector array_vector;
+    for (int i = 0; i < blocks.size(); i++) {
+      array_vector.push_back(blocks[i]->get_valid_column());
+    }
+    return std::make_shared<arrow::ChunkedArray>(array_vector);
+  }
 
-  std::string get_name() const { return table_name; }
+  inline std::string get_name() const {return table_name;}
 
-  int get_num_cols() const;
+  inline int get_num_cols() const {return num_cols;}
 
-  void insert_record(std::vector<std::string_view> values,
-                     int32_t *byte_widths);
+  void InsertRecord(std::vector<std::string_view> values, int32_t *byte_widths);
 
   template <typename Functor>
   void ForEachBatch(const Functor &functor) const;

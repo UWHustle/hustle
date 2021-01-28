@@ -62,7 +62,7 @@ void AggregateWorkload::prepareData() {
   inputTable = std::make_shared<hustle::storage::DBTable>(
     "table", schema, BLOCK_SIZE);
 
-  inputTable->insert_records(inputData);
+  inputTable->InsertRecords(inputData);
 }
 
 std::string
