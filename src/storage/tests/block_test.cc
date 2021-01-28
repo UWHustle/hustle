@@ -154,7 +154,7 @@ TEST_F(HustleBlockTest, EmptyBlock) {
 TEST_F(HustleBlockTest, OneInsertBlock) {
   Block block(0, schema, BLOCK_SIZE);
   int row_index =
-      block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
+      block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
 
   valid =
       std::static_pointer_cast<arrow::BooleanArray>(block.get_valid_column());
@@ -177,10 +177,10 @@ TEST_F(HustleBlockTest, OneInsertBlock) {
 
 TEST_F(HustleBlockTest, ManyInsertBlock) {
   Block block(0, schema, BLOCK_SIZE);
-  block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
-  block.insert_record((uint8_t *)record_string_2.data(), byte_widths_2);
-  block.insert_record((uint8_t *)record_string_3.data(), byte_widths_3);
-  block.insert_record((uint8_t *)record_string_4.data(), byte_widths_4);
+  block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
+  block.InsertRecord((uint8_t *)record_string_2.data(), byte_widths_2);
+  block.InsertRecord((uint8_t *)record_string_3.data(), byte_widths_3);
+  block.InsertRecord((uint8_t *)record_string_4.data(), byte_widths_4);
 
   valid =
       std::static_pointer_cast<arrow::BooleanArray>(block.get_valid_column());
@@ -235,12 +235,12 @@ TEST_F(HustleBlockTest, FullBlock) {
 
   // With 1 KB block size, we can store 8 copies of the first record
   for (int i = 0; i < 8; i++) {
-    block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
+    block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
   }
 
   // This block cannot hold a 9th copy of the first record
   int row_index =
-      block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
+      block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
 
   EXPECT_EQ(row_index, -1);
   EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE - 912);
@@ -254,7 +254,7 @@ TEST_F(HustleBlockTest, ArrayInsert) {
   auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
 
   Block block(0, schema, BLOCK_SIZE);
-  block.insert_records(column_data);
+  block.InsertRecords(column_data);
 
   int row;
   valid =
@@ -298,10 +298,10 @@ TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
   int off = in_offsets_data[0];
 
   Block block(0, schema, BLOCK_SIZE);
-  block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
-  block.insert_records(column_data);
-  block.insert_record((uint8_t *)record_string_1.data(), byte_widths_1);
-  block.insert_records(column_data);
+  block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
+  block.InsertRecords(column_data);
+  block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
+  block.InsertRecords(column_data);
 
   int row;
   valid =
