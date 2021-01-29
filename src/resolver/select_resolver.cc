@@ -70,6 +70,37 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
   }
 }
 
+std::shared_ptr<ExprReference> SelectResolver::ResolveAggExpr(Expr* expr) {
+  if (expr == NULL) {
+    return nullptr;
+  }
+  std::shared_ptr<ExprReference> expr_ref = std::make_shared<ExprReference>();
+  switch (expr->op) {
+    case TK_STAR:
+    case TK_PLUS:
+    case TK_MINUS:
+    case TK_SLASH:
+    case TK_COLUMN:
+    case TK_AGG_COLUMN: {
+      expr_ref->op = expr->op;
+      if (expr->op == TK_COLUMN || expr->op == TK_AGG_COLUMN) {
+        expr_ref->column_ref = std::make_shared<ColumnReference>();
+        expr_ref->column_ref->table = catalog_->getTable(expr->y.pTab->zName);
+        expr_ref->column_ref->col_name =
+            expr->y.pTab->aCol[expr->iColumn].zName;
+      }
+      expr_ref->left_expr = this->ResolveAggExpr(expr->pLeft);
+      expr_ref->right_expr = this->ResolveAggExpr(expr->pRight);
+      break;
+    }
+    default: {
+      // Contains operator that is not supported
+      return nullptr;
+    }
+  }
+  return expr_ref;
+}
+
 std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
   if (pExpr == NULL) {
     return nullptr;
@@ -176,16 +207,30 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   for (int k = 0; k < pEList->nExpr; k++) {
     if (pEList->a[k].pExpr->op == TK_AGG_FUNCTION) {
       Expr* expr = pEList->a[k].pExpr->x.pList->a[0].pExpr;
+      char* zName = NULL;
+      if (pEList->a[k].zEName != NULL) {
+        zName = pEList->a[k].zEName;
+      }
+
       if (expr->iColumn > 0) {
         ColumnReference colRef = {catalog_->getTable(expr->y.pTab->zName),
                                   expr->y.pTab->aCol[expr->iColumn].zName};
-        char* zName = NULL;
-        if (pEList->a[k].zEName != NULL) {
-          zName = pEList->a[k].zEName;
-        }
         AggregateReference aggRef = {
             aggregate_kernels_[pEList->a[k].pExpr->u.zToken],
             pEList->a[k].zEName, colRef};
+        agg_references_->emplace_back(aggRef);
+        std::shared_ptr<ProjectReference> projRef =
+            std::make_shared<ProjectReference>(ProjectReference{colRef, zName});
+        project_references_->emplace_back(projRef);
+      } else {
+        std::shared_ptr<ExprReference> expr_ref = ResolveAggExpr(expr);
+        if (expr_ref == nullptr) {
+          return false;
+        }
+        ColumnReference colRef = {};
+        AggregateReference aggRef = {
+            aggregate_kernels_[pEList->a[k].pExpr->u.zToken],
+            pEList->a[k].zEName, colRef, expr_ref};
         agg_references_->emplace_back(aggRef);
         std::shared_ptr<ProjectReference> projRef =
             std::make_shared<ProjectReference>(ProjectReference{colRef, zName});

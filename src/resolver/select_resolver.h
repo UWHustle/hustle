@@ -120,6 +120,8 @@ class SelectResolver {
     return project_references_;
   }
 
+  std::shared_ptr<ExprReference> ResolveAggExpr(Expr *expr);
+
   bool ResolveSelectTree(Sqlite3Select* queryTree);
   bool ResolveSelectTree() { return true; }
 };

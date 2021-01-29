@@ -413,6 +413,10 @@ void Aggregate::ComputeAggregates(Task* ctx) {
         // TODO(nicholas): For now, we only perform one aggregate.
         auto table = aggregate_refs_[0].col_ref.table;
         auto col_name = aggregate_refs_[0].col_ref.col_name;
+
+        if (table == nullptr) {
+          throw std::runtime_error("Non-supported aggregation");
+        }
         agg_lazy_table_ = prev_result_->get_table(table);
         agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
       }),

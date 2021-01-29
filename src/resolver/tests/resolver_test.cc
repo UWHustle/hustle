@@ -29,7 +29,6 @@
 
 using namespace testing;
 using namespace hustle::resolver;
-//using nlohmann::json;
 
 class ResolverTest : public Test {
  public:
@@ -866,4 +865,61 @@ TEST_F(ResolverTest, q13) {
   EXPECT_EQ(select_resolver.orderby_references()->size(), 3);
 
   EXPECT_EQ(select_resolver.project_references()->size(), 4);
+}
+
+TEST_F(ResolverTest, queryAggExpr) {
+  std::filesystem::remove_all("db_directory");
+  hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.createTable(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.createTable(ResolverTest::customer, ResolverTest::c);
+  hustleDB.createTable(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.createTable(ResolverTest::part, ResolverTest::p);
+  hustleDB.createTable(ResolverTest::ddate, ResolverTest::d);
+
+  std::string query =
+      "select sum(lo_extendedprice*lo_discount) as "
+      "revenue\n"
+      "from lineorder, ddate\n"
+      "where lo_orderdate = d_datekey\n"
+      "and d_yearmonthnum = 199401\n"
+      "and lo_discount < 6\n"
+      "and lo_quantity < 35;";
+
+  Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
+      hustleDB.getSqliteDBPath(), query);
+  SelectResolver select_resolver(hustleDB.getCatalog());
+  select_resolver.ResolveSelectTree(queryTree);
+
+  EXPECT_EQ(select_resolver.join_predicates().size(), 1);
+
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
+  EXPECT_TRUE((*select_resolver.agg_references())[0].expr_ref != nullptr);
+  EXPECT_EQ((*select_resolver.agg_references())[0]
+                .expr_ref->left_expr->column_ref->col_name,
+            "lo_extendedprice");
+  EXPECT_EQ((*select_resolver.agg_references())[0]
+                .expr_ref->right_expr->column_ref->col_name,
+            "lo_discount");
+  EXPECT_EQ((*select_resolver.agg_references())[0]
+                .expr_ref->op, TK_STAR);
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
+
+  EXPECT_EQ(select_resolver.project_references()->size(), 1);
+
+  query =
+      "select sum(lo_extendedprice) as "
+      "revenue\n"
+      "from lineorder, ddate\n"
+      "where lo_orderdate = d_datekey\n"
+      "and d_yearmonthnum = 199401\n"
+      "and lo_discount < 6\n"
+      "and lo_quantity < 35;";
+  queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
+      hustleDB.getSqliteDBPath(), query);
+  
+  SelectResolver select_resolver2(hustleDB.getCatalog());
+  select_resolver2.ResolveSelectTree(queryTree);
+  EXPECT_TRUE((*select_resolver2.agg_references())[0].expr_ref == nullptr);
 }
