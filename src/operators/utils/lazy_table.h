@@ -42,6 +42,13 @@ struct ColumnReference {
   std::string col_name;
 };
 
+struct ExprReference {
+  uint16_t op;
+  std::shared_ptr<ExprReference> left_expr;
+  std::shared_ptr<ExprReference> right_expr;
+  std::shared_ptr<ColumnReference> column_ref;
+};
+
 /**
  * A LazyTable associates a table pointer with a boolean filter and an array
  * of indices. The filter and indices determine which rows of the table are

@@ -58,6 +58,7 @@ struct AggregateReference {
   AggregateKernel kernel;
   std::string agg_name;
   ColumnReference col_ref;
+  std::shared_ptr<ExprReference> expr_ref = nullptr;
 };
 
 }
