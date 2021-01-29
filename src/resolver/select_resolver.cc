@@ -83,7 +83,7 @@ std::shared_ptr<ExprReference> SelectResolver::ResolveAggExpr(Expr* expr) {
     case TK_COLUMN:
     case TK_AGG_COLUMN: {
       expr_ref->op = expr->op;
-      if (expr->op == TK_COLUMN) {
+      if (expr->op == TK_COLUMN || expr->op == TK_AGG_COLUMN) {
         expr_ref->column_ref = std::make_shared<ColumnReference>();
         expr_ref->column_ref->table = catalog_->getTable(expr->y.pTab->zName);
         expr_ref->column_ref->col_name =
