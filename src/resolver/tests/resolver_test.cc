@@ -895,6 +895,14 @@ TEST_F(ResolverTest, queryAggExpr) {
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
   EXPECT_TRUE((*select_resolver.agg_references())[0].expr_ref != nullptr);
+  EXPECT_EQ((*select_resolver.agg_references())[0]
+                .expr_ref->left_expr->column_ref->col_name,
+            "lo_extendedprice");
+  EXPECT_EQ((*select_resolver.agg_references())[0]
+                .expr_ref->right_expr->column_ref->col_name,
+            "lo_discount");
+  EXPECT_EQ((*select_resolver.agg_references())[0]
+                .expr_ref->op, TK_STAR);
   EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
   EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
