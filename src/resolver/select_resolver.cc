@@ -223,7 +223,6 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
             std::make_shared<ProjectReference>(ProjectReference{colRef, zName});
         project_references_->emplace_back(projRef);
       } else {
-        std::cout << "end" << std::endl;
         std::shared_ptr<ExprReference> expr_ref = ResolveAggExpr(expr);
         if (expr_ref == nullptr) {
           return false;
@@ -236,7 +235,6 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
         std::shared_ptr<ProjectReference> projRef =
             std::make_shared<ProjectReference>(ProjectReference{colRef, zName});
         project_references_->emplace_back(projRef);
-        std::cout << "end - time" << std::endl;
         // TODO (suryadev): Support the expression evaluation in aggregate
         // operator
         return false;  // change to true after support in operators
