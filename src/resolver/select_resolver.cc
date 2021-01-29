@@ -248,7 +248,6 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
           std::make_shared<ProjectReference>(ProjectReference{colRef});
       project_references_->emplace_back(projRef);
     }
-    std::cout << "zName" << std::endl;
   }
 
   // Resolve predicates
