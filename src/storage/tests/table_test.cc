@@ -107,7 +107,7 @@ TEST_F(HustleTableTest, EmptyTable) {
 TEST_F(HustleTableTest, OneBlockTable) {
   DBTable table("table", schema, BLOCK_SIZE);
 
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
 
   EXPECT_EQ(table.get_num_blocks(), 1);
 }
@@ -115,7 +115,7 @@ TEST_F(HustleTableTest, OneBlockTable) {
 TEST_F(HustleTableTest, OneBlockArray) {
   DBTable table("table", schema, BLOCK_SIZE);
 
-  table.insert_records(column_data);
+  table.InsertRecords(column_data);
 
   EXPECT_EQ(table.get_num_blocks(), 1);
 }
@@ -125,11 +125,11 @@ TEST_F(HustleTableTest, TwoBlockArray) {
 
   // Inserting three records 14 times. This fits into one block.
   for (int i = 0; i < 14; i++) {
-    table.insert_records(column_data);
+    table.InsertRecords(column_data);
   }
 
   // Bulk inserting again should allocate a new block
-  table.insert_records(column_data);
+  table.InsertRecords(column_data);
 
   EXPECT_EQ(table.get_num_blocks(), 2);
 }
@@ -140,12 +140,12 @@ TEST_F(HustleTableTest, TwoBlockTable) {
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.
   for (int i = 0; i < 8; i++) {
-    table.insert_record((uint8_t *)record_string.data(), byte_widths);
+    table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   }
 
   // The first block cannot hold a 9th copy of the first record, so we must
   // create a new block.
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
 
   EXPECT_EQ(table.get_num_blocks(), 2);
 }
@@ -153,17 +153,17 @@ TEST_F(HustleTableTest, TwoBlockTable) {
 TEST_F(HustleTableTest, TableIO) {
   DBTable table("table", schema, BLOCK_SIZE);
 
-  table.insert_records(column_data);
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
-  table.insert_records(column_data);
+  table.InsertRecords(column_data);
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
+  table.InsertRecords(column_data);
 
   for (int i = 0; i < 8; i++) {
-    table.insert_record((uint8_t *)record_string.data(), byte_widths);
+    table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   }
 
   // The first block cannot hold a 9th copy of the first record, so we must
   // create a new block.
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
 
   write_to_file("table.hsl", table);
 
@@ -183,12 +183,12 @@ TEST_F(HustleTableTest, ReadTableFromCSV) {
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.
   for (int i = 0; i < 8; i++) {
-    table.insert_record((uint8_t *)record_string.data(), byte_widths);
+    table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   }
 
   // The first block cannot hold a 9th copy of the first record, so we must
   // create a new block.
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
 
   auto table_from_csv =
       read_from_csv_file("table_test.csv", schema, BLOCK_SIZE);
