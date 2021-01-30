@@ -224,7 +224,7 @@ class Block {
    * should be listed in the same order as they appear in the Block's schema.
    * @return True if insertion was successful, false otherwise.
    */
-  bool InsertRecord(uint8_t *record, int32_t *byte_widths);
+  int InsertRecord(uint8_t *record, int32_t *byte_widths);
 
   /**
    *
@@ -232,7 +232,7 @@ class Block {
    * @param byte_widths
    * @return
    */
-  bool InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths);
+  int InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths);
 
   /**
    * Insert one or more records into the Block as a vector of ArrayData.
@@ -246,7 +246,7 @@ class Block {
    * number of elements.
    * @return True if insertion was successful, false otherwise.
    */
-  bool InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
+  int InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
   /**
    *
@@ -256,7 +256,7 @@ class Block {
    * @param column_data
    * @return
    */
-  bool InsertRecords(
+  int InsertRecords(
       std::map<int, BlockInfo>& block_map,
       std::map<int, int>& row_map,
       std::shared_ptr<arrow::Array> valid_column,

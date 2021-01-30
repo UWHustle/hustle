@@ -268,7 +268,7 @@ void Block::print() {
 }
 
 // Note that this funciton assumes that the valid column is in column_data
-bool Block::InsertRecords(
+int Block::InsertRecords(
     std::map<int, BlockInfo>& block_map,
     std::map<int, int>& row_map,
     const std::shared_ptr<arrow::Array> valid_column,
@@ -299,13 +299,13 @@ bool Block::InsertRecords(
        reduced_count++;
     }
   }
-  return true;
+  return num_rows - 1;
 }
 
 // Note that this funciton assumes that the valid column is in column_data
-bool Block::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
+int Block::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   if (column_data[0]->length == 0) {
-    return true;
+    return -1;
   }
 
   arrow::Status status;
@@ -452,7 +452,7 @@ bool Block::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_
     }
   }
   num_rows += n;
-  return true;
+  return num_rows - 1;
 }
 
 template <typename field_size>
@@ -478,15 +478,14 @@ void Block::InsertValues(int i, int offset,
   num_bytes += data_size;
 }
 
-// Return true is insertion was successful, false otherwise
-bool Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
+int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
   }
   // record does not fit in the block.
   if (record_size > get_bytes_left()) {
-    return false;
+    return -1;
   }
 
   arrow::Status status;
@@ -562,8 +561,7 @@ bool Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
             schema->field(i)->type()->ToString());
     }
   }
-  num_rows++;
-  return true;
+  return num_rows++;
 }
 
 template <typename field_size>
@@ -598,7 +596,7 @@ void Block::InsertValue(int i, int &head, uint8_t *record_value,
 }
 
 // Return true is insertion was successful, false otherwise
-bool Block::InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths) {
+int Block::InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths) {
   int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
@@ -606,7 +604,7 @@ bool Block::InsertRecord(std::vector<std::string_view> record, int32_t *byte_wid
 
   // record does not fit in the block.
   if (record_size > get_bytes_left()) {
-    return false;
+    return -1;
   }
 
   arrow::Status status;
@@ -724,9 +722,7 @@ bool Block::InsertRecord(std::vector<std::string_view> record, int32_t *byte_wid
     }
   }
   num_bytes += head;
-  num_rows++;
-
-  return true;
+  return num_rows++;
 }
 
 template <typename field_size>
