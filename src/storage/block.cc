@@ -283,12 +283,10 @@ int Block::InsertRecords(
   auto *filter_data =  valid_column->data()->GetMutableValues<uint8_t>(1, 0);
   for (int row = 0; row < col_length; row++) {
     std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
-
     for (int i = 0; i < column_data.size(); i++) {
       auto sliced_data = column_data[i]->Slice(row, 1);
       sliced_column_data.push_back(sliced_data);
     }
-
     if ((filter_data[row / 8] >> (row % 8u) & 1u) == 1u) {
       int row_id = row_map[row + reduced_count];
       this->row_id_map[row] = row_id;
@@ -310,21 +308,15 @@ int Block::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_d
 
   arrow::Status status;
   int n = column_data[0]->length;  // number of elements to be inserted
-
-  auto valid_buffer =
-      std::static_pointer_cast<arrow::ResizableBuffer>(valid->buffers[1]);
-
+  auto valid_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(valid->buffers[1]);
   status = valid_buffer->Resize(valid_buffer->size() + n / 8 + 1, false);
   valid_buffer->ZeroPadding();  // Ensure the additional byte is zeroed
-  // TODO(nicholas)
   for (int k = 0; k < n; k++) {
     set_valid(num_rows + k, true);
   }
-
   valid->length += n;
   // NOTE: buffers do NOT account for Slice offsets!!!
   int offset = column_data[0]->offset;
-
   for (int i = 0; i < num_cols; i++) {
     switch (schema->field(i)->type()->id()) {
       case arrow::Type::STRING: {
@@ -390,12 +382,8 @@ int Block::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_d
                 current_offset - in_offsets_data[offset];
           }
         }
-
-        auto *values_data =
-            columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
-
+        auto *values_data = columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
         std::memcpy(values_data, in_values_data, string_size);
-
         columns[i]->length += n;
         column_sizes[i] += string_size;
         num_bytes += string_size;
@@ -456,25 +444,17 @@ int Block::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_d
 }
 
 template <typename field_size>
-void Block::InsertValues(int i, int offset,
-                                    std::shared_ptr<arrow::ArrayData> vals,
-                                    int num_vals) {
+void Block::InsertValues(int col_num, int offset, std::shared_ptr<arrow::ArrayData> vals, int num_vals) {
   int data_size = sizeof(int64_t) * num_vals;
-
-  auto data_buffer =
-      std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
-
-  if (column_sizes[i] + data_size > data_buffer->capacity()) {
-    auto status =
-        data_buffer->Resize(data_buffer->capacity() + data_size, false);
+  auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[col_num]->buffers[1]);
+  if (column_sizes[col_num] + data_size > data_buffer->capacity()) {
+    auto status = data_buffer->Resize(data_buffer->capacity() + data_size, false);
     evaluate_status(status, __FUNCTION__, __LINE__);
   }
-
-  auto *dest = columns[i]->GetMutableValues<int64_t>(1, num_rows);
+  auto *dest = columns[col_num]->GetMutableValues<int64_t>(1, num_rows);
   std::memcpy(dest, vals->GetValues<int64_t>(1, offset), data_size);
-
-  columns[i]->length += num_vals;
-  column_sizes[i] += data_size;
+  columns[col_num]->length += num_vals;
+  column_sizes[col_num] += data_size;
   num_bytes += data_size;
 }
 
@@ -503,35 +483,23 @@ int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   for (int i = 0; i < num_cols; i++) {
     switch (schema->field(i)->type()->id()) {
       case arrow::Type::STRING: {
-        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[2]);
-
+        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
+        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[2]);
         // Extended the underlying data and offsets buffer. This may
         // result in copying the data.
         // Use index i-1 because byte_widths does not include the byte
         // width of the valid column.
-        // TODO(nicholas): size() may not be up to date! Use
-        //  column_sizes[i] instead.
-        status =
-            data_buffer->Resize(data_buffer->size() + byte_widths[i], false);
+        status = data_buffer->Resize(data_buffer->size() + byte_widths[i], false);
         evaluate_status(status, __FUNCTION__, __LINE__);
-
-        status = offsets_buffer->Resize(
-            offsets_buffer->size() + sizeof(int32_t), false);
+        status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t), false);
         evaluate_status(status, __FUNCTION__, __LINE__);
 
         // Insert new offset
         auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
         int32_t new_offset = offsets_data[num_rows] + byte_widths[i];
-        std::memcpy(&offsets_data[num_rows + 1], &new_offset,
-                    sizeof(new_offset));
-
-        auto *values_data =
-            columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
+        std::memcpy(&offsets_data[num_rows + 1], &new_offset, sizeof(new_offset));
+        auto *values_data = columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
         std::memcpy(values_data, &record[head], byte_widths[i]);
-
         columns[i]->length++;
         column_sizes[i] += byte_widths[i];
         head += byte_widths[i];
@@ -565,34 +533,29 @@ int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
 }
 
 template <typename field_size>
-void Block::InsertValue(int i, int &head, uint8_t *record_value,
-                                   int byte_width) {
-  auto data_buffer =
-      std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
-
+void Block::InsertValue(int col_num, int &head, uint8_t *record_value, int byte_width) {
+  auto data_buffer =std::static_pointer_cast<arrow::ResizableBuffer>(columns[col_num]->buffers[1]);
   auto status = data_buffer->Resize(data_buffer->size() + sizeof(field_size), false);
   evaluate_status(status, __FUNCTION__, __LINE__);
-
   if (byte_width >= sizeof(field_size)) {
-    auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
+    auto *dest = columns[col_num]->GetMutableValues<field_size>(1, num_rows);
     std::memcpy(dest, record_value, byte_width);
     head += byte_width;
-    column_sizes[i] += byte_width;
+    column_sizes[col_num] += byte_width;
     num_bytes += byte_width;
   } else {
     // TODO(suryadev): Study the scope for optimization
-    auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
+    auto *dest = columns[col_num]->GetMutableValues<field_size>(1, num_rows);
     uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
-    std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
-                byte_width);
+    std::memcpy(value, utils::reverse_bytes(record_value, byte_width), byte_width);
     std::memcpy(dest, value, sizeof(field_size));
     head += byte_width;
-    column_sizes[i] += sizeof(field_size);
+    column_sizes[col_num] += sizeof(field_size);
     num_bytes += sizeof(field_size);
     free(value);
   }
 
-  columns[i]->length++;
+  columns[col_num]->length++;
 }
 
 // Return true is insertion was successful, false otherwise
@@ -653,7 +616,7 @@ int Block::InsertRecord(std::vector<std::string_view> record, int32_t *byte_widt
           status = offsets_buffer->Resize((num_rows + 2) * sizeof(int32_t) + 1,
                                           false);
           evaluate_status(status, __FUNCTION__, __LINE__);
-          // TODO(nicholas): is this necessary?
+          // optimize? is this necessary?
           offsets_buffer->ZeroPadding();
         }
         // We must fetch the offsets data again, since resizing might
@@ -714,7 +677,6 @@ int Block::InsertRecord(std::vector<std::string_view> record, int32_t *byte_widt
         InsertCsvValue<uint8_t>(i, head, record[i]);
         break;
       }
-
       default:
         throw std::logic_error(
             std::string("Cannot insert tuple with unsupported type: ") +
@@ -726,53 +688,40 @@ int Block::InsertRecord(std::vector<std::string_view> record, int32_t *byte_widt
 }
 
 template <typename field_size>
-void Block::InsertCsvValue(int i, int &head, std::string_view record) {
-  auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
-
-  if (column_sizes[i] + sizeof(field_size) > data_buffer->capacity()) {
+void Block::InsertCsvValue(int col_num, int &head, std::string_view record) {
+  auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[col_num]->buffers[1]);
+  if (column_sizes[col_num] + sizeof(field_size) > data_buffer->capacity()) {
     // Resize will not resize the buffer if the inputted size
     // equals the current size of the buffer. To force
     // resizing in this case, we add +1.
     auto status = data_buffer->Resize(data_buffer->capacity() + sizeof(field_size) + 1, false);
     evaluate_status(status, __FUNCTION__, __LINE__);
   }
-
   int64_t out;
   auto result = absl::SimpleAtoi(record, &out);
-
-  auto *dest = columns[i]->GetMutableValues<field_size>(1, num_rows);
+  auto *dest = columns[col_num]->GetMutableValues<field_size>(1, num_rows);
   std::memcpy(dest, &out, sizeof(field_size));
-
   head += sizeof(field_size);
-  column_sizes[i] += sizeof(field_size);
-  columns[i]->length++;
+  column_sizes[col_num] += sizeof(field_size);
+  columns[col_num]->length++;
 }
 
 void Block::TruncateBuffers() {
   arrow::Status status;
-
   for (int i = 0; i < num_cols; i++) {
     switch (schema->field(i)->type()->id()) {
       case arrow::Type::STRING: {
-        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[2]);
-
+        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
+        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[2]);
         status = data_buffer->Resize(column_sizes[i], true);
         evaluate_status(status, __FUNCTION__, __LINE__);
-
         status = offsets_buffer->Resize((num_rows + 1) * sizeof(int32_t), true);
         evaluate_status(status, __FUNCTION__, __LINE__);
-
         break;
       }
       case arrow::Type::FIXED_SIZE_BINARY: {
-        auto field_size =
-            schema->field(i)->type()->layout().FixedWidth(1).byte_width;
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
-
+        auto field_size = schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
         status = data_buffer->Resize(num_rows * field_size, true);
         evaluate_status(status, __FUNCTION__, __LINE__);
       }
@@ -803,10 +752,8 @@ void Block::TruncateBuffers() {
 }
 
 template <typename field_size>
-void Block::TruncateColumnBuffer(int i) {
-  auto data_buffer =
-      std::static_pointer_cast<arrow::ResizableBuffer>(columns[i]->buffers[1]);
-
+void Block::TruncateColumnBuffer(int col_num) {
+  auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(columns[col_num]->buffers[1]);
   auto status = data_buffer->Resize(num_rows * sizeof(int64_t), true);
   evaluate_status(status, __FUNCTION__, __LINE__);
 }

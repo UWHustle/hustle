@@ -81,8 +81,7 @@ void DBTable::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> colum
   auto block = GetBlockForInsert();
   int offset = 0;
   int length = l;
-  // TODO(nicholas): Optimize this. Calls to schema->field(i) is non-
-  //  neglible since we call it once for each column of each record.
+  // optimize?
   int column_types[num_cols];
   for (int i = 0; i < num_cols; i++) {
     column_types[i] = schema->field(i)->type()->id();
@@ -92,7 +91,7 @@ void DBTable::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> colum
     for (int i = 0; i < num_cols; i++) {
       switch (column_types[i]) {
         case arrow::Type::STRING: {
-          // TODO(nicholas) schema offsets!!!!
+          // optimize with offsets per schema?
           auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
           record_size += offsets[row + 1] - offsets[row];
           break;
@@ -270,8 +269,8 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
   std::shared_ptr<Block> block = this->get_block(block_info.block_id);
   block->set_valid(block_info.row_num, false);
   auto updatedBlock = std::make_shared<Block>(block_info.block_id, schema, block->get_capacity());
-  updatedBlock->InsertRecords(block_map, block->get_row_id_map(),
-                               block->get_valid_column(), block->get_columns());
+  updatedBlock->InsertRecords(
+      block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
   blocks[block_info.block_id] = updatedBlock;
   num_rows--;
   if (insert_pool.find(block_info.block_id) != insert_pool.end()) {

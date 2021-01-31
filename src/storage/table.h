@@ -73,9 +73,9 @@ class DBTable {
    * the blocks are consistent with the table or with each other. No memory
    * copying is done.
    *
-   * @param intput_blocks Vector of blocks to be inserted into the table.
+   * @param input_blocks Vector of blocks to be inserted into the table.
    */
-  void InsertBlocks(std::vector<std::shared_ptr<Block>> intput_blocks);
+  void InsertBlocks(std::vector<std::shared_ptr<Block>> input_blocks);
 
   /**
    * @param block_id Block ID
@@ -98,7 +98,9 @@ class DBTable {
   }
 
   /**
-   * @param block Block to be added to the insert pool
+   * Mark a block to be added to the insert pool.
+   *
+   * @param block Block to be added to the insert pool.
    */
   inline void MarkBlockForInsert(const std::shared_ptr<Block> &block) {
     std::scoped_lock insert_pool_lock(insert_pool_mutex);
@@ -106,10 +108,26 @@ class DBTable {
     insert_pool[block->get_id()] = block;
   }
 
+  /**
+   * Get the number of rows in all blocks in the table.
+   *
+   * @return number of rows
+   */
   inline int get_num_rows() const {return num_rows;}
 
+  /**
+   * Get the number of blocks in the table.
+   *
+   * @return number of blocks
+   */
   inline size_t get_num_blocks() const {return blocks.size();}
 
+  /**
+   * Get the size of one record in the Table.
+   *
+   * @param byte_widths
+   * @return
+   */
   int GetRecordSize(int32_t *byte_widths);
 
   /**
@@ -124,27 +142,34 @@ class DBTable {
   BlockInfo InsertRecord(uint8_t *record, int32_t *byte_widths);
 
   /**
+   * Insert record by row IDs.
    *
-   * @param rowId
-   * @param record
-   * @param byte_widths
+   * @param rowId row id
+   * @param record record to insert
+   * @param byte_widths widths of fields in record
    */
   inline void InsertRecordTable(uint32_t rowId, uint8_t *record, int32_t *byte_widths) {
     block_map[rowId] = InsertRecord(record, byte_widths);
   }
 
   /**
+   * Update record by row ID.
    *
-   * @param rowId
-   * @param nUpdateMetaInfo
-   * @param updateMetaInfo
-   * @param record
-   * @param byte_widths
+   * @param rowId row id
+   * @param nUpdateMetaInfo number of update meta infos
+   * @param updateMetaInfo update meta info array
+   * @param record updated record
+   * @param byte_widths widths of fields in record
    */
   void UpdateRecordTable(uint32_t rowId, int nUpdateMetaInfo,
                            UpdateMetaInfo *updateMetaInfo, uint8_t *record,
                            int32_t *byte_widths);
 
+  /**
+   * Delete record by row id
+   *
+   * @param rowId row id
+   */
   void DeleteRecordTable(uint32_t rowId);
 
   /**
@@ -179,7 +204,7 @@ class DBTable {
    * @param i Block index
    * @return The number of rows that appear before block i in the table.
    */
-  inline int get_block_row_offset(int i) const {return block_row_offsets[i];}
+  inline int get_block_row_offset(int block_index) const {return block_row_offsets[block_index];}
 
   /**
    * Return a specific column as a ChunkedArray over all blocks in the table.
@@ -219,6 +244,11 @@ class DBTable {
     }
   }
 
+  /**
+   * Get valid-bit column of all blocks in the table.
+   *
+   * @return valid-bit column
+   */
   inline std::shared_ptr<arrow::ChunkedArray> get_valid_column(){
     arrow::ArrayVector array_vector;
     for (int i = 0; i < blocks.size(); i++) {
@@ -227,62 +257,111 @@ class DBTable {
     return std::make_shared<arrow::ChunkedArray>(array_vector);
   }
 
+  /**
+   * Get the name of the table
+   *
+   * @return table name
+   */
   inline std::string get_name() const {return table_name;}
 
+  /**
+   * Get the number of columns in the table
+   *
+   * @return number of columns
+   */
   inline int get_num_cols() const {return num_cols;}
 
+  /**
+   * Insert a record into the table
+   *
+   * @param values values to be inserted
+   * @param byte_widths width of each value
+   */
   void InsertRecord(std::vector<std::string_view> values, int32_t *byte_widths);
 
+  /**
+   * Split the table into a number of batches and apply a function.
+   *
+   * @tparam Functor
+   * @param functor
+   */
   template <typename Functor>
   void ForEachBatch(const Functor &functor) const;
 
  private:
+  /**
+   * Table Name
+   */
   std::string table_name;
 
-  // Excludes the valid column, which is only visible to the Block class.
+  /**
+   * Table Schema. Note that this excludes the valid column, which is only visible to the Block class.
+   */
   std::shared_ptr<arrow::Schema> schema;
 
-  // Initialized to BLOCK_SIZE
+  /**
+   * Capacity of each Block in the table. This is initialized to BLOCK_SIZE.
+   */
   int block_capacity;
 
-  // row id to block info
+  /**
+   * Block Map. This stores row id to block info.
+   */
   std::map<int, BlockInfo> block_map;
 
+  /**
+   * Blocks stored in the table.
+   */
   std::unordered_map<int, std::shared_ptr<Block>> blocks;
 
+  /**
+   * Mutex locked during block creation.
+   */
   std::mutex blocks_mutex;
 
-  // A map containing blocks that can hold at least one additional record.
+  /**
+   * A map containing blocks that can hold at least one additional record.
+   */
   std::unordered_map<int, std::shared_ptr<Block>> insert_pool;
 
+  /**
+   * Mutex locked when retrieving blocks from the insert pool.
+   */
   std::mutex insert_pool_mutex;
 
-  // Block ID of the next block to be created. Equal to the number of blocks
-  // in the table.
+  /**
+   * Block ID of the next block to be created. Equal to the number of blocks in the table.
+   */
   int block_counter;
 
-  // The byte width of all fields with fixed length. If there are no
-  // variable-length fields, then this is equal to the byte width of a full
-  // record.
-  //
-  // Used to determine if we can fit another record into the block.
+  /**
+   * The byte width of all fields with fixed length. If there are no variable-length fields,
+   * then this is equal to the byte width of a full record.
+   * Used to determine if we can fit another record into the block.
+   */
   int fixed_record_width;
 
-  // Total number of rows in all blocks of the table.
+  /**
+   * Total number of rows in all blocks in the table.
+   */
   int num_rows;
 
+  /**
+   * Total number of columns in all blocks in the table.
+   */
   int num_cols;
 
-  // The value at index i is the number of records before block i. The value
-  // at index 0 is always 0.
+  /**
+   * The value at index i is the number of records before block i. The value at index 0 is always 0.
+   */
   std::vector<int> block_row_offsets;
 };
 
+/// Implementation of ForEachBatch
 template <typename Functor>
 void DBTable::ForEachBatch(const Functor &functor) const {
   //if (this->get_num_blocks() == 0) return;
-  size_t batch_size =
-      this->get_num_blocks() / std::thread::hardware_concurrency();
+  size_t batch_size = this->get_num_blocks() / std::thread::hardware_concurrency();
   if (batch_size == 0) batch_size = this->get_num_blocks();
   size_t num_batches = 1 + ((this->get_num_blocks() - 1) / batch_size);
   for (size_t batch_index = 0; batch_index < num_batches; batch_index++) {
