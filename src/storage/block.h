@@ -19,8 +19,10 @@
 #define HUSTLE_OFFLINE_BLOCK_H
 
 #include <arrow/api.h>
-#include <map>
+
 #include <iostream>
+#include <map>
+
 #include "utils/bit_utils.h"
 
 #define BLOCK_SIZE (1 << 20)
@@ -82,14 +84,14 @@ class Block {
    *
    * @return The Block's ID
    */
-  inline int get_id() const {return id;}
+  inline int get_id() const { return id; }
 
   /**
    * Return the block's schema, including the valid column.
    *
    * @return the block's schema
    */
-  inline std::shared_ptr<arrow::Schema> get_schema() {return schema;}
+  inline std::shared_ptr<arrow::Schema> get_schema() { return schema; }
 
   /**
    * Get a column from the Block by index. The indexing of columns is defined
@@ -107,7 +109,9 @@ class Block {
    *
    * @return all columns in the block
    */
-  inline std::vector<std::shared_ptr<arrow::ArrayData>> get_columns() {return columns;}
+  inline std::vector<std::shared_ptr<arrow::ArrayData>> get_columns() {
+    return columns;
+  }
 
   /**
    * Get a column from the Block by name. Column names are defined by the
@@ -116,7 +120,8 @@ class Block {
    * @param name Name of the column
    * @return A read-only pointer to the column.
    */
-  inline std::shared_ptr<arrow::Array> get_column_by_name(const std::string &name) const {
+  inline std::shared_ptr<arrow::Array> get_column_by_name(
+      const std::string &name) const {
     return arrow::MakeArray(columns[schema->GetFieldIndex(name)]);
   }
 
@@ -125,7 +130,9 @@ class Block {
    *
    * @return valid-bit column
    */
-  inline std::shared_ptr<arrow::Array> get_valid_column() const {return arrow::MakeArray(valid);}
+  inline std::shared_ptr<arrow::Array> get_valid_column() const {
+    return arrow::MakeArray(valid);
+  }
 
   /**
    * Return the valid bit of a particular row.
@@ -146,7 +153,8 @@ class Block {
    * @param row_index Row index.
    * @return True if the given row is valid, false otherwise.
    */
-  inline bool get_valid(const std::shared_ptr<arrow::ArrayData> validArray, unsigned int row_index) const {
+  inline bool get_valid(const std::shared_ptr<arrow::ArrayData> validArray,
+                        unsigned int row_index) const {
     auto *data = validArray->GetMutableValues<uint8_t>(1, 0);
     uint8_t byte = data[row_index / 8];
     return ((byte >> (row_index % 8u)) & 1u) == 1u;
@@ -164,7 +172,7 @@ class Block {
     if (val) {
       data[row_index / 8] |= (1u << (row_index % 8u));
     } else {
-      data[row_index / 8] &=  ~(1u << (row_index % 8u));
+      data[row_index / 8] &= ~(1u << (row_index % 8u));
     }
   }
 
@@ -186,7 +194,8 @@ class Block {
   inline int get_bytes_left() { return capacity - num_bytes; }
 
   /**
-   * Print the contents of the block delimited by tabs, including the valid column.
+   * Print the contents of the block delimited by tabs, including the valid
+   * column.
    */
   void print();
 
@@ -195,35 +204,35 @@ class Block {
    *
    * @return Number of rows in the Block
    */
-  inline int get_num_rows() const {return num_rows;}
+  inline int get_num_rows() const { return num_rows; }
 
   /**
    * Get the number of columns in the Block.
    *
    * @return number of columns
    */
-  inline int get_num_cols() const { return num_cols;}
+  inline int get_num_cols() const { return num_cols; }
 
   /**
    * Get the width of all fixed width columns.
    *
    * @return width
    */
-  inline int get_fixed_record_width() const {return fixed_record_width;}
+  inline int get_fixed_record_width() const { return fixed_record_width; }
 
   /**
    * Get the maximum capacity of the Block.
    *
    * @return block capacity
    */
-  inline int get_capacity() const {return capacity;}
+  inline int get_capacity() const { return capacity; }
 
   /**
    * Get the row ID Mapping of the block.
    *
    * @return row ID map
    */
-  std::map<int, int>& get_row_id_map() {return row_id_map;}
+  std::map<int, int> &get_row_id_map() { return row_id_map; }
 
   /**
    * Insert a record into the Block.
@@ -233,7 +242,8 @@ class Block {
    * should not be separated by e.g. null characters.
    * @param byte_widths Byte width of each value to be inserted. Byte widths
    * should be listed in the same order as they appear in the Block's schema.
-   * @return -1 if the insertion failed, otherwise the highest row index now present in the block.
+   * @return -1 if the insertion failed, otherwise the highest row index now
+   * present in the block.
    */
   int InsertRecord(uint8_t *record, int32_t *byte_widths);
 
@@ -242,7 +252,8 @@ class Block {
    *
    * @param record Values to be inserted into each column.
    * @param byte_widths Byte width of each value to be inserted.
-   * @return -1 if the insertion failed, otherwise the highest row index now present in the block.
+   * @return -1 if the insertion failed, otherwise the highest row index now
+   * present in the block.
    */
   int InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths);
 
@@ -256,24 +267,26 @@ class Block {
    * appear in the Block's schema. The length of column_data must match the
    * length of the Block's schema. All ArrayData must contain the same
    * number of elements.
-   * @return -1 if the insertion failed, otherwise the highest row index now present in the block.
+   * @return -1 if the insertion failed, otherwise the highest row index now
+   * present in the block.
    */
   int InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
   /**
-   * Insert one or more records into the Block using BlockInfo from a different block.
+   * Insert one or more records into the Block using BlockInfo from a different
+   * block.
    *
    * @param block_map BlockInfo Map
    * @param row_map Row Map
    * @param valid_column Valid-bit column
    * @param column_data Vector of column datas.
-   * @return -1 if the insertion failed, otherwise the highest row index now present in the block.
+   * @return -1 if the insertion failed, otherwise the highest row index now
+   * present in the block.
    */
-  int InsertRecords(
-      std::map<int, BlockInfo>& block_map,
-      std::map<int, int>& row_map,
-      std::shared_ptr<arrow::Array> valid_column,
-      std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
+  int InsertRecords(std::map<int, BlockInfo> &block_map,
+                    std::map<int, int> &row_map,
+                    std::shared_ptr<arrow::Array> valid_column,
+                    std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
   /**
    * Update a value in a column.
@@ -285,10 +298,12 @@ class Block {
    * @param byte_width width of field
    */
   template <typename field_size>
-  inline void UpdateColumnValue(int col_num, int row_num, uint8_t *record_value, int byte_width) {
+  inline void UpdateColumnValue(int col_num, int row_num, uint8_t *record_value,
+                                int byte_width) {
     auto *dest = columns[col_num]->GetMutableValues<field_size>(1, row_num);
     uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
-    std::memcpy(value, utils::reverse_bytes(record_value, byte_width), byte_width);
+    std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
+                byte_width);
     std::memcpy(dest, value, sizeof(field_size));
     free(value);
   }
@@ -335,7 +350,8 @@ class Block {
   std::map<int, int> row_id_map;
 
   /**
-   * Total number of data bytes stored in the block, excluding the valid column data.
+   * Total number of data bytes stored in the block, excluding the valid column
+   * data.
    */
   int num_bytes;
 
@@ -375,7 +391,8 @@ class Block {
    * @return
    */
   template <typename field_size>
-  std::shared_ptr<arrow::ArrayData> AllocateColumnData(std::shared_ptr<arrow::DataType> type, int init_rows);
+  std::shared_ptr<arrow::ArrayData> AllocateColumnData(
+      std::shared_ptr<arrow::DataType> type, int init_rows);
 
   /**
    * Insert a value into a column.
@@ -387,7 +404,8 @@ class Block {
    * @param byte_width width of field
    */
   template <typename field_size>
-  void InsertValue(int col_num, int &head, uint8_t *record_value, int byte_width);
+  void InsertValue(int col_num, int &head, uint8_t *record_value,
+                   int byte_width);
 
   /**
    * Insert values into a column
@@ -399,7 +417,8 @@ class Block {
    * @param num_vals number of values to insert
    */
   template <typename field_size>
-  void InsertValues(int col_num, int offset, std::shared_ptr<arrow::ArrayData> vals, int num_vals);
+  void InsertValues(int col_num, int offset,
+                    std::shared_ptr<arrow::ArrayData> vals, int num_vals);
 
   /**
    * Insert value from CSV string

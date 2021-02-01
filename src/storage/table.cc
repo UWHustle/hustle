@@ -28,17 +28,28 @@
 
 namespace hustle::storage {
 
-DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema, int block_capacity)
-: table_name(std::move(name)), schema(schema), block_counter(0), num_rows(0),
-  block_capacity(block_capacity), block_row_offsets({}) {
+DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
+                 int block_capacity)
+    : table_name(std::move(name)),
+      schema(schema),
+      block_counter(0),
+      num_rows(0),
+      block_capacity(block_capacity),
+      block_row_offsets({}) {
   //
   fixed_record_width = compute_fixed_record_width(schema);
   num_cols = schema->num_fields();
 }
 
-DBTable::DBTable(std::string name, std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches, int block_capacity)
-: table_name(std::move(name)), block_counter(0), num_rows(0),
-  block_capacity(block_capacity), block_row_offsets({0}) {
+DBTable::DBTable(
+    std::string name,
+    std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+    int block_capacity)
+    : table_name(std::move(name)),
+      block_counter(0),
+      num_rows(0),
+      block_capacity(block_capacity),
+      block_row_offsets({0}) {
   //
   schema = std::move(record_batches[0]->schema());
   num_cols = schema->num_fields();
@@ -53,7 +64,8 @@ DBTable::DBTable(std::string name, std::vector<std::shared_ptr<arrow::RecordBatc
   }
   if (blocks[blocks.size() - 1]->get_bytes_left() > fixed_record_width) {
     MarkBlockForInsert(blocks[blocks.size() - 1]);
-    // The final block is not full, so do not include an offset for the next block.
+    // The final block is not full, so do not include an offset for the next
+    // block.
     block_row_offsets[block_row_offsets.size() - 1] = -1;
   }
 }
@@ -70,12 +82,14 @@ void DBTable::InsertBlocks(std::vector<std::shared_ptr<Block>> input_blocks) {
   }
   if (blocks[blocks.size() - 1]->get_bytes_left() > fixed_record_width) {
     MarkBlockForInsert(blocks[blocks.size() - 1]);
-    // The final block is not full, so do not include an offset for the next new block.
+    // The final block is not full, so do not include an offset for the next new
+    // block.
     block_row_offsets[block_row_offsets.size()] = -1;
   }
 }
 
-void DBTable::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
+void DBTable::InsertRecords(
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   int l = column_data[0]->length;
   int data_size = 0;
   auto block = GetBlockForInsert();
@@ -191,7 +205,8 @@ int DBTable::get_record_size(int32_t *byte_widths) {
         break;
       }
       default:
-        throw std::logic_error(std::string("unsupported type: ") + schema->field(i)->type()->ToString());
+        throw std::logic_error(std::string("unsupported type: ") +
+                               schema->field(i)->type()->ToString());
     }
   }
   return record_size;
@@ -212,8 +227,9 @@ BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   return {block->get_id(), row_num};
 }
 
-void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo, UpdateMetaInfo *updateMetaInfo,
-                                  uint8_t *record, int32_t *byte_widths) {
+void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
+                                UpdateMetaInfo *updateMetaInfo, uint8_t *record,
+                                int32_t *byte_widths) {
   auto block_map_it = block_map.find(row_id);
   if (block_map_it == block_map.end()) {
     return;
@@ -237,19 +253,23 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo, UpdateM
       }
       case arrow::Type::DOUBLE:
       case arrow::Type::INT64: {
-        block->UpdateColumnValue<int64_t>(col_num, row_num,record + offset, byte_widths[col_num]);
+        block->UpdateColumnValue<int64_t>(col_num, row_num, record + offset,
+                                          byte_widths[col_num]);
         break;
       }
       case arrow::Type::UINT32: {
-        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset, byte_widths[i]);
+        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
+                                           byte_widths[i]);
         break;
       }
       case arrow::Type::UINT16: {
-        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset, byte_widths[i]);
+        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
+                                           byte_widths[i]);
         break;
       }
       case arrow::Type::UINT8: {
-        block->UpdateColumnValue<uint8_t>(col_num, row_num,record + offset, byte_widths[i]);
+        block->UpdateColumnValue<uint8_t>(col_num, row_num, record + offset,
+                                          byte_widths[i]);
         break;
       }
       default:
@@ -268,9 +288,10 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
   BlockInfo block_info = block_map_it->second;
   std::shared_ptr<Block> block = this->get_block(block_info.block_id);
   block->set_valid(block_info.row_num, false);
-  auto updatedBlock = std::make_shared<Block>(block_info.block_id, schema, block->get_capacity());
-  updatedBlock->InsertRecords(
-      block_map, block->get_row_id_map(), block->get_valid_column(), block->get_columns());
+  auto updatedBlock = std::make_shared<Block>(block_info.block_id, schema,
+                                              block->get_capacity());
+  updatedBlock->InsertRecords(block_map, block->get_row_id_map(),
+                              block->get_valid_column(), block->get_columns());
   blocks[block_info.block_id] = updatedBlock;
   num_rows--;
   if (insert_pool.find(block_info.block_id) != insert_pool.end()) {
@@ -278,7 +299,8 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
   }
 }
 
-void DBTable::InsertRecord(std::vector<std::string_view> values, int32_t *byte_widths) {
+void DBTable::InsertRecord(std::vector<std::string_view> values,
+                           int32_t *byte_widths) {
   std::shared_ptr<Block> block = GetBlockForInsert();
   int32_t record_size = 0;
   // record size is incorrectly computed!

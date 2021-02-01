@@ -152,12 +152,12 @@ TEST_F(HustleTableTest, TableIO) {
   table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   write_to_file("table.hsl", table);
   auto table_from_file = read_from_file("table.hsl");
-  EXPECT_TRUE(
-      table_from_file->get_block(0)->get_valid_column()->Equals(*table.get_block(0)->get_valid_column()));
-  EXPECT_TRUE(
-      table_from_file->get_block(0)->get_records()->Equals(*table.get_block(0)->get_records()));
-  EXPECT_TRUE(
-      table_from_file->get_block(1)->get_records()->Equals(*table.get_block(1)->get_records()));
+  EXPECT_TRUE(table_from_file->get_block(0)->get_valid_column()->Equals(
+      *table.get_block(0)->get_valid_column()));
+  EXPECT_TRUE(table_from_file->get_block(0)->get_records()->Equals(
+      *table.get_block(0)->get_records()));
+  EXPECT_TRUE(table_from_file->get_block(1)->get_records()->Equals(
+      *table.get_block(1)->get_records()));
 }
 
 TEST_F(HustleTableTest, ReadTableFromCSV) {
@@ -170,7 +170,8 @@ TEST_F(HustleTableTest, ReadTableFromCSV) {
   // The first block cannot hold a 9th copy of the first record, so we must
   // create a new block.
   table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
-  auto table_from_csv = read_from_csv_file("table_test.csv", schema, BLOCK_SIZE);
+  auto table_from_csv =
+      read_from_csv_file("table_test.csv", schema, BLOCK_SIZE);
   EXPECT_TRUE(table_from_csv->get_block(0)->get_records()->Equals(
       *table.get_block(0)->get_records()));
   EXPECT_TRUE(table_from_csv->get_block(1)->get_records()->Equals(
@@ -261,7 +262,8 @@ TEST_F(HustleTableTest, Update) {
   customer_table.addColumn(c_phone);
   customer_table.addColumn(c_mktsegment);
   customer_table.setPrimaryKey({});
-  std::shared_ptr<arrow::Schema> customer_schema = customer_table.getArrowSchema();
+  std::shared_ptr<arrow::Schema> customer_schema =
+      customer_table.getArrowSchema();
   std::string query =
       "BEGIN TRANSACTION; "
       "INSERT INTO customer_table VALUES (800224, 'James', "
@@ -332,7 +334,8 @@ TEST_F(HustleTableTest, Delete) {
   customer_table.addColumn(c_phone);
   customer_table.addColumn(c_mktsegment);
   customer_table.setPrimaryKey({});
-  std::shared_ptr<arrow::Schema> customer_schema = customer_table.getArrowSchema();
+  std::shared_ptr<arrow::Schema> customer_schema =
+      customer_table.getArrowSchema();
   std::string query =
       "BEGIN TRANSACTION; "
       "INSERT INTO customer_table_d VALUES (800224, 'James', "
@@ -350,7 +353,8 @@ TEST_F(HustleTableTest, Delete) {
       "DELETE FROM customer_table_d where c_custkey=800224;"
       "COMMIT;";
   hustleDB.executeQuery(query);
-  auto col = std::static_pointer_cast<arrow::StringArray>(customer_table_ptr->get_column(5)->chunk(0));
+  auto col = std::static_pointer_cast<arrow::StringArray>(
+      customer_table_ptr->get_column(5)->chunk(0));
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 0);
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
