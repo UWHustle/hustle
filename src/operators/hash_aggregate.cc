@@ -771,7 +771,7 @@ void HashAggregate::Finish(Task* ctx) {
   }
   output_table_data.push_back(aggregates.make_array()->data());
 
-  output_table_->insert_records(output_table_data);
+  output_table_->InsertRecords(output_table_data);
   output_result_->append(output_table_);
 
 }

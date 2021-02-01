@@ -100,75 +100,58 @@ class HustleTableTest : public testing::Test {
 
 TEST_F(HustleTableTest, EmptyTable) {
   DBTable table("table", schema, BLOCK_SIZE);
-
   EXPECT_EQ(table.get_num_blocks(), 0);
 }
 
 TEST_F(HustleTableTest, OneBlockTable) {
   DBTable table("table", schema, BLOCK_SIZE);
-
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
-
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   EXPECT_EQ(table.get_num_blocks(), 1);
 }
 
 TEST_F(HustleTableTest, OneBlockArray) {
   DBTable table("table", schema, BLOCK_SIZE);
-
-  table.insert_records(column_data);
-
+  table.InsertRecords(column_data);
   EXPECT_EQ(table.get_num_blocks(), 1);
 }
 
 TEST_F(HustleTableTest, TwoBlockArray) {
   DBTable table("table", schema, BLOCK_SIZE);
-
   // Inserting three records 14 times. This fits into one block.
   for (int i = 0; i < 14; i++) {
-    table.insert_records(column_data);
+    table.InsertRecords(column_data);
   }
-
   // Bulk inserting again should allocate a new block
-  table.insert_records(column_data);
-
+  table.InsertRecords(column_data);
   EXPECT_EQ(table.get_num_blocks(), 2);
 }
 
 TEST_F(HustleTableTest, TwoBlockTable) {
   DBTable table("table", schema, BLOCK_SIZE);
-
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.
   for (int i = 0; i < 8; i++) {
-    table.insert_record((uint8_t *)record_string.data(), byte_widths);
+    table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   }
-
   // The first block cannot hold a 9th copy of the first record, so we must
   // create a new block.
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
-
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   EXPECT_EQ(table.get_num_blocks(), 2);
 }
 
 TEST_F(HustleTableTest, TableIO) {
   DBTable table("table", schema, BLOCK_SIZE);
-
-  table.insert_records(column_data);
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
-  table.insert_records(column_data);
-
+  table.InsertRecords(column_data);
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
+  table.InsertRecords(column_data);
   for (int i = 0; i < 8; i++) {
-    table.insert_record((uint8_t *)record_string.data(), byte_widths);
+    table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   }
-
   // The first block cannot hold a 9th copy of the first record, so we must
   // create a new block.
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
-
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   write_to_file("table.hsl", table);
-
   auto table_from_file = read_from_file("table.hsl");
-
   EXPECT_TRUE(table_from_file->get_block(0)->get_valid_column()->Equals(
       *table.get_block(0)->get_valid_column()));
   EXPECT_TRUE(table_from_file->get_block(0)->get_records()->Equals(
@@ -179,20 +162,16 @@ TEST_F(HustleTableTest, TableIO) {
 
 TEST_F(HustleTableTest, ReadTableFromCSV) {
   DBTable table("table", schema, BLOCK_SIZE);
-
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.
   for (int i = 0; i < 8; i++) {
-    table.insert_record((uint8_t *)record_string.data(), byte_widths);
+    table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   }
-
   // The first block cannot hold a 9th copy of the first record, so we must
   // create a new block.
-  table.insert_record((uint8_t *)record_string.data(), byte_widths);
-
+  table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   auto table_from_csv =
       read_from_csv_file("table_test.csv", schema, BLOCK_SIZE);
-
   EXPECT_TRUE(table_from_csv->get_block(0)->get_records()->Equals(
       *table.get_block(0)->get_records()));
   EXPECT_TRUE(table_from_csv->get_block(1)->get_records()->Equals(
@@ -285,7 +264,6 @@ TEST_F(HustleTableTest, Update) {
   customer_table.setPrimaryKey({});
   std::shared_ptr<arrow::Schema> customer_schema =
       customer_table.getArrowSchema();
-
   std::string query =
       "BEGIN TRANSACTION; "
       "INSERT INTO customer_table VALUES (800224, 'James', "
@@ -307,13 +285,10 @@ TEST_F(HustleTableTest, Update) {
   hustleDB.executeQuery(query);
   auto col = std::static_pointer_cast<arrow::StringArray>(
       customer_table_ptr->get_column(5)->chunk(0));
-
   EXPECT_EQ(col->GetString(0), "fine");
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 1);
-
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
-
   auto int_col = std::static_pointer_cast<arrow::Int64Array>(
       customer_table_ptr->get_column(7)->chunk(0));
   EXPECT_EQ(int_col->Value(0), 12);
@@ -322,10 +297,8 @@ TEST_F(HustleTableTest, Update) {
       "UPDATE customer_table set c_mktsegment = 1123 where c_custkey=800224;"
       "COMMIT;";
   hustleDB.executeQuery(query);
-
   EXPECT_EQ(int_col->Value(0), 1123);
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 1);
-
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
 }
@@ -363,7 +336,6 @@ TEST_F(HustleTableTest, Delete) {
   customer_table.setPrimaryKey({});
   std::shared_ptr<arrow::Schema> customer_schema =
       customer_table.getArrowSchema();
-
   std::string query =
       "BEGIN TRANSACTION; "
       "INSERT INTO customer_table_d VALUES (800224, 'James', "
@@ -376,18 +348,14 @@ TEST_F(HustleTableTest, Delete) {
   hustle::HustleDB hustleDB("db_directory3");
   hustleDB.createTable(customer_table, customer_table_ptr);
   hustleDB.executeQuery(query);
-
   query =
       "BEGIN TRANSACTION;"
       "DELETE FROM customer_table_d where c_custkey=800224;"
       "COMMIT;";
-
   hustleDB.executeQuery(query);
   auto col = std::static_pointer_cast<arrow::StringArray>(
       customer_table_ptr->get_column(5)->chunk(0));
-
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 0);
-
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
 }
