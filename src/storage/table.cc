@@ -164,7 +164,7 @@ void DBTable::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> colum
   num_rows += l;
 }
 
-int DBTable::GetRecordSize(int32_t *byte_widths) {
+int DBTable::get_record_size(int32_t *byte_widths) {
   int record_size = 0;
   int num_cols = get_num_cols();
   for (int i = 0; i < num_cols; i++) {
@@ -200,7 +200,7 @@ int DBTable::GetRecordSize(int32_t *byte_widths) {
 // Tuple is passed in as an array of bytes which must be parsed.
 BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   std::shared_ptr<Block> block = GetBlockForInsert();
-  int32_t record_size = this->GetRecordSize(byte_widths);
+  int32_t record_size = this->get_record_size(byte_widths);
   if (block->get_bytes_left() < record_size) {
     block = CreateBlock();
   }

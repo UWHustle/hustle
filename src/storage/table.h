@@ -128,7 +128,7 @@ class DBTable {
    * @param byte_widths
    * @return
    */
-  int GetRecordSize(int32_t *byte_widths);
+  int get_record_size(int32_t *byte_widths);
 
   /**
    * Insert a record into a block in the insert pool.

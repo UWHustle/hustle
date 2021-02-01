@@ -267,7 +267,7 @@ void Block::print() {
   }
 }
 
-// Note that this funciton assumes that the valid column is in column_data
+// Note that this function assumes that the valid column is in column_data
 int Block::InsertRecords(
     std::map<int, BlockInfo>& block_map,
     std::map<int, int>& row_map,
@@ -300,7 +300,7 @@ int Block::InsertRecords(
   return num_rows - 1;
 }
 
-// Note that this funciton assumes that the valid column is in column_data
+// Note that this function assumes that the valid column is in column_data
 int Block::InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   if (column_data[0]->length == 0) {
     return -1;
