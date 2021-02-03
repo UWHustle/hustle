@@ -8,6 +8,7 @@ add_library(
         join_graph.cc join_graph.h
         predicate.cc predicate.h
         operator.h
+        expression.h
         operator_options.h
         aggregate_options.h
         fused/select_build_hash.cc fused/select_build_hash.h

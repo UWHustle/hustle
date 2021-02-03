@@ -23,12 +23,13 @@
 
 #include <string>
 
+#include "aggregate_const.h"
+#include "operators/expression.h"
 #include "operators/operator.h"
 #include "operators/utils/operator_result.h"
 #include "parallel_hashmap/phmap.h"
 #include "storage/block.h"
 #include "storage/table.h"
-#include "aggregate_const.h"
 
 namespace hustle {
 namespace operators {
@@ -142,7 +143,8 @@ class Aggregate : public BaseAggregate {
     output_result_ = output_result;
   }
 
-  inline void set_aggregate_refs(std::vector<AggregateReference> aggregate_refs) {
+  inline void set_aggregate_refs(
+      std::vector<AggregateReference> aggregate_refs) {
     aggregate_refs_ = aggregate_refs;
   }
 
@@ -190,6 +192,9 @@ class Aggregate : public BaseAggregate {
   std::shared_ptr<arrow::DataType> group_type_;
   // We append each aggregate to this after it is computed.
   std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
+
+  bool exp_result_finished_;
+  std::shared_ptr<arrow::ArrayBuilder> exp_result_builder_;
   // We append each group to this after we compute the aggregate for that
   // group.
   std::shared_ptr<arrow::StructBuilder> group_builder_;

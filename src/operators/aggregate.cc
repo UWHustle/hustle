@@ -84,10 +84,9 @@ void Aggregate::Initialize(Task* ctx) {
                         .make_array();
               }),
               CreateLambdaTask([this, group_index, contexts](Task* internal) {
-                contexts[group_index]->match(
-                  internal,
-                  group_by_cols_[group_index],
-                  unique_values_[group_index]);
+                contexts[group_index]->match(internal,
+                                             group_by_cols_[group_index],
+                                             unique_values_[group_index]);
               }),
               CreateLambdaTask([this, contexts, group_index] {
                 unique_values_map_[group_index] =
@@ -114,6 +113,8 @@ void Aggregate::InitializeVariables(Task* ctx) {
 
   // Initialize aggregate builder
   aggregate_builder_ = CreateAggregateBuilder(aggregate_refs_[0].kernel);
+  exp_result_finished_ = false;
+  exp_result_builder_ = std::make_shared<arrow::Int64Builder>();
 
   // Initialize output table and its schema. group_type_ must be initialized
   // beforehand.
@@ -415,10 +416,14 @@ void Aggregate::ComputeAggregates(Task* ctx) {
         auto col_name = aggregate_refs_[0].col_ref.col_name;
 
         if (table == nullptr) {
-          throw std::runtime_error("Non-supported aggregation");
+          Expression expression(aggregate_refs_[0].expr_ref);
+          expression.EvaluateExpression(internal, agg_col_);
+          // this->EvaluateExpression(aggregate_refs_[0].expr_ref);
+          // throw std::runtime_error("Non-supported aggregation");
+        } else {
+          agg_lazy_table_ = prev_result_->get_table(table);
+          agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
         }
-        agg_lazy_table_ = prev_result_->get_table(table);
-        agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
       }),
       CreateLambdaTask([this](Task* internal) {
         // Initialize the slots to hold the current iteration value for each
@@ -583,7 +588,7 @@ void Aggregate::Clear() {
 
   aggregate_col_data_.clear();
   aggregate_refs_.clear();
-  group_by_refs_.clear(); 
+  group_by_refs_.clear();
   order_by_refs_.clear();
   group_by_cols_.clear();
   group_agg_index_map_.clear();
