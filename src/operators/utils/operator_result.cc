@@ -104,7 +104,7 @@ std::shared_ptr<DBTable> OperatorResult::materialize(
     for (auto& col : out_cols) {
       out_block_data.push_back(col->chunk(i)->data());
     }
-    out_table->insert_records(out_block_data);
+    out_table->InsertRecords(out_block_data);
     out_block_data.clear();
   }
 
