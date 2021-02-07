@@ -20,6 +20,8 @@
 
 #include "operator.h"
 #include "aggregate_const.h"
+#include "expression.h"
+
 
 namespace hustle{
 namespace operators{
@@ -141,6 +143,8 @@ private:
   std::vector<LazyTable> group_by_tables_;
   LazyTable agg_lazy_table_;
 
+  std::shared_ptr<Expression> expression_;
+
   // Two phase hashing requires two types of hash tables.
   HashAggregateStrategy strategy;
 
@@ -220,7 +224,7 @@ private:
    * @param end_chunk_id The chunk_id to end with.
    */
   void FirstPhaseAggregateChunks(
-    size_t task_id, int start_chunk_id, int end_chunk_id);
+    Task *ctx, size_t task_id, int start_chunk_id, int end_chunk_id);
 
   /**
    * Helper method of FirstPhaseAggregateChunks().
@@ -229,7 +233,7 @@ private:
    * @param task_id Task id.
    * @param chunk_id The chunk_id to work with.
    */
-  void FirstPhaseAggregateChunk_(size_t task_id, int chunk_id);
+  void FirstPhaseAggregateChunk_(Task *ctx, size_t task_id, int chunk_id);
 
   /**
    * Perform the second aggregate of the two phase hash aggregate.

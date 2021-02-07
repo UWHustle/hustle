@@ -175,21 +175,33 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
       // Initialize the agg_col_ variable.
       auto table = aggregate_refs_[0].col_ref.table;
       auto col_name = aggregate_refs_[0].col_ref.col_name;
-      agg_lazy_table_ = prev_result_->get_table(table);
-      agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
+      if (table != nullptr) {
+        agg_lazy_table_ = prev_result_->get_table(table);
+        agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
+        auto agg_col = agg_col_.chunked_array();
+        auto num_chunks = agg_col->num_chunks();
+      } else { 
+        expression_ = 
+             std::make_shared<Expression>(prev_result_, aggregate_refs_[0].expr_ref);
+        expression_->Initialize(internal);
+      }
     }),
     CreateLambdaTask([this](Task* internal){
       // Partition the chunks.
 
       // Initialize the aggregate_col_data_?
-      auto agg_col = agg_col_.chunked_array();
-      auto num_chunks = agg_col->num_chunks();
-      // TODO: Maybe this is unnecessary
-      aggregate_col_data_.resize(num_chunks);
-
-      for (std::size_t chunk_index = 0; chunk_index < num_chunks; ++chunk_index) {
-        auto val = agg_col->chunk(chunk_index)->data()->GetValues<int64_t>(1, 0);
-        aggregate_col_data_[chunk_index] = val;
+      int32_t num_chunks;
+      if (expression_ != nullptr) {
+        num_chunks = expression_->num_chunks();
+      } else {
+        auto agg_col = agg_col_.chunked_array();
+        num_chunks = agg_col->num_chunks();
+        // TODO: Maybe this is unnecessary
+        aggregate_col_data_.resize(num_chunks);
+        for (std::size_t chunk_index = 0; chunk_index < num_chunks; ++chunk_index) {
+          auto val = agg_col->chunk(chunk_index)->data()->GetValues<int64_t>(1, 0);
+          aggregate_col_data_[chunk_index] = val;
+        }
       }
 
       // Distribute tasks to perform the first phase of hash aggregate.
@@ -206,9 +218,9 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
       auto num_tasks = strategy.suggestedNumTasks();
       std::size_t totalThreads = std::thread::hardware_concurrency();
 
-      auto agg_col = agg_col_.chunked_array();
-      auto num_chunks = agg_col->num_chunks();
-
+      int32_t num_chunks = (expression_ == nullptr) ? 
+                                  agg_col_.chunked_array()->num_chunks() :  
+                                  expression_->num_chunks();
       for (size_t tid = 0; tid < num_tasks; ++tid) {
         int st, ed;
         std::tie (st, ed) = strategy.getChunkID(
@@ -219,7 +231,7 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
         internal->spawnTask(CreateLambdaTask(
           [this, tid, st, ed](Task * ctx){
 //            printf("tid=%zu, st=%d, ed=%d\n", tid, st, ed);
-            FirstPhaseAggregateChunks(tid, st, ed);
+            FirstPhaseAggregateChunks(ctx, tid, st, ed);
           }
         ));
       }
@@ -418,17 +430,19 @@ HashAggregate::hash_t HashAggregate::HashCombine(hash_t seed, hash_t val){
   return seed;
 }
 
-void HashAggregate::FirstPhaseAggregateChunks(size_t tid, int st, int ed) {
+void HashAggregate::FirstPhaseAggregateChunks(Task* internal, size_t tid, int st, int ed) {
   for(int i = st; i < ed; i++){
-    FirstPhaseAggregateChunk_(tid, i);
+    FirstPhaseAggregateChunk_(internal, tid, i);
   }
 }
 
-void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
-  auto agg_chunk = agg_col_.chunked_array()->chunk(chunk_index);
+void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid, int chunk_index) {
+  auto agg_chunk = (expression_ != nullptr) ? 
+                            expression_->Evaluate(internal, chunk_index).make_array() :
+                            agg_col_.chunked_array()->chunk(chunk_index);
   auto chunk_size = agg_chunk->length();
 
-  auto agg_type = agg_col_.type();
+  auto agg_type = (expression_ != nullptr) ? agg_chunk->type(): agg_col_.type();
   auto agg_type_id = agg_type->id();
 
   auto kernel = aggregate_refs_[0].kernel;
