@@ -414,16 +414,8 @@ void Aggregate::ComputeAggregates(Task* ctx) {
         // TODO(nicholas): For now, we only perform one aggregate.
         auto table = aggregate_refs_[0].col_ref.table;
         auto col_name = aggregate_refs_[0].col_ref.col_name;
-
-        if (table == nullptr) {
-          Expression expression(aggregate_refs_[0].expr_ref);
-          expression.EvaluateExpression(internal, agg_col_);
-          // this->EvaluateExpression(aggregate_refs_[0].expr_ref);
-          // throw std::runtime_error("Non-supported aggregation");
-        } else {
-          agg_lazy_table_ = prev_result_->get_table(table);
-          agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
-        }
+        agg_lazy_table_ = prev_result_->get_table(table);
+        agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
       }),
       CreateLambdaTask([this](Task* internal) {
         // Initialize the slots to hold the current iteration value for each
