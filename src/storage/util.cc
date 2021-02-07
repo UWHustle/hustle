@@ -145,8 +145,10 @@ void read_record_batch(
 }
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
+
 std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
-                                                       bool read_only) {
+                                                       bool read_only,
+                                                       const char* table_name) {
   auto& scheduler = hustle::Scheduler::GlobalInstance();
 
   arrow::Status status;
@@ -174,7 +176,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
   scheduler.start();
   scheduler.join();
 
-  return std::make_shared<hustle::storage::DBTable>("table", record_batches,
+  return std::make_shared<hustle::storage::DBTable>(table_name, record_batches,
                                                   BLOCK_SIZE);
 }
 
