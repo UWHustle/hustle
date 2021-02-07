@@ -113,10 +113,15 @@ class LazyTable {
 
   void get_column(Task* ctx, int i, arrow::Datum& out);
 
-  void set_materialized_column(int i, std::shared_ptr<arrow::ChunkedArray> col);
+  inline void set_materialized_column(
+      int i, std::shared_ptr<arrow::ChunkedArray> col) {
+    materialized_cols_[i] = std::move(col);
+  }
 
-  void set_hash_table(
-      std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table);
+  inline void set_hash_table(
+      std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table) {
+    hash_table_ = hash_table;
+  }
 
  private:
   //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;

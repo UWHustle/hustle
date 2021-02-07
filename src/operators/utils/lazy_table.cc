@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "operators/utils/operator_result.h"
+#include "scheduler/threading/synchronization_lock.h"
 #include "storage/util.h"
 
 namespace hustle::operators {
@@ -59,13 +60,11 @@ std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column_by_name(
 
 std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) {
   arrow::Status status;
-
   if (materialized_cols_[i] != nullptr) {
     return materialized_cols_[i];
   }
 
   auto col = arrow::Datum(table->get_column(i));
-
   if (filter.kind() != arrow::Datum::NONE) {
     status = arrow::compute::Filter(col, filter).Value(&col);
   }
@@ -75,7 +74,6 @@ std::shared_ptr<arrow::ChunkedArray> LazyTable::get_column(int i) {
 
   std::shared_ptr<arrow::ChunkedArray> out_col = col.chunked_array();
   materialized_cols_[i] = out_col;
-
   return col.chunked_array();
 }
 
@@ -85,6 +83,7 @@ void LazyTable::get_column_by_name(Task *ctx, std::string col_name,
 }
 
 void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
+  SynchronizationLock sync_lock;
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, i, &out](Task *internal) {
         if (materialized_cols_[i] != nullptr) {
@@ -94,30 +93,21 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
         } else {
           out = table->get_column(i);
           if (filter.kind() != arrow::Datum::NONE) {
-            //                    context_.apply_filter(internal, out, filter,
-            //                    out); filtered_cols_[i] = out.chunked_array();
+            // context_.apply_filter(internal, out, filter, out);
+            // filtered_cols_[i] = out.chunked_array();
           }
         }
       }),
-      CreateLambdaTask([this, i, &out](Task *internal) {
-        if (materialized_cols_[i] != nullptr) {
-          return;
-        } else if (indices.kind() != arrow::Datum::NONE) {
-          context_.apply_indices(internal, out, indices, index_chunks, out);
-          arrow::Status status;
+      CreateLambdaTask([this, i, &out, &sync_lock](Task *internal) {
+        if (materialized_cols_[i] == nullptr) {
+          if (indices.kind() != arrow::Datum::NONE) {
+            context_.apply_indices(internal, out, indices, index_chunks, out);
+          }
+          materialized_cols_[i] = out.chunked_array();
         }
-        materialized_cols_[i] = out.chunked_array();
+        sync_lock.release();
       })));
-}
-
-void LazyTable::set_materialized_column(
-    int i, std::shared_ptr<arrow::ChunkedArray> col) {
-  materialized_cols_[i] = std::move(col);
-}
-
-void LazyTable::set_hash_table(
-    std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table) {
-  hash_table_ = hash_table;
+  sync_lock.wait();
 }
 
 }  // namespace hustle::operators

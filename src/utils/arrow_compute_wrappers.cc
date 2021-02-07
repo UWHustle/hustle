@@ -73,6 +73,7 @@ void Context::apply_indices_internal(
     auto chunk_j = (std::upper_bound(offsets_data, offsets_data_end, index) -
                     offsets_data) -
                    1;
+   // std::cout << "CHunk " << chunk_j << std::endl;
     out[i] = values_data_vec[chunk_j][index - offsets_data[chunk_j]];
   }
 
@@ -246,9 +247,12 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
                             const arrow::Datum index_chunks,
                             arrow::Datum& out) {
   clear_data();
+  SynchronizationLock sync_lock;
+
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, values, indices, index_chunks,
                         &out](Task* internal) {
+        std::cout << "apply indices!! Working" << std::endl;
         arrow::Status status;
         std::shared_ptr<arrow::ChunkedArray> chunked_values;
 
@@ -350,12 +354,14 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
           });
         }
       }),
-      CreateLambdaTask([this, values, indices, &out](Task* internal) {
+      CreateLambdaTask([this, values, indices, &out, &sync_lock](Task* internal) {
         arrow::Status status;
         std::shared_ptr<arrow::Array> arr;
         out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
         out_ = std::make_shared<arrow::ChunkedArray>(array_vec_);
+        sync_lock.release();
       })));
+      sync_lock.wait();
 }
 
 void Context::clear_data() { array_vec_.clear(); }
