@@ -30,7 +30,7 @@
 #include "resolver/select_resolver.h"
 #include "scheduler/threading/synchronization_lock.h"
 
-#define ENABLE_FUSED_OPERATOR false
+#define ENABLE_FUSED_OPERATOR 0
 
 std::shared_ptr<hustle::ExecutionPlan> createPlan(
     hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
@@ -49,9 +49,9 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   auto join_predicate_map = select_resolver->join_predicates();
 
   for (auto const& [table_name, predicate_tree] : select_predicates) {
-    std::shared_ptr<OperatorResult> input_result =
+    OperatorResult::OpResultPtr input_result =
         std::make_shared<OperatorResult>();
-    std::shared_ptr<OperatorResult> output_result =
+    OperatorResult::OpResultPtr output_result =
         std::make_shared<OperatorResult>();
     auto table_ptr = catalog->getTable(table_name);
     if (table_ptr == nullptr) return nullptr;
@@ -80,7 +80,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
    * the join operators.
    */
   bool is_join_op = true;
-  std::shared_ptr<OperatorResult> join_result_out;
+  OperatorResult::OpResultPtr join_result_out;
   std::unique_ptr<Join> join_op = nullptr;
   std::unique_ptr<FilterJoin> filter_join_op = nullptr;
   if (join_predicate_map.size() != 0) {
@@ -106,7 +106,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   std::shared_ptr<std::vector<AggregateReference>> agg_refs =
       (select_resolver->agg_references());
 
-  std::shared_ptr<OperatorResult> agg_result_out =
+  OperatorResult::OpResultPtr agg_result_out =
       std::make_shared<OperatorResult>();
   std::unique_ptr<HashAggregate> agg_op;
 
@@ -204,7 +204,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
         });
       }),
       hustle::CreateLambdaTask([&plan, &out_table, &sync_lock] {
-        std::shared_ptr<OperatorResult> agg_result_out =
+        OperatorResult::OpResultPtr agg_result_out =
             plan->getOperatorResult();
         std::shared_ptr<hustle::storage::DBTable> out_table =
             agg_result_out->materialize(plan->getResultColumns());
