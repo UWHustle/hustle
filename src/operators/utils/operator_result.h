@@ -38,6 +38,7 @@ enum FilterOperator {
 
 class OperatorResult {
  public:
+  using OpResultPtr = std::shared_ptr<OperatorResult>;
   /**
    * Construct an OperatorResult, the type that all operators return. It is
    * simply a collection of LazyTables. Since a LazyTable can be thought

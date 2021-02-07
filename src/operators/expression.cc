@@ -24,7 +24,7 @@
 
 namespace hustle::operators {
 
-Expression::Expression(std::shared_ptr<OperatorResult> prev_op_output,
+Expression::Expression(OperatorResult::OpResultPtr prev_op_output,
                        std::shared_ptr<ExprReference> expr)
     : expr_(expr), prev_op_output_(prev_op_output) {
   exp_num_chunks_ = 0;

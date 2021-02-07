@@ -82,8 +82,8 @@ std::tuple<int, int> HashAggregateStrategy::getChunkID(
 
 
 HashAggregate::HashAggregate(const std::size_t query_id,
-                             std::shared_ptr<OperatorResult> prev_result,
-                             std::shared_ptr<OperatorResult> output_result,
+                             OperatorResult::OpResultPtr prev_result,
+                             OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
                              std::vector<ColumnReference> order_by_refs)
@@ -93,8 +93,8 @@ HashAggregate::HashAggregate(const std::size_t query_id,
         std::make_shared<OperatorOptions>()) {}
 
 HashAggregate::HashAggregate(const std::size_t query_id,
-                             std::shared_ptr<OperatorResult> prev_result,
-                             std::shared_ptr<OperatorResult> output_result,
+                             OperatorResult::OpResultPtr prev_result,
+                             OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
                              std::vector<ColumnReference> order_by_refs,

@@ -24,7 +24,7 @@ namespace hustle::operators {
 FilterJoin::FilterJoin(
     const std::size_t query_id,
     std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-    std::shared_ptr<OperatorResult> output_result,
+    OperatorResult::OpResultPtr output_result,
     hustle::operators::JoinGraph graph)
     : FilterJoin(query_id, prev_result_vec, output_result, graph,
                  std::make_shared<OperatorOptions>()) {}
@@ -32,7 +32,7 @@ FilterJoin::FilterJoin(
 FilterJoin::FilterJoin(
     const std::size_t query_id,
     std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-    std::shared_ptr<OperatorResult> output_result,
+    OperatorResult::OpResultPtr output_result,
     hustle::operators::JoinGraph graph,
     std::shared_ptr<OperatorOptions> options)
     : Operator(query_id, options) {

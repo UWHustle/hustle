@@ -70,15 +70,15 @@ class HashAggregate : public BaseAggregate {
 
 public:
   HashAggregate(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            std::shared_ptr<OperatorResult> output_result,
+            OperatorResult::OpResultPtr prev_result,
+            OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs);
 
   HashAggregate(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            std::shared_ptr<OperatorResult> output_result,
+            OperatorResult::OpResultPtr prev_result,
+            OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs,
@@ -86,11 +86,11 @@ public:
 
   void execute(Task* ctx) override;
 
-  inline void set_prev_result(std::shared_ptr<OperatorResult> prev_result) {
+  inline void set_prev_result(OperatorResult::OpResultPtr prev_result) {
     prev_result_ = prev_result;
   }
 
-  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+  inline void set_output_result(OperatorResult::OpResultPtr output_result) {
     output_result_ = output_result;
   }
 
@@ -110,7 +110,7 @@ public:
 
 private:
   // Operator result from an upstream operator and output result will be stored
-  std::shared_ptr<OperatorResult> prev_result_, output_result_;
+  OperatorResult::OpResultPtr prev_result_, output_result_;
   // The new output table containing the group columns and aggregate columns.
   DBTable::TablePtr output_table_;
   // The output result of each aggregate group (length = num_aggs_)

@@ -57,14 +57,14 @@ class Expression {
  private:
   std::shared_ptr<ExprReference> expr_;
   std::vector<ExprElem> postfix_expr_;
-  std::shared_ptr<OperatorResult> prev_op_output_;
+  OperatorResult::OpResultPtr prev_op_output_;
 
   int32_t exp_num_chunks_;
 
   void ConvertPostfix(hustle::Task* ctx, std::shared_ptr<ExprReference> expr);
 
  public:
-  Expression(std::shared_ptr<OperatorResult> prev_op_output,
+  Expression(OperatorResult::OpResultPtr prev_op_output,
              std::shared_ptr<ExprReference> expr);
 
   void Initialize(hustle::Task* ctx);

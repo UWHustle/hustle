@@ -23,8 +23,8 @@ namespace hustle::operators {
 BaseAggregate * get_agg_op(
   const std::size_t query_id,
   const AggregateType aggregate_type,
-  const std::shared_ptr<OperatorResult> &prev_result,
-  const std::shared_ptr<OperatorResult> &output_result,
+  const OperatorResult::OpResultPtr &prev_result,
+  const OperatorResult::OpResultPtr &output_result,
   const std::vector<AggregateReference> &aggregate_units,
   const std::vector<ColumnReference> &group_by_refs,
   const std::vector<ColumnReference> &order_by_refs,

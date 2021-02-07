@@ -66,7 +66,7 @@ class LIP : public Operator {
    */
   LIP(const std::size_t query_id,
       std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-      std::shared_ptr<OperatorResult> output_result,
+      OperatorResult::OpResultPtr output_result,
       hustle::operators::JoinGraph graph);
 
   /**
@@ -127,10 +127,10 @@ class LIP : public Operator {
   std::vector<std::shared_ptr<OperatorResult>> prev_result_vec_;
 
   // Results from upstream operators condensed into one object
-  std::shared_ptr<OperatorResult> prev_result_;
+  OperatorResult::OpResultPtr prev_result_;
 
   // Where the output result will be stored once the operator is executed.
-  std::shared_ptr<OperatorResult> output_result_;
+  OperatorResult::OpResultPtr output_result_;
 
   // A graph specifying all join predicates
   JoinGraph graph_;

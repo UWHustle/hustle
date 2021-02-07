@@ -28,7 +28,7 @@ namespace hustle::operators {
 
 LIP::LIP(const std::size_t query_id,
          std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-         std::shared_ptr<OperatorResult> output_result,
+         OperatorResult::OpResultPtr output_result,
          hustle::operators::JoinGraph graph)
     : Operator(query_id) {
   prev_result_ = std::make_shared<OperatorResult>();
