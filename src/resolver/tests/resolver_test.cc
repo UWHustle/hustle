@@ -34,7 +34,7 @@ class ResolverTest : public Test {
  public:
   static hustle::catalog::TableSchema part, supplier, customer, ddate,
       lineorder;
-  static std::shared_ptr<DBTable> lo, d, p, c, s;
+  static DBTable::TablePtr lo, d, p, c, s;
   void SetUp() override {
     /**
       CREATE TABLE part
@@ -343,7 +343,7 @@ hustle::catalog::TableSchema ResolverTest::part("part"),
     ResolverTest::supplier("supplier"), ResolverTest::customer("customer"),
     ResolverTest::ddate("ddate"), ResolverTest::lineorder("lineorder");
 
-std::shared_ptr<DBTable> ResolverTest::lo, ResolverTest::d, ResolverTest::p,
+DBTable::TablePtr ResolverTest::lo, ResolverTest::d, ResolverTest::p,
     ResolverTest::c, ResolverTest::s;
 
 TEST_F(ResolverTest, q1) {

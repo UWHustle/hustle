@@ -44,7 +44,7 @@ class HustleDB {
 
   bool createTable(const TableSchema ts);
 
-  bool createTable(const TableSchema ts, std::shared_ptr<DBTable> table_ref);
+  bool createTable(const TableSchema ts, DBTable::TablePtr table_ref);
 
   void loadTables();
 

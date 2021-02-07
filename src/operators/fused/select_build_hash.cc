@@ -33,7 +33,7 @@ namespace hustle {
 namespace operators {
 
 SelectBuildHash::SelectBuildHash(const std::size_t query_id,
-                                 std::shared_ptr<DBTable> table,
+                                 DBTable::TablePtr table,
                                  std::shared_ptr<OperatorResult> prev_result,
                                  std::shared_ptr<OperatorResult> output_result,
                                  std::shared_ptr<PredicateTree> tree,
@@ -42,7 +42,7 @@ SelectBuildHash::SelectBuildHash(const std::size_t query_id,
                       join_column, std::make_shared<OperatorOptions>()) {}
 
 SelectBuildHash::SelectBuildHash(const std::size_t query_id,
-                                 std::shared_ptr<DBTable> table,
+                                 DBTable::TablePtr table,
                                  std::shared_ptr<OperatorResult> prev_result,
                                  std::shared_ptr<OperatorResult> output_result,
                                  std::shared_ptr<PredicateTree> tree,

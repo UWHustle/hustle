@@ -130,7 +130,7 @@ class Join : public Operator {
 
   LazyTable left_, right_;
 
-  std::unordered_map<std::shared_ptr<DBTable>, bool> finished_;
+  std::unordered_map<DBTable::TablePtr, bool> finished_;
 
   /**
    * Perform a single hash join.

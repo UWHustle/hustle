@@ -49,13 +49,13 @@ class SelectBuildHash : public Select {
    * @param prev_result OperatorResult from an upstream operator
    * @param tree predicate tree
    */
-  SelectBuildHash(const std::size_t query_id, std::shared_ptr<DBTable> table,
+  SelectBuildHash(const std::size_t query_id, DBTable::TablePtr table,
                   std::shared_ptr<OperatorResult> prev_result,
                   std::shared_ptr<OperatorResult> output_result,
                   std::shared_ptr<PredicateTree> tree,
                   ColumnReference join_column);
 
-  SelectBuildHash(const std::size_t query_id, std::shared_ptr<DBTable> table,
+  SelectBuildHash(const std::size_t query_id, DBTable::TablePtr table,
                   std::shared_ptr<OperatorResult> prev_result,
                   std::shared_ptr<OperatorResult> output_result,
                   std::shared_ptr<PredicateTree> tree,
