@@ -252,7 +252,6 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, values, indices, index_chunks,
                         &out](Task* internal) {
-        std::cout << "apply indices!! Working" << std::endl;
         arrow::Status status;
         std::shared_ptr<arrow::ChunkedArray> chunked_values;
 

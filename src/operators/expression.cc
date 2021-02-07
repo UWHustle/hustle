@@ -163,7 +163,6 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
               "not supported for this type.");
         }
       }
-      std::cout << "Expression push result" << std::endl;
       eval_stack.push({TK_AGG_COLUMN, true, arrow::Datum(result)});
     }
   }
