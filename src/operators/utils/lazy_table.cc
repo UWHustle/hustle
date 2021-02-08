@@ -113,6 +113,7 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
           materialized_cols_[i] = out.chunked_array();
         }
         sync_lock.release();
+        std::cerr << "release lazy table lock" << std::endl;
       })));
   std::cerr << "sync wait lazy table" << std::endl;
   sync_lock.wait();
