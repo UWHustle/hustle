@@ -131,9 +131,9 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
     if (expr_item.op == TK_COLUMN || expr_item.op == TK_AGG_COLUMN) {
       eval_stack.push({expr_item.op, false, expr_item.col->chunk(chunk_id)});
     } else {
-      OpElem left_op = eval_stack.top();
-      eval_stack.pop();
       OpElem right_op = eval_stack.top();
+      eval_stack.pop();
+      OpElem left_op = eval_stack.top();
       eval_stack.pop();
 
       bool is_result = false;
