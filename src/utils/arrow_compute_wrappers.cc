@@ -359,7 +359,9 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
         out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
         out_ = std::make_shared<arrow::ChunkedArray>(array_vec_);
         sync_lock.release();
+        std::cerr << "apply indices sync lock released" << std::endl;
       })));
+
       sync_lock.wait();
 }
 
