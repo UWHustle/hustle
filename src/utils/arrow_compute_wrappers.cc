@@ -247,7 +247,7 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
                             const arrow::Datum index_chunks,
                             arrow::Datum& out) {
   clear_data();
-  SynchronizationLock sync_lock;
+  //SynchronizationLock sync_lock;
 
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, values, indices, index_chunks,
@@ -353,16 +353,16 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
           });
         }
       }),
-      CreateLambdaTask([this, values, indices, &out, &sync_lock](Task* internal) {
+      CreateLambdaTask([this, values, indices, &out](Task* internal) {
         arrow::Status status;
         std::shared_ptr<arrow::Array> arr;
         out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
         out_ = std::make_shared<arrow::ChunkedArray>(array_vec_);
-        sync_lock.release();
+        //sync_lock.release();
         std::cerr << "apply indices sync lock released" << std::endl;
       })));
 
-      sync_lock.wait();
+     // sync_lock.wait();
 }
 
 void Context::clear_data() { array_vec_.clear(); }

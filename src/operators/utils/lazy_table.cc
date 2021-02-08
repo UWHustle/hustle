@@ -105,6 +105,11 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
             context_.apply_indices(internal, out, indices, index_chunks, out);
             std::cerr << "applied indices in the lazy table done " << std::endl;
           }
+        
+        }
+      }),
+      CreateLambdaTask([this, i, &out, &sync_lock](Task *internal) {
+        if (materialized_cols_[i] == nullptr) {
           materialized_cols_[i] = out.chunked_array();
         }
         sync_lock.release();
