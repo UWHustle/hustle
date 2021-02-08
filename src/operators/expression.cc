@@ -46,6 +46,7 @@ void Expression::ConvertPostfix(hustle::Task* ctx,
   this->ConvertPostfix(ctx, expr->right_expr);
 
   std::shared_ptr<arrow::ChunkedArray> column = nullptr;
+  // Push the expression elements along with needed metadata for the postfix output
   if (expr->op == TK_COLUMN || expr->op == TK_AGG_COLUMN) {
     arrow::Datum col;
     prev_op_output_->get_table(expr->column_ref->table)
@@ -61,9 +62,6 @@ arrow::Datum Expression::ExecuteBlock(int op,
                                       std::shared_ptr<arrow::Array> result,
                                       std::shared_ptr<arrow::Array> left_col,
                                       std::shared_ptr<arrow::Array> right_col) {
-  /*std::shared_ptr<ArrayType> result,
-  std::shared_ptr<ArrayType> left_col,
-  std::shared_ptr<ArrayType> right_col) {*/
   int chunk_length = std::max(left_col->length(), right_col->length());
   auto left_col_data =
       left_col->data()->template GetValues<ArrayPrimitiveType>(1, 0);
@@ -72,6 +70,7 @@ arrow::Datum Expression::ExecuteBlock(int op,
   std::shared_ptr<ArrayType> result_arr =
       std::static_pointer_cast<ArrayType>(result);
 
+  // mutable result data
   auto result_data =
       result->data()->template GetMutableValues<ArrayPrimitiveType>(1, 0);
   switch (op) {
@@ -122,15 +121,19 @@ arrow::Datum Expression::ExecuteBlock(bool is_result,
 }
 
 arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
+  // stack for the expression evaluation on the chunk
   std::stack<OpElem> eval_stack;
+  // To store the result and also reused to store the temporary result.
   arrow::Datum result;
 
   assert((postfix_expr_.size() != 0) && "Initialize() the expression object");
   for (int i = 0; i < postfix_expr_.size(); i++) {
+    // expression element in postfix expression
     ExprElem expr_item = postfix_expr_[i];
     if (expr_item.op == TK_COLUMN || expr_item.op == TK_AGG_COLUMN) {
+      // Push the column references into the stack which are operands
       eval_stack.push({expr_item.op, false, expr_item.col->chunk(chunk_id)});
-    } else {
+    } else { // if it is a arithmetic operator do the evaluation of the operator
       OpElem right_op = eval_stack.top();
       eval_stack.pop();
       OpElem left_op = eval_stack.top();

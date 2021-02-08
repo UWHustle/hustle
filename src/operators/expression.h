@@ -39,11 +39,13 @@
 namespace hustle {
 namespace operators {
 
+// Elements in the postfix expression
 struct ExprElem {
   int op;
   std::shared_ptr<arrow::ChunkedArray> col;
 };
 
+// Elements for evaluation in Stack
 struct OpElem {
   int op;
   bool is_result;
@@ -53,22 +55,34 @@ struct OpElem {
 typedef struct ExprElem ExprElem;
 typedef struct OpElem OpElem;
 
+/**
+ * This class helps in evaluating the expression in the SQL query
+ * and return the result to the operator at which it is called.
+ * 
+ * It converts the expression to postfix and reuse the single result output
+ * for all the operator evaluation.
+ * 
+ * It operates on a chunk level, hence it can be integrated to the multithreaded code
+ * which operate on a chunk. However, creation and initialization of the object needed
+ * to be done only once.
+ *
+ * Currently, expression columns all belong single table only supported. 
+ * */
 class Expression {
  private:
+  // Input expression
   std::shared_ptr<ExprReference> expr_;
+  // Postfix format of the input expression
   std::vector<ExprElem> postfix_expr_;
+  // Output result of the previous operator
   OperatorResult::OpResultPtr prev_op_output_;
 
   int32_t exp_num_chunks_;
 
   void ConvertPostfix(hustle::Task* ctx, std::shared_ptr<ExprReference> expr);
 
- public:
-  Expression(OperatorResult::OpResultPtr prev_op_output,
-             std::shared_ptr<ExprReference> expr);
 
-  void Initialize(hustle::Task* ctx);
-
+  // Execute an arithmetic operator for two column of the chunk in the table
   template <typename ArrayType, typename ArrayPrimitiveType>
   arrow::Datum ExecuteBlock(int op, std::shared_ptr<arrow::Array> result,
                             std::shared_ptr<arrow::Array> left_col,
@@ -79,6 +93,14 @@ class Expression {
                             std::shared_ptr<arrow::Array> left_col,
                             std::shared_ptr<arrow::Array> right_col);
 
+ public:
+  Expression(OperatorResult::OpResultPtr prev_op_output,
+             std::shared_ptr<ExprReference> expr);
+
+  // Initializes the expression and its corresponding postfix in the object 
+  void Initialize(hustle::Task* ctx);
+
+  // Starting point to invoke the evaluation of the expression for a chunk
   arrow::Datum Evaluate(hustle::Task* ctx, int chunk_id);
 
   inline int32_t num_chunks() { return exp_num_chunks_; }
