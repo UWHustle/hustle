@@ -103,6 +103,7 @@ class Expression {
   // Starting point to invoke the evaluation of the expression for a chunk
   arrow::Datum Evaluate(hustle::Task* ctx, int chunk_id);
 
+  // number of chunks present in the input column on which it operates.
   inline int32_t num_chunks() { return exp_num_chunks_; }
 };
 }  // namespace operators
