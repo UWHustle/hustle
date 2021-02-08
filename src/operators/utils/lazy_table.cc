@@ -101,13 +101,16 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
       CreateLambdaTask([this, i, &out, &sync_lock](Task *internal) {
         if (materialized_cols_[i] == nullptr) {
           if (indices.kind() != arrow::Datum::NONE) {
+             std::cerr << "apply indices in the lazy table" << std::endl;
             context_.apply_indices(internal, out, indices, index_chunks, out);
           }
           materialized_cols_[i] = out.chunked_array();
         }
         sync_lock.release();
       })));
+  std::cerr << "sync wait lazy table" << std::endl;
   sync_lock.wait();
+  
 }
 
 }  // namespace hustle::operators
