@@ -70,7 +70,7 @@ Scheduler::Scheduler(const std::size_t num_workers, const bool thread_pinning)
 }
 
 Scheduler &Scheduler::GlobalInstance() {
-  static Scheduler instance(FLAGS_num_threads, true);
+  static Scheduler instance(FLAGS_num_threads*5, true);
   return instance;
 }
 
