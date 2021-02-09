@@ -86,7 +86,6 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
   SynchronizationLock sync_lock;
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, i, &out](Task *internal) {
-         std::cerr << "stage 1 lambda task" << std::endl;
         if (materialized_cols_[i] != nullptr) {
           out.value = materialized_cols_[i];
         } else if (filtered_cols_.count(i) > 0) {
@@ -98,15 +97,11 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
             // filtered_cols_[i] = out.chunked_array();
           }
         }
-        std::cerr << "stage 1 lambda task - completed" << std::endl;
       }),
       CreateLambdaTask([this, i, &out, &sync_lock](Task *internal) {
-        std::cerr << "stage 2 lambda task" << std::endl;
         if (materialized_cols_[i] == nullptr) {
           if (indices.kind() != arrow::Datum::NONE) {
-            std::cerr << "apply indices in the lazy table" << std::endl;
             context_.apply_indices(internal, out, indices, index_chunks, out);
-            std::cerr << "applied indices in the lazy table done " << std::endl;
           }
         
         }
@@ -116,11 +111,8 @@ void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
           materialized_cols_[i] = out.chunked_array();
         }
         sync_lock.release();
-        std::cerr << "release lazy table lock" << std::endl;
       })));
-  std::cerr << "sync wait lazy table" << std::endl;
   sync_lock.wait();
-  
 }
 
 }  // namespace hustle::operators
