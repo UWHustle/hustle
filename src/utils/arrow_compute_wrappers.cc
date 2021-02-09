@@ -73,7 +73,6 @@ void Context::apply_indices_internal(
     auto chunk_j = (std::upper_bound(offsets_data, offsets_data_end, index) -
                     offsets_data) -
                    1;
-   // std::cout << "CHunk " << chunk_j << std::endl;
     out[i] = values_data_vec[chunk_j][index - offsets_data[chunk_j]];
   }
 
@@ -247,7 +246,6 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
                             const arrow::Datum index_chunks,
                             arrow::Datum& out) {
   clear_data();
-
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, values, indices, index_chunks,
                         &out](Task* internal) {

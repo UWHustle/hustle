@@ -22,7 +22,6 @@
 #include <arrow/compute/api.h>
 
 #include "scheduler/task.h"
-#include "scheduler/threading/synchronization_lock.h"
 
 namespace hustle {
 
