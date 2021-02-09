@@ -222,7 +222,7 @@ TEST_F(HustleTableTest, Insert) {
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> c =
+  DBTable::TablePtr c =
       std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory");
   hustleDB.createTable(customer, c);
@@ -271,7 +271,7 @@ TEST_F(HustleTableTest, Update) {
       "'Houston', 'Great',"
       "         'best', 'fit', 12);"
       "COMMIT;";
-  std::shared_ptr<DBTable> customer_table_ptr =
+  DBTable::TablePtr customer_table_ptr =
       std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory2");
   hustleDB.createTable(customer_table, customer_table_ptr);
@@ -343,7 +343,7 @@ TEST_F(HustleTableTest, Delete) {
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>(
+  DBTable::TablePtr customer_table_ptr = std::make_shared<DBTable>(
       "customer_table_d", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory3");
   hustleDB.createTable(customer_table, customer_table_ptr);
@@ -405,7 +405,7 @@ TEST_F(HustleTableTest, Load) {
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> c =
+  DBTable::TablePtr c =
       std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory5");
   hustleDB.createTable(customer, c);

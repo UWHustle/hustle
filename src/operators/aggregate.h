@@ -23,12 +23,13 @@
 
 #include <string>
 
+#include "aggregate_const.h"
+#include "operators/expression.h"
 #include "operators/operator.h"
 #include "operators/utils/operator_result.h"
 #include "parallel_hashmap/phmap.h"
 #include "storage/block.h"
 #include "storage/table.h"
-#include "aggregate_const.h"
 
 namespace hustle {
 namespace operators {
@@ -106,15 +107,15 @@ class Aggregate : public BaseAggregate {
    * we should order by.
    */
   Aggregate(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            std::shared_ptr<OperatorResult> output_result,
+            OperatorResult::OpResultPtr prev_result,
+            OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs);
 
   Aggregate(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            std::shared_ptr<OperatorResult> output_result,
+            OperatorResult::OpResultPtr prev_result,
+            OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs,
@@ -134,15 +135,16 @@ class Aggregate : public BaseAggregate {
 
   void Clear() override;
 
-  inline void set_prev_result(std::shared_ptr<OperatorResult> prev_result) {
+  inline void set_prev_result(OperatorResult::OpResultPtr prev_result) {
     prev_result_ = prev_result;
   }
 
-  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+  inline void set_output_result(OperatorResult::OpResultPtr output_result) {
     output_result_ = output_result;
   }
 
-  inline void set_aggregate_refs(std::vector<AggregateReference> aggregate_refs) {
+  inline void set_aggregate_refs(
+      std::vector<AggregateReference> aggregate_refs) {
     aggregate_refs_ = aggregate_refs;
   }
 
@@ -160,10 +162,10 @@ class Aggregate : public BaseAggregate {
   // Number of groups to aggregate.
   std::size_t num_aggs_;
   // Operator result from an upstream operator and output result will be stored
-  std::shared_ptr<OperatorResult> prev_result_, output_result_;
+  OperatorResult::OpResultPtr prev_result_, output_result_;
 
   // The new output table containing the group columns and aggregate columns.
-  std::shared_ptr<DBTable> output_table_;
+  DBTable::TablePtr output_table_;
 
   std::atomic<int64_t>* aggregate_data_;
   // Hold the aggregate column data (in chunks)
@@ -190,6 +192,9 @@ class Aggregate : public BaseAggregate {
   std::shared_ptr<arrow::DataType> group_type_;
   // We append each aggregate to this after it is computed.
   std::shared_ptr<arrow::ArrayBuilder> aggregate_builder_;
+
+  bool exp_result_finished_;
+  std::shared_ptr<arrow::ArrayBuilder> exp_result_builder_;
   // We append each group to this after we compute the aggregate for that
   // group.
   std::shared_ptr<arrow::StructBuilder> group_builder_;

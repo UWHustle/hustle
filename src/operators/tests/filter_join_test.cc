@@ -49,7 +49,7 @@ class FilterJoinTestFixture : public testing::Test {
   std::shared_ptr<arrow::Array> expected_T_col_1;
   std::shared_ptr<arrow::Array> expected_T_col_2;
 
-  std::shared_ptr<DBTable> R, S, T;
+  DBTable::TablePtr R, S, T;
 
   void SetUp() override {
     arrow::Status status;
@@ -104,13 +104,13 @@ TEST_F(FilterJoinTestFixture, EquiJoin1) {
 
   auto out_result = std::make_shared<OperatorResult>();
 
-  std::shared_ptr<OperatorResult> R_result_in =
+  OperatorResult::OpResultPtr R_result_in =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> S_result_in =
+  OperatorResult::OpResultPtr S_result_in =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> R_result_out =
+  OperatorResult::OpResultPtr R_result_out =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> S_result_out =
+  OperatorResult::OpResultPtr S_result_out =
       std::make_shared<OperatorResult>();
 
   SelectBuildHash R_select_op(0, R, R_result_in, R_result_out, nullptr,
@@ -182,17 +182,17 @@ TEST_F(FilterJoinTestFixture, EquiJoin2) {
 
   auto out_result = std::make_shared<OperatorResult>();
 
-  std::shared_ptr<OperatorResult> R_result_in =
+  OperatorResult::OpResultPtr R_result_in =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> S_result_in =
+  OperatorResult::OpResultPtr S_result_in =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> T_result_in =
+  OperatorResult::OpResultPtr T_result_in =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> R_result_out =
+  OperatorResult::OpResultPtr R_result_out =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> S_result_out =
+  OperatorResult::OpResultPtr S_result_out =
       std::make_shared<OperatorResult>();
-  std::shared_ptr<OperatorResult> T_result_out =
+  OperatorResult::OpResultPtr T_result_out =
       std::make_shared<OperatorResult>();
 
   SelectBuildHash R_select_op(0, R, R_result_in, R_result_out, nullptr,

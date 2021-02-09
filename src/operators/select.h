@@ -48,14 +48,14 @@ class Select : public Operator {
    * @param prev_result OperatorResult from an upstream operator
    * @param tree predicate tree
    */
-  Select(const std::size_t query_id, std::shared_ptr<DBTable> table,
-         std::shared_ptr<OperatorResult> prev_result,
-         std::shared_ptr<OperatorResult> output_result,
+  Select(const std::size_t query_id, DBTable::TablePtr table,
+         OperatorResult::OpResultPtr prev_result,
+         OperatorResult::OpResultPtr output_result,
          std::shared_ptr<PredicateTree> tree);
 
-  Select(const std::size_t query_id, std::shared_ptr<DBTable> table,
-         std::shared_ptr<OperatorResult> prev_result,
-         std::shared_ptr<OperatorResult> output_result,
+  Select(const std::size_t query_id, DBTable::TablePtr table,
+         OperatorResult::OpResultPtr prev_result,
+         OperatorResult::OpResultPtr output_result,
          std::shared_ptr<PredicateTree> tree,
          std::shared_ptr<OperatorOptions> options);
 
@@ -67,11 +67,11 @@ class Select : public Operator {
    */
   void execute(Task *ctx) override;
 
-  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+  inline void set_output_result(OperatorResult::OpResultPtr output_result) {
     output_result_ = output_result;
   }
 
-  inline void set_table(std::shared_ptr<DBTable> table) {
+  inline void set_table(DBTable::TablePtr table) {
     table_ = table;
   }
 
@@ -86,8 +86,8 @@ class Select : public Operator {
   void Clear() override;
 
  protected:
-  std::shared_ptr<DBTable> table_;
-  std::shared_ptr<OperatorResult> output_result_;
+  DBTable::TablePtr table_;
+  OperatorResult::OpResultPtr output_result_;
   std::shared_ptr<PredicateTree> tree_;
   arrow::ArrayVector filters_;
 

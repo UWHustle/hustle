@@ -32,7 +32,7 @@ class SSB {
   explicit SSB(int SF, bool print, hustle::operators::AggregateType agg_type);
 
   void execute(ExecutionPlan &plan,
-               std::shared_ptr<OperatorResult> &final_result);
+               OperatorResult::OpResultPtr &final_result);
 
 
   void q11();
@@ -69,7 +69,7 @@ class SSB {
   void q42_lip();
   void q43_lip();
 
-  std::shared_ptr<DBTable> lo, c, s, p, d;
+  DBTable::TablePtr lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
       d_schema;
 
@@ -79,31 +79,31 @@ class SSB {
   AggregateType aggregate_type;
   std::shared_ptr<Scheduler> scheduler;
 
-  std::shared_ptr<OperatorResult> lo_result_in;
-  std::shared_ptr<OperatorResult> d_result_in;
-  std::shared_ptr<OperatorResult> p_result_in;
-  std::shared_ptr<OperatorResult> s_result_in;
-  std::shared_ptr<OperatorResult> c_result_in;
+  OperatorResult::OpResultPtr lo_result_in;
+  OperatorResult::OpResultPtr d_result_in;
+  OperatorResult::OpResultPtr p_result_in;
+  OperatorResult::OpResultPtr s_result_in;
+  OperatorResult::OpResultPtr c_result_in;
 
-  std::shared_ptr<OperatorResult> lo_select_result_out;
-  std::shared_ptr<OperatorResult> d_select_result_out;
-  std::shared_ptr<OperatorResult> p_select_result_out;
-  std::shared_ptr<OperatorResult> s_select_result_out;
-  std::shared_ptr<OperatorResult> c_select_result_out;
+  OperatorResult::OpResultPtr lo_select_result_out;
+  OperatorResult::OpResultPtr d_select_result_out;
+  OperatorResult::OpResultPtr p_select_result_out;
+  OperatorResult::OpResultPtr s_select_result_out;
+  OperatorResult::OpResultPtr c_select_result_out;
 
   std::vector<std::shared_ptr<OperatorResult>> lip_result_in;
   std::vector<std::shared_ptr<OperatorResult>> join_result_in;
 
-  std::shared_ptr<OperatorResult> lip_result_out;
-  std::shared_ptr<OperatorResult> join_result_out;
-  std::shared_ptr<OperatorResult> agg_result_out;
+  OperatorResult::OpResultPtr lip_result_out;
+  OperatorResult::OpResultPtr join_result_out;
+  OperatorResult::OpResultPtr agg_result_out;
 
   std::shared_ptr<OperatorOptions> select_options;
   std::shared_ptr<OperatorOptions> join_options;
   std::shared_ptr<OperatorOptions> filter_join_options;
   std::shared_ptr<OperatorOptions> aggregate_options;
 
-  std::shared_ptr<DBTable> out_table;
+  DBTable::TablePtr out_table;
 
   ColumnReference lo_d_ref;
   ColumnReference lo_p_ref;

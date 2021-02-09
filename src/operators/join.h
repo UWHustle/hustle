@@ -50,11 +50,11 @@ class Join : public Operator {
    */
   Join(const std::size_t query_id,
        std::vector<std::shared_ptr<OperatorResult>> prev_result,
-       std::shared_ptr<OperatorResult> output_result, JoinGraph graph);
+       OperatorResult::OpResultPtr output_result, JoinGraph graph);
 
   Join(const std::size_t query_id,
        std::vector<std::shared_ptr<OperatorResult>> prev_result,
-       std::shared_ptr<OperatorResult> output_result, JoinGraph graph,
+       OperatorResult::OpResultPtr output_result, JoinGraph graph,
        std::shared_ptr<OperatorOptions> options);
 
   /**
@@ -73,7 +73,7 @@ class Join : public Operator {
     prev_result_vec_ = prev_result;
   }
 
-  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+  inline void set_output_result(OperatorResult::OpResultPtr output_result) {
     output_result_ = output_result;
   }
 
@@ -98,7 +98,7 @@ class Join : public Operator {
   std::vector<std::shared_ptr<OperatorResult>> prev_result_vec_;
   // Results from upstream operators condensed into one object
   // Where the output result will be stored once the operator is executed.a
-  std::shared_ptr<OperatorResult> prev_result_, output_result_;
+  OperatorResult::OpResultPtr prev_result_, output_result_;
 
   // A graph specifying all join predicates
   JoinGraph graph_;
@@ -130,7 +130,7 @@ class Join : public Operator {
 
   LazyTable left_, right_;
 
-  std::unordered_map<std::shared_ptr<DBTable>, bool> finished_;
+  std::unordered_map<DBTable::TablePtr, bool> finished_;
 
   /**
    * Perform a single hash join.
@@ -178,7 +178,7 @@ class Join : public Operator {
    * 1 3 4
    *
    */
-  std::shared_ptr<OperatorResult> BackPropogateResult(
+  OperatorResult::OpResultPtr BackPropogateResult(
       LazyTable &left, LazyTable right,
       const std::vector<arrow::Datum> &joined_indices);
 

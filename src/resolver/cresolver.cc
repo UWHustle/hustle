@@ -24,10 +24,13 @@
 #include "execution/execution_plan.h"
 #include "operators/fused/filter_join.h"
 #include "operators/fused/select_build_hash.h"
+#include "operators/hash_aggregate.h"
 #include "operators/select.h"
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
 #include "scheduler/threading/synchronization_lock.h"
+
+#define ENABLE_FUSED_OPERATOR 0
 
 std::shared_ptr<hustle::ExecutionPlan> createPlan(
     hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
@@ -46,9 +49,9 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   auto join_predicate_map = select_resolver->join_predicates();
 
   for (auto const& [table_name, predicate_tree] : select_predicates) {
-    std::shared_ptr<OperatorResult> input_result =
+    OperatorResult::OpResultPtr input_result =
         std::make_shared<OperatorResult>();
-    std::shared_ptr<OperatorResult> output_result =
+    OperatorResult::OpResultPtr output_result =
         std::make_shared<OperatorResult>();
     auto table_ptr = catalog->getTable(table_name);
     if (table_ptr == nullptr) return nullptr;
@@ -58,7 +61,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
       is_predicate_avail = true;
       input_result->append(table_ptr);
       std::unique_ptr<hustle::operators::Select> select;
-      if (join_predicate_map.find(table_name) == join_predicate_map.end()) {
+      if (!ENABLE_FUSED_OPERATOR || join_predicate_map.find(table_name) == join_predicate_map.end()) {
         select = std::make_unique<hustle::operators::Select>(
             0, table_ptr, input_result, output_result, predicate_tree);
       } else {
@@ -77,7 +80,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
    * the join operators.
    */
   bool is_join_op = true;
-  std::shared_ptr<OperatorResult> join_result_out;
+  OperatorResult::OpResultPtr join_result_out;
   std::unique_ptr<Join> join_op = nullptr;
   std::unique_ptr<FilterJoin> filter_join_op = nullptr;
   if (join_predicate_map.size() != 0) {
@@ -87,7 +90,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
                    [](auto& pred) { return pred.second; });
     JoinGraph join_graph({join_predicates});
     join_result_out = std::make_shared<OperatorResult>();
-    if (is_predicate_avail) {
+    if (ENABLE_FUSED_OPERATOR && is_predicate_avail) {
       filter_join_op = std::make_unique<FilterJoin>(
           0, select_result, join_result_out, join_graph);
     } else {
@@ -103,9 +106,9 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   std::shared_ptr<std::vector<AggregateReference>> agg_refs =
       (select_resolver->agg_references());
 
-  std::shared_ptr<OperatorResult> agg_result_out =
+  OperatorResult::OpResultPtr agg_result_out =
       std::make_shared<OperatorResult>();
-  std::unique_ptr<Aggregate> agg_op;
+  std::unique_ptr<HashAggregate> agg_op;
 
   if (agg_refs->size() != 0) {
     assert(agg_refs->size() == 1);  // currently supports one agg op
@@ -129,7 +132,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
                    });
 
     agg_op =
-        std::make_unique<Aggregate>(0, join_result_out, agg_result_out,
+        std::make_unique<HashAggregate>(0, join_result_out, agg_result_out,
                                     *agg_refs, group_by_refs, order_by_refs);
   } else {
     is_agg_op = false;
@@ -201,11 +204,11 @@ std::shared_ptr<hustle::storage::DBTable> execute(
         });
       }),
       hustle::CreateLambdaTask([&plan, &out_table, &sync_lock] {
-        std::shared_ptr<OperatorResult> agg_result_out =
+        OperatorResult::OpResultPtr agg_result_out =
             plan->getOperatorResult();
         std::shared_ptr<hustle::storage::DBTable> out_table =
             agg_result_out->materialize(plan->getResultColumns());
-        // out_table->print();
+        out_table->print();
         sync_lock.release();
       })));
 

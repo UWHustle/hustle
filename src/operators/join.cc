@@ -33,13 +33,13 @@ static const uint32_t kRightJoinIndex = 1;
 
 Join::Join(const std::size_t query_id,
            std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-           std::shared_ptr<OperatorResult> output_result, JoinGraph graph)
+           OperatorResult::OpResultPtr output_result, JoinGraph graph)
     : Join(query_id, prev_result_vec, output_result, graph,
            std::make_shared<OperatorOptions>()) {}
 
 Join::Join(const std::size_t query_id,
            std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-           std::shared_ptr<OperatorResult> output_result, JoinGraph graph,
+           OperatorResult::OpResultPtr output_result, JoinGraph graph,
            std::shared_ptr<OperatorOptions> options)
     : Operator(query_id, options),
       prev_result_vec_(prev_result_vec),
@@ -378,7 +378,7 @@ void Join::FinishProbe(Task *ctx) {
   });
 }
 
-std::shared_ptr<OperatorResult> Join::BackPropogateResult(
+OperatorResult::OpResultPtr Join::BackPropogateResult(
     LazyTable &left, LazyTable right,
     const std::vector<arrow::Datum> &joined_indices) {
   arrow::Status status;

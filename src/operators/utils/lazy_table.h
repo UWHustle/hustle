@@ -38,7 +38,7 @@ struct RecordID {
 };
 
 struct ColumnReference {
-  std::shared_ptr<DBTable> table;
+  DBTable::TablePtr table;
   std::string col_name;
 };
 
@@ -68,11 +68,11 @@ class LazyTable {
    * @param filter A Boolean ChunkedArray Datum
    * @param indices An INT64 Array Datum
    */
-  LazyTable(std::shared_ptr<DBTable> table, arrow::Datum filter,
+  LazyTable(DBTable::TablePtr table, arrow::Datum filter,
             arrow::Datum indices, arrow::Datum index_chunks);
 
   LazyTable(
-      std::shared_ptr<DBTable> table, arrow::Datum filter, arrow::Datum indices,
+      DBTable::TablePtr table, arrow::Datum filter, arrow::Datum indices,
       arrow::Datum index_chunks,
       std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table);
 
@@ -98,7 +98,7 @@ class LazyTable {
    */
   std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string col_name);
 
-  std::shared_ptr<DBTable> table;
+  DBTable::TablePtr table;
   arrow::Datum filter;   // filters are ChunkedArrays
   arrow::Datum indices;  // indices are Arrays
   arrow::Datum index_chunks;
@@ -113,10 +113,15 @@ class LazyTable {
 
   void get_column(Task* ctx, int i, arrow::Datum& out);
 
-  void set_materialized_column(int i, std::shared_ptr<arrow::ChunkedArray> col);
+  inline void set_materialized_column(
+      int i, std::shared_ptr<arrow::ChunkedArray> col) {
+    materialized_cols_[i] = std::move(col);
+  }
 
-  void set_hash_table(
-      std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table);
+  inline void set_hash_table(
+      std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table) {
+    hash_table_ = hash_table;
+  }
 
  private:
   //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;

@@ -61,7 +61,7 @@ class Operator {
     });
   }
 
-  std::shared_ptr<OperatorResult> result_;
+  OperatorResult::OpResultPtr result_;
 
  protected:
   explicit Operator(std::size_t query_id) : query_id_(query_id) {

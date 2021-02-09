@@ -20,6 +20,8 @@
 
 #include "operator.h"
 #include "aggregate_const.h"
+#include "expression.h"
+
 
 namespace hustle{
 namespace operators{
@@ -68,15 +70,15 @@ class HashAggregate : public BaseAggregate {
 
 public:
   HashAggregate(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            std::shared_ptr<OperatorResult> output_result,
+            OperatorResult::OpResultPtr prev_result,
+            OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs);
 
   HashAggregate(const std::size_t query_id,
-            std::shared_ptr<OperatorResult> prev_result,
-            std::shared_ptr<OperatorResult> output_result,
+            OperatorResult::OpResultPtr prev_result,
+            OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<ColumnReference> order_by_refs,
@@ -84,11 +86,11 @@ public:
 
   void execute(Task* ctx) override;
 
-  inline void set_prev_result(std::shared_ptr<OperatorResult> prev_result) {
+  inline void set_prev_result(OperatorResult::OpResultPtr prev_result) {
     prev_result_ = prev_result;
   }
 
-  inline void set_output_result(std::shared_ptr<OperatorResult> output_result) {
+  inline void set_output_result(OperatorResult::OpResultPtr output_result) {
     output_result_ = output_result;
   }
 
@@ -108,9 +110,9 @@ public:
 
 private:
   // Operator result from an upstream operator and output result will be stored
-  std::shared_ptr<OperatorResult> prev_result_, output_result_;
+  OperatorResult::OpResultPtr prev_result_, output_result_;
   // The new output table containing the group columns and aggregate columns.
-  std::shared_ptr<DBTable> output_table_;
+  DBTable::TablePtr output_table_;
   // The output result of each aggregate group (length = num_aggs_)
   std::atomic<int64_t>* aggregate_data_;
   // Hold the aggregate column data (in chunks)
@@ -140,6 +142,8 @@ private:
   std::unordered_map<std::string, int> group_by_index_map_;
   std::vector<LazyTable> group_by_tables_;
   LazyTable agg_lazy_table_;
+
+  std::shared_ptr<Expression> expression_;
 
   // Two phase hashing requires two types of hash tables.
   HashAggregateStrategy strategy;
@@ -220,7 +224,7 @@ private:
    * @param end_chunk_id The chunk_id to end with.
    */
   void FirstPhaseAggregateChunks(
-    size_t task_id, int start_chunk_id, int end_chunk_id);
+    Task *ctx, size_t task_id, int start_chunk_id, int end_chunk_id);
 
   /**
    * Helper method of FirstPhaseAggregateChunks().
@@ -229,7 +233,7 @@ private:
    * @param task_id Task id.
    * @param chunk_id The chunk_id to work with.
    */
-  void FirstPhaseAggregateChunk_(size_t task_id, int chunk_id);
+  void FirstPhaseAggregateChunk_(Task *ctx, size_t task_id, int chunk_id);
 
   /**
    * Perform the second aggregate of the two phase hash aggregate.

@@ -8,6 +8,7 @@ add_library(
         join_graph.cc join_graph.h
         predicate.cc predicate.h
         operator.h
+        expression.h expression.cc
         operator_options.h
         aggregate_options.h
         fused/select_build_hash.cc fused/select_build_hash.h
@@ -114,5 +115,19 @@ target_link_libraries(hustle_filter_join_test
         hustle_src_scheduler_Scheduler
         )
 add_test(HustleFilterJoin_test hustle_filter_join_test)
+
+add_executable(hustle_expression_test "tests/expression_test.cc")
+target_link_libraries(hustle_expression_test
+        gtest
+        gtest_main
+        gmock
+        #        glog
+        ${GFLAGS_LIB_NAME}
+        hustle_src_storage
+        hustle_src_operators
+        hustle_src_optimizer_ExecutionPlan
+        hustle_src_scheduler_Scheduler
+        )
+add_test(HustleExpression_test hustle_expression_test)
 
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")

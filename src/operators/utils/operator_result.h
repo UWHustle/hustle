@@ -38,6 +38,7 @@ enum FilterOperator {
 
 class OperatorResult {
  public:
+  using OpResultPtr = std::shared_ptr<OperatorResult>;
   /**
    * Construct an OperatorResult, the type that all operators return. It is
    * simply a collection of LazyTables. Since a LazyTable can be thought
@@ -60,7 +61,7 @@ class OperatorResult {
    *
    * @param table The table to append
    */
-  void append(std::shared_ptr<DBTable> table);
+  void append(DBTable::TablePtr table);
 
   /**
    * Append a new lazy table to the OperatorResult.
@@ -95,7 +96,7 @@ class OperatorResult {
    * @param table
    * @return a LazyTable
    */
-  LazyTable get_table(const std::shared_ptr<DBTable>& table);
+  LazyTable get_table(const DBTable::TablePtr& table);
 
   /**
    * Construct a new table from the OperatorResult
@@ -103,12 +104,12 @@ class OperatorResult {
    * @param col_refs References to the columns to project in the output table.
    * @return A new table containing all columns specified by col_refs
    */
-  std::shared_ptr<DBTable> materialize(
+  DBTable::TablePtr materialize(
       const std::vector<ColumnReference>& col_refs);
 
   std::vector<LazyTable> lazy_tables_;
 
-  void set_materialized_col(std::shared_ptr<DBTable> table, int i,
+  void set_materialized_col(DBTable::TablePtr table, int i,
                             std::shared_ptr<arrow::ChunkedArray> col);
 };
 

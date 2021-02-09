@@ -48,7 +48,7 @@ namespace catalog {
 class TableInfo {
   public:
     TableSchema table_schema;
-    std::shared_ptr<DBTable> table;
+    DBTable::TablePtr table;
 
     template <class Archive>
     void serialize(Archive& archive) {
@@ -63,7 +63,7 @@ class Catalog {
                                                       std::string SqlitePath);
 
   bool addTable(TableSchema t);
-  bool addTable(TableSchema t, std::shared_ptr<DBTable> table_ref);
+  bool addTable(TableSchema t, DBTable::TablePtr table_ref);
 
   bool dropMemTable(std::string name);
 
@@ -73,8 +73,8 @@ class Catalog {
 
   void print() const;
 
-  std::shared_ptr<DBTable> getTable(size_t table_id);
-  std::shared_ptr<DBTable> getTable(std::string table_name);
+  DBTable::TablePtr getTable(size_t table_id);
+  DBTable::TablePtr getTable(std::string table_name);
 
   std::vector<std::string> getTables(){ 
     std::vector<std::string> result;
@@ -111,7 +111,7 @@ class Catalog {
   void SaveToFile();
 
   // TODO(chronis) make private
-  std::vector<std::shared_ptr<DBTable>> table_refs_;
+  std::vector<DBTable::TablePtr> table_refs_;
   std::map<std::string, TableInfo> tables_;
   std::string CatalogPath_;
   std::string SqlitePath_;

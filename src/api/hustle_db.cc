@@ -62,7 +62,7 @@ bool HustleDB::createTable(const TableSchema ts) {
 }
 
 bool HustleDB::createTable(const TableSchema ts,
-                           std::shared_ptr<DBTable> table_ref) {
+                           DBTable::TablePtr table_ref) {
   return catalog_->addTable(ts, table_ref);
 }
 

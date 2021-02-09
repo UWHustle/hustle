@@ -30,8 +30,8 @@
 namespace hustle::operators {
 
 Aggregate::Aggregate(const std::size_t query_id,
-                     std::shared_ptr<OperatorResult> prev_result,
-                     std::shared_ptr<OperatorResult> output_result,
+                     OperatorResult::OpResultPtr prev_result,
+                     OperatorResult::OpResultPtr output_result,
                      std::vector<AggregateReference> aggregate_refs,
                      std::vector<ColumnReference> group_by_refs,
                      std::vector<ColumnReference> order_by_refs)
@@ -40,8 +40,8 @@ Aggregate::Aggregate(const std::size_t query_id,
                 std::make_shared<OperatorOptions>()) {}
 
 Aggregate::Aggregate(const std::size_t query_id,
-                     std::shared_ptr<OperatorResult> prev_result,
-                     std::shared_ptr<OperatorResult> output_result,
+                     OperatorResult::OpResultPtr prev_result,
+                     OperatorResult::OpResultPtr output_result,
                      std::vector<AggregateReference> aggregate_refs,
                      std::vector<ColumnReference> group_by_refs,
                      std::vector<ColumnReference> order_by_refs,
@@ -84,10 +84,9 @@ void Aggregate::Initialize(Task* ctx) {
                         .make_array();
               }),
               CreateLambdaTask([this, group_index, contexts](Task* internal) {
-                contexts[group_index]->match(
-                  internal,
-                  group_by_cols_[group_index],
-                  unique_values_[group_index]);
+                contexts[group_index]->match(internal,
+                                             group_by_cols_[group_index],
+                                             unique_values_[group_index]);
               }),
               CreateLambdaTask([this, contexts, group_index] {
                 unique_values_map_[group_index] =
@@ -114,6 +113,8 @@ void Aggregate::InitializeVariables(Task* ctx) {
 
   // Initialize aggregate builder
   aggregate_builder_ = CreateAggregateBuilder(aggregate_refs_[0].kernel);
+  exp_result_finished_ = false;
+  exp_result_builder_ = std::make_shared<arrow::Int64Builder>();
 
   // Initialize output table and its schema. group_type_ must be initialized
   // beforehand.
@@ -413,10 +414,6 @@ void Aggregate::ComputeAggregates(Task* ctx) {
         // TODO(nicholas): For now, we only perform one aggregate.
         auto table = aggregate_refs_[0].col_ref.table;
         auto col_name = aggregate_refs_[0].col_ref.col_name;
-
-        if (table == nullptr) {
-          throw std::runtime_error("Non-supported aggregation");
-        }
         agg_lazy_table_ = prev_result_->get_table(table);
         agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
       }),
@@ -583,7 +580,7 @@ void Aggregate::Clear() {
 
   aggregate_col_data_.clear();
   aggregate_refs_.clear();
-  group_by_refs_.clear(); 
+  group_by_refs_.clear();
   order_by_refs_.clear();
   group_by_cols_.clear();
   group_agg_index_map_.clear();
