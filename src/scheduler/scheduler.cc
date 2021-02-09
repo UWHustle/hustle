@@ -38,8 +38,8 @@ namespace hustle {
 
 Scheduler::Scheduler(const std::size_t num_workers, const bool thread_pinning)
     : SchedulerInterface(),
-      num_workers_(num_workers > 0 ? num_workers
-                                   : std::thread::hardware_concurrency()) {
+      num_workers_(num_workers > 0 ? 2*num_workers
+                                   : 2*std::thread::hardware_concurrency()) {
   std::vector<int> worker_cpu_affinities;
   if (thread_pinning) {
     const int num_cpu_cores = std::thread::hardware_concurrency();
@@ -70,7 +70,7 @@ Scheduler::Scheduler(const std::size_t num_workers, const bool thread_pinning)
 }
 
 Scheduler &Scheduler::GlobalInstance() {
-  static Scheduler instance(FLAGS_num_threads*5, true);
+  static Scheduler instance(FLAGS_num_threads, true);
   return instance;
 }
 
