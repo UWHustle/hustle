@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/utils/lip.h"
+#include "operators/lip.h"
 
 #include "storage/util.h"
 
@@ -98,7 +98,7 @@ void LIP::build_filters(Task *ctx) {
 
           bloom_filter->set_memory(1);
           bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
-          dim_filters_[i] = {bloom_filter, dim_tables_[i].hash_table_};
+          dim_filters_[i] = {bloom_filter, dim_tables_[i].hash_table()};
         })));
   }
 }

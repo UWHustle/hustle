@@ -179,6 +179,7 @@ class DBTable {
    */
   void DeleteRecordTable(uint32_t rowId);
 
+  void InsertRecords(arrow::ChunkedArrayVector col_arrays);
   /**
    * Insert one or more records into the Table as a vector of ArrayData.
    * This insertion method would be used to insert the results of a query,

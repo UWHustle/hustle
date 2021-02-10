@@ -61,7 +61,8 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
       is_predicate_avail = true;
       input_result->append(table_ptr);
       std::unique_ptr<hustle::operators::Select> select;
-      if (!ENABLE_FUSED_OPERATOR || join_predicate_map.find(table_name) == join_predicate_map.end()) {
+      if (!ENABLE_FUSED_OPERATOR ||
+          join_predicate_map.find(table_name) == join_predicate_map.end()) {
         select = std::make_unique<hustle::operators::Select>(
             0, table_ptr, input_result, output_result, predicate_tree);
       } else {
@@ -131,9 +132,9 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
                      return *x;
                    });
 
-    agg_op =
-        std::make_unique<HashAggregate>(0, join_result_out, agg_result_out,
-                                    *agg_refs, group_by_refs, order_by_refs);
+    agg_op = std::make_unique<HashAggregate>(0, join_result_out, agg_result_out,
+                                             *agg_refs, group_by_refs,
+                                             order_by_refs);
   } else {
     is_agg_op = false;
     agg_result_out = join_result_out;
@@ -204,8 +205,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
         });
       }),
       hustle::CreateLambdaTask([&plan, &out_table, &sync_lock] {
-        OperatorResult::OpResultPtr agg_result_out =
-            plan->getOperatorResult();
+        OperatorResult::OpResultPtr agg_result_out = plan->getOperatorResult();
         std::shared_ptr<hustle::storage::DBTable> out_table =
             agg_result_out->materialize(plan->getResultColumns());
         out_table->print();

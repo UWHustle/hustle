@@ -18,8 +18,8 @@
 #ifndef HUSTLE_AGGREGATE_OPTIONS_H
 #define HUSTLE_AGGREGATE_OPTIONS_H
 
-#include "operator_options.h"
 #include "aggregate_const.h"
+#include "operators/utils/operator_options.h"
 
 namespace hustle::operators {
 
@@ -28,24 +28,23 @@ namespace hustle::operators {
  * user can choose when aggregation happens.
  * TODO: Expand the options to configurate the aggregation.
  */
-class AggregateOptions: public OperatorOptions {
-public:
-  explicit AggregateOptions(): aggregateType(AggregateType::ARROW_AGGREGATE) {};
+class AggregateOptions : public OperatorOptions {
+ public:
+  explicit AggregateOptions() : aggregateType(AggregateType::ARROW_AGGREGATE){};
 
   double get_aggregate_type() const { return aggregateType; }
   /**
    * Select the aggregate algorithm (arrow.compute or our own hash aggregate)
    */
-  AggregateOptions & set_aggregate_type(AggregateType type){
+  AggregateOptions& set_aggregate_type(AggregateType type) {
     aggregateType = type;
     return *this;
   }
 
-private:
+ private:
   AggregateType aggregateType;
-
 };
 
-}
+}  // namespace hustle::operators
 
-#endif //HUSTLE_AGGREGATE_OPTIONS_H
+#endif  // HUSTLE_AGGREGATE_OPTIONS_H

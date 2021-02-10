@@ -107,11 +107,11 @@ void FilterJoin::BuildFilters(Task *ctx) {
 
           bloom_filter->set_memory(1);
           bloom_filter->set_fact_fk_name(fact_fk_col_names_[table_idx]);
-          if (dim_tables_[table_idx].hash_table_ == nullptr) {
+          if (dim_tables_[table_idx].hash_table() == nullptr) {
              throw "hash table for the dimension relation not constructed";
           }
           dim_filters_[table_idx] = {bloom_filter,
-                                     dim_tables_[table_idx].hash_table_};
+                                     dim_tables_[table_idx].hash_table()};
         })));
   }
 }
@@ -429,7 +429,7 @@ void FilterJoin::Finish() {
     output_lazy_tables.emplace_back(dim_tables_[dim_tbl_idx].table,
                                     dim_tables_[dim_tbl_idx].filter,
                                     dim_indices[dim_tbl_idx], arrow::Datum(),
-                                    dim_tables_[dim_tbl_idx].hash_table_);
+                                    dim_tables_[dim_tbl_idx].hash_table());
   }
   OperatorResult result({output_lazy_tables});
   output_result_->append(std::make_shared<OperatorResult>(result));
