@@ -186,8 +186,7 @@ void HashAggregate::ComputeAggregates(Task* ctx) {
         //  Be careful when there is only one map.
         SecondPhaseAggregate(internal);
       })
-
-          ));
+    ));
 }
 
 void HashAggregate::SecondPhaseAggregate(Task* internal) {
@@ -584,7 +583,6 @@ void HashAggregate::Finish(Task* ctx) {
 
   for (int i = 0; i < group_by_cols_.size(); i++) {
     auto group_by = group_by_cols_.at(i);
-
     auto group_by_type = group_by.type();
     auto group_by_type_id = group_by_type->id();
 
