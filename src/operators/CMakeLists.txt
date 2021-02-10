@@ -7,6 +7,7 @@ add_library(
         select.h select.cc
         join_graph.cc join_graph.h
         predicate.cc predicate.h
+        lip.cc lip.h
         operator.h
         expression.h expression.cc
         operator_options.h
@@ -15,7 +16,6 @@ add_library(
         fused/filter_join.cc fused/filter_join.h
         utils/lazy_table.cc utils/lazy_table.h
         utils/operator_result.cc utils/operator_result.h
-        utils/lip.cc utils/lip.h
         ../utils/bloom_filter.h
         ../utils/xxHash.h base_aggregate.h utils/aggregate_factory.cc utils/aggregate_factory.h)
 
