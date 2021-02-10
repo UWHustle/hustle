@@ -18,29 +18,63 @@
 #ifndef HUSTLE_HASH_AGGREGATE_H
 #define HUSTLE_HASH_AGGREGATE_H
 
-#include "operator.h"
 #include "aggregate_const.h"
 #include "expression.h"
+#include "operator.h"
 
-
-namespace hustle{
-namespace operators{
+namespace hustle {
+namespace operators {
 
 class HashAggregateStrategy {
+ public:
+  HashAggregateStrategy() : partitions(0), chunks(0) {}
 
-public:
-  HashAggregateStrategy();
-  HashAggregateStrategy(int partitions, int chunks);
+  HashAggregateStrategy(int partitions, int chunks)
+      : partitions(partitions), chunks(chunks) {}
 
-  int suggestedNumTasks() const;
-  static std::tuple<int, int> getChunkID(int tid,
-                                         int totalThreads,
-                                         int totalNumChunks);
+  inline std::tuple<int, int> getChunkID(
+      // TODO: We assume each chunk has the same number of data.
+      //   It is not always true. The correct algorithm is to
+      //      linearly traverse the chunkarray.
+      //   Change this algorithm to a generate (and yield the
+      //      result each time we calls it).
+      int tid, int totalThreads, int totalNumChunks) {
+    assert(tid >= 0);
+    assert(totalThreads > 0);
+    assert(totalNumChunks >= 0);
 
-private:
+    if (tid >= totalNumChunks) {
+      return std::make_tuple(-1, -1);
+    }
+
+    int M = (totalNumChunks + totalThreads - 1) / totalThreads;
+    int m = totalNumChunks / totalThreads;
+    int FR = totalNumChunks % totalThreads;
+
+    int st = 0;
+    int ed = 0;
+    if (tid < FR) {
+      st = M * tid;
+      ed = M * (tid + 1);
+    } else {
+      st = M * FR + m * (tid - FR);
+      ed = M * FR + m * (tid + 1 - FR);
+    }
+    st = st < 0 ? 0 : st;
+    ed = ed > totalNumChunks ? totalNumChunks : ed;
+    return std::make_tuple(st, ed);
+  }
+
+  inline int suggestedNumTasks() const {
+    if (chunks < partitions) {
+      return chunks;
+    }
+    return partitions;
+  }
+
+ private:
   int chunks;
   int partitions;
-
 };
 
 class HashAggregate : public BaseAggregate {
@@ -67,22 +101,21 @@ class HashAggregate : public BaseAggregate {
   //    4. Automatic mapping of group-by tuple hash to the row id
   //      on the aggregate column. Hopefully this mapping won't change.
 
-
-public:
+ public:
   HashAggregate(const std::size_t query_id,
-            OperatorResult::OpResultPtr prev_result,
-            OperatorResult::OpResultPtr output_result,
-            std::vector<AggregateReference> aggregate_refs,
-            std::vector<ColumnReference> group_by_refs,
-            std::vector<ColumnReference> order_by_refs);
+                OperatorResult::OpResultPtr prev_result,
+                OperatorResult::OpResultPtr output_result,
+                std::vector<AggregateReference> aggregate_refs,
+                std::vector<ColumnReference> group_by_refs,
+                std::vector<ColumnReference> order_by_refs);
 
   HashAggregate(const std::size_t query_id,
-            OperatorResult::OpResultPtr prev_result,
-            OperatorResult::OpResultPtr output_result,
-            std::vector<AggregateReference> aggregate_refs,
-            std::vector<ColumnReference> group_by_refs,
-            std::vector<ColumnReference> order_by_refs,
-            std::shared_ptr<OperatorOptions> options);
+                OperatorResult::OpResultPtr prev_result,
+                OperatorResult::OpResultPtr output_result,
+                std::vector<AggregateReference> aggregate_refs,
+                std::vector<ColumnReference> group_by_refs,
+                std::vector<ColumnReference> order_by_refs,
+                std::shared_ptr<OperatorOptions> options);
 
   void execute(Task* ctx) override;
 
@@ -94,7 +127,8 @@ public:
     output_result_ = output_result;
   }
 
-  inline void set_aggregate_refs(std::vector<AggregateReference> aggregate_refs) {
+  inline void set_aggregate_refs(
+      std::vector<AggregateReference> aggregate_refs) {
     aggregate_refs_ = aggregate_refs;
   }
 
@@ -108,7 +142,7 @@ public:
 
   void Clear() override {}
 
-private:
+ private:
   // Operator result from an upstream operator and output result will be stored
   OperatorResult::OpResultPtr prev_result_, output_result_;
   // The new output table containing the group columns and aggregate columns.
@@ -158,10 +192,10 @@ private:
   //  It seems to have great optimization over the hash phrasing.
   typedef std::unordered_map<hash_t, value_t> HashMap;
   typedef std::unordered_map<hash_t, double> MeanHashMap;
-  std::vector<HashMap *> count_maps;
-  std::vector<HashMap *> value_maps;
+  std::vector<HashMap*> count_maps;
+  std::vector<HashMap*> value_maps;
   // Map the hash key to (chunk_id, offset).
-  phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>> * tuple_map;
+  phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>>* tuple_map;
 
   // TODO: Construct a mapping from hash key to group-by column tuples
 
@@ -169,13 +203,12 @@ private:
   // - HashMap if the aggregate kernel is SUM, COUNT
   // - MeanHashMap if the aggregate kernel is MEAN
   // TODO: Depending on the strategy, the global_map should be polymorphic.
-  void * global_map;
+  void* global_map;
 
   // If a thread wants to insert a group and its aggregate into group_builder_
   // and aggregate_builder_, then it must grab this mutex to ensure that the
   // groups and its aggregates are inserted at the same row.
   std::mutex mutex_;
-
 
   void Initialize(Task* internal);
 
@@ -196,7 +229,7 @@ private:
    * to compute.
    */
   std::shared_ptr<arrow::ArrayBuilder> CreateAggregateBuilder(
-    AggregateKernel kernel);
+      AggregateKernel kernel);
 
   /**
    * Construct the schema for the output table.
@@ -223,8 +256,8 @@ private:
    * @param start_chunk_id The chunk_id to start with.
    * @param end_chunk_id The chunk_id to end with.
    */
-  void FirstPhaseAggregateChunks(
-    Task *ctx, size_t task_id, int start_chunk_id, int end_chunk_id);
+  void FirstPhaseAggregateChunks(Task* ctx, size_t task_id, int start_chunk_id,
+                                 int end_chunk_id);
 
   /**
    * Helper method of FirstPhaseAggregateChunks().
@@ -233,7 +266,7 @@ private:
    * @param task_id Task id.
    * @param chunk_id The chunk_id to work with.
    */
-  void FirstPhaseAggregateChunk_(Task *ctx, size_t task_id, int chunk_id);
+  void FirstPhaseAggregateChunk_(Task* ctx, size_t task_id, int chunk_id);
 
   /**
    * Perform the second aggregate of the two phase hash aggregate.
@@ -244,12 +277,10 @@ private:
 
   hash_t HashCombine(hash_t seed, hash_t val);
 
-  void SortResult(std::vector<arrow::Datum> &groups, arrow::Datum &aggregates);
+  void SortResult(std::vector<arrow::Datum>& groups, arrow::Datum& aggregates);
 };
 
-}
-}
+}  // namespace operators
+}  // namespace hustle
 
-
-
-#endif //HUSTLE_HASH_AGGREGATE_H
+#endif  // HUSTLE_HASH_AGGREGATE_H
