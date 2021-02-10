@@ -531,10 +531,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
         break;
       }
     }
-
-    // 4
-    //    tuple_map->insert_or_assign(agg_item_key, item);
-    //    tuple_map->insert_or_assign(0, item);
     // TODO: Optimize using the folloiwng code...
     auto it = tuple_map->find(agg_item_key);
     if (it == tuple_map->end()) {
