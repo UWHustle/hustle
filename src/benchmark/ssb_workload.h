@@ -20,7 +20,7 @@
 
 #include <operators/aggregate_const.h>
 #include "execution/execution_plan.h"
-#include "operators/operator_options.h"
+#include "operators/utils/operator_options.h"
 #include "operators/predicate.h"
 #include "scheduler/scheduler.h"
 #include "storage/table.h"

@@ -36,8 +36,7 @@ void OperatorResult::append(DBTable::TablePtr table) {
 }
 
 void OperatorResult::set_materialized_col(
-    DBTable::TablePtr table, int i,
-    std::shared_ptr<arrow::ChunkedArray> col) {
+    DBTable::TablePtr table, int i, std::shared_ptr<arrow::ChunkedArray> col) {
   get_table(table).set_materialized_column(i, col);
 }
 

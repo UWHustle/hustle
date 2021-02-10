@@ -10,7 +10,7 @@ add_library(
         lip.cc lip.h
         operator.h
         expression.h expression.cc
-        operator_options.h
+        utils/operator_options.h
         aggregate_options.h
         fused/select_build_hash.cc fused/select_build_hash.h
         fused/filter_join.cc fused/filter_join.h

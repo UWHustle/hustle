@@ -46,7 +46,8 @@ void Expression::ConvertPostfix(hustle::Task* ctx,
   this->ConvertPostfix(ctx, expr->right_expr);
 
   std::shared_ptr<arrow::ChunkedArray> column = nullptr;
-  // Push the expression elements along with needed metadata for the postfix output
+  // Push the expression elements along with needed metadata for the postfix
+  // output
   if (expr->op == TK_COLUMN || expr->op == TK_AGG_COLUMN) {
     arrow::Datum col;
     prev_op_output_->get_table(expr->column_ref->table)
@@ -133,7 +134,8 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
     if (expr_item.op == TK_COLUMN || expr_item.op == TK_AGG_COLUMN) {
       // Push the column references into the stack which are operands
       eval_stack.push({expr_item.op, false, expr_item.col->chunk(chunk_id)});
-    } else { // if it is a arithmetic operator do the evaluation of the operator
+    } else {  // if it is a arithmetic operator do the evaluation of the
+              // operator
       OpElem right_op = eval_stack.top();
       eval_stack.pop();
       OpElem left_op = eval_stack.top();
