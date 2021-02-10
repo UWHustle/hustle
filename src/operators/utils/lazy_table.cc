@@ -83,36 +83,24 @@ void LazyTable::get_column_by_name(Task *ctx, std::string col_name,
 }
 
 void LazyTable::get_column(Task *ctx, int i, arrow::Datum &out) {
-  SynchronizationLock sync_lock;
-  ctx->spawnTask(CreateTaskChain(
-      CreateLambdaTask([this, i, &out](Task *internal) {
-        if (materialized_cols_[i] != nullptr) {
-          out.value = materialized_cols_[i];
-        } else if (filtered_cols_.count(i) > 0) {
-          out.value = filtered_cols_[i];
-        } else {
-          out = table->get_column(i);
-          if (filter.kind() != arrow::Datum::NONE) {
-            // context_.apply_filter(internal, out, filter, out);
-            // filtered_cols_[i] = out.chunked_array();
-          }
-        }
-      }),
-      CreateLambdaTask([this, i, &out, &sync_lock](Task *internal) {
-        if (materialized_cols_[i] == nullptr) {
-          if (indices.kind() != arrow::Datum::NONE) {
-            context_.apply_indices(internal, out, indices, index_chunks, out);
-          }
-        
-        }
-      }),
-      CreateLambdaTask([this, i, &out, &sync_lock](Task *internal) {
-        if (materialized_cols_[i] == nullptr) {
-          materialized_cols_[i] = out.chunked_array();
-        }
-        sync_lock.release();
-      })));
-  sync_lock.wait();
+  if (materialized_cols_[i] != nullptr) {
+    out.value = materialized_cols_[i];
+  } else if (filtered_cols_.count(i) > 0) {
+    out.value = filtered_cols_[i];
+  } else {
+    out = table->get_column(i);
+    if (filter.kind() != arrow::Datum::NONE) {
+      // context_.apply_filter(internal, out, filter, out);
+      // filtered_cols_[i] = out.chunked_array();
+    }
+  }
+
+  if (materialized_cols_[i] == nullptr) {
+    if (indices.kind() != arrow::Datum::NONE) {
+      context_.apply_indices(ctx, out, indices, index_chunks, out);
+    }
+    materialized_cols_[i] = out.chunked_array();
+  }
 }
 
 }  // namespace hustle::operators
