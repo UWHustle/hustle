@@ -88,6 +88,17 @@ void DBTable::InsertBlocks(std::vector<std::shared_ptr<Block>> input_blocks) {
   }
 }
 
+void DBTable::InsertRecords(arrow::ChunkedArrayVector col_arrays) {
+  std::vector<std::shared_ptr<arrow::ArrayData>> block_data;
+  for (int i = 0; i < col_arrays[0]->num_chunks(); i++) {
+    for (auto &col : col_arrays) {
+      block_data.push_back(col->chunk(i)->data());
+    }
+    this->InsertRecords(block_data);
+    block_data.clear();
+  }
+}
+
 void DBTable::InsertRecords(
     std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   int l = column_data[0]->length;

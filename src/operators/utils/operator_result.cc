@@ -95,18 +95,7 @@ DBTable::TablePtr OperatorResult::materialize(
 
   auto out_table = std::make_shared<DBTable>("out", out_schema, BLOCK_SIZE);
 
-  std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
-
-  // TODO(nicholas): Create Table constuctor that accepts a vector
-  //  of ChunkedArrays.
-  for (int i = 0; i < out_cols[0]->num_chunks(); i++) {
-    for (auto& col : out_cols) {
-      out_block_data.push_back(col->chunk(i)->data());
-    }
-    out_table->InsertRecords(out_block_data);
-    out_block_data.clear();
-  }
-
+  out_table->InsertRecords(out_cols);
   return out_table;
 }
 
