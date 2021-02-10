@@ -120,8 +120,8 @@ void Join::HashJoin(int join_id, Task *ctx) {
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
         // Build phase
-        if (right_.hash_table_ != nullptr) {
-          hash_tables_[join_id] = right_.hash_table_;
+        if (right_.hash_table() != nullptr) {
+          hash_tables_[join_id] = right_.hash_table();
         } else if (right_.filter.kind() == arrow::Datum::CHUNKED_ARRAY) {
           BuildHashTable(join_id, right_join_col_.chunked_array(),
                          right_.filter.chunked_array(), internal);
@@ -420,7 +420,7 @@ OperatorResult::OpResultPtr Join::BackPropogateResult(
     new_index_chunks = left_index_chunks;
   }
   output_lazy_tables.emplace_back(left.table, left.filter, new_indices,
-                                  new_index_chunks, left.hash_table_);
+                                  new_index_chunks, left.hash_table());
 
   // Update the indices of the right LazyTable. If there was no previous
   // join on the right table, then right_indices_of_indices directly
@@ -436,7 +436,7 @@ OperatorResult::OpResultPtr Join::BackPropogateResult(
   }
   new_index_chunks = arrow::Datum();
   output_lazy_tables.emplace_back(right.table, right.filter, new_indices,
-                                  new_index_chunks, right.hash_table_);
+                                  new_index_chunks, right.hash_table());
 
   // Propogate the join to the other tables in the previous OperatorResult.
   // This elimates tuples from other tables in the previous result that were
@@ -451,11 +451,11 @@ OperatorResult::OpResultPtr Join::BackPropogateResult(
 
         output_lazy_tables.emplace_back(lazy_table.table, lazy_table.filter,
                                         new_indices, arrow::Datum(),
-                                        lazy_table.hash_table_);
+                                        lazy_table.hash_table());
       } else {
         output_lazy_tables.emplace_back(
             lazy_table.table, lazy_table.filter, lazy_table.indices,
-            lazy_table.index_chunks, lazy_table.hash_table_);
+            lazy_table.index_chunks, lazy_table.hash_table());
       }
     }
   }

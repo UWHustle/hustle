@@ -87,6 +87,10 @@ class LazyTable {
    */
   std::shared_ptr<arrow::ChunkedArray> get_column(int i);
 
+  std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table() {
+    return hash_table_;
+  }
+
   /**
    * Materialize the active rows of one column of the LazyTable. This is
    * achieved by first applying the filter to the column and then applying
@@ -97,17 +101,6 @@ class LazyTable {
    * column.
    */
   std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string col_name);
-
-  DBTable::TablePtr table;
-  arrow::Datum filter;   // filters are ChunkedArrays
-  arrow::Datum indices;  // indices are Arrays
-  arrow::Datum index_chunks;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
-  std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
-
-  // Hash table for the right table in each join
-  std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table_;
-  bool is_hash_table_avail = false;
 
   void get_column_by_name(Task* ctx, std::string col_name, arrow::Datum& out);
 
@@ -123,9 +116,16 @@ class LazyTable {
     hash_table_ = hash_table;
   }
 
+  DBTable::TablePtr table;
+  arrow::Datum filter;   // filters are ChunkedArrays
+  arrow::Datum indices;  // indices are Arrays
+  arrow::Datum index_chunks;
+
  private:
-  //    std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
-  //    std::vector<bool> materialized_cols_bitmap_;
+  // Hash table for the right table in each join
+  std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table_;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
+  std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
   Context context_;
 };
 
