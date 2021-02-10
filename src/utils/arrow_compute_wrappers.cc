@@ -246,6 +246,8 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
                             const arrow::Datum index_chunks,
                             arrow::Datum& out) {
   clear_data();
+  SynchronizationLock sync_lock;
+
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, values, indices, index_chunks,
                         &out](Task* internal) {
@@ -300,8 +302,6 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
           internal->spawnLambdaTask([this, indices_array, chunked_values,
                                      has_index_chunks, offsets, index_chunks,
                                      i] {
-            //                    apply_indices_internal(chunked_values,
-            //                    indices_array, offsets, i);
             switch (chunked_values->type()->id()) {
               case arrow::Type::INT64: {
                 std::vector<const int64_t*> values_data_vec(
@@ -342,20 +342,21 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
               case arrow::Type::STRING: {
                 apply_indices_internal_str(chunked_values, indices_array,
                                            offsets, i);
-                //                            apply_indices_internal(chunked_values,
-                //                            indices_array, offsets, i);
                 break;
               }
             }
           });
         }
       }),
-      CreateLambdaTask([this, values, indices, &out](Task* internal) {
-        arrow::Status status;
-        std::shared_ptr<arrow::Array> arr;
-        out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
-        out_ = std::make_shared<arrow::ChunkedArray>(array_vec_);
-      })));
+      CreateLambdaTask(
+          [this, values, indices, &out, &sync_lock](Task* internal) {
+            arrow::Status status;
+            std::shared_ptr<arrow::Array> arr;
+            out.value = std::make_shared<arrow::ChunkedArray>(array_vec_);
+            out_ = std::make_shared<arrow::ChunkedArray>(array_vec_);
+            sync_lock.release();
+          })));
+  sync_lock.wait();
 }
 
 void Context::clear_data() { array_vec_.clear(); }
