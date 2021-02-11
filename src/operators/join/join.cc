@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/join.h"
+#include "operators/join/join.h"
 
 #include <arrow/compute/api.h>
 #include <arrow/scalar.h>

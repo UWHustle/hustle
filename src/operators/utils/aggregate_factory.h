@@ -18,10 +18,10 @@
 #ifndef HUSTLE_AGGREGATE_FACTORY_H
 #define HUSTLE_AGGREGATE_FACTORY_H
 
-#include "operators/base_aggregate.h"
-#include "operators/aggregate_const.h"
-#include "operators/aggregate.h"
-#include "operators/hash_aggregate.h"
+#include "operators/aggregate/base_aggregate.h"
+#include "operators/aggregate/aggregate_const.h"
+#include "operators/aggregate/aggregate.h"
+#include "operators/aggregate/hash_aggregate.h"
 
 namespace hustle::operators {
 

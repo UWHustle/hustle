@@ -18,7 +18,7 @@
 #ifndef HUSTLE_AGGREGATE_OPTIONS_H
 #define HUSTLE_AGGREGATE_OPTIONS_H
 
-#include "aggregate_const.h"
+#include "operators/aggregate/aggregate_const.h"
 #include "operators/utils/operator_options.h"
 
 namespace hustle::operators {

@@ -21,7 +21,7 @@
 #include "catalog/catalog.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "operators/predicate.h"
+#include "operators/select/predicate.h"
 #include "resolver/cresolver.h"
 #include "resolver/select_resolver.h"
 #include "sqlite3/sqlite3.h"

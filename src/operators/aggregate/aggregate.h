@@ -23,7 +23,7 @@
 
 #include <string>
 
-#include "aggregate_const.h"
+#include "operators/aggregate/aggregate_const.h"
 #include "operators/expression.h"
 #include "operators/operator.h"
 #include "operators/utils/operator_result.h"

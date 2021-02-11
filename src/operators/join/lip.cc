@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/lip.h"
+#include "operators/join/lip.h"
 
 #include "storage/util.h"
 

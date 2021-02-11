@@ -20,7 +20,7 @@
 
 #include <cstdlib>
 
-#include "operators/predicate.h"
+#include "operators/select/predicate.h"
 #include "operators/utils/operator_options.h"
 #include "operators/utils/operator_result.h"
 #include "scheduler/task.h"

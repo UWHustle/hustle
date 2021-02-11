@@ -18,10 +18,10 @@
 #ifndef HUSTLE_SSB_WORKLOAD_H
 #define HUSTLE_SSB_WORKLOAD_H
 
-#include <operators/aggregate_const.h>
+#include <operators/aggregate/aggregate_const.h>
 #include "execution/execution_plan.h"
 #include "operators/utils/operator_options.h"
-#include "operators/predicate.h"
+#include "operators/select/predicate.h"
 #include "scheduler/scheduler.h"
 #include "storage/table.h"
 #include "operators/utils/aggregate_factory.h"

@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/join_graph.h"
+#include "operators/join/join_graph.h"
 
 namespace hustle::operators {
 

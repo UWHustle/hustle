@@ -18,7 +18,7 @@
 #ifndef HUSTLE_JOINGRAPH_H
 #define HUSTLE_JOINGRAPH_H
 
-#include "predicate.h"
+#include "operators/select/predicate.h"
 #include "storage/table.h"
 
 namespace hustle {

@@ -22,7 +22,7 @@
 
 #include <string>
 
-#include "operators/join_graph.h"
+#include "operators/join/join_graph.h"
 #include "operators/operator.h"
 #include "operators/utils/operator_result.h"
 #include "storage/block.h"
