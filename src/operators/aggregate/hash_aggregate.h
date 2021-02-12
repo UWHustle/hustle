@@ -18,9 +18,9 @@
 #ifndef HUSTLE_HASH_AGGREGATE_H
 #define HUSTLE_HASH_AGGREGATE_H
 
-#include "aggregate_const.h"
-#include "expression.h"
-#include "operator.h"
+#include "operators/aggregate/aggregate_const.h"
+#include "operators/expression.h"
+#include "operators/operator.h"
 
 namespace hustle {
 namespace operators {

@@ -15,30 +15,25 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/predicate.h"
+#ifndef HUSTLE_BASE_AGGREGATE_H
+#define HUSTLE_BASE_AGGREGATE_H
 
-#include <utility>
+#include "operators/operator.h"
 
 namespace hustle::operators {
 
-bool Node::is_leaf() { return is_leaf_node_; }
+class BaseAggregate: public Operator {
+protected:
 
-PredicateNode::PredicateNode(std::shared_ptr<Predicate> predicate) {
-  predicate_ = std::move(predicate);
-  is_leaf_node_ = true;
-}
+  explicit BaseAggregate(const size_t query_id)
+  : BaseAggregate(query_id, std::make_shared<OperatorOptions>()){};
 
-ConnectiveNode::ConnectiveNode(std::shared_ptr<Node> left_child,
-                               std::shared_ptr<Node> right_child,
-                               FilterOperator connective) {
-  left_child_ = std::move(left_child);
-  right_child_ = std::move(right_child);
-  connective_ = connective;
+  explicit BaseAggregate(const size_t query_id,
+                         std::shared_ptr<OperatorOptions> sharedPtr)
+    : Operator(query_id, sharedPtr) {};
 
-  is_leaf_node_ = false;
-}
+};
 
-PredicateTree::PredicateTree(std::shared_ptr<Node> root) {
-  root_ = std::move(root);
-}
-}  // namespace hustle::operators
+}; // namespace hustle::operators
+
+#endif //HUSTLE_BASE_AGGREGATE_H

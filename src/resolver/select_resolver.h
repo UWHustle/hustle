@@ -24,8 +24,8 @@
 #include <unordered_map>
 
 #include "catalog/catalog.h"
-#include "operators/aggregate.h"
-#include "operators/predicate.h"
+#include "operators/aggregate/aggregate.h"
+#include "operators/select/predicate.h"
 #include "resolver/cresolver.h"
 
 /* The default is chosen heuristically by looking at the standard

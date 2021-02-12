@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/aggregate.h"
+#include "operators/aggregate/aggregate.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>

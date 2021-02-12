@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/join.h"
+#include "operators/join/join.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -24,7 +24,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "operators/select.h"
+#include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
 #include "storage/util.h"

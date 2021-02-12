@@ -299,8 +299,9 @@ Status hustle_memlog_free(HustleMemLog *mem_log) {
     return MEMLOG_ERROR;
   }
   hustle_memlog_clear(mem_log);
-
   free(mem_log->record_list);
   free(mem_log);
+
+  table_map.clear();
   return MEMLOG_OK;
 }

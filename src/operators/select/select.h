@@ -23,9 +23,9 @@
 
 #include <string>
 
-#include "operators/join.h"
+#include "operators/join/join.h"
 #include "operators/operator.h"
-#include "operators/predicate.h"
+#include "operators/select/predicate.h"
 #include "operators/utils/operator_result.h"
 #include "storage/block.h"
 #include "storage/table.h"

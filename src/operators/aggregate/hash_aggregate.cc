@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "hash_aggregate.h"
+#include "operators/aggregate/hash_aggregate.h"
 
 #include <storage/util.h>
 

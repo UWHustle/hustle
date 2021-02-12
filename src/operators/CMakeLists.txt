@@ -1,23 +1,23 @@
 add_library(
         hustle_src_operators
-        join.h join.cc
-        aggregate_const.h
-        aggregate.h aggregate.cc
-        hash_aggregate.h hash_aggregate.cc
-        select.h select.cc
-        join_graph.cc join_graph.h
-        predicate.cc predicate.h
-        lip.cc lip.h
+        aggregate/aggregate_const.h
+        aggregate/aggregate.h aggregate/aggregate.cc
+        aggregate/hash_aggregate.h aggregate/hash_aggregate.cc
+        aggregate/aggregate_options.h
+        select/select.h select/select.cc
+        select/predicate.cc select/predicate.h
+        join/join.h join/join.cc
+        join/lip.cc join/lip.h
+        join/join_graph.cc join/join_graph.h
         operator.h
         expression.h expression.cc
         utils/operator_options.h
-        aggregate_options.h
         fused/select_build_hash.cc fused/select_build_hash.h
         fused/filter_join.cc fused/filter_join.h
         utils/lazy_table.cc utils/lazy_table.h
         utils/operator_result.cc utils/operator_result.h
         ../utils/bloom_filter.h
-        ../utils/xxHash.h base_aggregate.h utils/aggregate_factory.cc utils/aggregate_factory.h)
+        ../utils/xxHash.h aggregate/base_aggregate.h utils/aggregate_factory.cc utils/aggregate_factory.h)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})

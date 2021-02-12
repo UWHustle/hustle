@@ -22,6 +22,7 @@ import subprocess
 import sys
 
 EXCLUDED_PREFIXES = ['./.', './third_party', './arrow', './build', './src/utils']
+INCLUDED_PREFIXES = ['./src/operators', './src/storage', './src/resolver', './src/catalog']
 
 print "Running cpplint on entire source tree. This may take several minutes ..."
 
@@ -35,10 +36,10 @@ call_args = ['/usr/bin/env',
              '--quiet']
 
 for (dirpath, dirnames, filenames) in os.walk('.'):
-    filtered = False
-    for prefix in EXCLUDED_PREFIXES:
+    filtered = True
+    for prefix in INCLUDED_PREFIXES:
         if dirpath.startswith(prefix):
-            filtered = True
+            filtered = False
     if not filtered:
         for filename in filenames:
             if filename.endswith('.h') or filename.endswith('.cc'):
