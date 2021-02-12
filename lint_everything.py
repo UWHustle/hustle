@@ -22,7 +22,7 @@ import subprocess
 import sys
 
 EXCLUDED_PREFIXES = ['./.', './third_party', './arrow', './build', './src/utils']
-INCLUDED_PREFIXES = ['./src/operators']
+INCLUDED_PREFIXES = ['./src/operators', './src/storage', './src/resolver', './src/catalog']
 
 print "Running cpplint on entire source tree. This may take several minutes ..."
 
