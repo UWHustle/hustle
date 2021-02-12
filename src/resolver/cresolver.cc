@@ -31,9 +31,9 @@
 #include "resolver/select_resolver.h"
 #include "scheduler/threading/synchronization_lock.h"
 
-#define ENABLE_FUSED_OPERATOR   0
-#define NULL_OP_ID             -1
-#define DEFAULT_QUERY_ID        0
+#define ENABLE_FUSED_OPERATOR 1
+#define NULL_OP_ID -1
+#define DEFAULT_QUERY_ID 0
 
 using namespace hustle::operators;
 using namespace hustle::resolver;
