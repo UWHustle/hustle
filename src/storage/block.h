@@ -313,6 +313,11 @@ class Block {
    */
   void TruncateBuffers();
 
+  /// static-cast guard for MetadataBlock
+  inline bool IsMetadataCompatible() {
+    return false;
+  }
+
  private:
   /**
    * Block ID.
