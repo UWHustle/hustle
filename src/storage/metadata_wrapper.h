@@ -47,6 +47,7 @@ class MetadataEnabledBlock : public Block {
      * empty constructor
      * for now, we only generate metadata if a block is constructed with
      * a record batch.
+     * Note that BuildMetadata() can be called at a later time.
      */
   }
 

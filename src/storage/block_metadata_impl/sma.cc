@@ -37,6 +37,7 @@ Sma::Sma(const std::shared_ptr<arrow::Array>& array) {
 bool Sma::Search(const arrow::Datum& val_ptr,
                  arrow::compute::CompareOperator compare_operator) {
   arrow::Result<arrow::Datum> result;
+  arrow::Result<arrow::Datum> result_opt;
   switch (compare_operator) {
     case arrow::compute::CompareOperator::GREATER:
     case arrow::compute::CompareOperator::GREATER_EQUAL:
@@ -49,6 +50,20 @@ bool Sma::Search(const arrow::Datum& val_ptr,
           min, val_ptr, arrow::compute::CompareOptions(compare_operator));
       break;
     case arrow::compute::CompareOperator::EQUAL:
+      result = arrow::compute::Compare(
+          max, val_ptr,
+          arrow::compute::CompareOptions(arrow::compute::LESS_EQUAL));
+      result_opt = arrow::compute::Compare(
+          min, val_ptr,
+          arrow::compute::CompareOptions(arrow::compute::LESS_EQUAL));
+      if (!result.ok() || !result_opt.ok()) {
+        return true;
+      }
+      return (static_cast<arrow::BooleanScalar&>(*result.ValueOrDie().scalar())
+                  .data()) &&
+             (static_cast<arrow::BooleanScalar&>(
+                  *result_opt.ValueOrDie().scalar())
+                  .data());
     case arrow::compute::CompareOperator::NOT_EQUAL:
     default:
       return true;

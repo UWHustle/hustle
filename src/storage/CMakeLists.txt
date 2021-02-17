@@ -61,3 +61,13 @@ target_link_libraries(hustle_memlog_test
         hustle_src_storage
         )
 add_test(HustleMemlogTest hustle_memlog_test)
+
+add_executable(hustle_metadata_test "tests/metadata_test.cc")
+target_link_libraries(hustle_metadata_test
+        gtest
+        gtest_main
+        gmock
+        ${ARROW_SHARED_LIB}
+        hustle_src_storage
+        )
+add_test(HustleMetadataTest hustle_metadata_test)

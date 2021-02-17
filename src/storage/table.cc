@@ -27,14 +27,13 @@
 #include "storage/metadata_wrapper.h"
 #include "storage/util.h"
 
-#define ENABLE_METADATA_TABLE_FROM_RECORD_BATCH true
-
 namespace hustle::storage {
 
 DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
-                 int block_capacity)
+                 int block_capacity, bool enable_metadata)
     : table_name(std::move(name)),
       schema(schema),
+      metadata_enabled(enable_metadata),
       block_counter(0),
       num_rows(0),
       block_capacity(block_capacity),
@@ -47,8 +46,9 @@ DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
 DBTable::DBTable(
     std::string name,
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-    int block_capacity)
+    int block_capacity, bool enable_metadata)
     : table_name(std::move(name)),
+      metadata_enabled(enable_metadata),
       block_counter(0),
       num_rows(0),
       block_capacity(block_capacity),
@@ -60,7 +60,7 @@ DBTable::DBTable(
   fixed_record_width = compute_fixed_record_width(schema);
   std::shared_ptr<Block> block;
   for (const auto &batch : record_batches) {
-    if (ENABLE_METADATA_TABLE_FROM_RECORD_BATCH) {
+    if (enable_metadata) {
       block = std::make_shared<MetadataEnabledBlock>(block_counter, batch,
                                                      BLOCK_SIZE);
     } else {

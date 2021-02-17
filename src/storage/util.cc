@@ -146,7 +146,7 @@ void read_record_batch(
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
 std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
-                                                       bool read_only) {
+                                                         bool read_only) {
   auto& scheduler = hustle::Scheduler::GlobalInstance();
 
   arrow::Status status;
@@ -175,7 +175,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
   scheduler.join();
 
   return std::make_shared<hustle::storage::DBTable>("table", record_batches,
-                                                  BLOCK_SIZE);
+                                                    BLOCK_SIZE);
 }
 
 std::vector<std::shared_ptr<arrow::Array>> get_columns_from_record_batch(
@@ -305,7 +305,8 @@ std::vector<int32_t> get_field_sizes(
 }
 
 std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
-    const char* path, std::shared_ptr<arrow::Schema> schema, int block_size) {
+    const char* path, std::shared_ptr<arrow::Schema> schema, int block_size,
+    bool metadata_enabled) {
   arrow::Status status;
 
   // RecordBatchBuilder initializes ArrayBuilders for each field in schema
@@ -373,8 +374,8 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
   std::string line;
 
-  auto out_table =
-      std::make_shared<hustle::storage::DBTable>("table", schema, block_size);
+  auto out_table = std::make_shared<hustle::storage::DBTable>(
+      "table", schema, block_size, metadata_enabled);
 
   while (fgets(buf, 1024, file)) {
     // Note that the newline character is still included!
