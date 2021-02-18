@@ -46,31 +46,31 @@ class HashAggregateStrategy {
       //      linearly traverse the chunkarray.
       //   Change this algorithm to a generate (and yield the
       //      result each time we calls it).
-      int tid, int totalThreads, int totalNumChunks) {
-    assert(tid >= 0);
-    assert(totalThreads > 0);
-    assert(totalNumChunks >= 0);
+      int task_id, int num_threads, int num_chunks) {
+    assert(task_id >= 0);
+    assert(num_threads > 0);
+    assert(num_chunks >= 0);
 
-    if (tid >= totalNumChunks) {
+    if (task_id >= num_chunks) {
       return std::make_tuple(-1, -1);
     }
 
-    int M = (totalNumChunks + totalThreads - 1) / totalThreads;
-    int m = totalNumChunks / totalThreads;
-    int FR = totalNumChunks % totalThreads;
+    int M = (num_chunks + num_threads - 1) / num_threads;
+    int m = num_chunks / num_threads;
+    int FR = num_chunks % num_threads;
 
-    int st = 0;
-    int ed = 0;
-    if (tid < FR) {
-      st = M * tid;
-      ed = M * (tid + 1);
+    int start = 0;
+    int end = 0;
+    if (task_id < FR) {
+      start = M * task_id;
+      end = M * (task_id + 1);
     } else {
-      st = M * FR + m * (tid - FR);
-      ed = M * FR + m * (tid + 1 - FR);
+      start = M * FR + m * (task_id - FR);
+      end = M * FR + m * (task_id + 1 - FR);
     }
-    st = st < 0 ? 0 : st;
-    ed = ed > totalNumChunks ? totalNumChunks : ed;
-    return std::make_tuple(st, ed);
+    start = start < 0 ? 0 : start;
+    end = end > num_chunks ? num_chunks : end;
+    return std::make_tuple(start, end);
   }
 
   inline int suggestedNumTasks() const {
