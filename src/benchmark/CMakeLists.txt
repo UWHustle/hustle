@@ -1,9 +1,10 @@
 find_package(benchmark REQUIRED)
 add_library(hustle_src_benchmark
         ssb_workload.cc ssb_workload.h
+        ssb_queries.cc ssb_queries.h
         tatp_workload.cc tatp_workload.h
         ssb_workload_lip.cc
-        aggregate_workload.cc aggregate_workload.h)
+        aggregate_workload.cc aggregate_workload.h ssb_queries.h ssb_queries.cc)
 
 target_include_directories(hustle_src_benchmark PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_benchmark PUBLIC
