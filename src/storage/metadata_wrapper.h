@@ -40,8 +40,8 @@ class MetadataEnabledBlock : public Block {
   inline MetadataEnabledBlock(int id,
                               const std::shared_ptr<arrow::Schema> &schema,
                               int capacity)
-      : Block(id, schema, capacity),
-        column_metadata_list(get_num_cols(), std::vector<BlockMetadata *>(1)),
+      : Block(id, schema, capacity, true),
+        column_metadata_list(get_num_cols(), std::vector<BlockMetadata *>(0)),
         column_metadata_valid(get_num_cols(), false) {
     /*
      * empty constructor
@@ -61,8 +61,8 @@ class MetadataEnabledBlock : public Block {
   inline MetadataEnabledBlock(int id,
                               std::shared_ptr<arrow::RecordBatch> record_batch,
                               int capacity)
-      : Block(id, record_batch, capacity),
-        column_metadata_list(get_num_cols(), std::vector<BlockMetadata *>(1)),
+      : Block(id, record_batch, capacity, true),
+        column_metadata_list(get_num_cols(), std::vector<BlockMetadata *>(0)),
         column_metadata_valid(get_num_cols(), false) {
     BuildMetadata();
   }
@@ -123,14 +123,28 @@ class MetadataEnabledBlock : public Block {
                           compare_operator);
   }
 
+  /**
+   * Returns each metadata's arrow:Status object for a given column
+   *
+   * @param column_id column id
+   * @return vector of arrow:Status objects
+   */
+  std::vector<arrow::Status> GetMetadataStatusList(int column_id);
+
+  /**
+   * Returns each metadata's arrow:Status object for a given column
+   *
+   * @param column_name column name
+   * @return vector of arrow:Status objects
+   */
+  inline std::vector<arrow::Status> GetMetadataStatusList(const std::string &column_name) {
+    return GetMetadataStatusList(get_schema()->GetFieldIndex(column_name));
+  }
+
   // override
   using Block::InsertRecord;
   using Block::InsertRecords;
-  using Block::IsMetadataCompatible;
   using Block::UpdateColumnValue;
-
-  /// override IsMetadataCompatible
-  inline bool IsMetadataCompatible() { return true; }
 
   /// override InsertRecord
   inline int InsertRecord(uint8_t *record, int32_t *byte_widths) {

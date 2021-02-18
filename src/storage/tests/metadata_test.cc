@@ -97,9 +97,30 @@ TEST_P(MetadataTestFixture, ParameterizedSelectComparisonTest) {
   scheduler.start();
   scheduler.join();
   auto out_table_R =
-      out_result_R->materialize({R_key_ref, R_group_ref, R_data_ref});
-  auto out_table_R_meta =
-      out_result_R_meta->materialize({R_key_ref, R_group_ref, R_data_ref});
+      out_result_R->materialize({R_key_ref, R_group_ref, R_data_ref}, false);
+  auto out_table_R_meta = out_result_R_meta->materialize(
+      {R_key_ref, R_group_ref, R_data_ref}, true);
+  EXPECT_FALSE(R->IsMetadataEnabled());
+  EXPECT_TRUE(R->GetMetadataOk());
+  EXPECT_TRUE(R->GetMetadataStatusList(0).empty());
+  EXPECT_TRUE(R_meta->IsMetadataEnabled());
+  EXPECT_TRUE(R_meta->GetMetadataOk());
+  EXPECT_EQ(R_meta->GetMetadataStatusList(0).size(), 1);  // 1 block, 3 columns
+  EXPECT_EQ(R_meta->GetMetadataStatusList(0)[0].size(),
+            1);  // column 0, int64, 1 SMA metadata
+  EXPECT_EQ(R_meta->GetMetadataStatusList(0)[0][0],
+            arrow::Status::OK());  // validate metadata ok
+  EXPECT_EQ(R_meta->GetMetadataStatusList(1)[0].size(),
+            0);  // column 1, utf8, no metadata
+  // column 1, no metadata to validate
+  EXPECT_EQ(R_meta->GetMetadataStatusList(2)[0].size(),
+            1);  // column 2, int64, 1 SMA metadata
+  EXPECT_EQ(R_meta->GetMetadataStatusList(2)[0][0],
+            arrow::Status::OK());  // validate metadata ok
+  EXPECT_FALSE(out_table_R->IsMetadataEnabled());
+  EXPECT_TRUE(out_table_R->GetMetadataOk());
+  EXPECT_TRUE(out_table_R_meta->IsMetadataEnabled());
+  EXPECT_TRUE(out_table_R_meta->GetMetadataOk());
   EXPECT_TRUE(out_table_R->get_column(0)->chunk(0)->Equals(
       out_table_R_meta->get_column(0)->chunk(0)));
   EXPECT_TRUE(out_table_R->get_column(1)->chunk(0)->Equals(
@@ -109,7 +130,7 @@ TEST_P(MetadataTestFixture, ParameterizedSelectComparisonTest) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    TestMetadataEquivalance, MetadataTestFixture,
+    TestMetadataSelectEquivalance, MetadataTestFixture,
     ::testing::Values(
         std::make_tuple(arrow::compute::CompareOperator::GREATER,
                         arrow::Datum((int64_t)30)),
@@ -121,8 +142,8 @@ INSTANTIATE_TEST_SUITE_P(
                         arrow::Datum((int64_t)30)),
         std::make_tuple(arrow::compute::CompareOperator::EQUAL,
                         arrow::Datum((int64_t)30))
-        //TODO test errors: libc++abi.dylib: terminating with uncaught exception of type mpark::bad_variant_access: bad_variant_access
+        // not implemented until NOT_EQUAL no longer implements BETWEEN operator
+        // behavior.
         // std::make_tuple(arrow::compute::CompareOperator::NOT_EQUAL,
         //                 arrow::Datum((int64_t)30))
-        //
         ));

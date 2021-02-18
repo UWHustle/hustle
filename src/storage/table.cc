@@ -325,4 +325,63 @@ void DBTable::InsertRecord(std::vector<std::string_view> values,
     insert_pool[block->get_id()] = block;
   }
 }
+
+bool DBTable::GetMetadataOk() {
+  if (!metadata_enabled) {
+    return true;
+  } else {
+    for (int i = 0; i < get_num_blocks(); i++) {
+      bool block_compatible = get_block(i)->IsMetadataCompatible();
+      if (!block_compatible) {
+        // ignore blocks that are not metadata compatible
+      } else {
+        auto metadata_block =
+            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i));
+        for (int i = 0; i < metadata_block->get_num_cols(); i++) {
+          auto status_list = metadata_block->GetMetadataStatusList(i);
+          for (int j = 0; j < status_list.size(); j++) {
+            if (!metadata_block->GetMetadataStatusList(i)[j].ok()) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+}
+
+void DBTable::BuildMetadata() {
+  if (metadata_enabled) {
+    for (int i = 0; i < get_num_blocks(); i++) {
+      bool block_compatible = get_block(i)->IsMetadataCompatible();
+      if (!block_compatible) {
+        // ignore blocks that are not metadata compatible
+      } else {
+        auto metadata_block =
+            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i));
+        metadata_block->BuildMetadata();
+      }
+    }
+  }
+}
+
+std::vector<std::vector<arrow::Status>> DBTable::GetMetadataStatusList(
+    int column_id) {
+  std::vector<std::vector<arrow::Status>> out;
+  if (metadata_enabled) {
+    for (int i = 0; i < get_num_blocks(); i++) {
+      bool block_compatible = get_block(i)->IsMetadataCompatible();
+      if (!block_compatible) {
+        std::vector<arrow::Status> empty_list;
+        out.push_back(empty_list);
+      } else {
+        auto metadata_block =
+            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i));
+        out.push_back(metadata_block->GetMetadataStatusList(column_id));
+      }
+    }
+  }
+  return out;
+}
 }  // namespace hustle::storage

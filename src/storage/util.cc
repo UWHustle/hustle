@@ -388,6 +388,9 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
     out_table->InsertRecord(values, byte_widths);
   }
+  if(metadata_enabled) {
+    out_table->BuildMetadata();
+  }
   return out_table;
 }
 

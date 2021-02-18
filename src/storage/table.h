@@ -99,9 +99,8 @@ class DBTable {
     int block_id = block_counter++;
     std::shared_ptr<Block> block;
     if (metadata_enabled) {
-      block = std::static_pointer_cast<Block>(
-          std::make_shared<MetadataEnabledBlock>(block_id, schema,
-                                                 block_capacity));
+      block = std::make_shared<MetadataEnabledBlock>(block_id, schema,
+                                                     block_capacity);
     } else {
       block = std::make_shared<Block>(block_id, schema, block_capacity);
     }
@@ -340,6 +339,35 @@ class DBTable {
    */
   template <typename Functor>
   void ForEachBatch(const Functor &functor) const;
+
+  /**
+   * Get if the table generates metadata enabled blocks
+   *
+   * @return true if the table uses metadata enabled blocks, false otherwise
+   */
+  inline bool IsMetadataEnabled() { return metadata_enabled; }
+
+  /**
+   * Returns the status of all metadatas for a column, as individual lists per
+   * block
+   *
+   * @return list of lists of metadata
+   */
+  std::vector<std::vector<arrow::Status>> GetMetadataStatusList(int column_id);
+
+  /**
+   * true if table is either not metadata enabled, or if the contained blocks'
+   * metadata are all arrow::Status::Ok()
+   *
+   * @return true if metadata is ok
+   */
+  bool GetMetadataOk();
+
+  /**
+   * Build metadata for each block in the table if the block is
+   * metadata compatible
+   */
+  void BuildMetadata();
 
  private:
   /**

@@ -30,8 +30,13 @@
 namespace hustle::storage {
 
 Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
-             int capacity)
-    : num_rows(0), num_bytes(0), capacity(capacity), id(id), schema(in_schema) {
+             int capacity, bool enable_metadata)
+    : num_rows(0),
+      num_bytes(0),
+      capacity(capacity),
+      id(id),
+      schema(in_schema),
+      metadata_enabled(enable_metadata) {
   arrow::Status status;
   num_cols = schema->num_fields();
   this->fixed_record_width = compute_fixed_record_width(schema);
@@ -124,8 +129,8 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
 }
 
 Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
-             int capacity)
-    : capacity(capacity), id(id), num_bytes(0) {
+             int capacity, bool enable_metadata)
+    : capacity(capacity), id(id), num_bytes(0), metadata_enabled(enable_metadata){
   arrow::Status status;
   num_rows = record_batch->num_rows();
   schema = std::move(record_batch->schema());
