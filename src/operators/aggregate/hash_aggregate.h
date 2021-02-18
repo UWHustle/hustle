@@ -192,10 +192,13 @@ class HashAggregate : public BaseAggregate {
   //  It seems to have great optimization over the hash phrasing.
   typedef std::unordered_map<hash_t, value_t> HashMap;
   typedef std::unordered_map<hash_t, double> MeanHashMap;
+  typedef std::unordered_map<hash_t, std::tuple<int, int>> TupleMap;
   std::vector<HashMap*> count_maps;
   std::vector<HashMap*> value_maps;
+  std::vector<TupleMap*> tuple_maps;
+
   // Map the hash key to (chunk_id, offset).
-  phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>>* tuple_map;
+  TupleMap* global_tuple_map;
 
   // TODO: Construct a mapping from hash key to group-by column tuples
 

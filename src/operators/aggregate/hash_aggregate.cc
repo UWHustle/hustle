@@ -98,8 +98,8 @@ void HashAggregate::Initialize(Task* ctx) {
   }
 
   // Initialize the Tuple Map
-  tuple_map = new phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>>();
-  tuple_map->reserve(64);
+  global_tuple_map = new TupleMap();
+  global_tuple_map->reserve(64);
 }
 
 void HashAggregate::ComputeAggregates(Task* ctx) {
@@ -269,6 +269,17 @@ void HashAggregate::SecondPhaseAggregate(Task* internal) {
       break;
     }
   }
+
+  for (auto map : tuple_maps) {
+      for (auto item : *map) {
+          auto key = item.first;
+          auto value = item.second;
+          auto it = global_tuple_map->find(key);
+          if (it == global_tuple_map->end()) {
+              global_tuple_map->insert(std::make_pair(key, value));
+          }
+      }
+  }
 }
 
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
@@ -386,12 +397,14 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
   // Retrieve the proper maps for aggregate
   HashMap* count_map = nullptr;
   HashMap* value_map = nullptr;
+  TupleMap* tuple_map = nullptr;
   if (kernel == SUM || kernel == COUNT) {
     value_map = value_maps.at(tid);
   } else if (kernel == MEAN) {
     count_map = count_maps.at(tid);
     value_map = value_maps.at(tid);
   }
+  tuple_map = tuple_maps.at(tid);
 
   for (int item_index = 0; item_index < chunk_size; ++item_index) {
     // TODO: Redefine item value as hash_t
@@ -415,10 +428,10 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
       switch (group_by_type_id) {
         case arrow::Type::STRING: {
           // TODO: Guard - cannot be sum / mean, but could be count.
-          auto d = std::static_pointer_cast<arrow::StringArray>(group_by_chunk);
-          auto c = d->GetString(item_index);
-          auto b = std::hash<std::string>{}(c);
-          next_key = b;
+          auto string_col = std::static_pointer_cast<arrow::StringArray>(group_by_chunk);
+          auto string_val = string_col->GetString(item_index);
+          auto hash_string = std::hash<std::string>{}(string_val);
+          next_key = hash_string;
           break;
         }
         case arrow::Type::FIXED_SIZE_BINARY: {
@@ -429,10 +442,10 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
           break;
         }
         case arrow::Type::INT64: {
-          auto d = std::static_pointer_cast<arrow::Int64Array>(group_by_chunk);
-          int64_t b = d->Value(item_index);
-          auto e = std::hash<std::int64_t>{}(b);
-          next_key = e;
+          auto int_col = std::static_pointer_cast<arrow::Int64Array>(group_by_chunk);
+          int64_t int_val = int_col->Value(item_index);
+          auto hash_int = std::hash<std::int64_t>{}(int_val);
+          next_key = hash_int;
           break;
         }
         default: {
@@ -444,9 +457,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
       key = HashCombine(key, next_key);
     }
     agg_item_key = key;
-    //    debugmsg(agg_item_key);
 
-    // 2
     // TODO: Without a unique operator, we don't need to calculate
     //  the String type hash code.
     switch (agg_type_id) {
@@ -469,9 +480,8 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
         switch (kernel) {
           case SUM:
           case MEAN: {
-            auto d = std::static_pointer_cast<arrow::Int64Array>(agg_chunk);
-            int64_t b = d->Value(item_index);
-            agg_item_value = b;
+            auto agg_col = std::static_pointer_cast<arrow::Int64Array>(agg_chunk);
+            agg_item_value = agg_col->Value(item_index);
             break;
           }
           case COUNT: {
@@ -479,7 +489,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
             break;
           }
         }
-
         break;
       }
       default: {
@@ -489,7 +498,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
       }
     }
 
-    // 3
     // TODO: Optimize the hash key access pattern.
     switch (kernel) {
       case SUM: {
@@ -524,20 +532,15 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
         }
         break;
       }
-
       default: {
         std::cerr << "Not supported aggregate kernel." << std::endl;
         break;
       }
     }
-    // TODO: Optimize using the folloiwng code...
+
     auto it = tuple_map->find(agg_item_key);
     if (it == tuple_map->end()) {
       // Only insert the tuple when its not shown.
-      // TODO: insert_or_assign() does not prevent collision when two threads
-      //  tries to enter the critical section. A better method, which does not
-      //  show up here, seems to be
-      //        insert_or_abort().
       auto item = std::tuple(chunk_index, item_index);
       tuple_map->insert_or_assign(agg_item_key, item);
     }
@@ -562,12 +565,20 @@ void HashAggregate::InitializeLocalHashTables() {
       for (size_t tid = 0; tid < num_tasks; ++tid) {
         auto value_map = new HashMap();
         auto count_map = new HashMap();
+        auto tuple_map = new TupleMap();
         value_maps.push_back(value_map);
         count_maps.push_back(count_map);
       }
       break;
     }
   }
+
+  // Initialize tuple maps for the tasks
+  for (size_t tid = 0; tid < num_tasks; ++tid) {
+      auto tuple_map = new TupleMap();
+      tuple_maps.push_back(tuple_map);
+  }
+
 }
 
 void HashAggregate::Finish(Task* ctx) {
@@ -593,7 +604,7 @@ void HashAggregate::Finish(Task* ctx) {
     switch (group_by_type_id) {
       case arrow::Type::STRING: {
         arrow::StringBuilder builder;
-        for (auto const it : *tuple_map) {
+        for (auto const it : *global_tuple_map) {
           int chunk_id, item_index;
           auto hash_key = it.first;
           std::tie(chunk_id, item_index) = it.second;
@@ -618,7 +629,7 @@ void HashAggregate::Finish(Task* ctx) {
       }
       case arrow::Type::INT64: {
         arrow::Int64Builder builder;
-        for (auto const it : *tuple_map) {
+        for (auto const it : *global_tuple_map) {
           int chunk_id, item_index;
           auto hash_key = it.first;
           std::tie(chunk_id, item_index) = it.second;
@@ -654,7 +665,7 @@ void HashAggregate::Finish(Task* ctx) {
     case COUNT: {
       auto map = static_cast<HashMap*>(global_map);
       arrow::Int64Builder builder;
-      for (auto const it : *tuple_map) {
+      for (auto const it : *global_tuple_map) {
         auto hash_key = it.first;
         auto value = map->find(hash_key)->second;
         builder.Append(value);
@@ -671,7 +682,7 @@ void HashAggregate::Finish(Task* ctx) {
     case MEAN: {
       auto map = static_cast<MeanHashMap*>(global_map);
       arrow::DoubleBuilder builder;
-      for (auto const it : *tuple_map) {
+      for (auto const it : *global_tuple_map) {
         int chunk_id, item_index;
         auto hash_key = it.first;
         auto value = map->find(hash_key)->second;
