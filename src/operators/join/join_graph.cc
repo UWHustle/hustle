@@ -25,6 +25,7 @@ JoinGraph::JoinGraph(std::vector<std::vector<JoinPredicate>> join_predicates) {
   for (auto& join_predicate : join_predicates) {
     adj_.push_back(join_predicate);
     tables_.push_back(join_predicate[0].left_col_ref_.table);
+    num_predicates_ += join_predicates[0].size();
   }
 }
 
@@ -43,6 +44,7 @@ void JoinGraph::insert(std::vector<JoinPredicate> predicate_group) {
     tables_.push_back(table);
     adj_.push_back(predicate_group);
   }
+  num_predicates_ += predicate_group.size();
 }
 
 DBTable::TablePtr JoinGraph::get_table(int i) { return tables_[i]; }
@@ -53,8 +55,6 @@ std::vector<JoinPredicate> JoinGraph::get_predicates(
 }
 
 std::vector<JoinPredicate> JoinGraph::get_predicates(int i) { return adj_[i]; }
-
-int JoinGraph::get_num_tables() { return adj_.size(); }
 
 int JoinGraph::find_table(DBTable::TablePtr table) {
   auto it = std::find(tables_.begin(), tables_.end(), table);
