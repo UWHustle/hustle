@@ -354,7 +354,7 @@ int aggregate_main(int argc, char *argv[]) {
   return 0;
 }
 
-void run_ssb_queries() {
+int run_ssb_queries() {
     SSBQueries ssb_queries;
     ssb_queries.q11();
     ssb_queries.q12();
@@ -369,6 +369,7 @@ void run_ssb_queries() {
     ssb_queries.q41();
     ssb_queries.q42();
     ssb_queries.q43();
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -383,7 +384,7 @@ int main(int argc, char *argv[]) {
       tatp.RunBenchmark();
       return 0;
   } else if (benchmark_type == SSB_QUERIES_WORKLOAD) {
-      run_ssb_queries();
+      return run_ssb_queries();
   }
 
   std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;
