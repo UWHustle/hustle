@@ -73,7 +73,7 @@ class Node {
   void print() {
     if (is_leaf()) {
       std::cout << predicate_->col_ref_.col_name << " comp:" <<  predicate_->comparator_ <<  " " << 
-      "val" << std::endl;
+      "val " << predicate_->value_.ToString() << " " << predicate_->value2_.ToString() << std::endl;
       return;
     } 
     left_child_->print();
