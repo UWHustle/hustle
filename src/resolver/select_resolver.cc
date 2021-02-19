@@ -118,6 +118,7 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
 
       std::shared_ptr<PredicateTree> lpred_tree = ResolvePredExpr(leftExpr);
       std::shared_ptr<PredicateTree> rpred_tree = ResolvePredExpr(rightExpr);
+
       if (lpred_tree == nullptr || rpred_tree == nullptr) break;
       if (leftExpr->pLeft->iTable == rightExpr->pLeft->iTable) {
         if (pExpr->op == TK_OR) {
@@ -184,6 +185,31 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
       }
       break;
+    }
+    case TK_BETWEEN: {
+        ColumnReference colRef;
+        arrow::Datum ldatum, rdatum;
+        Expr* leftExpr = pExpr->pLeft;
+        if (leftExpr != NULL && leftExpr->op == TK_COLUMN){
+            colRef = {catalog_->getTable(leftExpr->y.pTab->zName),
+                      leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
+            Expr* firstExpr = pExpr->x.pList->a[0].pExpr;
+            Expr* secondExpr = pExpr->x.pList->a[1].pExpr;
+            if (firstExpr->op == TK_INTEGER && secondExpr->op == TK_INTEGER) {
+                ldatum = arrow::Datum((uint8_t)firstExpr->u.iValue);
+                rdatum = arrow::Datum((uint8_t)secondExpr->u.iValue);
+                Predicate predicate = {colRef, arrow::compute::CompareOperator::NOT_EQUAL, ldatum, rdatum};
+                auto predicate_node = std::make_shared<PredicateNode>(
+                        std::make_shared<Predicate>(predicate));
+                predicate_tree = std::make_shared<PredicateTree>(predicate_node);
+                predicate_tree->table_id_ = leftExpr->iTable;
+                predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
+                select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
+            } else {
+                return nullptr;
+            }
+        }
+        break;
     }
   }
   return predicate_tree;
