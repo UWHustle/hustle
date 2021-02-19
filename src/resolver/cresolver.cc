@@ -63,12 +63,23 @@ std::optional<bool> build_select(
         std::make_shared<OperatorResult>();
     auto table_ptr = catalog->getTable(table_name);
     if (table_ptr == nullptr) return std::nullopt;
-    if (predicate_tree == nullptr) {
+    std::unique_ptr<hustle::operators::Select> select;
+    if (ENABLE_FUSED_OPERATOR &&
+        join_predicate_map.find(table_name) != join_predicate_map.end() &&
+        join_predicate_map.size() > 1
+        ) {
+        is_predicate_avail = true;
+        input_result->append(table_ptr);
+        select = std::make_unique<hustle::operators::SelectBuildHash>(
+                0, table_ptr, input_result, output_result, predicate_tree,
+                join_predicate_map[table_name].right_col_ref_);
+        select_operators.emplace_back(std::move(select));
+    } else if (predicate_tree == nullptr) {
       output_result->append(table_ptr);
     } else {
       is_predicate_avail = true;
       input_result->append(table_ptr);
-      std::unique_ptr<hustle::operators::Select> select;
+
       if (!ENABLE_FUSED_OPERATOR ||
           join_predicate_map.find(table_name) == join_predicate_map.end()) {
         select = std::make_unique<hustle::operators::Select>(
@@ -97,7 +108,7 @@ void build_join(
                  [](auto& pred) { return pred.second; });
   JoinGraph join_graph({join_predicates});
   join_result_out = std::make_shared<OperatorResult>();
-  if (ENABLE_FUSED_OPERATOR && is_predicate_avail) {
+  if (ENABLE_FUSED_OPERATOR && join_graph.num_predicates() > 1 && is_predicate_avail) {
     filter_join_op = std::make_unique<FilterJoin>(0, select_result,
                                                   join_result_out, join_graph);
   } else {
