@@ -80,8 +80,9 @@ std::optional<bool> build_select(
       is_predicate_avail = true;
       input_result->append(table_ptr);
 
-      if (!ENABLE_FUSED_OPERATOR ||
-          join_predicate_map.find(table_name) == join_predicate_map.end()) {
+      if ((!ENABLE_FUSED_OPERATOR ||
+          join_predicate_map.find(table_name) == join_predicate_map.end())
+          &&  (join_predicate_map.size() <= 1)) {
         select = std::make_unique<hustle::operators::Select>(
             DEFAULT_QUERY_ID, table_ptr, input_result, output_result,
             predicate_tree);
