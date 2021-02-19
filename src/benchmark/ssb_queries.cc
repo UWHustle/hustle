@@ -277,8 +277,8 @@ namespace hustle::operators {
                 "from lineorder, ddate\n"
                 "where lo_orderdate = d_datekey\n"
                 "and d_yearmonthnum = 199401\n"
-                "and lo_discount < 6\n"
-                "and lo_quantity < 35;";
+                "and (lo_discount BETWEEN 3 and 6\n"
+                "and lo_quantity < 35);";
         hustle_db->executeQuery(query);
     }
 
