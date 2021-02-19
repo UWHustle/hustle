@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/join.h"
+#include "operators/join/join.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -24,7 +24,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "operators/select.h"
+#include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
 #include "storage/util.h"
@@ -46,7 +46,7 @@ class JoinTestFixture : public testing::Test {
   std::shared_ptr<arrow::Array> expected_T_col_1;
   std::shared_ptr<arrow::Array> expected_T_col_2;
 
-  std::shared_ptr<DBTable> R, S, T;
+  DBTable::TablePtr R, S, T;
 
   void SetUp() override {
     arrow::Status status;

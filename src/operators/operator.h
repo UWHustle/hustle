@@ -20,8 +20,8 @@
 
 #include <cstdlib>
 
-#include "operators/operator_options.h"
-#include "operators/predicate.h"
+#include "operators/select/predicate.h"
+#include "operators/utils/operator_options.h"
 #include "operators/utils/operator_result.h"
 #include "scheduler/task.h"
 #include "utils/config.h"
@@ -37,13 +37,13 @@ class Operator {
 
   inline std::size_t operator_index() const { return op_index_; }
 
-  inline void set_operator_index(const std::size_t op_index) { op_index_ = op_index; }
-
-  inline void set_query_id(std::size_t query_id) {
-    query_id_ = query_id;
+  inline void set_operator_index(const std::size_t op_index) {
+    op_index_ = op_index;
   }
 
-  inline void set_operator_options( std::shared_ptr<OperatorOptions> options) {
+  inline void set_query_id(std::size_t query_id) { query_id_ = query_id; }
+
+  inline void set_operator_options(std::shared_ptr<OperatorOptions> options) {
     options_ = options;
   }
 
@@ -61,7 +61,7 @@ class Operator {
     });
   }
 
-  std::shared_ptr<OperatorResult> result_;
+  OperatorResult::OpResultPtr result_;
 
  protected:
   explicit Operator(std::size_t query_id) : query_id_(query_id) {

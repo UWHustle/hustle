@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/select.h"
+#include "operators/select/select.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -46,7 +46,7 @@ class SelectTestFixture : public testing::Test {
   std::shared_ptr<arrow::Array> expected_R_col_2;
   std::shared_ptr<arrow::Array> expected_R_col_3;
 
-  std::shared_ptr<DBTable> R, S, T;
+  DBTable::TablePtr R, S, T;
 
   void SetUp() override {
     arrow::Status status;

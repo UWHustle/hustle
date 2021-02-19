@@ -22,7 +22,7 @@
 
 #include <string>
 
-#include "operators/join_graph.h"
+#include "operators/join/join_graph.h"
 #include "operators/operator.h"
 #include "operators/utils/operator_result.h"
 #include "storage/block.h"
@@ -66,12 +66,12 @@ class FilterJoin : public Operator {
    */
   FilterJoin(const std::size_t query_id,
              std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-             std::shared_ptr<OperatorResult> output_result,
+             OperatorResult::OpResultPtr output_result,
              hustle::operators::JoinGraph graph);
 
   FilterJoin(const std::size_t query_id,
              std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-             std::shared_ptr<OperatorResult> output_result,
+             OperatorResult::OpResultPtr output_result,
              hustle::operators::JoinGraph graph,
              std::shared_ptr<OperatorOptions> options);
 
@@ -123,7 +123,7 @@ class FilterJoin : public Operator {
   // prev_result_ - Results from upstream operators condensed into one object
   // output_result_ - Where the output result will be stored once the operator
   // is executed.
-  std::shared_ptr<OperatorResult> prev_result_, output_result_;
+  OperatorResult::OpResultPtr prev_result_, output_result_;
 
   // A graph specifying all join predicates
   JoinGraph graph_;

@@ -15,19 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/aggregate.h"
+#include "operators/aggregate/aggregate.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 
 #include <fstream>
-#include <operators/hash_aggregate.h>
+#include <operators/aggregate/hash_aggregate.h>
 
 #include "execution/execution_plan.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "operators/join.h"
-#include "operators/select.h"
+#include "operators/join/join.h"
+#include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
 #include "storage/util.h"
@@ -50,7 +50,7 @@ protected:
   std::shared_ptr<arrow::Array> expected_T_col_1;
   std::shared_ptr<arrow::Array> expected_T_col_2;
 
-  std::shared_ptr<DBTable> R, S, T;
+  DBTable::TablePtr R, S, T;
 
   void SetUp() override {
     arrow::Status status;

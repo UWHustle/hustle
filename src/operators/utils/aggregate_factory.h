@@ -18,10 +18,10 @@
 #ifndef HUSTLE_AGGREGATE_FACTORY_H
 #define HUSTLE_AGGREGATE_FACTORY_H
 
-#include "operators/base_aggregate.h"
-#include "operators/aggregate_const.h"
-#include "operators/aggregate.h"
-#include "operators/hash_aggregate.h"
+#include "operators/aggregate/base_aggregate.h"
+#include "operators/aggregate/aggregate_const.h"
+#include "operators/aggregate/aggregate.h"
+#include "operators/aggregate/hash_aggregate.h"
 
 namespace hustle::operators {
 
@@ -41,8 +41,8 @@ namespace hustle::operators {
 BaseAggregate * get_agg_op(
   std::size_t query_id,
   AggregateType aggregate_type,
-  const std::shared_ptr<OperatorResult> &prev_result,
-  const std::shared_ptr<OperatorResult> &output_result,
+  const OperatorResult::OpResultPtr &prev_result,
+  const OperatorResult::OpResultPtr &output_result,
   const std::vector<AggregateReference> &aggregate_units,
   const std::vector<ColumnReference> &group_by_refs,
   const std::vector<ColumnReference> &order_by_refs,

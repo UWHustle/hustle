@@ -15,114 +15,50 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include "operators/aggregate/hash_aggregate.h"
+
 #include <storage/util.h>
-#include "hash_aggregate.h"
 
 // TODO: Merge this reference with the one in aggregate.cc.
 //  Maybe put this in aggregate.h?
 #define AGGREGATE_OUTPUT_TABLE "aggregate"
-#define debugmsg(arg) {std::cout << __FILE_NAME__ << ":" << __LINE__ << " " << arg << std::endl;}
-
+#define debugmsg(arg) \
+  { std::cout << __FILE_NAME__ << ":" << __LINE__ << " " << arg << std::endl; }
 
 namespace hustle::operators {
 
-HashAggregateStrategy::HashAggregateStrategy()
-  : partitions(0), chunks(0) {}
-
-HashAggregateStrategy::HashAggregateStrategy(int partitions,
-                                             int chunks)
-  : partitions(partitions), chunks(chunks) {}
-
-int HashAggregateStrategy::suggestedNumTasks() const {
-    if (chunks < partitions){
-      return chunks;
-    }
-    return partitions;
-}
-
-std::tuple<int, int> HashAggregateStrategy::getChunkID(
-  // TODO: We assume each chunk has the same number of data.
-  //   It is not always true. The correct algorithm is to
-  //      linearly traverse the chunkarray.
-  //   Change this algorithm to a generate (and yield the
-  //      result each time we calls it).
-  int tid, int totalThreads, int totalNumChunks){
-
-  assert(tid >= 0);
-  assert(totalThreads > 0);
-  assert(totalNumChunks >= 0);
-
-  if (tid >= totalNumChunks){
-    return std::make_tuple(-1, -1);
-  }
-
-  //  auto M = ceil(totalNumChunks / totalThreads);
-  int M = (totalNumChunks + totalThreads - 1) / totalThreads;
-  //  auto m = floor(totalNumChunks / totalThreads);
-  int m = totalNumChunks / totalThreads;
-  int FR = totalNumChunks % totalThreads;
-
-  int st = 0;
-  int ed = 0;
-  if (tid < FR){
-    st = M * tid;
-    ed = M * (tid + 1);
-  }else{
-    st = M * FR + m * (tid - FR);
-    ed = M * FR + m * (tid + 1- FR);
-  }
-  // st = max(st, 0);
-  st = st < 0 ? 0 : st;
-  // ed = min(ed, totalNumChunks);
-  ed = ed > totalNumChunks ? totalNumChunks : ed;
-
-  return std::make_tuple(st, ed);
-};
-
-
-
 HashAggregate::HashAggregate(const std::size_t query_id,
-                             std::shared_ptr<OperatorResult> prev_result,
-                             std::shared_ptr<OperatorResult> output_result,
+                             OperatorResult::OpResultPtr prev_result,
+                             OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
                              std::vector<ColumnReference> order_by_refs)
-  : HashAggregate(
-        query_id, prev_result, output_result, aggregate_refs,
-        group_by_refs, order_by_refs,
-        std::make_shared<OperatorOptions>()) {}
+    : HashAggregate(query_id, prev_result, output_result, aggregate_refs,
+                    group_by_refs, order_by_refs,
+                    std::make_shared<OperatorOptions>()) {}
 
 HashAggregate::HashAggregate(const std::size_t query_id,
-                             std::shared_ptr<OperatorResult> prev_result,
-                             std::shared_ptr<OperatorResult> output_result,
+                             OperatorResult::OpResultPtr prev_result,
+                             OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
                              std::vector<ColumnReference> order_by_refs,
                              std::shared_ptr<OperatorOptions> options)
-  : BaseAggregate(query_id, options),
-    prev_result_(prev_result),
-    output_result_(output_result),
-    aggregate_refs_(aggregate_refs),
-    group_by_refs_(group_by_refs),
-    order_by_refs_(order_by_refs) {}
+    : BaseAggregate(query_id, options),
+      prev_result_(prev_result),
+      output_result_(output_result),
+      aggregate_refs_(aggregate_refs),
+      group_by_refs_(group_by_refs),
+      order_by_refs_(order_by_refs) {}
 
-void HashAggregate::execute(Task *ctx) {
+void HashAggregate::execute(Task* ctx) {
   ctx->spawnTask(CreateTaskChain(
-    CreateLambdaTask([this](Task* internal){
-      Initialize(internal);
-    })
-    ,
-    CreateLambdaTask([this](Task* internal){
-      ComputeAggregates(internal);
-    }),
-    CreateLambdaTask([this](Task* internal){
-      Finish(internal);
-    })
-    ));
+      CreateLambdaTask([this](Task* internal) { Initialize(internal); }),
+      CreateLambdaTask([this](Task* internal) { ComputeAggregates(internal); }),
+      CreateLambdaTask([this](Task* internal) { Finish(internal); })));
 }
 
-void HashAggregate::Initialize(Task *ctx) {
-
+void HashAggregate::Initialize(Task* ctx) {
   // Fetch the fields associated with each groupby column.
   std::vector<std::shared_ptr<arrow::Field>> group_by_fields;
   group_by_fields.reserve(group_by_refs_.size());
@@ -135,7 +71,7 @@ void HashAggregate::Initialize(Task *ctx) {
   // by column.
   group_type_ = arrow::struct_(group_by_fields);
   group_builder_ = std::make_shared<arrow::StructBuilder>(
-    group_type_, arrow::default_memory_pool(), CreateGroupBuilderVector());
+      group_type_, arrow::default_memory_pool(), CreateGroupBuilderVector());
 
   // Initialize aggregate builder
   aggregate_builder_ = CreateAggregateBuilder(aggregate_refs_[0].kernel);
@@ -143,9 +79,9 @@ void HashAggregate::Initialize(Task *ctx) {
   // Initialize output table and its schema. group_type_ must be initialized
   // beforehand.
   std::shared_ptr<arrow::Schema> out_schema =
-    OutputSchema(aggregate_refs_[0].kernel, aggregate_refs_[0].agg_name);
+      OutputSchema(aggregate_refs_[0].kernel, aggregate_refs_[0].agg_name);
   output_table_ =
-    std::make_shared<DBTable>(AGGREGATE_OUTPUT_TABLE, out_schema, BLOCK_SIZE);
+      std::make_shared<DBTable>(AGGREGATE_OUTPUT_TABLE, out_schema, BLOCK_SIZE);
   group_by_cols_.resize(group_by_refs_.size());
   for (auto& group_by : group_by_refs_) {
     group_by_tables_.push_back(prev_result_->get_table(group_by.table));
@@ -154,111 +90,120 @@ void HashAggregate::Initialize(Task *ctx) {
   // Initialize the group_by_cols_
   for (std::size_t group_index = 0; group_index < group_by_refs_.size();
        group_index++) {
-    ctx->spawnTask(CreateLambdaTask(
-      [this, group_index](Task* internal){
-        group_by_tables_[group_index].get_column_by_name(
-          internal,group_by_refs_[group_index].col_name, group_by_cols_[group_index]);
-      }
-      ));
+    ctx->spawnTask(CreateLambdaTask([this, group_index](Task* internal) {
+      group_by_tables_[group_index].get_column_by_name(
+          internal, group_by_refs_[group_index].col_name,
+          group_by_cols_[group_index]);
+    }));
   }
 
   // Initialize the Tuple Map
   tuple_map = new phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>>();
   tuple_map->reserve(64);
-
 }
 
-void HashAggregate::ComputeAggregates(Task *ctx) {
+void HashAggregate::ComputeAggregates(Task* ctx) {
   // TODO: Only support one column aggregation for now.
   ctx->spawnTask(CreateTaskChain(
-    CreateLambdaTask([this](Task* internal){
-      // Initialize the agg_col_ variable.
-      auto table = aggregate_refs_[0].col_ref.table;
-      auto col_name = aggregate_refs_[0].col_ref.col_name;
-      agg_lazy_table_ = prev_result_->get_table(table);
-      agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
-    }),
-    CreateLambdaTask([this](Task* internal){
-      // Partition the chunks.
+      CreateLambdaTask([this](Task* internal) {
+        // Initialize the agg_col_ variable.
+        auto table = aggregate_refs_[0].col_ref.table;
+        auto col_name = aggregate_refs_[0].col_ref.col_name;
+        if (aggregate_refs_[0].expr_ref == nullptr) {
+          agg_lazy_table_ = prev_result_->get_table(table);
+          agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
+          auto agg_col = agg_col_.chunked_array();
+          auto num_chunks = agg_col->num_chunks();
+        } else {
+          // For expression case, create expression object and initialize
+          expression_ = std::make_shared<Expression>(
+              prev_result_, aggregate_refs_[0].expr_ref);
+          expression_->Initialize(internal);
+        }
+      }),
+      CreateLambdaTask([this](Task* internal) {
+        // Partition the chunks.
 
-      // Initialize the aggregate_col_data_?
-      auto agg_col = agg_col_.chunked_array();
-      auto num_chunks = agg_col->num_chunks();
-      // TODO: Maybe this is unnecessary
-      aggregate_col_data_.resize(num_chunks);
-
-      for (std::size_t chunk_index = 0; chunk_index < num_chunks; ++chunk_index) {
-        auto val = agg_col->chunk(chunk_index)->data()->GetValues<int64_t>(1, 0);
-        aggregate_col_data_[chunk_index] = val;
-      }
-
-      // Distribute tasks to perform the first phase of hash aggregate.
-      std::size_t totalThreads = std::thread::hardware_concurrency();
-      // TODO: Initialize the strategy at the Aggregate init time.
-      // TODO: Make strategy control the hash function.
-      strategy = HashAggregateStrategy(totalThreads, num_chunks);
-      auto num_tasks = strategy.suggestedNumTasks();
-      InitializeLocalHashTables();
-
-    }),
-    CreateLambdaTask([this](Task* internal){
-      // First Phase Aggregate
-      auto num_tasks = strategy.suggestedNumTasks();
-      std::size_t totalThreads = std::thread::hardware_concurrency();
-
-      auto agg_col = agg_col_.chunked_array();
-      auto num_chunks = agg_col->num_chunks();
-
-      for (size_t tid = 0; tid < num_tasks; ++tid) {
-        int st, ed;
-        std::tie (st, ed) = strategy.getChunkID(
-          tid, totalThreads, num_chunks);
-        if (st >= ed){ continue; }
-
-        // First Phase Aggregation
-        internal->spawnTask(CreateLambdaTask(
-          [this, tid, st, ed](Task * ctx){
-//            printf("tid=%zu, st=%d, ed=%d\n", tid, st, ed);
-            FirstPhaseAggregateChunks(tid, st, ed);
+        // Initialize the aggregate_col_data_?
+        int32_t num_chunks;
+        if (expression_ != nullptr) {
+          num_chunks = expression_->num_chunks();
+        } else {
+          auto agg_col = agg_col_.chunked_array();
+          num_chunks = agg_col->num_chunks();
+          // TODO: Maybe this is unnecessary
+          aggregate_col_data_.resize(num_chunks);
+          for (std::size_t chunk_index = 0; chunk_index < num_chunks;
+               ++chunk_index) {
+            auto val =
+                agg_col->chunk(chunk_index)->data()->GetValues<int64_t>(1, 0);
+            aggregate_col_data_[chunk_index] = val;
           }
-        ));
-      }
-    }),
-    CreateLambdaTask([this](Task* internal){
-      // Second Phase Aggregate
-      // TODO: Make strategy controls whether we use the phmap or
-      //  the single hash map strategy.
-      // 1. Initialize the global map
-      // 2. For each local map, we add that to the global map.
-      // 3. Convert to an arrow array.
+        }
 
-      // TODO: Refactor this strategy and use the parallel update strategy.
-      //  Haven't figure out if the phmap has the compare-then-swap mechamism.
-      // TODO: Optimize this strategy - first take the largest map,
-      //  then for other maps just update the other map.
-      //  Be careful when there is only one map.
-      SecondPhaseAggregate(internal);
+        // Distribute tasks to perform the first phase of hash aggregate.
+        std::size_t totalThreads = std::thread::hardware_concurrency();
+        // TODO: Initialize the strategy at the Aggregate init time.
+        // TODO: Make strategy control the hash function.
+        strategy = HashAggregateStrategy(totalThreads, num_chunks);
+        auto num_tasks = strategy.suggestedNumTasks();
+        InitializeLocalHashTables();
+      }),
+      CreateLambdaTask([this](Task* internal) {
+        // First Phase Aggregate
+        auto num_tasks = strategy.suggestedNumTasks();
+        std::size_t totalThreads = std::thread::hardware_concurrency();
 
-    })
+        int32_t num_chunks = (expression_ == nullptr)
+                                 ? agg_col_.chunked_array()->num_chunks()
+                                 : expression_->num_chunks();
+        for (size_t tid = 0; tid < num_tasks; ++tid) {
+          int st, ed;
+          std::tie(st, ed) = strategy.getChunkID(tid, totalThreads, num_chunks);
+          if (st >= ed) {
+            continue;
+          }
 
+          // First Phase Aggregation
+          internal->spawnTask(CreateLambdaTask([this, tid, st, ed](Task* ctx) {
+            //            printf("tid=%zu, st=%d, ed=%d\n", tid, st, ed);
+            FirstPhaseAggregateChunks(ctx, tid, st, ed);
+          }));
+        }
+      }),
+      CreateLambdaTask([this](Task* internal) {
+        // Second Phase Aggregate
+        // TODO: Make strategy controls whether we use the phmap or
+        //  the single hash map strategy.
+        // 1. Initialize the global map
+        // 2. For each local map, we add that to the global map.
+        // 3. Convert to an arrow array.
+
+        // TODO: Refactor this strategy and use the parallel update strategy.
+        //  Haven't figure out if the phmap has the compare-then-swap mechamism.
+        // TODO: Optimize this strategy - first take the largest map,
+        //  then for other maps just update the other map.
+        //  Be careful when there is only one map.
+        SecondPhaseAggregate(internal);
+      })
     ));
 }
 
-void HashAggregate::SecondPhaseAggregate(Task* internal){
+void HashAggregate::SecondPhaseAggregate(Task* internal) {
   auto kernel = aggregate_refs_[0].kernel;
   switch (kernel) {
     case SUM:
-    case COUNT:{
+    case COUNT: {
       auto big_map = new HashMap();
       global_map = big_map;
-      for (auto map: value_maps){
-        for(auto item: *map){
+      for (auto map : value_maps) {
+        for (auto item : *map) {
           auto key = item.first;
           auto value = item.second;
           auto it = big_map->find(key);
-          if (it == big_map->end()){
+          if (it == big_map->end()) {
             big_map->insert(std::make_pair(key, value));
-          }else{
+          } else {
             it->second = value + it->second;
           }
         }
@@ -277,13 +222,13 @@ void HashAggregate::SecondPhaseAggregate(Task* internal){
       for (int i = 0; i < value_maps.size(); ++i) {
         auto cmap = count_maps.at(i);
         auto vmap = value_maps.at(i);
-        for (auto ct: *cmap) {
+        for (auto ct : *cmap) {
           auto key = ct.first;
           auto count = ct.second;
           auto vt = vmap->find(key);
           if (vt == vmap->end()) {
-            std::cerr << "Failed to find the key in value table: "
-                      << key << std::endl;
+            std::cerr << "Failed to find the key in value table: " << key
+                      << std::endl;
             throw std::exception();
           }
           auto value = vt->second;
@@ -306,27 +251,25 @@ void HashAggregate::SecondPhaseAggregate(Task* internal){
       }
 
       // Then update the global result map
-      for(auto ct: *big_count_map){
+      for (auto ct : *big_count_map) {
         auto key = ct.first;
         auto count = ct.second;
         auto vt = big_value_map->find(key);
-        if (vt == big_value_map->end()){
-          std::cerr << "Failed to find the key in value table: "
-                    << key << std::endl;
+        if (vt == big_value_map->end()) {
+          std::cerr << "Failed to find the key in value table: " << key
+                    << std::endl;
           throw std::exception();
         }
         auto value = vt->second;
 
-        auto result = (double) value / (double) count;
+        auto result = (double)value / (double)count;
         big_final_map->insert({key, result});
       }
 
       break;
     }
   }
-
 }
-
 
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 HashAggregate::CreateGroupBuilderVector() {
@@ -339,7 +282,7 @@ HashAggregate::CreateGroupBuilderVector() {
       }
       case arrow::Type::FIXED_SIZE_BINARY: {
         group_builders.push_back(
-          std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
+            std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
         break;
       }
       case arrow::Type::INT64: {
@@ -348,7 +291,7 @@ HashAggregate::CreateGroupBuilderVector() {
       }
       default: {
         std::cerr << "Aggregate does not support group bys of type " +
-                     field->type()->ToString()
+                         field->type()->ToString()
                   << std::endl;
       }
     }
@@ -357,7 +300,7 @@ HashAggregate::CreateGroupBuilderVector() {
 }
 
 std::shared_ptr<arrow::ArrayBuilder> HashAggregate::CreateAggregateBuilder(
-  AggregateKernel kernel) {
+    AggregateKernel kernel) {
   std::shared_ptr<arrow::ArrayBuilder> aggregate_builder;
   switch (kernel) {
     case SUM: {
@@ -377,7 +320,7 @@ std::shared_ptr<arrow::ArrayBuilder> HashAggregate::CreateAggregateBuilder(
 }
 
 std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
-  AggregateKernel kernel, const std::string& agg_col_name) {
+    AggregateKernel kernel, const std::string& agg_col_name) {
   arrow::Status status;
   arrow::SchemaBuilder schema_builder;
 
@@ -388,19 +331,19 @@ std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
   switch (kernel) {
     case SUM: {
       status =
-        schema_builder.AddField(arrow::field(agg_col_name, arrow::int64()));
+          schema_builder.AddField(arrow::field(agg_col_name, arrow::int64()));
       evaluate_status(status, __FUNCTION__, __LINE__);
       break;
     }
     case MEAN: {
       status =
-        schema_builder.AddField(arrow::field(agg_col_name, arrow::float64()));
+          schema_builder.AddField(arrow::field(agg_col_name, arrow::float64()));
       evaluate_status(status, __FUNCTION__, __LINE__);
       break;
     }
     case COUNT: {
       status =
-        schema_builder.AddField(arrow::field(agg_col_name, arrow::int64()));
+          schema_builder.AddField(arrow::field(agg_col_name, arrow::int64()));
       evaluate_status(status, __FUNCTION__, __LINE__);
       break;
     }
@@ -413,32 +356,39 @@ std::shared_ptr<arrow::Schema> HashAggregate::OutputSchema(
 
 // TODO: Refactor HashCombine function as a part of the strategy.
 // TODO: Verify if this hash function works.
-HashAggregate::hash_t HashAggregate::HashCombine(hash_t seed, hash_t val){
-  seed ^= val + 0x9e3779b9 + (seed<<6) + (seed>>2);
+HashAggregate::hash_t HashAggregate::HashCombine(hash_t seed, hash_t val) {
+  seed ^= val + 0x9e3779b9 + (seed << 6) + (seed >> 2);
   return seed;
 }
 
-void HashAggregate::FirstPhaseAggregateChunks(size_t tid, int st, int ed) {
-  for(int i = st; i < ed; i++){
-    FirstPhaseAggregateChunk_(tid, i);
+void HashAggregate::FirstPhaseAggregateChunks(Task* internal, size_t tid,
+                                              int st, int ed) {
+  for (int i = st; i < ed; i++) {
+    FirstPhaseAggregateChunk_(internal, tid, i);
   }
 }
 
-void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
-  auto agg_chunk = agg_col_.chunked_array()->chunk(chunk_index);
+void HashAggregate::FirstPhaseAggregateChunk_(Task* internal, size_t tid,
+                                              int chunk_index) {
+  // if expression not null then evaluate the expression to get the result
+  auto agg_chunk =
+      (expression_ != nullptr)
+          ? expression_->Evaluate(internal, chunk_index).make_array()
+          : agg_col_.chunked_array()->chunk(chunk_index);
   auto chunk_size = agg_chunk->length();
 
-  auto agg_type = agg_col_.type();
+  auto agg_type =
+      (expression_ != nullptr) ? agg_chunk->type() : agg_col_.type();
   auto agg_type_id = agg_type->id();
 
   auto kernel = aggregate_refs_[0].kernel;
 
   // Retrieve the proper maps for aggregate
-  HashMap * count_map = nullptr;
-  HashMap * value_map = nullptr;
-  if (kernel == SUM || kernel == COUNT){
+  HashMap* count_map = nullptr;
+  HashMap* value_map = nullptr;
+  if (kernel == SUM || kernel == COUNT) {
     value_map = value_maps.at(tid);
-  }else if (kernel == MEAN){
+  } else if (kernel == MEAN) {
     count_map = count_maps.at(tid);
     value_map = value_maps.at(tid);
   }
@@ -455,7 +405,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
 
     // 1
     hash_t key = 0;
-    for (const auto& group_by: group_by_cols_){
+    for (const auto& group_by : group_by_cols_) {
       auto group_by_chunk = group_by.chunked_array()->chunk(chunk_index);
 
       auto group_by_type = group_by.type();
@@ -463,7 +413,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
       hash_t next_key = 0;
       // TODO: Factor this out as template functions.
       switch (group_by_type_id) {
-        case arrow::Type::STRING : {
+        case arrow::Type::STRING: {
           // TODO: Guard - cannot be sum / mean, but could be count.
           auto d = std::static_pointer_cast<arrow::StringArray>(group_by_chunk);
           auto c = d->GetString(item_index);
@@ -471,14 +421,14 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
           next_key = b;
           break;
         }
-        case arrow::Type::FIXED_SIZE_BINARY : {
+        case arrow::Type::FIXED_SIZE_BINARY: {
           // TODO: Not sure what is the FIXED_SIZE_BINARY type.
           std::cerr << "HashAggregate does not support group bys of type " +
-                    group_by_type->ToString()
+                           group_by_type->ToString()
                     << std::endl;
           break;
         }
-        case arrow::Type::INT64 : {
+        case arrow::Type::INT64: {
           auto d = std::static_pointer_cast<arrow::Int64Array>(group_by_chunk);
           int64_t b = d->Value(item_index);
           auto e = std::hash<std::int64_t>{}(b);
@@ -487,14 +437,14 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
         }
         default: {
           std::cerr << "HashAggregate does not support group bys of type " +
-                    group_by_type->ToString()
+                           group_by_type->ToString()
                     << std::endl;
         }
       }
       key = HashCombine(key, next_key);
     }
     agg_item_key = key;
-//    debugmsg(agg_item_key);
+    //    debugmsg(agg_item_key);
 
     // 2
     // TODO: Without a unique operator, we don't need to calculate
@@ -502,23 +452,23 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
     switch (agg_type_id) {
       case arrow::Type::STRING: {
         // SUM, COUNT, MEAN
-        assert (kernel != MEAN);
-        assert (kernel != SUM);
+        assert(kernel != MEAN);
+        assert(kernel != SUM);
         agg_item_value = 1;
         break;
       }
-      case arrow::Type::FIXED_SIZE_BINARY :{
+      case arrow::Type::FIXED_SIZE_BINARY: {
         // TODO: Not very sure what the FIXED_SIZE_BINARY can do...
-        assert (kernel != MEAN);
-        assert (kernel != SUM);
+        assert(kernel != MEAN);
+        assert(kernel != SUM);
         agg_item_value = 1;
         break;
       }
-      case arrow::Type::INT64 :{
+      case arrow::Type::INT64: {
         // SUM, COUNT, MEAN
         switch (kernel) {
           case SUM:
-          case MEAN:{
+          case MEAN: {
             auto d = std::static_pointer_cast<arrow::Int64Array>(agg_chunk);
             int64_t b = d->Value(item_index);
             agg_item_value = b;
@@ -534,60 +484,55 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
       }
       default: {
         std::cerr << "HashAggregate does not support aggregate of type " +
-                     agg_type->ToString()
+                         agg_type->ToString()
                   << std::endl;
       }
     }
 
-
     // 3
     // TODO: Optimize the hash key access pattern.
     switch (kernel) {
-      case SUM:{
+      case SUM: {
         auto it = value_map->find(agg_item_key);
-        if (it == value_map->end()){
+        if (it == value_map->end()) {
           value_map->insert(std::make_pair(agg_item_key, agg_item_value));
-        }else{
+        } else {
           it->second = agg_item_value + it->second;
         }
         break;
       }
 
-      case COUNT:{
+      case COUNT: {
         auto it = value_map->find(agg_item_key);
-        if (it == value_map->end()){
+        if (it == value_map->end()) {
           value_map->insert(std::make_pair(agg_item_key, 1));
-        }else{
+        } else {
           it->second = 1 + it->second;
         }
         break;
       }
 
-      case MEAN:{
+      case MEAN: {
         auto it = value_map->find(agg_item_key);
         auto jt = count_map->find(agg_item_key);
-        if (it == value_map->end()){
+        if (it == value_map->end()) {
           value_map->insert(std::make_pair(agg_item_key, agg_item_value));
           count_map->insert(std::make_pair(agg_item_key, 1));
-        }else{
+        } else {
           it->second = agg_item_value + it->second;
           jt->second = 1 + jt->second;
         }
         break;
       }
 
-      default:{
+      default: {
         std::cerr << "Not supported aggregate kernel." << std::endl;
         break;
       }
     }
-
-    // 4
-//    tuple_map->insert_or_assign(agg_item_key, item);
-//    tuple_map->insert_or_assign(0, item);
     // TODO: Optimize using the folloiwng code...
     auto it = tuple_map->find(agg_item_key);
-    if (it == tuple_map->end()){
+    if (it == tuple_map->end()) {
       // Only insert the tuple when its not shown.
       // TODO: insert_or_assign() does not prevent collision when two threads
       //  tries to enter the critical section. A better method, which does not
@@ -597,7 +542,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(size_t tid, int chunk_index) {
       tuple_map->insert_or_assign(agg_item_key, item);
     }
   }
-
 }
 
 void HashAggregate::InitializeLocalHashTables() {
@@ -627,7 +571,6 @@ void HashAggregate::InitializeLocalHashTables() {
 }
 
 void HashAggregate::Finish(Task* ctx) {
-
   // Finish the aggregate and output the column.
   //  Procedure:
   //    1. Construct the resulting group-by columns
@@ -638,10 +581,8 @@ void HashAggregate::Finish(Task* ctx) {
   std::vector<std::shared_ptr<arrow::Array>> group_by_arrays;
   group_by_arrays.reserve(group_by_cols_.size());
 
-  for(int i = 0; i < group_by_cols_.size(); i++){
-
+  for (int i = 0; i < group_by_cols_.size(); i++) {
     auto group_by = group_by_cols_.at(i);
-
     auto group_by_type = group_by.type();
     auto group_by_type_id = group_by_type->id();
 
@@ -650,57 +591,56 @@ void HashAggregate::Finish(Task* ctx) {
     // TODO: This is a very very tedious construction of the group_by builder.
     //  Try to optimize it by using the good features within the arrow.
     switch (group_by_type_id) {
-      case arrow::Type::STRING :{
+      case arrow::Type::STRING: {
         arrow::StringBuilder builder;
-          for(auto const it: *tuple_map){
-            int chunk_id, item_index;
-            auto hash_key = it.first;
-            std::tie(chunk_id, item_index) = it.second;
-            auto raw_chunk = group_by.chunks().at(chunk_id);
-            auto chunk = std::static_pointer_cast<arrow::StringArray>(raw_chunk);
-            // TODO: Optimize this to make it std::move()?
-            std::string value = chunk->GetString(item_index);
-            // TODO: Try to use the UnsafeAppend here,
-            //  but encounter an error.
-//            builder.UnsafeAppend(value);
-            builder.Append(value);
-          }
+        for (auto const it : *tuple_map) {
+          int chunk_id, item_index;
+          auto hash_key = it.first;
+          std::tie(chunk_id, item_index) = it.second;
+          auto raw_chunk = group_by.chunks().at(chunk_id);
+          auto chunk = std::static_pointer_cast<arrow::StringArray>(raw_chunk);
+          // TODO: Optimize this to make it std::move()?
+          std::string value = chunk->GetString(item_index);
+          // TODO: Try to use the UnsafeAppend here,
+          //  but encounter an error.
+          //            builder.UnsafeAppend(value);
+          builder.Append(value);
+        }
         std::shared_ptr<arrow::Array> array;
         arrow::Status st = builder.Finish(&array);
         if (!st.ok()) {
-          std::cerr << "Building the array for "
-                    << i << "th groupby column failed." << std::endl;
+          std::cerr << "Building the array for " << i
+                    << "th groupby column failed." << std::endl;
           exit(1);
         }
         group_by_arrays.push_back(array);
         break;
       }
-      case arrow::Type::INT64 :{
+      case arrow::Type::INT64: {
         arrow::Int64Builder builder;
-        for(auto const it: *tuple_map){
+        for (auto const it : *tuple_map) {
           int chunk_id, item_index;
           auto hash_key = it.first;
           std::tie(chunk_id, item_index) = it.second;
           auto raw_chunk = group_by.chunks().at(chunk_id);
           auto chunk = std::static_pointer_cast<arrow::Int64Array>(raw_chunk);
           int64_t value = chunk->Value(item_index);
-//          builder.UnsafeAppend(value);
+          //          builder.UnsafeAppend(value);
           builder.Append(value);
         }
         std::shared_ptr<arrow::Array> array;
         arrow::Status st = builder.Finish(&array);
         if (!st.ok()) {
-          std::cerr << "Building the array for "
-                    << i << "th groupby column failed." << std::endl;
+          std::cerr << "Building the array for " << i
+                    << "th groupby column failed." << std::endl;
           exit(1);
         }
         group_by_arrays.push_back(array);
         break;
       }
-      default:{
+      default: {
         std::cerr << "Not supported aggregate group by column type: "
-                  << group_by_type_id
-                  << std::endl;
+                  << group_by_type_id << std::endl;
         exit(1);
       }
     }
@@ -711,10 +651,10 @@ void HashAggregate::Finish(Task* ctx) {
   std::shared_ptr<arrow::Array> agg_array;
   switch (kernel) {
     case SUM:
-    case COUNT:{
-      auto map = static_cast<HashMap *>(global_map);
+    case COUNT: {
+      auto map = static_cast<HashMap*>(global_map);
       arrow::Int64Builder builder;
-      for(auto const it: *tuple_map){
+      for (auto const it : *tuple_map) {
         auto hash_key = it.first;
         auto value = map->find(hash_key)->second;
         builder.Append(value);
@@ -722,15 +662,16 @@ void HashAggregate::Finish(Task* ctx) {
       }
       arrow::Status st = builder.Finish(&agg_array);
       if (!st.ok()) {
-        std::cerr << "Building the array for aggregate column failed." << std::endl;
+        std::cerr << "Building the array for aggregate column failed."
+                  << std::endl;
         exit(1);
       }
       break;
     }
     case MEAN: {
-      auto map = static_cast<MeanHashMap *>(global_map);
+      auto map = static_cast<MeanHashMap*>(global_map);
       arrow::DoubleBuilder builder;
-      for(auto const it: *tuple_map){
+      for (auto const it : *tuple_map) {
         int chunk_id, item_index;
         auto hash_key = it.first;
         auto value = map->find(hash_key)->second;
@@ -738,7 +679,8 @@ void HashAggregate::Finish(Task* ctx) {
       }
       arrow::Status st = builder.Finish(&agg_array);
       if (!st.ok()) {
-        std::cerr << "Building the array for aggregate column failed." << std::endl;
+        std::cerr << "Building the array for aggregate column failed."
+                  << std::endl;
         exit(1);
       }
       break;
@@ -749,13 +691,12 @@ void HashAggregate::Finish(Task* ctx) {
     }
   }
 
-
   // 3. Sort the result
   std::vector<arrow::Datum> groups;
   arrow::Datum aggregates;
 
   groups.reserve(group_by_arrays.size());
-  for(auto & group_by_array : group_by_arrays){
+  for (auto& group_by_array : group_by_arrays) {
     auto pt = group_by_array->data();
     groups.emplace_back(pt);
   }
@@ -773,11 +714,10 @@ void HashAggregate::Finish(Task* ctx) {
 
   output_table_->InsertRecords(output_table_data);
   output_result_->append(output_table_);
-
 }
 
 void HashAggregate::SortResult(std::vector<arrow::Datum>& groups,
-                           arrow::Datum& aggregates) {
+                               arrow::Datum& aggregates) {
   // The columns in the GROUP BY and ORDER BY clause may not directly correspond
   // to the same column, e.g we may have
   // GROUP BY R.a, R.b
@@ -809,24 +749,24 @@ void HashAggregate::SortResult(std::vector<arrow::Datum>& groups,
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
     if (order_ref.table == nullptr) {
       status = arrow::compute::SortToIndices(*aggregates.make_array())
-        .Value(&sorted_indices);
+                   .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
       auto group = groups[order_to_group[i]];
       status = arrow::compute::SortToIndices(*group.make_array())
-        .Value(&sorted_indices);
+                   .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     }
     status = arrow::compute::Take(aggregates, sorted_indices, take_options)
-      .Value(&aggregates);
+                 .Value(&aggregates);
     evaluate_status(status, __FUNCTION__, __LINE__);
 
     for (auto& group : groups) {
       status = arrow::compute::Take(group, sorted_indices, take_options)
-        .Value(&group);
+                   .Value(&group);
       evaluate_status(status, __FUNCTION__, __LINE__);
     }
   }
 }
 
-}
+}  // namespace hustle::operators

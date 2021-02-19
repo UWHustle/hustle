@@ -179,9 +179,6 @@ TEST_F(HustleTableTest, ReadTableFromCSV) {
 }
 
 TEST_F(HustleTableTest, Insert) {
-  std::filesystem::remove("catalog.json");
-  std::filesystem::remove("hustle_sqlite.db");
-  std::filesystem::remove_all("db_directory");
   // Create table customer
   hustle::catalog::TableSchema customer("customer_table_test");
   hustle::catalog::ColumnSchema c_suppkey(
@@ -222,19 +219,17 @@ TEST_F(HustleTableTest, Insert) {
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> c =
+  DBTable::TablePtr c =
       std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
-  hustle::HustleDB hustleDB("db_directory");
+  hustle::HustleDB hustleDB("db_directory_insert");
   hustleDB.createTable(customer, c);
   hustleDB.executeQuery(query);
   EXPECT_EQ(c->get_num_rows(), 2);
   EXPECT_EQ(c->get_num_cols(), 8);
+  std::filesystem::remove_all("db_directory_insert");
 }
 
 TEST_F(HustleTableTest, Update) {
-  std::filesystem::remove("catalog.json");
-  std::filesystem::remove("hustle_sqlite.db");
-  std::filesystem::remove_all("db_directory2");
   // Create table customer
   hustle::catalog::TableSchema customer_table("customer_table");
   hustle::catalog::ColumnSchema c_suppkey(
@@ -271,9 +266,9 @@ TEST_F(HustleTableTest, Update) {
       "'Houston', 'Great',"
       "         'best', 'fit', 12);"
       "COMMIT;";
-  std::shared_ptr<DBTable> customer_table_ptr =
+  DBTable::TablePtr customer_table_ptr =
       std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
-  hustle::HustleDB hustleDB("db_directory2");
+  hustle::HustleDB hustleDB("db_directory_update");
   hustleDB.createTable(customer_table, customer_table_ptr);
   hustleDB.executeQuery(query);
 
@@ -301,12 +296,10 @@ TEST_F(HustleTableTest, Update) {
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
+  std::filesystem::remove_all("db_directory_update");
 }
 
 TEST_F(HustleTableTest, Delete) {
-  std::filesystem::remove("catalog.json");
-  std::filesystem::remove("hustle_sqlite.db");
-  std::filesystem::remove_all("db_directory2");
   // Create table customer
   hustle::catalog::TableSchema customer_table("customer_table_d");
   hustle::catalog::ColumnSchema c_suppkey(
@@ -343,9 +336,9 @@ TEST_F(HustleTableTest, Delete) {
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> customer_table_ptr = std::make_shared<DBTable>(
+  DBTable::TablePtr customer_table_ptr = std::make_shared<DBTable>(
       "customer_table_d", customer_schema, BLOCK_SIZE);
-  hustle::HustleDB hustleDB("db_directory3");
+  hustle::HustleDB hustleDB("db_directory_delete");
   hustleDB.createTable(customer_table, customer_table_ptr);
   hustleDB.executeQuery(query);
   query =
@@ -358,13 +351,10 @@ TEST_F(HustleTableTest, Delete) {
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 0);
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_cols(), 8);
+  std::filesystem::remove_all("db_directory_delete");
 }
 
 TEST_F(HustleTableTest, Load) {
-  std::filesystem::remove("catalog.json");
-  std::filesystem::remove("hustle_sqlite.db");
-  std::filesystem::remove_all("db_directory");
-  std::filesystem::remove_all("db_directory5");
   // Create table customer
   hustle::catalog::TableSchema customer("customer_table_test");
   hustle::catalog::ColumnSchema c_suppkey(
@@ -405,9 +395,9 @@ TEST_F(HustleTableTest, Load) {
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  std::shared_ptr<DBTable> c =
+  DBTable::TablePtr c =
       std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
-  hustle::HustleDB hustleDB("db_directory5");
+  hustle::HustleDB hustleDB("db_directory_load");
   hustleDB.createTable(customer, c);
   hustleDB.executeQuery(query);
   EXPECT_EQ(c->get_num_rows(), 2);
@@ -437,4 +427,5 @@ TEST_F(HustleTableTest, Load) {
       std::static_pointer_cast<arrow::StringArray>(c->get_column(1)->chunk(0));
   EXPECT_EQ(int_col->GetString(0), "James1");
   EXPECT_EQ(c->get_num_rows(), 1);
+  std::filesystem::remove_all("db_directory_load");
 }

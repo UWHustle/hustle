@@ -18,7 +18,7 @@
 #ifndef HUSTLE_JOINGRAPH_H
 #define HUSTLE_JOINGRAPH_H
 
-#include "predicate.h"
+#include "operators/select/predicate.h"
 #include "storage/table.h"
 
 namespace hustle {
@@ -54,7 +54,7 @@ class JoinGraph {
    * @param index
    * @return a table.
    */
-  std::shared_ptr<DBTable> get_table(int index);
+  DBTable::TablePtr get_table(int index);
 
   /**
    * Get the predicate group of a particular table
@@ -63,7 +63,7 @@ class JoinGraph {
    * @return A vector of all predicates whose left table is table.
    */
   std::vector<JoinPredicate> get_predicates(
-      const std::shared_ptr<DBTable>& table);
+      const DBTable::TablePtr& table);
 
   /**
    * Get the predicate group of the table at index i.
@@ -82,7 +82,7 @@ class JoinGraph {
 
  private:
   // Vector of unique left tables
-  std::vector<std::shared_ptr<DBTable>> tables_;
+  std::vector<DBTable::TablePtr> tables_;
   // The vector at adj_[i] corresponds to all join predicates for which
   // tables_[i] is the left table.
   std::vector<std::vector<JoinPredicate>> adj_;
@@ -102,7 +102,7 @@ class JoinGraph {
    * @param table
    * @return The index of table.
    */
-  int find_table(std::shared_ptr<DBTable> table);
+  int find_table(DBTable::TablePtr table);
 };
 
 }  // namespace operators

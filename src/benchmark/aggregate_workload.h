@@ -19,10 +19,10 @@
 #ifndef HUSTLE_AGGREGATE_WORKLOAD_H
 #define HUSTLE_AGGREGATE_WORKLOAD_H
 
-#include <operators/aggregate_const.h>
+#include <operators/aggregate/aggregate_const.h>
 #include <execution/execution_plan.h>
-#include <operators/aggregate.h>
-#include <operators/hash_aggregate.h>
+#include <operators/aggregate/aggregate.h>
+#include <operators/aggregate/hash_aggregate.h>
 #include <scheduler/scheduler.h>
 
 namespace hustle::operators {

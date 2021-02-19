@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/utils/lip.h"
+#include "operators/join/lip.h"
 
 #include "storage/util.h"
 
@@ -28,7 +28,7 @@ namespace hustle::operators {
 
 LIP::LIP(const std::size_t query_id,
          std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-         std::shared_ptr<OperatorResult> output_result,
+         OperatorResult::OpResultPtr output_result,
          hustle::operators::JoinGraph graph)
     : Operator(query_id) {
   prev_result_ = std::make_shared<OperatorResult>();
@@ -98,7 +98,7 @@ void LIP::build_filters(Task *ctx) {
 
           bloom_filter->set_memory(1);
           bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
-          dim_filters_[i] = {bloom_filter, dim_tables_[i].hash_table_};
+          dim_filters_[i] = {bloom_filter, dim_tables_[i].hash_table()};
         })));
   }
 }

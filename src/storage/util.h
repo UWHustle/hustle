@@ -65,7 +65,9 @@ void write_to_file(const char* path, hustle::storage::DBTable& table);
  * TODO: Assuming all blocks are written to separate files, read in one block.
  */
 std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
-                                                         bool read_only = true);
+                                                       bool read_only = true,
+                                                       const char* table_name = "table");
+
 
 /**
  * Return the columns of a RecordBatch as a vector of Arrays. This is a special

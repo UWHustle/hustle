@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/predicate.h"
+#include "operators/select/predicate.h"
 
 #include <utility>
 

@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/select.h"
+#include "operators/select/select.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -33,16 +33,16 @@
 namespace hustle {
 namespace operators {
 
-Select::Select(const std::size_t query_id, std::shared_ptr<DBTable> table,
-               std::shared_ptr<OperatorResult> prev_result,
-               std::shared_ptr<OperatorResult> output_result,
+Select::Select(const std::size_t query_id, DBTable::TablePtr table,
+               OperatorResult::OpResultPtr prev_result,
+               OperatorResult::OpResultPtr output_result,
                std::shared_ptr<PredicateTree> tree)
     : Select(query_id, table, prev_result, output_result, tree,
              std::make_shared<OperatorOptions>()) {}
 
-Select::Select(const std::size_t query_id, std::shared_ptr<DBTable> table,
-               std::shared_ptr<OperatorResult> prev_result,
-               std::shared_ptr<OperatorResult> output_result,
+Select::Select(const std::size_t query_id, DBTable::TablePtr table,
+               OperatorResult::OpResultPtr prev_result,
+               OperatorResult::OpResultPtr output_result,
                std::shared_ptr<PredicateTree> tree,
                std::shared_ptr<OperatorOptions> options)
     : Operator(query_id, options),

@@ -25,7 +25,7 @@
 #include "execution/execution_plan.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "operators/select.h"
+#include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
 #include "storage/util.h"

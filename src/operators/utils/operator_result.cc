@@ -31,14 +31,13 @@ OperatorResult::OperatorResult(std::vector<LazyTable> lazy_tables) {
 
 OperatorResult::OperatorResult() = default;
 
-void OperatorResult::append(std::shared_ptr<DBTable> table) {
+void OperatorResult::append(DBTable::TablePtr table) {
   LazyTable lazy_table(table, arrow::Datum(), arrow::Datum(), arrow::Datum());
   lazy_tables_.insert(lazy_tables_.begin(), lazy_table);
 }
 
 void OperatorResult::set_materialized_col(
-    std::shared_ptr<DBTable> table, int i,
-    std::shared_ptr<arrow::ChunkedArray> col) {
+    DBTable::TablePtr table, int i, std::shared_ptr<arrow::ChunkedArray> col) {
   get_table(table).set_materialized_column(i, col);
 }
 
@@ -58,7 +57,7 @@ void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
 
 LazyTable OperatorResult::get_table(int i) { return lazy_tables_[i]; }
 
-LazyTable OperatorResult::get_table(const std::shared_ptr<DBTable>& table) {
+LazyTable OperatorResult::get_table(const DBTable::TablePtr& table) {
   LazyTable result;
   for (auto& lazy_table : lazy_tables_) {
     if (lazy_table.table == table) {
@@ -69,7 +68,7 @@ LazyTable OperatorResult::get_table(const std::shared_ptr<DBTable>& table) {
   return result;
 }
 
-std::shared_ptr<DBTable> OperatorResult::materialize(
+DBTable::TablePtr OperatorResult::materialize(
     const std::vector<ColumnReference>& col_refs, bool metadata_enabled) {
   arrow::Status status;
   arrow::SchemaBuilder schema_builder;
@@ -98,17 +97,7 @@ std::shared_ptr<DBTable> OperatorResult::materialize(
   auto out_table = std::make_shared<DBTable>("out", out_schema, BLOCK_SIZE,
                                              metadata_enabled);
 
-  std::vector<std::shared_ptr<arrow::ArrayData>> out_block_data;
-
-  // TODO(nicholas): Create Table constuctor that accepts a vector
-  //  of ChunkedArrays.
-  for (int i = 0; i < out_cols[0]->num_chunks(); i++) {
-    for (auto& col : out_cols) {
-      out_block_data.push_back(col->chunk(i)->data());
-    }
-    out_table->InsertRecords(out_block_data);
-    out_block_data.clear();
-  }
+  out_table->InsertRecords(out_cols);
   if(metadata_enabled) {
     out_table->BuildMetadata();
   }

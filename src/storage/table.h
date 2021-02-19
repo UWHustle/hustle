@@ -39,6 +39,7 @@ namespace hustle::storage {
  */
 class DBTable {
  public:
+  using TablePtr = std::shared_ptr<DBTable>;
   /**
    * Construct an empty table with no blocks.
    *
@@ -216,6 +217,7 @@ class DBTable {
    */
   void DeleteRecordTable(uint32_t rowId);
 
+  void InsertRecords(arrow::ChunkedArrayVector col_arrays);
   /**
    * Insert one or more records into the Table as a vector of ArrayData.
    * This insertion method would be used to insert the results of a query,
