@@ -36,43 +36,22 @@ class Sma : public BlockMetadata {
    */
   Sma(const std::shared_ptr<arrow::Array>& array);
 
-  /// implementation of IsOkay
-  inline bool IsOkay() override { return ok; }
-
   /// implementation of GetStatus
-  inline arrow::Status GetStatus() override { return status; }
-
-  /// implementation of IsCompatible
-  inline bool IsCompatible(
-      std::shared_ptr<arrow::DataType> data_type) override {
-    return true;
-    /*
-    switch(data_type->id()){
-      // deny incompatible instances as they occur
-      // should work for most scalar datum
-      default:
-        return true;
-    }
-     */
-  }
+  inline arrow::Status GetStatus() override { return status_; }
 
   /// implementation of Search
   bool Search(const arrow::Datum& val_ptr,
               arrow::compute::CompareOperator compare_operator) override;
 
  private:
-  /// true if status::OK
-  bool ok;
-
   /// status from calculating min and max
-  arrow::Status status;
+  arrow::Status status_;
 
   /// min value
-  arrow::Datum min;
+  arrow::Datum min_;
 
   /// max value
-  arrow::Datum max;
+  arrow::Datum max_;
 };
-
 }  // namespace hustle::storage
 #endif  // HUSTLE_BLOCK_METADATA_SMA

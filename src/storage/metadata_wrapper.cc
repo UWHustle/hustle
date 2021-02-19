@@ -17,17 +17,17 @@
 
 #include "metadata_wrapper.h"
 
+#define THROW_ERROR_ON_NOT_OK_METADATA true
+
 namespace hustle::storage {
 
 bool MetadataEnabledBlock::SearchMetadata(
     int column_id, const arrow::Datum &val_ptr,
     arrow::compute::CompareOperator compare_operator) {
   if (CheckValidMetadata(column_id)) {
-    for (auto &block_metadata : column_metadata_list[column_id]) {
-      if (block_metadata->IsCompatible(val_ptr.type())) {
-        if (!block_metadata->Search(val_ptr, compare_operator)) {
-          return false;
-        }
+    for (auto &block_metadata : column_metadata_list_[column_id]) {
+      if (!block_metadata->Search(val_ptr, compare_operator)) {
+        return false;
       }
     }
   }
@@ -39,24 +39,6 @@ std::vector<BlockMetadata *> MetadataEnabledBlock::GenerateMetadataForColumn(
   std::vector<BlockMetadata *> out;
   std::vector<BlockMetadata *> verify_buffer;
   switch (get_column(column_id)->type()->id()) {
-    // case arrow::Type::NA:
-    // case arrow::Type::BOOL:
-    // case arrow::Type::STRING:
-    // case arrow::Type::INTERVAL_MONTHS:
-    // case arrow::Type::INTERVAL_DAY_TIME:
-    // case arrow::Type::LIST:
-    // case arrow::Type::STRUCT:
-    // case arrow::Type::SPARSE_UNION:
-    // case arrow::Type::DENSE_UNION:
-    // case arrow::Type::DICTIONARY:
-    // case arrow::Type::MAP:
-    // case arrow::Type::EXTENSION:
-    // case arrow::Type::FIXED_SIZE_LIST:
-    // case arrow::Type::LARGE_STRING:
-    // case arrow::Type::LARGE_LIST:
-    // case arrow::Type::MAX_ID:
-    default:
-      break;
     case arrow::Type::UINT8:
     case arrow::Type::INT8:
     case arrow::Type::UINT16:
@@ -80,13 +62,18 @@ std::vector<BlockMetadata *> MetadataEnabledBlock::GenerateMetadataForColumn(
     case arrow::Type::LARGE_BINARY:
       verify_buffer.push_back(new Sma(get_column(column_id)));
       break;
+    default:
+      break;
   }
   for (int i = 0; i < verify_buffer.size(); i++) {
     auto entry = verify_buffer[i];
-    if (entry->IsOkay()) {
+    if (entry->GetStatus().ok()) {
       out.push_back(&entry[i]);
     } else {
-      throw std::runtime_error(entry->GetStatus().message());
+      // incompatible type error usually
+      if (THROW_ERROR_ON_NOT_OK_METADATA) {
+        throw std::runtime_error(entry->GetStatus().message());
+      }
     }
   }
   return out;
@@ -95,9 +82,9 @@ std::vector<BlockMetadata *> MetadataEnabledBlock::GenerateMetadataForColumn(
 std::vector<arrow::Status> MetadataEnabledBlock::GetMetadataStatusList(
     int column_id) {
   std::vector<arrow::Status> out;
-  out.reserve(column_metadata_list[column_id].size());
-  for (int i = 0; i < column_metadata_list[column_id].size(); i++) {
-    out.push_back(column_metadata_list[column_id][i]->GetStatus());
+  out.reserve(column_metadata_list_[column_id].size());
+  for (int i = 0; i < column_metadata_list_[column_id].size(); i++) {
+    out.push_back(column_metadata_list_[column_id][i]->GetStatus());
   }
   return out;
 }

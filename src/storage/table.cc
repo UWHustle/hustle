@@ -338,28 +338,24 @@ void DBTable::InsertRecord(std::vector<std::string_view> values,
 }
 
 bool DBTable::GetMetadataOk() {
-  if (!metadata_enabled) {
-    return true;
-  } else {
-    for (int i = 0; i < get_num_blocks(); i++) {
-      bool block_compatible = get_block(i)->IsMetadataCompatible();
-      if (!block_compatible) {
-        // ignore blocks that are not metadata compatible
-      } else {
+  if (metadata_enabled) {
+    for (size_t i_block = 0; i_block < get_num_blocks(); i_block++) {
+      bool block_compatible = get_block(i_block)->IsMetadataCompatible();
+      if (block_compatible) {
         auto metadata_block =
-            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i));
-        for (int i = 0; i < metadata_block->get_num_cols(); i++) {
-          auto status_list = metadata_block->GetMetadataStatusList(i);
-          for (int j = 0; j < status_list.size(); j++) {
-            if (!metadata_block->GetMetadataStatusList(i)[j].ok()) {
+            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i_block));
+        for (int i_col = 0; i_col < metadata_block->get_num_cols(); i_col++) {
+          auto status_list = metadata_block->GetMetadataStatusList(i_col);
+          for (int i_status = 0; i_status < status_list.size(); i_status++) {
+            if (!metadata_block->GetMetadataStatusList(i_col)[i_status].ok()) {
               return false;
             }
           }
         }
       }
     }
-    return true;
   }
+  return true;
 }
 
 void DBTable::BuildMetadata() {

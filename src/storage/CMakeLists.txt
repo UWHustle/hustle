@@ -6,7 +6,7 @@ add_library(
         cmemlog.h cmemlog.cc
         record_transformer.h
         block_metadata.h
-        block_metadata_impl/sma.cc block_metadata_impl/sma.h
+        block_metadata/sma.cc block_metadata/sma.h
         metadata_wrapper.cc metadata_wrapper.h)
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR} )

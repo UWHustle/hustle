@@ -23,7 +23,7 @@
 
 #include "storage/block.h"
 #include "storage/block_metadata.h"
-#include "storage/block_metadata_impl/sma.h"
+#include "storage/block_metadata/sma.h"
 
 namespace hustle::storage {
 
@@ -41,8 +41,8 @@ class MetadataEnabledBlock : public Block {
                               const std::shared_ptr<arrow::Schema> &schema,
                               int capacity)
       : Block(id, schema, capacity, true),
-        column_metadata_list(get_num_cols(), std::vector<BlockMetadata *>(0)),
-        column_metadata_valid(get_num_cols(), false) {
+        column_metadata_list_(get_num_cols(), std::vector<BlockMetadata *>(0)),
+        column_metadata_valid_(get_num_cols(), false) {
     /*
      * empty constructor
      * for now, we only generate metadata if a block is constructed with
@@ -62,8 +62,8 @@ class MetadataEnabledBlock : public Block {
                               std::shared_ptr<arrow::RecordBatch> record_batch,
                               int capacity)
       : Block(id, record_batch, capacity, true),
-        column_metadata_list(get_num_cols(), std::vector<BlockMetadata *>(0)),
-        column_metadata_valid(get_num_cols(), false) {
+        column_metadata_list_(get_num_cols(), std::vector<BlockMetadata *>(0)),
+        column_metadata_valid_(get_num_cols(), false) {
     BuildMetadata();
   }
 
@@ -73,8 +73,8 @@ class MetadataEnabledBlock : public Block {
    * @param column_id column id
    */
   inline void BuildMetadata(int column_id) {
-    column_metadata_list[column_id] = GenerateMetadataForColumn(column_id);
-    column_metadata_valid[column_id] = true;
+    column_metadata_list_[column_id] = GenerateMetadataForColumn(column_id);
+    column_metadata_valid_[column_id] = true;
   }
 
   /**
@@ -186,12 +186,12 @@ class MetadataEnabledBlock : public Block {
   /**
    * List of Metadata lists per column to check when queried.
    */
-  std::vector<std::vector<BlockMetadata *>> column_metadata_list;
+  std::vector<std::vector<BlockMetadata *>> column_metadata_list_;
 
   /**
    * Valid state of metadata list per column.
    */
-  std::vector<bool> column_metadata_valid;
+  std::vector<bool> column_metadata_valid_;
 
   /**
    * Generates a column's metadata.
@@ -205,7 +205,7 @@ class MetadataEnabledBlock : public Block {
    * Checks if the metadata for a column is valid.
    */
   inline bool CheckValidMetadata(int column_id) {
-    return column_metadata_valid[column_id];
+    return column_metadata_valid_[column_id];
   }
 
   /**
@@ -214,14 +214,14 @@ class MetadataEnabledBlock : public Block {
    * @param column_id column id
    */
   inline void InvalidateMetadata(int column_id) {
-    column_metadata_valid[column_id] = false;
+    column_metadata_valid_[column_id] = false;
   }
 
   /**
    * Invalidate all column's metadata
    */
   inline void InvalidateMetadata() {
-    std::fill(column_metadata_valid.begin(), column_metadata_valid.end(),
+    std::fill(column_metadata_valid_.begin(), column_metadata_valid_.end(),
               false);
   }
 

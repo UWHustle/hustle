@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "storage/block_metadata_impl/sma.h"
+#include "storage/block_metadata/sma.h"
 
 namespace hustle::storage {
 
@@ -24,13 +24,12 @@ Sma::Sma(const std::shared_ptr<arrow::Array>& array) {
   options.null_handling = arrow::compute::MinMaxOptions::SKIP;  // skip nulls
   arrow::Result<arrow::Datum> min_max_output =
       arrow::compute::MinMax(array, options);
-  ok = min_max_output.ok();
-  status = min_max_output.status();
-  if (ok) {
+  status_ = min_max_output.status();
+  if (status_.ok()) {
     const auto& min_max_scalar = static_cast<const arrow::StructScalar&>(
         *min_max_output.ValueOrDie().scalar());
-    min = min_max_scalar.value[0];
-    max = min_max_scalar.value[1];
+    min_ = min_max_scalar.value[0];
+    max_ = min_max_scalar.value[1];
   }
 }
 
@@ -42,37 +41,39 @@ bool Sma::Search(const arrow::Datum& val_ptr,
     case arrow::compute::CompareOperator::GREATER:
     case arrow::compute::CompareOperator::GREATER_EQUAL:
       result = arrow::compute::Compare(
-          max, val_ptr, arrow::compute::CompareOptions(compare_operator));
+          max_, val_ptr, arrow::compute::CompareOptions(compare_operator));
       break;
     case arrow::compute::CompareOperator::LESS:
     case arrow::compute::CompareOperator::LESS_EQUAL:
       result = arrow::compute::Compare(
-          min, val_ptr, arrow::compute::CompareOptions(compare_operator));
+          min_, val_ptr, arrow::compute::CompareOptions(compare_operator));
       break;
     case arrow::compute::CompareOperator::EQUAL:
       result = arrow::compute::Compare(
-          max, val_ptr,
+          max_, val_ptr,
           arrow::compute::CompareOptions(arrow::compute::LESS_EQUAL));
       result_opt = arrow::compute::Compare(
-          min, val_ptr,
+          min_, val_ptr,
           arrow::compute::CompareOptions(arrow::compute::LESS_EQUAL));
-      if (!result.ok() || !result_opt.ok()) {
+      if (result.ok() && result_opt.ok()) {
+        return (static_cast<arrow::BooleanScalar&>(
+                    *result.ValueOrDie().scalar())
+                    .data()) &&
+               (static_cast<arrow::BooleanScalar&>(
+                    *result_opt.ValueOrDie().scalar())
+                    .data());
+      } else {
         return true;
       }
-      return (static_cast<arrow::BooleanScalar&>(*result.ValueOrDie().scalar())
-                  .data()) &&
-             (static_cast<arrow::BooleanScalar&>(
-                  *result_opt.ValueOrDie().scalar())
-                  .data());
     case arrow::compute::CompareOperator::NOT_EQUAL:
     default:
       return true;
   }
-  if (!result.ok()) {
+  if (result.ok()) {
+    return static_cast<arrow::BooleanScalar&>(*result.ValueOrDie().scalar())
+        .data();
+  } else {
     return true;
   }
-  return static_cast<arrow::BooleanScalar&>(*result.ValueOrDie().scalar())
-      .data();
 }
-
 }  // namespace hustle::storage
