@@ -15,21 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_METADATA_WRAPPER_H
-#define HUSTLE_METADATA_WRAPPER_H
+#ifndef HUSTLE_METADATA_ATTACHED_BLOCK_H
+#define HUSTLE_METADATA_ATTACHED_BLOCK_H
 
 #include <arrow/compute/api.h>
 #include <arrow/type.h>
 
 #include "storage/block.h"
-#include "storage/block_metadata.h"
-#include "storage/block_metadata/sma.h"
+#include "storage/metadata_units/sma.h"
+#include "storage/metadata_unit.h"
 
 namespace hustle::storage {
 
-class MetadataEnabledBlock : public Block {
+class MetadataAttachedBlock : public Block {
  public:
-
   /**
    * Create a new wrapped, empty Block.
    *
@@ -37,11 +36,11 @@ class MetadataEnabledBlock : public Block {
    * @param schema Block schema, excluding the valid column
    * @param capacity Maximum number of data bytes to be stored in the Block
    */
-  inline MetadataEnabledBlock(int id,
+  inline MetadataAttachedBlock(int id,
                               const std::shared_ptr<arrow::Schema> &schema,
                               int capacity)
       : Block(id, schema, capacity, true),
-        column_metadata_list_(get_num_cols(), std::vector<BlockMetadata *>(0)),
+        column_metadata_list_(get_num_cols(), std::vector<MetadataUnit *>(0)),
         column_metadata_valid_(get_num_cols(), false) {
     /*
      * empty constructor
@@ -52,17 +51,17 @@ class MetadataEnabledBlock : public Block {
   }
 
   /**
-   * Initialize a metadata wrapped block with data.
+   * Initialize a metadata attached block with data.
    *
    * @param id Block ID
    * @param record_batch record batch to initialize the block with
    * @param capacity Maximum number of data bytes to be stored in the block
    */
-  inline MetadataEnabledBlock(int id,
+  inline MetadataAttachedBlock(int id,
                               std::shared_ptr<arrow::RecordBatch> record_batch,
                               int capacity)
       : Block(id, record_batch, capacity, true),
-        column_metadata_list_(get_num_cols(), std::vector<BlockMetadata *>(0)),
+        column_metadata_list_(get_num_cols(), std::vector<MetadataUnit *>(0)),
         column_metadata_valid_(get_num_cols(), false) {
     BuildMetadata();
   }
@@ -137,7 +136,8 @@ class MetadataEnabledBlock : public Block {
    * @param column_name column name
    * @return vector of arrow:Status objects
    */
-  inline std::vector<arrow::Status> GetMetadataStatusList(const std::string &column_name) {
+  inline std::vector<arrow::Status> GetMetadataStatusList(
+      const std::string &column_name) {
     return GetMetadataStatusList(get_schema()->GetFieldIndex(column_name));
   }
 
@@ -182,11 +182,10 @@ class MetadataEnabledBlock : public Block {
   }
 
  private:
-
   /**
    * List of Metadata lists per column to check when queried.
    */
-  std::vector<std::vector<BlockMetadata *>> column_metadata_list_;
+  std::vector<std::vector<MetadataUnit *>> column_metadata_list_;
 
   /**
    * Valid state of metadata list per column.
@@ -199,7 +198,7 @@ class MetadataEnabledBlock : public Block {
    * @param column_id column
    * @return generated metadata
    */
-  std::vector<BlockMetadata *> GenerateMetadataForColumn(int column_id);
+  std::vector<MetadataUnit *> GenerateMetadataForColumn(int column_id);
 
   /**
    * Checks if the metadata for a column is valid.
@@ -240,4 +239,4 @@ class MetadataEnabledBlock : public Block {
 };
 
 }  // namespace hustle::storage
-#endif  // HUSTLE_METADATA_WRAPPER_H
+#endif  // HUSTLE_METADATA_ATTACHED_BLOCK_H

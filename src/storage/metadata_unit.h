@@ -7,7 +7,7 @@
 
 namespace hustle::storage {
 
-class BlockMetadata {
+class MetadataUnit {
  public:
 
   /**

@@ -22,11 +22,11 @@
 #include <arrow/datum.h>
 #include <arrow/scalar.h>
 
-#include "storage/block_metadata.h"
+#include "storage/metadata_unit.h"
 
 namespace hustle::storage {
 
-class Sma : public BlockMetadata {
+class Sma : public MetadataUnit {
  public:
   /**
    * Construct a Small Materialized Aggregate (SMA) metadata from a

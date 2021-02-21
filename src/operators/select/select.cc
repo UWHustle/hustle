@@ -25,7 +25,7 @@
 #include <cmath>
 #include <utility>
 
-#include "storage/metadata_wrapper.h"
+#include "storage/ma_block.h"
 #include "storage/table.h"
 #include "storage/util.h"
 #include "utils/bit_utils.h"
@@ -296,21 +296,26 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
   evaluate_status(status, __FUNCTION__, __LINE__);
   auto bytemap = buffer->mutable_data();
   std::shared_ptr<arrow::BooleanArray> out_filter;
+  const T *col_data;
 
   if (block->IsMetadataCompatible()) {
-    auto metadata_block = std::static_pointer_cast<MetadataEnabledBlock>(block);
+    auto metadata_block =
+        std::static_pointer_cast<MetadataAttachedBlock>(block);
     if (!metadata_block->SearchMetadata(col_ref.col_name, arrow_val,
                                         arrow_compare)) {
-      memset(bytemap, 0, sizeof(&bytemap));
+      const T zero_val = (T)0;
+      for (uint32_t i = 0; i < num_rows; ++i) {
+        bytemap[i] = zero_val;
+      }
     } else {
-      auto col_data =
+      col_data =
           block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
       for (uint32_t i = 0; i < num_rows; ++i) {
         bytemap[i] = comparator(col_data[i], value);
       }
     }
   } else {
-    auto col_data =
+    col_data =
         block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
     for (uint32_t i = 0; i < num_rows; ++i) {
       bytemap[i] = comparator(col_data[i], value);

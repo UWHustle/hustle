@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "metadata_wrapper.h"
+#include "ma_block.h"
 
 #define THROW_ERROR_ON_NOT_OK_METADATA true
 
 namespace hustle::storage {
 
-bool MetadataEnabledBlock::SearchMetadata(
+bool MetadataAttachedBlock::SearchMetadata(
     int column_id, const arrow::Datum &val_ptr,
     arrow::compute::CompareOperator compare_operator) {
   if (CheckValidMetadata(column_id)) {
@@ -34,10 +34,10 @@ bool MetadataEnabledBlock::SearchMetadata(
   return true;
 }
 
-std::vector<BlockMetadata *> MetadataEnabledBlock::GenerateMetadataForColumn(
+std::vector<MetadataUnit *> MetadataAttachedBlock::GenerateMetadataForColumn(
     int column_id) {
-  std::vector<BlockMetadata *> out;
-  std::vector<BlockMetadata *> verify_buffer;
+  std::vector<MetadataUnit *> out;
+  std::vector<MetadataUnit *> verify_buffer;
   switch (get_column(column_id)->type()->id()) {
     case arrow::Type::UINT8:
     case arrow::Type::INT8:
@@ -50,16 +50,16 @@ std::vector<BlockMetadata *> MetadataEnabledBlock::GenerateMetadataForColumn(
     case arrow::Type::HALF_FLOAT:
     case arrow::Type::FLOAT:
     case arrow::Type::DOUBLE:
-    case arrow::Type::BINARY:
-    case arrow::Type::FIXED_SIZE_BINARY:
-    case arrow::Type::DATE32:
-    case arrow::Type::DATE64:
-    case arrow::Type::TIMESTAMP:
-    case arrow::Type::TIME32:
-    case arrow::Type::TIME64:
+    // case arrow::Type::BINARY:
+    // case arrow::Type::FIXED_SIZE_BINARY:
+    // case arrow::Type::DATE32:
+    // case arrow::Type::DATE64:
+    // case arrow::Type::TIMESTAMP:
+    // case arrow::Type::TIME32:
+    // case arrow::Type::TIME64:
     case arrow::Type::DECIMAL:
-    case arrow::Type::DURATION:
-    case arrow::Type::LARGE_BINARY:
+    // case arrow::Type::DURATION:
+    // case arrow::Type::LARGE_BINARY:
       verify_buffer.push_back(new Sma(get_column(column_id)));
       break;
     default:
@@ -79,7 +79,7 @@ std::vector<BlockMetadata *> MetadataEnabledBlock::GenerateMetadataForColumn(
   return out;
 }
 
-std::vector<arrow::Status> MetadataEnabledBlock::GetMetadataStatusList(
+std::vector<arrow::Status> MetadataAttachedBlock::GetMetadataStatusList(
     int column_id) {
   std::vector<arrow::Status> out;
   out.reserve(column_metadata_list_[column_id].size());

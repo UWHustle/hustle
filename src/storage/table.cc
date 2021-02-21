@@ -24,7 +24,7 @@
 #include <iostream>
 
 #include "storage/block.h"
-#include "storage/metadata_wrapper.h"
+#include "storage/ma_block.h"
 #include "storage/util.h"
 
 namespace hustle::storage {
@@ -61,7 +61,7 @@ DBTable::DBTable(
   std::shared_ptr<Block> block;
   for (const auto &batch : record_batches) {
     if (enable_metadata) {
-      block = std::make_shared<MetadataEnabledBlock>(block_counter, batch,
+      block = std::make_shared<MetadataAttachedBlock>(block_counter, batch,
                                                      BLOCK_SIZE);
     } else {
       block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
@@ -339,15 +339,18 @@ void DBTable::InsertRecord(std::vector<std::string_view> values,
 
 bool DBTable::GetMetadataOk() {
   if (metadata_enabled) {
-    for (size_t i_block = 0; i_block < get_num_blocks(); i_block++) {
-      bool block_compatible = get_block(i_block)->IsMetadataCompatible();
+    for (size_t block_idx = 0; block_idx < get_num_blocks(); block_idx++) {
+      bool block_compatible = get_block(block_idx)->IsMetadataCompatible();
       if (block_compatible) {
-        auto metadata_block =
-            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i_block));
-        for (int i_col = 0; i_col < metadata_block->get_num_cols(); i_col++) {
-          auto status_list = metadata_block->GetMetadataStatusList(i_col);
-          for (int i_status = 0; i_status < status_list.size(); i_status++) {
-            if (!metadata_block->GetMetadataStatusList(i_col)[i_status].ok()) {
+        auto metadata_block = std::static_pointer_cast<MetadataAttachedBlock>(
+            get_block(block_idx));
+        for (int col_idx = 0; col_idx < metadata_block->get_num_cols();
+             col_idx++) {
+          auto status_list = metadata_block->GetMetadataStatusList(col_idx);
+          for (int status_idx = 0; status_idx < status_list.size();
+               status_idx++) {
+            if (!metadata_block->GetMetadataStatusList(col_idx)[status_idx]
+                     .ok()) {
               return false;
             }
           }
@@ -366,7 +369,7 @@ void DBTable::BuildMetadata() {
         // ignore blocks that are not metadata compatible
       } else {
         auto metadata_block =
-            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i));
+            std::static_pointer_cast<MetadataAttachedBlock>(get_block(i));
         metadata_block->BuildMetadata();
       }
     }
@@ -384,7 +387,7 @@ std::vector<std::vector<arrow::Status>> DBTable::GetMetadataStatusList(
         out.push_back(empty_list);
       } else {
         auto metadata_block =
-            std::static_pointer_cast<MetadataEnabledBlock>(get_block(i));
+            std::static_pointer_cast<MetadataAttachedBlock>(get_block(i));
         out.push_back(metadata_block->GetMetadataStatusList(column_id));
       }
     }

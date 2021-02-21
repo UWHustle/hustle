@@ -27,7 +27,7 @@
 
 #include "cmemlog.h"
 #include "storage/block.h"
-#include "storage/metadata_wrapper.h"
+#include "storage/ma_block.h"
 
 #define ENABLE_METADATA_BY_DEFAULT true
 
@@ -100,7 +100,7 @@ class DBTable {
     int block_id = block_counter++;
     std::shared_ptr<Block> block;
     if (metadata_enabled) {
-      block = std::make_shared<MetadataEnabledBlock>(block_id, schema,
+      block = std::make_shared<MetadataAttachedBlock>(block_id, schema,
                                                      block_capacity);
     } else {
       block = std::make_shared<Block>(block_id, schema, block_capacity);

@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "storage/block_metadata/sma.h"
+#include "storage/metadata_units/sma.h"
 
 namespace hustle::storage {
 
