@@ -50,16 +50,7 @@ std::vector<MetadataUnit *> MetadataAttachedBlock::GenerateMetadataForColumn(
     case arrow::Type::HALF_FLOAT:
     case arrow::Type::FLOAT:
     case arrow::Type::DOUBLE:
-    // case arrow::Type::BINARY:
-    // case arrow::Type::FIXED_SIZE_BINARY:
-    // case arrow::Type::DATE32:
-    // case arrow::Type::DATE64:
-    // case arrow::Type::TIMESTAMP:
-    // case arrow::Type::TIME32:
-    // case arrow::Type::TIME64:
     case arrow::Type::DECIMAL:
-    // case arrow::Type::DURATION:
-    // case arrow::Type::LARGE_BINARY:
       verify_buffer.push_back(new Sma(get_column(column_id)));
       break;
     default:
