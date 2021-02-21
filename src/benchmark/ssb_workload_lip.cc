@@ -16,6 +16,7 @@
 // under the License.
 
 #include "execution/execution_plan.h"
+#include "operators/aggregate/hash_aggregate.h"
 #include "operators/aggregate/aggregate.h"
 #include "operators/fused/filter_join.h"
 #include "operators/fused/select_build_hash.h"
@@ -83,7 +84,7 @@ void SSB::q11_lip() {
   Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+  HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
                    aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -189,7 +190,7 @@ void SSB::q12_lip() {
   Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+  HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
                    aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -305,7 +306,7 @@ void SSB::q13_lip() {
   Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
+  HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
                    aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -382,7 +383,7 @@ void SSB::q21_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
                    aggregate_options);
 
@@ -471,7 +472,7 @@ void SSB::q22_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
                    aggregate_options);
 
@@ -549,7 +550,7 @@ void SSB::q23_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {{d, "year"}, {p, "brand1"}}, {{d, "year"}, {p, "brand1"}},
                    aggregate_options);
 
@@ -646,7 +647,7 @@ void SSB::q31_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref, s_nation_ref},
                    {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
@@ -746,7 +747,7 @@ void SSB::q32_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
@@ -870,7 +871,7 @@ void SSB::q33_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
@@ -985,7 +986,7 @@ void SSB::q34_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
                    {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
 
@@ -1086,7 +1087,7 @@ void SSB::q41_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref},
                    aggregate_options);
 
@@ -1210,7 +1211,7 @@ void SSB::q42_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, {lip_result_out}, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, {lip_result_out}, agg_result_out, {agg_ref},
                    {d_year_ref, s_nation_ref, p_category_ref},
                    {d_year_ref, s_nation_ref, p_category_ref},
                    aggregate_options);
@@ -1325,7 +1326,7 @@ void SSB::q43_lip() {
                     filter_join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
-  Aggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
+  HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref}, aggregate_options);
 
