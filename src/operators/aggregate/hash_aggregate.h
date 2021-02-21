@@ -25,13 +25,13 @@
 namespace hustle {
 namespace operators {
 
-    typedef size_t hash_t;
-    typedef int64_t value_t;
-    // TODO: Refactor the unordered_maps to use phmap::flat_hash_map.
-    //  It seems to have great optimization over the hash phrasing.
-    typedef std::unordered_map<hash_t, value_t> HashMap;
-    typedef std::unordered_map<hash_t, double> MeanHashMap;
-    typedef std::unordered_map<hash_t, std::tuple<int, int>> TupleMap;
+typedef size_t hash_t;
+typedef int64_t value_t;
+// TODO: Refactor the unordered_maps to use phmap::flat_hash_map.
+//  It seems to have great optimization over the hash phrasing.
+typedef std::unordered_map<hash_t, value_t> HashMap;
+typedef std::unordered_map<hash_t, double> MeanHashMap;
+typedef std::unordered_map<hash_t, std::tuple<int, int>> TupleMap;
 
 class HashAggregateStrategy {
  public:
@@ -81,8 +81,8 @@ class HashAggregateStrategy {
   }
 
   static inline hash_t HashCombine(hash_t seed, hash_t val) {
-        seed ^= val + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        return seed;
+    seed ^= val + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
   }
 
  private:
