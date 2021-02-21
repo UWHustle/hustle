@@ -5,7 +5,9 @@ add_library(
         util.h  util.cc
         cmemlog.h cmemlog.cc
         record_transformer.h
-)
+        metadata_unit.h
+        metadata_units/sma.cc metadata_units/sma.h
+        ma_block.cc ma_block.h)
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR} )
 target_link_libraries(hustle_src_storage PUBLIC
@@ -59,3 +61,13 @@ target_link_libraries(hustle_memlog_test
         hustle_src_storage
         )
 add_test(HustleMemlogTest hustle_memlog_test)
+
+add_executable(hustle_metadata_test "tests/metadata_test.cc")
+target_link_libraries(hustle_metadata_test
+        gtest
+        gtest_main
+        gmock
+        ${ARROW_SHARED_LIB}
+        hustle_src_storage
+        )
+add_test(HustleMetadataTest hustle_metadata_test)

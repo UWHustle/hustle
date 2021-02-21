@@ -66,7 +66,9 @@ class Block {
    * @param schema Block schema, excluding the valid column
    * @param capacity Maximum number of date bytes to be stored in the Block
    */
-  Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity);
+  inline Block(int id, const std::shared_ptr<arrow::Schema> &schema,
+               int capacity)
+      : Block(id, schema, capacity, false) {}
 
   /**
    * Initialize a Block from a RecordBatch read in from a file. This will
@@ -77,7 +79,9 @@ class Block {
    * @param record_batch RecordBatch read from a file
    * @param capacity Maximum number of date bytes to be stored in the Block
    */
-  Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capacity);
+  inline Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
+               int capacity)
+      : Block(id, record_batch, capacity, false) {}
 
   /**
    * Get the Block's ID
@@ -313,6 +317,35 @@ class Block {
    */
   void TruncateBuffers();
 
+  /// static-cast guard for MetadataBlock
+  inline bool IsMetadataCompatible() { return metadata_enabled; }
+
+ protected:
+
+  /**
+   * Initialize an empty block.
+   *
+   * @param id Block ID
+   * @param schema Block schema, excluding the valid column
+   * @param capacity Maximum number of date bytes to be stored in the Block
+   * @param metadata_enabled if metadata will be enabled for this block (always
+   * false)
+   */
+  Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity,
+        bool metadata_enabled);
+
+  /**
+   * Initialize a Block from a RecordBatch read in from a file. This will
+   * eventually be removed. The constructor that uses a vector of ArrayData
+   * should be used instead.
+   *
+   * @param id Block ID
+   * @param record_batch RecordBatch read from a file
+   * @param capacity Maximum number of date bytes to be stored in the Block
+   */
+  Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capacity,
+        bool metadata_enabled);
+
  private:
   /**
    * Block ID.
@@ -374,6 +407,11 @@ class Block {
    * Number of columns in the Block, excluding the valid column.
    */
   int num_cols;
+
+  /**
+   * If metadata is enabled for this block.
+   */
+  const bool metadata_enabled;
 
   /**
    * Compute the number of bytes in the block. This function is only called

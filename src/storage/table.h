@@ -27,6 +27,9 @@
 
 #include "cmemlog.h"
 #include "storage/block.h"
+#include "storage/ma_block.h"
+
+#define ENABLE_METADATA_BY_DEFAULT true
 
 namespace hustle::storage {
 
@@ -43,9 +46,35 @@ class DBTable {
    * @param name Table name
    * @param schema Table schema, excluding the valid column
    * @param block_capacity Block size
+   * @param metadata_enabled true if the table should be metadata enabled, false
+   * otherwise
    */
   DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
-          int block_capacity);
+          int block_capacity, bool metadata_enabled);
+
+  /**
+   * Construct an empty table with no blocks.
+   *
+   * @param name Table name
+   * @param schema Table schema, excluding the valid column
+   * @param block_capacity Block size
+   */
+  inline DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
+                 int block_capacity)
+      : DBTable(name, schema, block_capacity, ENABLE_METADATA_BY_DEFAULT) {}
+
+  /**
+   * Construct a table from a vector of RecordBatches read from a file.
+   *
+   * @param name Table name
+   * @param record_batches Vector of RecordBatches read from a file
+   * @param block_capacity Block size
+   * @param enable_metadata true if the table should be metadata enabled, false
+   * otherwise
+   */
+  DBTable(std::string name,
+          std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+          int block_capacity, bool enable_metadata);
 
   /**
    * Construct a table from a vector of RecordBatches read from a file.
@@ -54,9 +83,12 @@ class DBTable {
    * @param record_batches Vector of RecordBatches read from a file
    * @param block_capacity Block size
    */
-  DBTable(std::string name,
-          std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-          int block_capacity);
+  inline DBTable(
+      std::string name,
+      std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
+      int block_capacity)
+      : DBTable(name, record_batches, block_capacity,
+                ENABLE_METADATA_BY_DEFAULT) {}
 
   /**
    * Create an empty Block to be added to the Table.
@@ -66,7 +98,13 @@ class DBTable {
   inline std::shared_ptr<Block> CreateBlock() {
     std::scoped_lock blocks_lock(blocks_mutex);
     int block_id = block_counter++;
-    auto block = std::make_shared<Block>(block_id, schema, block_capacity);
+    std::shared_ptr<Block> block;
+    if (metadata_enabled) {
+      block = std::make_shared<MetadataAttachedBlock>(block_id, schema,
+                                                     block_capacity);
+    } else {
+      block = std::make_shared<Block>(block_id, schema, block_capacity);
+    }
     blocks.emplace(block_id, block);
     block_row_offsets.push_back(num_rows);
     return block;
@@ -304,7 +342,41 @@ class DBTable {
   template <typename Functor>
   void ForEachBatch(const Functor &functor) const;
 
+  /**
+   * Get if the table generates metadata enabled blocks
+   *
+   * @return true if the table uses metadata enabled blocks, false otherwise
+   */
+  inline bool IsMetadataEnabled() { return metadata_enabled; }
+
+  /**
+   * Returns the status of all metadatas for a column, as individual lists per
+   * block
+   *
+   * @return list of lists of metadata
+   */
+  std::vector<std::vector<arrow::Status>> GetMetadataStatusList(int column_id);
+
+  /**
+   * true if table is either not metadata enabled, or if the contained blocks'
+   * metadata are all arrow::Status::Ok()
+   *
+   * @return true if metadata is ok
+   */
+  bool GetMetadataOk();
+
+  /**
+   * Build metadata for each block in the table if the block is
+   * metadata compatible
+   */
+  void BuildMetadata();
+
  private:
+  /**
+   * Metadata enabled for table
+   */
+  const bool metadata_enabled;
+
   /**
    * Table Name
    */

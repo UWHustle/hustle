@@ -27,6 +27,8 @@
 #include "catalog/table_schema.h"
 #include "storage/table.h"
 
+#define IMPORT_CSV_TO_METADATA_ENABLED_BLOCK_BY_DEFAULT true
+
 /**
  * If a status outcome is an error, print its error message and throw an
  * expection. Otherwise, do nothing.
@@ -99,7 +101,14 @@ std::vector<int32_t> get_field_sizes(
     const std::shared_ptr<arrow::Schema>& schema);
 
 std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
-    const char* path, std::shared_ptr<arrow::Schema> schema, int block_size);
+    const char* path, std::shared_ptr<arrow::Schema> schema, int block_size,
+    bool metadata_enabled);
+
+inline std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
+    const char* path, std::shared_ptr<arrow::Schema> schema, int block_size) {
+  return read_from_csv_file(path, schema, block_size,
+                            IMPORT_CSV_TO_METADATA_ENABLED_BLOCK_BY_DEFAULT);
+}
 
 std::shared_ptr<arrow::Schema> make_schema(
     const hustle::catalog::TableSchema& schema);

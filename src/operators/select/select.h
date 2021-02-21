@@ -75,13 +75,9 @@ class Select : public Operator {
     table_ = table;
   }
 
-  inline void set_tree(std::shared_ptr<PredicateTree> tree) {
-    tree_ = tree;
-  }
+  inline void set_tree(std::shared_ptr<PredicateTree> tree) { tree_ = tree; }
 
-  void Initialize() {
-    filters_.resize(table_->get_num_blocks());
-  }
+  void Initialize() { filters_.resize(table_->get_num_blocks()); }
 
   void Clear() override;
 
@@ -125,7 +121,9 @@ class Select : public Operator {
 
   template <typename T, typename Op>
   arrow::Datum Filter(const std::shared_ptr<Block> &block,
-                      const ColumnReference &col_ref, const T &value,
+                      const ColumnReference &col_ref, const arrow::Datum& arrow_val,
+                      const T &value,
+                      arrow::compute::CompareOperator arrow_compare,
                       Op comparator);
 };
 

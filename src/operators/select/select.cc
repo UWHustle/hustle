@@ -25,6 +25,7 @@
 #include <cmath>
 #include <utility>
 
+#include "storage/ma_block.h"
 #include "storage/table.h"
 #include "storage/util.h"
 #include "utils/bit_utils.h"
@@ -130,26 +131,28 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
       uint8_t val = std::static_pointer_cast<arrow::UInt8Scalar>(
                         predicate->value_.scalar())
                         ->value;
+      auto datum_val = predicate->value_;
 
       switch (predicate->comparator_) {
         case arrow::compute::CompareOperator::LESS: {
-          return Filter<uint8_t>(block, predicate->col_ref_, val, std::less());
+          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::less());
         }
         case arrow::compute::CompareOperator::LESS_EQUAL: {
-          return Filter<uint8_t>(block, predicate->col_ref_, val,
-                                 std::less_equal());
+          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::less_equal());
         }
         case arrow::compute::CompareOperator::GREATER: {
-          return Filter<uint8_t>(block, predicate->col_ref_, val,
-                                 std::greater());
+          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::greater());
         }
         case arrow::compute::CompareOperator::GREATER_EQUAL: {
-          return Filter<uint8_t>(block, predicate->col_ref_, val,
-                                 std::greater_equal());
+          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::greater_equal());
         }
         case arrow::compute::CompareOperator::EQUAL: {
-          return Filter<uint8_t>(block, predicate->col_ref_, val,
-                                 std::equal_to());
+          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::equal_to());
         }
         // TODO(nicholas): placeholder for BETWEEN
         case arrow::compute::CompareOperator::NOT_EQUAL: {
@@ -193,30 +196,32 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
       int64_t val = std::static_pointer_cast<arrow::Int64Scalar>(
                         predicate->value_.scalar())
                         ->value;
+      auto datum_val = predicate->value_;
 
       switch (predicate->comparator_) {
         case arrow::compute::CompareOperator::LESS: {
-          return Filter<int64_t>(block, predicate->col_ref_, val, std::less());
+          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::less());
           break;
         }
         case arrow::compute::CompareOperator::LESS_EQUAL: {
-          return Filter<int64_t>(block, predicate->col_ref_, val,
-                                 std::less_equal());
+          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::less_equal());
           break;
         }
         case arrow::compute::CompareOperator::GREATER: {
-          return Filter<int64_t>(block, predicate->col_ref_, val,
-                                 std::greater());
+          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::greater());
           break;
         }
         case arrow::compute::CompareOperator::GREATER_EQUAL: {
-          return Filter<int64_t>(block, predicate->col_ref_, val,
-                                 std::greater_equal());
+          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::greater_equal());
           break;
         }
         case arrow::compute::CompareOperator::EQUAL: {
-          return Filter<int64_t>(block, predicate->col_ref_, val,
-                                 std::equal_to());
+          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
+                                 predicate->comparator_, std::equal_to());
           break;
         }
         case arrow::compute::CompareOperator::NOT_EQUAL: {
@@ -276,29 +281,46 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
   }
 }
 
-void Select::Clear() {
-  filters_.clear();
-}
+void Select::Clear() { filters_.clear(); }
 
 template <typename T, typename Op>
 arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
-                            const ColumnReference &col_ref, const T &value,
+                            const ColumnReference &col_ref,
+                            const arrow::Datum &arrow_val, const T &value,
+                            arrow::compute::CompareOperator arrow_compare,
                             Op comparator) {
+  std::shared_ptr<arrow::Buffer> buffer;
   arrow::Datum block_filter;
   auto num_rows = block->get_num_rows();
-  auto col_data =
-      block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
-
-  std::shared_ptr<arrow::Buffer> buffer;
   auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
   evaluate_status(status, __FUNCTION__, __LINE__);
-
   auto bytemap = buffer->mutable_data();
-  for (uint32_t i = 0; i < num_rows; ++i) {
-    bytemap[i] = comparator(col_data[i], value);
-  }
-
   std::shared_ptr<arrow::BooleanArray> out_filter;
+  const T *col_data;
+
+  if (block->IsMetadataCompatible()) {
+    auto metadata_block =
+        std::static_pointer_cast<MetadataAttachedBlock>(block);
+    if (!metadata_block->SearchMetadata(col_ref.col_name, arrow_val,
+                                        arrow_compare)) {
+      const T zero_val = (T)0;
+      for (uint32_t i = 0; i < num_rows; ++i) {
+        bytemap[i] = zero_val;
+      }
+    } else {
+      col_data =
+          block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
+      for (uint32_t i = 0; i < num_rows; ++i) {
+        bytemap[i] = comparator(col_data[i], value);
+      }
+    }
+  } else {
+    col_data =
+        block->get_column_by_name(col_ref.col_name)->data()->GetValues<T>(1);
+    for (uint32_t i = 0; i < num_rows; ++i) {
+      bytemap[i] = comparator(col_data[i], value);
+    }
+  }
   utils::pack(num_rows, bytemap, &out_filter);
   return out_filter;
 }
