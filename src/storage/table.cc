@@ -24,14 +24,16 @@
 #include <iostream>
 
 #include "storage/block.h"
+#include "storage/ma_block.h"
 #include "storage/util.h"
 
 namespace hustle::storage {
 
 DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
-                 int block_capacity)
+                 int block_capacity, bool enable_metadata)
     : table_name(std::move(name)),
       schema(schema),
+      metadata_enabled(enable_metadata),
       block_counter(0),
       num_rows(0),
       block_capacity(block_capacity),
@@ -44,8 +46,9 @@ DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
 DBTable::DBTable(
     std::string name,
     std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-    int block_capacity)
+    int block_capacity, bool enable_metadata)
     : table_name(std::move(name)),
+      metadata_enabled(enable_metadata),
       block_counter(0),
       num_rows(0),
       block_capacity(block_capacity),
@@ -55,8 +58,14 @@ DBTable::DBTable(
   num_cols = schema->num_fields();
   // Must be called only after schema is set
   fixed_record_width = compute_fixed_record_width(schema);
+  std::shared_ptr<Block> block;
   for (const auto &batch : record_batches) {
-    auto block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
+    if (enable_metadata) {
+      block = std::make_shared<MetadataAttachedBlock>(block_counter, batch,
+                                                     BLOCK_SIZE);
+    } else {
+      block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
+    }
     blocks.emplace(block_counter, block);
     block_counter++;
     num_rows += batch->num_rows();
@@ -326,5 +335,63 @@ void DBTable::InsertRecord(std::vector<std::string_view> values,
   if (block->get_bytes_left() > fixed_record_width) {
     insert_pool[block->get_id()] = block;
   }
+}
+
+bool DBTable::GetMetadataOk() {
+  if (metadata_enabled) {
+    for (size_t block_idx = 0; block_idx < get_num_blocks(); block_idx++) {
+      bool block_compatible = get_block(block_idx)->IsMetadataCompatible();
+      if (block_compatible) {
+        auto metadata_block = std::static_pointer_cast<MetadataAttachedBlock>(
+            get_block(block_idx));
+        for (int col_idx = 0; col_idx < metadata_block->get_num_cols();
+             col_idx++) {
+          auto status_list = metadata_block->GetMetadataStatusList(col_idx);
+          for (int status_idx = 0; status_idx < status_list.size();
+               status_idx++) {
+            if (!metadata_block->GetMetadataStatusList(col_idx)[status_idx]
+                     .ok()) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+void DBTable::BuildMetadata() {
+  if (metadata_enabled) {
+    for (int i = 0; i < get_num_blocks(); i++) {
+      bool block_compatible = get_block(i)->IsMetadataCompatible();
+      if (!block_compatible) {
+        // ignore blocks that are not metadata compatible
+      } else {
+        auto metadata_block =
+            std::static_pointer_cast<MetadataAttachedBlock>(get_block(i));
+        metadata_block->BuildMetadata();
+      }
+    }
+  }
+}
+
+std::vector<std::vector<arrow::Status>> DBTable::GetMetadataStatusList(
+    int column_id) {
+  std::vector<std::vector<arrow::Status>> out;
+  if (metadata_enabled) {
+    for (int i = 0; i < get_num_blocks(); i++) {
+      bool block_compatible = get_block(i)->IsMetadataCompatible();
+      if (!block_compatible) {
+        std::vector<arrow::Status> empty_list;
+        out.push_back(empty_list);
+      } else {
+        auto metadata_block =
+            std::static_pointer_cast<MetadataAttachedBlock>(get_block(i));
+        out.push_back(metadata_block->GetMetadataStatusList(column_id));
+      }
+    }
+  }
+  return out;
 }
 }  // namespace hustle::storage

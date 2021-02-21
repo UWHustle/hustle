@@ -20,6 +20,7 @@
 #include <iostream>
 #include <utility>
 
+#include "storage/table.h"
 #include "storage/util.h"
 
 namespace hustle::operators {
@@ -68,7 +69,7 @@ LazyTable OperatorResult::get_table(const DBTable::TablePtr& table) {
 }
 
 DBTable::TablePtr OperatorResult::materialize(
-    const std::vector<ColumnReference>& col_refs) {
+    const std::vector<ColumnReference>& col_refs, bool metadata_enabled) {
   arrow::Status status;
   arrow::SchemaBuilder schema_builder;
   std::vector<std::shared_ptr<arrow::ChunkedArray>> out_cols;
@@ -93,9 +94,13 @@ DBTable::TablePtr OperatorResult::materialize(
   evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
   auto out_schema = schema_builder.Finish().ValueOrDie();
 
-  auto out_table = std::make_shared<DBTable>("out", out_schema, BLOCK_SIZE);
+  auto out_table = std::make_shared<DBTable>("out", out_schema, BLOCK_SIZE,
+                                             metadata_enabled);
 
   out_table->InsertRecords(out_cols);
+  if(metadata_enabled) {
+    out_table->BuildMetadata();
+  }
   return out_table;
 }
 
