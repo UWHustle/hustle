@@ -161,7 +161,6 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   using namespace hustle::operators;
   std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
       select_predicates = select_resolver->select_predicates();
-
   std::vector<OperatorResult::OpResultPtr> select_result;
   std::vector<SelectPtr> select_operators;
   auto join_predicate_map = select_resolver->join_predicates();
@@ -185,7 +184,8 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     join_result_out = select_result[0];
   }
 
-  std::shared_ptr<std::vector<AggregateReference>> agg_refs =
+
+    std::shared_ptr<std::vector<AggregateReference>> agg_refs =
       (select_resolver->agg_references());
 
   OperatorResult::OpResultPtr agg_result_out =
@@ -209,7 +209,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   std::shared_ptr<hustle::ExecutionPlan> plan =
       std::make_shared<hustle::ExecutionPlan>(0);
 
-  size_t join_id = NULL_OP_ID, agg_id = NULL_OP_ID;
+  size_t join_id = NULL_OP_ID, agg_id = NULL_OP_ID, select_id = NULL_OP_ID;
   if (agg_op != nullptr) {
     agg_id = plan->addOperator(std::move(agg_op));
   }
@@ -221,7 +221,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   }
 
   for (auto& select_op : select_operators) {
-    auto select_id = plan->addOperator(std::move(select_op));
+    select_id = plan->addOperator(std::move(select_op));
     if (join_id != NULL_OP_ID) {
       plan->createLink(select_id, join_id);
     }
@@ -229,7 +229,13 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 
   // Declare aggregate dependency on join operator
   if (agg_id != NULL_OP_ID) {
-    plan->createLink(join_id, agg_id);
+      if (join_id == NULL_OP_ID) {
+          if (select_operators.size() != 1)
+              return nullptr;
+          plan->createLink(select_id, agg_id);
+      } else {
+          plan->createLink(join_id, agg_id);
+      }
   }
   plan->setOperatorResult(agg_result_out);
   plan->setResultColumns(agg_project_cols);
@@ -261,19 +267,12 @@ std::shared_ptr<hustle::storage::DBTable> execute(
         out_table->print();
         sync_lock.release();
       })));
-
   sync_lock.wait();
 
   return out_table;
 }
 
 int resolveSelect(char* dbName, Sqlite3Select* queryTree) {
-  ExprList* pEList = queryTree->pEList;
-  Expr* pWhere = queryTree->pWhere;
-  ExprList* pGroupBy = queryTree->pGroupBy;
-  Expr* pHaving = queryTree->pHaving;
-  ExprList* pOrderBy = queryTree->pOrderBy;
-
   // TODO: (@srsuryadev) resolve the select query
   // return 0 if query is supported in column store else return 1
   using hustle::resolver::SelectResolver;
@@ -282,7 +281,8 @@ int resolveSelect(char* dbName, Sqlite3Select* queryTree) {
 
   SelectResolver* select_resolver = new SelectResolver(catalog);
   bool is_resolvable = select_resolver->ResolveSelectTree(queryTree);
-  if (is_resolvable) {
+
+    if (is_resolvable) {
     std::shared_ptr<hustle::ExecutionPlan> plan =
         createPlan(select_resolver, catalog);
     if (plan != nullptr) {
