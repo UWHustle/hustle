@@ -264,34 +264,39 @@ namespace hustle::operators {
                 "select sum(lo_extendedprice) as "
                 "revenue "
                 "from lineorder, ddate "
-                "where lo_orderdate = d_datekey and d_year = 1993 and lo_discount "
-                "< 3 and lo_quantity < 25;";
+                "where lo_orderdate = d_datekey and d_year = 1993 and ((lo_discount "
+                "between 1 and 3) and lo_quantity < 25);";
+        query =
+                "select sum(lo_extendedprice) as "
+                "revenue "
+                "from lineorder "
+                "where  lo_quantity < 25;";
         hustle_db->executeQuery(query);
     }
 
     void SSBQueries::q12() {
         std::cout << "q12" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice) as "
+                "select sum(lo_extendedprice * lo_discount) as "
                 "revenue\n"
                 "from lineorder, ddate\n"
                 "where lo_orderdate = d_datekey\n"
                 "and d_yearmonthnum = 199401\n"
-                "and (lo_discount BETWEEN 3 and 6\n"
-                "and lo_quantity < 35);";
+                "and (lo_discount BETWEEN 4 and 6\n"
+                "and lo_quantity BETWEEN 26 and 35);";
         hustle_db->executeQuery(query);
     }
 
     void SSBQueries::q13() {
         std::cout << "q13" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice) as "
+                "select sum(lo_extendedprice * lo_discount) as "
                 "revenue\n"
                 "from lineorder, ddate\n"
                 "where lo_orderdate = d_datekey\n"
                 "and d_weeknuminyear = 6 and d_year = 1994\n"
-                "and lo_discount < 7\n"
-                "and lo_quantity < 40;";
+                "and (lo_discount BETWEEN 5 and 7\n"
+                "and lo_quantity BETWEEN 36 and 40);";
         hustle_db->executeQuery(query);
     }
 
@@ -350,7 +355,7 @@ namespace hustle::operators {
                 "\t\tand s_region = 'ASIA'\n"
                 "\t\tand d_year >= 1992 and d_year <= 1997\n"
                 "\tgroup by c_nation, s_nation, d_year\n"
-                "\torder by d_year asc, revenue desc;";
+                "\torder by d_year, revenue;";
         hustle_db->executeQuery(query);
     }
 
@@ -366,7 +371,7 @@ namespace hustle::operators {
                 "\t\tand s_nation = 'UNITED STATES'\n"
                 "\t\tand d_year >= 1992 and d_year <= 1997\n"
                 "\tgroup by c_city, s_city, d_year\n"
-                "\torder by d_year asc, revenue desc;";
+                "\torder by d_year, revenue;";
         hustle_db->executeQuery(query);
     }
 
@@ -378,11 +383,13 @@ namespace hustle::operators {
                 "\twhere lo_custkey = c_custkey\n"
                 "\t\tand lo_suppkey = s_suppkey\n"
                 "\t\tand lo_orderdate = d_datekey\n"
-                "\t\tand (c_city='UNITED KI1' or c_city='UNITED KI5')\n"
-                "\t\tand (s_city='UNITED KI1' or s_city='UNITED KI5')\n"
+                "\t\tand (c_nation = 'UNITED KINGDOM'\n"
+                "\t\tand (c_city='UNITED KI1' or c_city='UNITED KI5'))\n"
+                "\t\tand ((s_city='UNITED KI1' or s_city='UNITED KI5')\n"
+                "\t\tand s_nation = 'UNITED_KINGDOM')\n"
                 "\t\tand d_year >= 1992 and d_year <= 1997\n"
                 "\tgroup by c_city, s_city, d_year\n"
-                "\torder by d_year asc, revenue desc;";
+                "\torder by d_year, revenue;";
         hustle_db->executeQuery(query);
     }
 
@@ -394,18 +401,20 @@ namespace hustle::operators {
                 "\twhere lo_custkey = c_custkey\n"
                 "\t\tand lo_suppkey = s_suppkey\n"
                 "\t\tand lo_orderdate = d_datekey\n"
-                "\t\tand (c_city='UNITED KI1' or c_city='UNITED KI5')\n"
-                "\t\tand (s_city='UNITED KI1' or s_city='UNITED KI5')\n"
+                "\t\tand (c_nation = 'UNITED KINGDOM'\n"
+                "\t\tand (c_city='UNITED KI1' or c_city='UNITED KI5'))\n"
+                "\t\tand ((s_city='UNITED KI1' or s_city='UNITED KI5')\n"
+                "\t\tand s_nation = 'UNITED KINGDOM')"
                 "\t\tand d_yearmonth = 'Dec1997'\n"
                 "\tgroup by c_city, s_city, d_year\n"
-                "\torder by d_year asc, revenue desc;";
+                "\torder by d_year, revenue;";
         hustle_db->executeQuery(query);
     }
 
     void SSBQueries::q41() {
         std::string query =
                 "select d_year, c_nation, "
-                "sum(lo_revenue) as profit1\n"
+                "sum(lo_revenue-lo_supplycost) as profit1\n"
                 "\tfrom ddate, customer, supplier, part, lineorder\n"
                 "\twhere lo_partkey = p_partkey\n"
                 "\t\tand lo_suppkey = s_suppkey\n"
@@ -421,7 +430,7 @@ namespace hustle::operators {
 
     void SSBQueries::q42() {
         std::string query =
-                "select d_year, s_nation, p_category, sum(lo_revenue) "
+                "select d_year, s_nation, p_category, sum(lo_revenue - lo_supplycost) "
                 "as profit1\n"
                 "\tfrom ddate, customer, supplier, part, lineorder\n"
                 "\twhere lo_partkey = p_partkey\n"
@@ -439,7 +448,7 @@ namespace hustle::operators {
 
     void SSBQueries::q43() {
         std::string query =
-                "select d_year, s_city, p_brand1, sum(lo_revenue) as "
+                "select d_year, s_city, p_brand1, sum(lo_revenue-lo_supplycost) as "
                 "profit1\n"
                 "\tfrom ddate, customer, supplier, part, lineorder\n"
                 "\twhere lo_partkey = p_partkey\n"
