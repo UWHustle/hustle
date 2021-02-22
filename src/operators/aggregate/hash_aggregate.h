@@ -25,6 +25,14 @@
 namespace hustle {
 namespace operators {
 
+typedef size_t hash_t;
+typedef int64_t value_t;
+// TODO: Refactor the unordered_maps to use phmap::flat_hash_map.
+//  It seems to have great optimization over the hash phrasing.
+typedef std::unordered_map<hash_t, value_t> HashMap;
+typedef std::unordered_map<hash_t, double> MeanHashMap;
+typedef std::unordered_map<hash_t, std::tuple<int, int>> TupleMap;
+
 class HashAggregateStrategy {
  public:
   HashAggregateStrategy() : partitions(0), chunks(0) {}
@@ -38,31 +46,31 @@ class HashAggregateStrategy {
       //      linearly traverse the chunkarray.
       //   Change this algorithm to a generate (and yield the
       //      result each time we calls it).
-      int tid, int totalThreads, int totalNumChunks) {
-    assert(tid >= 0);
-    assert(totalThreads > 0);
-    assert(totalNumChunks >= 0);
+      int task_id, int num_threads, int num_chunks) {
+    assert(task_id >= 0);
+    assert(num_threads > 0);
+    assert(num_chunks >= 0);
 
-    if (tid >= totalNumChunks) {
+    if (task_id >= num_chunks) {
       return std::make_tuple(-1, -1);
     }
 
-    int M = (totalNumChunks + totalThreads - 1) / totalThreads;
-    int m = totalNumChunks / totalThreads;
-    int FR = totalNumChunks % totalThreads;
+    int M = (num_chunks + num_threads - 1) / num_threads;
+    int m = num_chunks / num_threads;
+    int FR = num_chunks % num_threads;
 
-    int st = 0;
-    int ed = 0;
-    if (tid < FR) {
-      st = M * tid;
-      ed = M * (tid + 1);
+    int start = 0;
+    int end = 0;
+    if (task_id < FR) {
+      start = M * task_id;
+      end = M * (task_id + 1);
     } else {
-      st = M * FR + m * (tid - FR);
-      ed = M * FR + m * (tid + 1 - FR);
+      start = M * FR + m * (task_id - FR);
+      end = M * FR + m * (task_id + 1 - FR);
     }
-    st = st < 0 ? 0 : st;
-    ed = ed > totalNumChunks ? totalNumChunks : ed;
-    return std::make_tuple(st, ed);
+    start = start < 0 ? 0 : start;
+    end = end > num_chunks ? num_chunks : end;
+    return std::make_tuple(start, end);
   }
 
   inline int suggestedNumTasks() const {
@@ -70,6 +78,11 @@ class HashAggregateStrategy {
       return chunks;
     }
     return partitions;
+  }
+
+  static inline hash_t HashCombine(hash_t seed, hash_t val) {
+    seed ^= val + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
   }
 
  private:
@@ -185,17 +198,13 @@ class HashAggregate : public BaseAggregate {
   // TODO: Refactor the creation of hash map to a HashAggregateMap class.
   // Local hash table that holds the aggregated values for each group.
   // The (temporary) type for key.
-  typedef size_t hash_t;
-  // The (temporary) type for value.
-  typedef int64_t value_t;
-  // TODO: Refactor the unordered_maps to use phmap::flat_hash_map.
-  //  It seems to have great optimization over the hash phrasing.
-  typedef std::unordered_map<hash_t, value_t> HashMap;
-  typedef std::unordered_map<hash_t, double> MeanHashMap;
+
   std::vector<HashMap*> count_maps;
   std::vector<HashMap*> value_maps;
+  std::vector<TupleMap*> tuple_maps;
+
   // Map the hash key to (chunk_id, offset).
-  phmap::parallel_flat_hash_map<hash_t, std::tuple<int, int>>* tuple_map;
+  TupleMap* global_tuple_map;
 
   // TODO: Construct a mapping from hash key to group-by column tuples
 

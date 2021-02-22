@@ -20,6 +20,7 @@
 #include "aggregate_workload.h"
 #include "skew.h"
 #include "ssb_workload.h"
+#include "ssb_queries.h"
 #include "storage/util.h"
 #include "tatp_workload.h"
 
@@ -32,7 +33,7 @@ SSB *workload;
 AggregateWorkload *aggregateWorkload;
 
 void read_from_csv() {
-  std::shared_ptr<DBTable> lo, c, s, p, d;
+  DBTable::TablePtr lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
       d_schema;
   auto field1 = arrow::field("order key", arrow::uint32());
@@ -115,7 +116,7 @@ void read_from_csv() {
   p_schema = arrow::schema({p_field1, p_field2, p_field3, p_field4, p_field5,
                             p_field6, p_field7, p_field8, p_field9});
 
-  std::shared_ptr<DBTable> t;
+  DBTable::TablePtr t;
   t = read_from_csv_file("../../../ssb/data/customer.tbl", c_schema,
                          20 * BLOCK_SIZE);
   write_to_file("../../../ssb/data/customer.hsl", *t);
@@ -260,6 +261,7 @@ AggregateType get_agg_type(int argc, char *argv[]) {
 #define SSB_WORKLOAD 0
 #define AGGREGATE_WORKLOAD 1
 #define TATP_WORKLOAD 2
+#define SSB_QUERIES_WORKLOAD 3
 
 // TODO: Refactor this using C++ command line arg parser.
 int get_test(int argc, char *argv[]) {
@@ -282,12 +284,15 @@ int get_test(int argc, char *argv[]) {
       } else if (v.find("aggregate") != ((size_t)-1)) {
         bench_type = AGGREGATE_WORKLOAD;
         std::cout << "Benchmark using aggregate workload" << std::endl;
+      } else if (v.find("queries") != ((size_t)-1)) {
+          bench_type = SSB_QUERIES_WORKLOAD;
+          std::cout << "Benchmark using aggregate workload" << std::endl;
       } else {
         std::cerr << "Expected --benchmark [ssb | aggregate], got " << v
                   << std::endl;
         exit(1);
       }
-    }
+    } 
   }
   return bench_type;
 }
@@ -349,17 +354,37 @@ int aggregate_main(int argc, char *argv[]) {
   return 0;
 }
 
+int run_ssb_queries() {
+    SSBQueries ssb_queries;
+    ssb_queries.q11();
+    ssb_queries.q12();
+    ssb_queries.q13();
+    ssb_queries.q21();
+    ssb_queries.q22();
+    ssb_queries.q23();
+    ssb_queries.q31();
+    ssb_queries.q32();
+    ssb_queries.q33();
+    ssb_queries.q34();
+    ssb_queries.q41();
+    ssb_queries.q42();
+    ssb_queries.q43();
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
   int benchmark_type = get_test(argc, argv);
 
   if (benchmark_type == AGGREGATE_WORKLOAD) {
-    return aggregate_main(argc, argv);
+      return aggregate_main(argc, argv);
   } else if (benchmark_type == SSB_WORKLOAD) {
-    return ssb_main(argc, argv);
+      return ssb_main(argc, argv);
   } else if (benchmark_type == TATP_WORKLOAD) {
-    TATP tatp;
-    tatp.RunBenchmark();
-    return 0;
+      TATP tatp;
+      tatp.RunBenchmark();
+      return 0;
+  } else if (benchmark_type == SSB_QUERIES_WORKLOAD) {
+      return run_ssb_queries();
   }
 
   std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;

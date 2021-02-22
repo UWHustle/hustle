@@ -45,32 +45,43 @@ using FilterJoinPtr = std::unique_ptr<FilterJoin>;
 using ProjectReferencePtr = std::shared_ptr<ProjectReference>;
 
 std::optional<bool> build_select(
-    Catalog* catalog, SelectResolver* select_resolver,
+    Catalog *catalog, SelectResolver *select_resolver,
     std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
         select_predicates,
-    std::vector<OperatorResult::OpResultPtr>& select_result,
-    std::vector<SelectPtr>& select_operators) {
+    std::vector<OperatorResult::OpResultPtr> &select_result,
+    std::vector<SelectPtr> &select_operators) {
   /**
    * Iterate the through select predicates and src tables
    * to construct the select operators.
    */
   bool is_predicate_avail = false;
   auto join_predicate_map = select_resolver->join_predicates();
-  for (auto const& [table_name, predicate_tree] : select_predicates) {
+  for (auto const &[table_name, predicate_tree] : select_predicates) {
     OperatorResult::OpResultPtr input_result =
         std::make_shared<OperatorResult>();
     OperatorResult::OpResultPtr output_result =
         std::make_shared<OperatorResult>();
     auto table_ptr = catalog->getTable(table_name);
     if (table_ptr == nullptr) return std::nullopt;
-    if (predicate_tree == nullptr) {
+    std::unique_ptr<hustle::operators::Select> select;
+    if (ENABLE_FUSED_OPERATOR &&
+        join_predicate_map.find(table_name) != join_predicate_map.end() &&
+        join_predicate_map.size() > 1) {
+      is_predicate_avail = true;
+      input_result->append(table_ptr);
+      select = std::make_unique<hustle::operators::SelectBuildHash>(
+          0, table_ptr, input_result, output_result, predicate_tree,
+          join_predicate_map[table_name].right_col_ref_);
+      select_operators.emplace_back(std::move(select));
+    } else if (predicate_tree == nullptr) {
       output_result->append(table_ptr);
     } else {
       is_predicate_avail = true;
       input_result->append(table_ptr);
-      std::unique_ptr<hustle::operators::Select> select;
-      if (!ENABLE_FUSED_OPERATOR ||
-          join_predicate_map.find(table_name) == join_predicate_map.end()) {
+
+      if ((!ENABLE_FUSED_OPERATOR ||
+           join_predicate_map.find(table_name) == join_predicate_map.end()) &&
+          (join_predicate_map.size() <= 1)) {
         select = std::make_unique<hustle::operators::Select>(
             DEFAULT_QUERY_ID, table_ptr, input_result, output_result,
             predicate_tree);
@@ -87,17 +98,18 @@ std::optional<bool> build_select(
 }
 
 void build_join(
-    std::unordered_map<std::string, JoinPredicate>& join_predicate_map,
-    bool is_predicate_avail, JoinPtr& join_op, FilterJoinPtr& filter_join_op,
-    std::vector<OperatorResult::OpResultPtr>& select_result,
-    OperatorResult::OpResultPtr& join_result_out) {
+    std::unordered_map<std::string, JoinPredicate> &join_predicate_map,
+    bool is_predicate_avail, JoinPtr &join_op, FilterJoinPtr &filter_join_op,
+    std::vector<OperatorResult::OpResultPtr> &select_result,
+    OperatorResult::OpResultPtr &join_result_out) {
   std::vector<JoinPredicate> join_predicates(join_predicate_map.size());
   std::transform(join_predicate_map.begin(), join_predicate_map.end(),
                  join_predicates.begin(),
-                 [](auto& pred) { return pred.second; });
+                 [](auto &pred) { return pred.second; });
   JoinGraph join_graph({join_predicates});
   join_result_out = std::make_shared<OperatorResult>();
-  if (ENABLE_FUSED_OPERATOR && is_predicate_avail) {
+  if (ENABLE_FUSED_OPERATOR && join_graph.num_predicates() > 1 &&
+      is_predicate_avail) {
     filter_join_op = std::make_unique<FilterJoin>(0, select_result,
                                                   join_result_out, join_graph);
   } else {
@@ -106,11 +118,11 @@ void build_join(
   }
 }
 
-void build_aggregate(hustle::resolver::SelectResolver* select_resolver,
-                     std::shared_ptr<std::vector<AggregateReference>>& agg_refs,
-                     AggPtr& agg_op,
-                     OperatorResult::OpResultPtr& prev_result_out,
-                     OperatorResult::OpResultPtr& agg_result_out) {
+void build_aggregate(hustle::resolver::SelectResolver *select_resolver,
+                     std::shared_ptr<std::vector<AggregateReference>> &agg_refs,
+                     AggPtr &agg_op,
+                     OperatorResult::OpResultPtr &prev_result_out,
+                     OperatorResult::OpResultPtr &agg_result_out) {
   /**
    * Group by references and order by references from select resolver
    */
@@ -131,8 +143,8 @@ void build_aggregate(hustle::resolver::SelectResolver* select_resolver,
                                            group_by_refs, order_by_refs);
 }
 
-void build_output_cols(std::vector<ProjectReferencePtr>& project_references,
-                       std::vector<ColumnReference>& agg_project_cols) {
+void build_output_cols(std::vector<ProjectReferencePtr> &project_references,
+                       std::vector<ColumnReference> &agg_project_cols) {
   for (auto project_ref : project_references) {
     if (!project_ref->alias.empty()) {
       agg_project_cols.emplace_back(
@@ -145,11 +157,10 @@ void build_output_cols(std::vector<ProjectReferencePtr>& project_references,
 }
 
 std::shared_ptr<hustle::ExecutionPlan> createPlan(
-    hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
+    hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
   using namespace hustle::operators;
   std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
       select_predicates = select_resolver->select_predicates();
-
   std::vector<OperatorResult::OpResultPtr> select_result;
   std::vector<SelectPtr> select_operators;
   auto join_predicate_map = select_resolver->join_predicates();
@@ -197,7 +208,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   std::shared_ptr<hustle::ExecutionPlan> plan =
       std::make_shared<hustle::ExecutionPlan>(0);
 
-  size_t join_id = NULL_OP_ID, agg_id = NULL_OP_ID;
+  size_t join_id = NULL_OP_ID, agg_id = NULL_OP_ID, select_id = NULL_OP_ID;
   if (agg_op != nullptr) {
     agg_id = plan->addOperator(std::move(agg_op));
   }
@@ -208,8 +219,8 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     join_id = plan->addOperator(std::move(filter_join_op));
   }
 
-  for (auto& select_op : select_operators) {
-    auto select_id = plan->addOperator(std::move(select_op));
+  for (auto &select_op : select_operators) {
+    select_id = plan->addOperator(std::move(select_op));
     if (join_id != NULL_OP_ID) {
       plan->createLink(select_id, join_id);
     }
@@ -217,7 +228,12 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 
   // Declare aggregate dependency on join operator
   if (agg_id != NULL_OP_ID) {
-    plan->createLink(join_id, agg_id);
+    if (join_id == NULL_OP_ID) {
+      if (select_operators.size() != 1) return nullptr;
+      plan->createLink(select_id, agg_id);
+    } else {
+      plan->createLink(join_id, agg_id);
+    }
   }
   plan->setOperatorResult(agg_result_out);
   plan->setResultColumns(agg_project_cols);
@@ -227,16 +243,16 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 
 std::shared_ptr<hustle::storage::DBTable> execute(
     std::shared_ptr<hustle::ExecutionPlan> plan,
-    hustle::resolver::SelectResolver* select_resolver, Catalog* catalog) {
+    hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
   std::shared_ptr<hustle::storage::DBTable> out_table;
   using namespace hustle::operators;
 
-  hustle::Scheduler& scheduler = hustle::HustleDB::getScheduler();
+  hustle::Scheduler &scheduler = hustle::HustleDB::getScheduler();
   SynchronizationLock sync_lock;
 
   scheduler.addTask(CreateTaskChain(
-      hustle::CreateLambdaTask([&plan](hustle::Task* ctx) {
-        ctx->spawnLambdaTask([&plan](hustle::Task* internal) {
+      hustle::CreateLambdaTask([&plan](hustle::Task *ctx) {
+        ctx->spawnLambdaTask([&plan](hustle::Task *internal) {
           if (plan->size() != 0) {
             internal->spawnTask(plan.get());
           }
@@ -249,27 +265,21 @@ std::shared_ptr<hustle::storage::DBTable> execute(
         out_table->print();
         sync_lock.release();
       })));
-
   sync_lock.wait();
 
   return out_table;
 }
 
-int resolveSelect(char* dbName, Sqlite3Select* queryTree) {
-  ExprList* pEList = queryTree->pEList;
-  Expr* pWhere = queryTree->pWhere;
-  ExprList* pGroupBy = queryTree->pGroupBy;
-  Expr* pHaving = queryTree->pHaving;
-  ExprList* pOrderBy = queryTree->pOrderBy;
-
+int resolveSelect(char *dbName, Sqlite3Select *queryTree) {
   // TODO: (@srsuryadev) resolve the select query
   // return 0 if query is supported in column store else return 1
   using hustle::resolver::SelectResolver;
-  Catalog* catalog = hustle::HustleDB::getCatalog(dbName).get();
+  Catalog *catalog = hustle::HustleDB::getCatalog(dbName).get();
   if (dbName == NULL || catalog == nullptr) return 0;
 
-  SelectResolver* select_resolver = new SelectResolver(catalog);
+  SelectResolver *select_resolver = new SelectResolver(catalog);
   bool is_resolvable = select_resolver->ResolveSelectTree(queryTree);
+
   if (is_resolvable) {
     std::shared_ptr<hustle::ExecutionPlan> plan =
         createPlan(select_resolver, catalog);

@@ -78,7 +78,11 @@ class JoinGraph {
    *
    * @return The number of tables in the graph.
    */
-  int get_num_tables();
+  inline size_t num_tables() { return adj_.size(); }
+
+  inline size_t num_predicates() {
+      return num_predicates_;
+  }
 
  private:
   // Vector of unique left tables
@@ -86,6 +90,9 @@ class JoinGraph {
   // The vector at adj_[i] corresponds to all join predicates for which
   // tables_[i] is the left table.
   std::vector<std::vector<JoinPredicate>> adj_;
+
+  // num of predicates present in the join graph
+  size_t num_predicates_ = 0;
 
   /**
    * Insert a predicate group into the graph. If a node with the same left
