@@ -27,7 +27,7 @@
 using namespace hustle::operators;
 using namespace std::chrono;
 
-#define DEBUG true
+#define DEBUG false
 
 SSB *workload;
 AggregateWorkload *aggregateWorkload;
