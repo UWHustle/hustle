@@ -2,6 +2,10 @@
 // Created by SURYADEV on 14/02/21.
 //
 #include "ssb_queries.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
 
 namespace hustle::operators {
     SSBQueries::SSBQueries() {
@@ -256,6 +260,76 @@ namespace hustle::operators {
         hustle_db->createTable(ddate, d);
         hustle_db->createTable(part, p);
         hustle_db->createTable(lineorder, lo);
+
+        FILE* stream = fopen("../../../ssb/data/lineorder.tbl", "r");
+        char line[2048];
+        std::string query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            query += "INSERT INTO lineorder VALUES ("+std::string(fields[0])+", "+std::string(fields[1])+", "+std::string(fields[2])+", "+std::string(fields[3])+ ","\
+        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', '"+std::string(fields[7])+"', "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", "+std::string(fields[12])+", "+std::string(fields[13])+", "+std::string(fields[14])+", "+std::string(fields[15])+", '"+std::string(fields[16])+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        stream = fopen("../../../ssb/data/part.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            query +=  "INSERT INTO part VALUES ("+std::string(fields[0])+", "+std::string(fields[1])+", "+std::string(fields[2])+", "+std::string(fields[3])+", "\
+        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', '"+std::string(fields[7])+"', "+std::string(fields[8])+");\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        stream = fopen("../../../ssb/data/supplier.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            std::string query = "INSERT INTO supplier VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2])+"', '"+ std::string(fields[3])+"', "\
+        "'"+ std::string(fields[4])+"', '"+ std::string(fields[5])+"', '"+std::string(fields[6])+"', '"+std::string(fields[7])+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        stream = fopen("../../../ssb/data/customer.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            std::string query = "INSERT INTO customer VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) +"', "\
+        "'"+ std::string(fields[4]) +"', '"+std::string(fields[5]) +"', '"+std::string(fields[6])+"', '"+std::string(fields[7])+"');\n";
+            hustle_db->executeQuery(query);
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        stream = fopen("../../../ssb/data/date.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            std::string query = "INSERT INTO ddate VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) + "',"\
+        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', "+std::string(fields[7])+", "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", '"+ std::string(fields[12]) +"', "+std::string(fields[13])+", "+std::string(fields[14])+", "+std::string(fields[15])+", "+ std::string(fields[16])+");\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+    }
+
+
+    char** SSBQueries::getfields (char* line, int num){
+        char **fields = (char **)malloc(num * sizeof(char*));
+        char* field;
+        int index = 0;
+        for (field = strtok(line, "|");
+             field && *field;
+             field = strtok(NULL, "|\n")) {
+            fields[index++] = field;
+        }
+        return fields;
     }
 
     void SSBQueries::q11() {
@@ -463,6 +537,4 @@ namespace hustle::operators {
                 "\torder by d_year, s_city, p_brand1;";
         hustle_db->executeQuery(query);
     }
-
-
 }

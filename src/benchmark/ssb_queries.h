@@ -23,11 +23,15 @@
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
 #include "storage/util.h"
+#include "sqlite3/sqlite3.h"
 
 namespace hustle::operators {
     class SSBQueries {
     public:
         SSBQueries();
+
+        void LoadTables();
+        char** getfields (char* line, int num);
 
         void q11();
         void q12();
