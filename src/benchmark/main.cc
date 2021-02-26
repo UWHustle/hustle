@@ -28,8 +28,10 @@ using namespace hustle::operators;
 using namespace std::chrono;
 
 #define DEBUG false
+#define SSB_QUERY true
 
 SSB *workload;
+SSBQueries *ssb_queries;
 AggregateWorkload *aggregateWorkload;
 
 void read_from_csv() {
@@ -217,6 +219,99 @@ static void query43(benchmark::State &state) {
   }
 }
 
+
+static void ssb_query11(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q11();
+    }
+}
+
+static void ssb_query12(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q12();
+    }
+}
+
+static void ssb_query13(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q13();
+    }
+}
+
+static void ssb_query21(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q21();
+    }
+}
+
+static void ssb_query22(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q22();
+    }
+}
+
+static void ssb_query23(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q23();
+    }
+}
+
+static void ssb_query31(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q31();
+    }
+}
+
+static void ssb_query32(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q32();
+    }
+}
+
+static void ssb_query33(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q33();
+    }
+}
+
+static void ssb_query34(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q34();
+    }
+}
+
+static void ssb_query41(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q41();
+    }
+}
+
+static void ssb_query42(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q42();
+    }
+}
+
+static void ssb_query43(benchmark::State &state) {
+    for (auto _ : state) {
+        ssb_queries->q43();
+    }
+}
+#ifdef SSB_QUERY
+BENCHMARK(ssb_query11);
+BENCHMARK(ssb_query12);
+BENCHMARK(ssb_query13);
+BENCHMARK(ssb_query21);
+BENCHMARK(ssb_query22);
+BENCHMARK(ssb_query23);
+BENCHMARK(ssb_query31);
+BENCHMARK(ssb_query32);
+BENCHMARK(ssb_query33);
+BENCHMARK(ssb_query34);
+BENCHMARK(ssb_query41);
+BENCHMARK(ssb_query42);
+BENCHMARK(ssb_query43);
+#else
 BENCHMARK(query11);
 BENCHMARK(query12);
 BENCHMARK(query13);
@@ -230,6 +325,7 @@ BENCHMARK(query34);
 BENCHMARK(query41);
 BENCHMARK(query42);
 BENCHMARK(query43);
+#endif
 
 // TODO: Refactor this using C++ command line arg parser.
 AggregateType get_agg_type(int argc, char *argv[]) {
@@ -355,20 +451,29 @@ int aggregate_main(int argc, char *argv[]) {
 }
 
 int run_ssb_queries() {
-    SSBQueries ssb_queries;
-    ssb_queries.q11();
-    ssb_queries.q12();
-    ssb_queries.q13();
-    ssb_queries.q21();
-    ssb_queries.q22();
-    ssb_queries.q23();
-    ssb_queries.q31();
-    ssb_queries.q32();
-    ssb_queries.q33();
-    ssb_queries.q34();
-    ssb_queries.q41();
-    ssb_queries.q42();
-    ssb_queries.q43();
+    ssb_queries = new SSBQueries();
+    if (DEBUG) {
+        ssb_queries->q11();
+        ssb_queries->q12();
+        ssb_queries->q13();
+        ssb_queries->q21();
+        ssb_queries->q22();
+        ssb_queries->q23();
+        ssb_queries->q31();
+        ssb_queries->q32();
+        ssb_queries->q33();
+        ssb_queries->q34();
+        ssb_queries->q41();
+        ssb_queries->q42();
+        ssb_queries->q43();
+    } else {
+        ::benchmark::Initialize(NULL, NULL);
+
+        std::cout << "Stated running ssb querybenchmarks ..." << std::endl;
+        ::benchmark::RunSpecifiedBenchmarks();
+
+    }
+    delete ssb_queries;
     return 0;
 }
 

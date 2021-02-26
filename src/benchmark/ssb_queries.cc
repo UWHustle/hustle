@@ -249,12 +249,22 @@ namespace hustle::operators {
 
         std::cout << "read the table files..." << std::endl;
         DBTable::TablePtr lo, c, s, p, d;
-        lo = read_from_file("../../../ssb/data/lineorder.hsl", true, "lineorder");
+       /* lo = read_from_file("../../../ssb/data/lineorder.hsl", true, "lineorder");
         d = read_from_file("../../../ssb/data/date.hsl", true, "ddate");
         p = read_from_file("../../../ssb/data/part.hsl", true, "part");
         c = read_from_file("../../../ssb/data/customer.hsl", true, "customer");
         s = read_from_file("../../../ssb/data/supplier.hsl", true, "supplier");
+*/
 
+        lo = std::make_shared<hustle::storage::DBTable>("lineorder", lo_schema, BLOCK_SIZE);
+        d = std::make_shared<hustle::storage::DBTable>("ddate", d_schema,
+                                                        BLOCK_SIZE);
+        p = std::make_shared<hustle::storage::DBTable>("part", p_schema,
+                                                        BLOCK_SIZE);
+        c = std::make_shared<hustle::storage::DBTable>("customer", c_schema,
+                                                        BLOCK_SIZE);
+        s = std::make_shared<hustle::storage::DBTable>("supplier", s_schema,
+                                                       BLOCK_SIZE);
         hustle_db->createTable(supplier, s);
         hustle_db->createTable(customer, c);
         hustle_db->createTable(ddate, d);
@@ -264,59 +274,75 @@ namespace hustle::operators {
         FILE* stream = fopen("../../../ssb/data/lineorder.tbl", "r");
         char line[2048];
         std::string query = "BEGIN TRANSACTION;";
+        int count = 0;
         while (fgets(line, 2048, stream)) {
             char* tmp = strdup(line);
             char** fields = getfields(tmp, 17);
             query += "INSERT INTO lineorder VALUES ("+std::string(fields[0])+", "+std::string(fields[1])+", "+std::string(fields[2])+", "+std::string(fields[3])+ ","\
         ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', '"+std::string(fields[7])+"', "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", "+std::string(fields[12])+", "+std::string(fields[13])+", "+std::string(fields[14])+", "+std::string(fields[15])+", '"+std::string(fields[16])+"');\n";
+            count++;
+            if (count == 100) {
+                query += "COMMIT;";
+                hustle_db->executeQuery(query);
+                query = "BEGIN TRANSACTION;";
+            }
         }
-        query += "COMMIT;";
-        hustle_db->executeQuery(query);
+        if (count != 100) {
+            query += "COMMIT;";
+            hustle_db->executeQuery(query);
+        }
+        std::cout << "lineorder done" << std::endl;
 
         stream = fopen("../../../ssb/data/part.tbl", "r");
         query = "BEGIN TRANSACTION;";
         while (fgets(line, 2048, stream)) {
             char* tmp = strdup(line);
             char** fields = getfields(tmp, 17);
-            query +=  "INSERT INTO part VALUES ("+std::string(fields[0])+", "+std::string(fields[1])+", "+std::string(fields[2])+", "+std::string(fields[3])+", "\
-        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', '"+std::string(fields[7])+"', "+std::string(fields[8])+");\n";
+            query +=  "INSERT INTO part VALUES ("+std::string(fields[0])+", '"+std::string(fields[1])+"', '"+std::string(fields[2])+"', '"+std::string(fields[3])+"', "\
+        "'"+std::string(fields[4])+"', '"+std::string(fields[5])+"', '"+std::string(fields[6])+"', "+std::string(fields[7])+", '"+std::string(fields[8])+"');\n";
         }
         query += "COMMIT;";
         hustle_db->executeQuery(query);
+        std::cout << "part done" << std::endl;
 
         stream = fopen("../../../ssb/data/supplier.tbl", "r");
         query = "BEGIN TRANSACTION;";
         while (fgets(line, 2048, stream)) {
             char* tmp = strdup(line);
+            //std::cout << line << std::endl;
             char** fields = getfields(tmp, 17);
-            std::string query = "INSERT INTO supplier VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2])+"', '"+ std::string(fields[3])+"', "\
-        "'"+ std::string(fields[4])+"', '"+ std::string(fields[5])+"', '"+std::string(fields[6])+"', '"+std::string(fields[7])+"');\n";
+             query += "INSERT INTO supplier VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2])+"', '"+ std::string(fields[3])+"', "\
+        "'"+ std::string(fields[4])+"', '"+ std::string(fields[5])+"', '"+std::string(fields[6])+"');\n";
         }
         query += "COMMIT;";
         hustle_db->executeQuery(query);
+        std::cout << "supplier done" << std::endl;
 
         stream = fopen("../../../ssb/data/customer.tbl", "r");
         query = "BEGIN TRANSACTION;";
         while (fgets(line, 2048, stream)) {
             char* tmp = strdup(line);
             char** fields = getfields(tmp, 17);
-            std::string query = "INSERT INTO customer VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) +"', "\
+             query += "INSERT INTO customer VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) +"', "\
         "'"+ std::string(fields[4]) +"', '"+std::string(fields[5]) +"', '"+std::string(fields[6])+"', '"+std::string(fields[7])+"');\n";
-            hustle_db->executeQuery(query);
+            //hustle_db->executeQuery(query);
+
         }
         query += "COMMIT;";
         hustle_db->executeQuery(query);
+        std::cout << "customer done" << std::endl;
 
         stream = fopen("../../../ssb/data/date.tbl", "r");
         query = "BEGIN TRANSACTION;";
         while (fgets(line, 2048, stream)) {
             char* tmp = strdup(line);
             char** fields = getfields(tmp, 17);
-            std::string query = "INSERT INTO ddate VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) + "',"\
-        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', "+std::string(fields[7])+", "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", '"+ std::string(fields[12]) +"', "+std::string(fields[13])+", "+std::string(fields[14])+", "+std::string(fields[15])+", "+ std::string(fields[16])+");\n";
+            query += "INSERT INTO ddate VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) + "',"\
+        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', "+std::string(fields[7])+", "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", '"+ std::string(fields[12]) +"', '"+std::string(fields[13])+"', '"+std::string(fields[14])+"', '"+std::string(fields[15])+"', '"+ std::string(fields[16])+"');\n";
         }
         query += "COMMIT;";
         hustle_db->executeQuery(query);
+        std::cout << "date done" << std::endl;
     }
 
 
@@ -333,7 +359,7 @@ namespace hustle::operators {
     }
 
     void SSBQueries::q11() {
-        std::cout << "q11" << std::endl;
+       // std::cout << "q11" << std::endl;
         std::string query =
                 "select sum(lo_extendedprice) as "
                 "revenue "
@@ -349,7 +375,7 @@ namespace hustle::operators {
     }
 
     void SSBQueries::q12() {
-        std::cout << "q12" << std::endl;
+       // std::cout << "q12" << std::endl;
         std::string query =
                 "select sum(lo_extendedprice * lo_discount) as "
                 "revenue\n"
@@ -362,7 +388,7 @@ namespace hustle::operators {
     }
 
     void SSBQueries::q13() {
-        std::cout << "q13" << std::endl;
+       // std::cout << "q13" << std::endl;
         std::string query =
                 "select sum(lo_extendedprice * lo_discount) as "
                 "revenue\n"
@@ -375,7 +401,7 @@ namespace hustle::operators {
     }
 
     void SSBQueries::q21() {
-        std::cout << "q21" << std::endl;
+       // std::cout << "q21" << std::endl;
         std::string query =
                 "select sum(lo_revenue), d_year, p_brand1\n"
                 "from lineorder, ddate, part, supplier\n"

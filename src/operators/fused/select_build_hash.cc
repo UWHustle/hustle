@@ -62,7 +62,7 @@ void SelectBuildHash::execute(Task *ctx) {
         chunk_row_offsets_[i - 1] + table_->get_block(i - 1)->get_num_rows();
   }
 
-  hash_table_->reserve(table_->get_num_rows() * 0.1);
+  hash_table_->reserve(table_->get_num_rows());
 
   ctx->spawnTask(CreateTaskChain(
       // Task 1: perform selection on all blocks

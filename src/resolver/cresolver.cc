@@ -246,7 +246,6 @@ std::shared_ptr<hustle::storage::DBTable> execute(
     hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
   std::shared_ptr<hustle::storage::DBTable> out_table;
   using namespace hustle::operators;
-
   hustle::Scheduler &scheduler = hustle::HustleDB::getScheduler();
   SynchronizationLock sync_lock;
 
@@ -262,7 +261,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
         OperatorResult::OpResultPtr agg_result_out = plan->getOperatorResult();
         std::shared_ptr<hustle::storage::DBTable> out_table =
             agg_result_out->materialize(plan->getResultColumns());
-        out_table->print();
+        //out_table->print();
         sync_lock.release();
       })));
   sync_lock.wait();

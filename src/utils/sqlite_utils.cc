@@ -58,7 +58,6 @@ void loadTables(const std::string &sqlitePath,
       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
       nullptr);
   for (auto const &table_name : tables) {
-    std::cout << "table elem: " << table_name << std::endl;
     sqlite3_load_hustle(db, table_name.c_str());
   }
   sqlite3_close(db);
@@ -129,7 +128,6 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
   }
-
   rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {
