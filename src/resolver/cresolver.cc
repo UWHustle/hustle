@@ -27,6 +27,7 @@
 #include "operators/fused/filter_join.h"
 #include "operators/fused/select_build_hash.h"
 #include "operators/select/select.h"
+#include "operators/select/predicate.h"
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
 #include "scheduler/threading/synchronization_lock.h"
