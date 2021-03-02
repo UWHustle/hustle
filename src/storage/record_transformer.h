@@ -1,3 +1,22 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+#ifndef HUSTLE_RECORD_UTILS_H
+#define HUSTLE_RECORD_UTILS_H
 
 #include <assert.h>
 
@@ -11,7 +30,7 @@ typedef unsigned long long int u64;
 
 #define SQLITE_MAX_U32 ((((u64)1) << 32) - 1)
 
-u8 sqlite3GetVarint32(const unsigned char *p, u32 *v);
+static u8 sqlite3GetVarint32(const unsigned char *p, u32 *v);
 
 #define getVarint32(A, B)                       \
   (u8)((*(A) < (u8)0x80) ? ((B) = (u32) * (A)), \
@@ -44,7 +63,7 @@ static const u8 smallTypeSizes[] = {
 /*
 ** Return the length of the data corresponding to the supplied serial-type.
 */
-u32 serialTypeLen(u32 serial_type){
+static u32 serialTypeLen(u32 serial_type){
   if( serial_type>=128 ){
     return (serial_type-12)/2;
   }else{
@@ -54,11 +73,181 @@ u32 serialTypeLen(u32 serial_type){
   }
 }
 
+/* Input "x" is a sequence of unsigned characters that represent a
+** big-endian integer.  Return the equivalent native integer
+*/
+#define ONE_BYTE_INT(x)    ((i8)(x)[0])
+#define TWO_BYTE_INT(x)    (256*(i8)((x)[0])|(x)[1])
+#define THREE_BYTE_INT(x)  (65536*(i8)((x)[0])|((x)[1]<<8)|(x)[2])
+#define FOUR_BYTE_UINT(x)  (((u32)(x)[0]<<24)|((x)[1]<<16)|((x)[2]<<8)|(x)[3])
+#define FOUR_BYTE_INT(x) (16777216*(i8)((x)[0])|((x)[1]<<16)|((x)[2]<<8)|(x)[3])
+
+# define EXP754 (((u64)0x7ff)<<52)
+# define MAN754 ((((u64)1)<<52)-1)
+# define IsNaN(X) (((X)&EXP754)==EXP754 && ((X)&MAN754)!=0)
+
+#define VAL_Null      0x0001   /* Value is NULL (or a pointer) */
+#define VAL_Str       0x0002   /* Value is a string */
+#define VAL_Int       0x0004   /* Value is an integer */
+#define VAL_Real      0x0008   /* Value is a real number */
+#define VAL_Blob      0x0010   /* Value is a BLOB */
+#define VAL_IntReal   0x0020   /* MEM_Int that stringifies like MEM_Real */
+#define VAL_Ephem     0x1000   /* Mem.z points to an ephemeral string */
+
+struct RecordValue {
+    char *val_array;
+    i64 val;
+    u16 flags;
+    double real_val;
+    int n;
+};
+
+typedef struct RecordValue RecordValue;
+static u32 serialGetReal(
+        const unsigned char *buf,     /* Buffer to deserialize from */
+        u32 serial_type,              /* Serial type to deserialize */
+        RecordValue *record_val       /* Memory cell to write value into */
+){
+    u64 x = FOUR_BYTE_UINT(buf);
+    u32 y = FOUR_BYTE_UINT(buf+4);
+    x = (x<<32) + y;
+    if( serial_type==6 ){
+        /* EVIDENCE-OF: R-29851-52272 Value is a big-endian 64-bit
+        ** twos-complement integer. */
+        if (record_val != NULL) {
+            record_val->val = *(i64 *) &x;
+            record_val->flags = VAL_Int;
+        }
+    }else{
+        /* EVIDENCE-OF: R-57343-49114 Value is a big-endian IEEE 754-2008 64-bit
+        ** floating point number. */
+//#if !defined(NDEBUG) && !defined(SQLITE_OMIT_FLOATING_POINT)
+        /* Verify that integers and floating point values use the same
+        ** byte order.  Or, that if SQLITE_MIXED_ENDIAN_64BIT_FLOAT is
+        ** defined that 64-bit floating point values really are mixed
+        ** endian.
+        */
+        static const u64 t1 = ((u64)0x3ff00000)<<32;
+        static const double r1 = 1.0;
+        u64 t2 = t1;
+        // swapMixedEndianFloat(t2); // Use this Based on Arch Support (func def in sqlite3.c)
+        assert( sizeof(r1)==sizeof(t2) && memcmp(&r1, &t2, sizeof(r1))==0 );
+//#endif
+        if (record_val != NULL) {
+            assert(sizeof(x) == 8 && sizeof(record_val->real_val) == 8);
+            // swapMixedEndianFloat(x); // Use this Based on Arch Support (func def in sqlite3.c)
+            memcpy(&record_val->real_val, &x, sizeof(x));
+            record_val->flags = IsNaN(x) ? VAL_Null : VAL_Real;
+        }
+    }
+    return 8;
+}
+
+static u32 recordSerialGet(
+        const unsigned char *buf,     /* Buffer to deserialize from */
+        u32 serial_type,              /* Serial type to deserialize */
+        RecordValue *record_val             /* Memory cell to write value into */
+){
+    switch( serial_type ){
+        case 10: { /* Internal use only: NULL with virtual table
+               ** UPDATE no-change flag set */
+            // Not supported
+            break;
+        }
+        case 11:   /* Reserved for future use */
+        case 0: {  /* Null */
+            /* EVIDENCE-OF: R-24078-09375 Value is a NULL. */
+            if (record_val != NULL)
+                record_val->flags = VAL_Null;
+            break;
+        }
+        case 1: {
+            /* EVIDENCE-OF: R-44885-25196 Value is an 8-bit twos-complement
+            ** integer. */
+            if (record_val != NULL) {
+                record_val->val = ONE_BYTE_INT(buf);
+                record_val->flags = VAL_Int;
+            }
+            return 1;
+        }
+        case 2: { /* 2-byte signed integer */
+            /* EVIDENCE-OF: R-49794-35026 Value is a big-endian 16-bit
+            ** twos-complement integer. */
+            if (record_val != NULL) {
+                record_val->val = TWO_BYTE_INT(buf);
+                record_val->flags = VAL_Int;
+            }
+            return 2;
+        }
+        case 3: { /* 3-byte signed integer */
+            /* EVIDENCE-OF: R-37839-54301 Value is a big-endian 24-bit
+            ** twos-complement integer. */
+            if (record_val != NULL) {
+                record_val->val = THREE_BYTE_INT(buf);
+                record_val->flags = VAL_Int;
+            }
+            return 3;
+        }
+        case 4: { /* 4-byte signed integer */
+            /* EVIDENCE-OF: R-01849-26079 Value is a big-endian 32-bit
+            ** twos-complement integer. */
+            if (record_val != NULL) {
+                record_val->val = FOUR_BYTE_INT(buf);
+#ifdef __HP_cc
+                /* Work around a sign-extension bug in the HP compiler for HP/UX */
+          if( buf[0]&0x80 ) record_val->val |= 0xffffffff80000000LL;
+#endif
+                record_val->flags = VAL_Int;
+            }
+            return 4;
+        }
+        case 5: { /* 6-byte signed integer */
+            /* EVIDENCE-OF: R-50385-09674 Value is a big-endian 48-bit
+            ** twos-complement integer. */
+            if (record_val != NULL) {
+                record_val->val = FOUR_BYTE_UINT(buf + 2) + (((i64) 1) << 32) * TWO_BYTE_INT(buf);
+                record_val->flags = VAL_Int;
+            }
+            return 6;
+        }
+        case 6:   /* 8-byte signed integer */
+        case 7: { /* IEEE floating point */
+            /* These use local variables, so do them in a separate routine
+            ** to avoid having to move the frame pointer in the common case */
+            return serialGetReal(buf, serial_type, record_val);
+        }
+        case 8:    /* Integer 0 */
+        case 9: {  /* Integer 1 */
+            /* EVIDENCE-OF: R-12976-22893 Value is the integer 0. */
+            /* EVIDENCE-OF: R-18143-12121 Value is the integer 1. */
+            if (record_val != NULL) {
+                record_val->val = serial_type - 8;
+                record_val->flags = VAL_Int;
+            }
+            return 0;
+        }
+        default: {
+            /* EVIDENCE-OF: R-14606-31564 Value is a BLOB that is (N-12)/2 bytes in
+            ** length.
+            ** EVIDENCE-OF: R-28401-00140 Value is a string in the text encoding and
+            ** (N-13)/2 bytes in length. */
+            static const u16 aFlag[] = { VAL_Blob|VAL_Ephem, VAL_Str|VAL_Ephem };
+            int str_size = (serial_type - 12) / 2;
+            if (record_val != NULL) {
+                record_val->val_array = (char *) buf;
+                record_val->n = str_size;
+                record_val->flags = aFlag[serial_type & 1];
+            }
+            return str_size;
+        }
+    }
+    return 0;
+}
 /*
 ** Read a 64-bit variable-length integer from memory starting at p[0].
 ** Return the number of bytes read.  The value is stored in *v.
 */
-u8 sqlite3GetVarint(const unsigned char *p, u64 *v) {
+static u8 sqlite3GetVarint(const unsigned char *p, u64 *v) {
   u32 a, b, s;
 
   if (((signed char *)p)[0] >= 0) {
@@ -213,7 +402,7 @@ u8 sqlite3GetVarint(const unsigned char *p, u64 *v) {
 ** single-byte case.  All code should use the MACRO version as
 ** this function assumes the single-byte case has already been handled.
 */
-u8 sqlite3GetVarint32(const unsigned char *p, u32 *v) {
+static u8 sqlite3GetVarint32(const unsigned char *p, u32 *v) {
   u32 a, b;
 
   /* The 1-byte case.  Overwhelmingly the most common.  Handled inline
@@ -326,3 +515,4 @@ u8 sqlite3GetVarint32(const unsigned char *p, u32 *v) {
   }
 #endif
 }
+#endif  // HUSTLE_RECORD_UTILS_H

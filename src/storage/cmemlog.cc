@@ -210,32 +210,31 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         u32 nBytes = getVarint32((const unsigned char *)head->data, hdrLen);
         u32 idx = nBytes;
         const unsigned char *hdr = (const unsigned char *)head->data;
-        std::vector<int32_t> byte_widths;
+        std::vector<int32_t> serial_types;
         /* read the col width from the record and user serialTypeLen
             to convert to exact col width */
         while (idx < hdrLen) {
           u32 typeLen;
           nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
-          byte_widths.emplace_back(serialTypeLen(typeLen));
+          //std::cout << "serial type: " <<  typeLen << " " << serialTypeLen(typeLen) << std::endl;
+          serial_types.emplace_back(typeLen);
           idx += nBytes;
         }
 
         // Todo: (@suryadev) handle update and delete
         uint8_t *record_data = (uint8_t *)head->data;
         if (table != nullptr) {
-          size_t len = byte_widths.size();
-          int32_t widths[len];
-          for (size_t i = 0; i < len; i++) {
-            widths[i] = byte_widths[i];
-          }
+          size_t len = serial_types.size();
+          int32_t stypes[len];
+          std::copy(serial_types.begin(), serial_types.end(), stypes);
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
             table->InsertRecordTable(head->rowId, record_data + hdrLen,
-                                       widths);
+                                     stypes);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
             table->UpdateRecordTable(head->rowId, head->nUpdateMetaInfo,
                                        head->updateMetaInfo,
-                                       record_data + hdrLen, widths);
+                                       record_data + hdrLen, stypes);
           }
         }
       }

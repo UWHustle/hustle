@@ -169,10 +169,10 @@ class DBTable {
   /**
    * Get the size of one record in the Table.
    *
-   * @param byte_widths
+   * @param serial_types
    * @return
    */
-  int get_record_size(int32_t *byte_widths);
+  int get_record_size(int32_t *serial_types);
 
   /**
    * Insert a record into a block in the insert pool.
@@ -183,7 +183,7 @@ class DBTable {
    * @param byte_widths Byte width of each value to be inserted. Byte widths
    * should be listed in the same order as they appear in the Block's schema.
    */
-  BlockInfo InsertRecord(uint8_t *record, int32_t *byte_widths);
+  BlockInfo InsertRecord(uint8_t *record, int32_t *serial_types);
 
   /**
    * Insert record by row IDs.
@@ -193,8 +193,8 @@ class DBTable {
    * @param byte_widths widths of fields in record
    */
   inline void InsertRecordTable(uint32_t rowId, uint8_t *record,
-                                int32_t *byte_widths) {
-    block_map[rowId] = InsertRecord(record, byte_widths);
+                                int32_t *serial_types) {
+    block_map[rowId] = InsertRecord(record, serial_types);
   }
 
   /**
@@ -208,7 +208,7 @@ class DBTable {
    */
   void UpdateRecordTable(uint32_t rowId, int nUpdateMetaInfo,
                          UpdateMetaInfo *updateMetaInfo, uint8_t *record,
-                         int32_t *byte_widths);
+                         int32_t *serial_types);
 
   /**
    * Delete record by row id
@@ -331,7 +331,7 @@ class DBTable {
    * @param values values to be inserted
    * @param byte_widths width of each value
    */
-  void InsertRecord(std::vector<std::string_view> values, int32_t *byte_widths);
+  void InsertRecord(std::vector<std::string_view> values, int32_t *serial_types);
 
   /**
    * Split the table into a number of batches and apply a function.
