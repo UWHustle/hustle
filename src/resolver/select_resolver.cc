@@ -197,12 +197,20 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
             Expr* firstExpr = pExpr->x.pList->a[0].pExpr;
             Expr* secondExpr = pExpr->x.pList->a[1].pExpr;
             if (firstExpr->op == TK_INTEGER && secondExpr->op == TK_INTEGER) {
-                ldatum = arrow::Datum((uint8_t)firstExpr->u.iValue);
-                rdatum = arrow::Datum((uint8_t)secondExpr->u.iValue);
-                Predicate predicate = {colRef, arrow::compute::CompareOperator::NOT_EQUAL, ldatum, rdatum};
-                auto predicate_node = std::make_shared<PredicateNode>(
-                        std::make_shared<Predicate>(predicate));
-                predicate_tree = std::make_shared<PredicateTree>(predicate_node);
+                std::cout << "In between resolve " << firstExpr->u.iValue << " " << secondExpr->u.iValue << std::endl;
+                ldatum = arrow::Datum((int64_t)firstExpr->u.iValue);
+                rdatum = arrow::Datum((int64_t)secondExpr->u.iValue);
+                Predicate left_predicate = {colRef, arrow::compute::CompareOperator::GREATER_EQUAL, ldatum};
+                Predicate right_predicate = {colRef, arrow::compute::CompareOperator::LESS_EQUAL, rdatum};
+                auto left_predicate_node = std::make_shared<PredicateNode>(
+                        std::make_shared<Predicate>(left_predicate));
+                auto right_predicate_node = std::make_shared<PredicateNode>(
+                        std::make_shared<Predicate>(right_predicate));
+                std::shared_ptr<ConnectiveNode> connective_node =
+                        std::make_shared<ConnectiveNode>(left_predicate_node,
+                                                         right_predicate_node,
+                                                         FilterOperator::AND);
+                predicate_tree = std::make_shared<PredicateTree>(connective_node);
                 predicate_tree->table_id_ = leftExpr->iTable;
                 predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
                 select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;

@@ -249,13 +249,12 @@ namespace hustle::operators {
 
         std::cout << "read the table files..." << std::endl;
         DBTable::TablePtr lo, c, s, p, d;
-       /* lo = read_from_file("../../../ssb/data/lineorder.hsl", true, "lineorder");
+      /*  lo = read_from_file("../../../ssb/data/lineorder.hsl", true, "lineorder");
         d = read_from_file("../../../ssb/data/date.hsl", true, "ddate");
         p = read_from_file("../../../ssb/data/part.hsl", true, "part");
         c = read_from_file("../../../ssb/data/customer.hsl", true, "customer");
         s = read_from_file("../../../ssb/data/supplier.hsl", true, "supplier");
 */
-
         lo = std::make_shared<hustle::storage::DBTable>("lineorder", lo_schema, BLOCK_SIZE);
         d = std::make_shared<hustle::storage::DBTable>("ddate", d_schema,
                                                         BLOCK_SIZE);
@@ -281,13 +280,13 @@ namespace hustle::operators {
             query += "INSERT INTO lineorder VALUES ("+std::string(fields[0])+", "+std::string(fields[1])+", "+std::string(fields[2])+", "+std::string(fields[3])+ ","\
         ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', '"+std::string(fields[7])+"', "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", "+std::string(fields[12])+", "+std::string(fields[13])+", "+std::string(fields[14])+", "+std::string(fields[15])+", '"+std::string(fields[16])+"');\n";
             count++;
-            if (count == 100) {
+            if (count == 10000) {
                 query += "COMMIT;";
                 hustle_db->executeQuery(query);
                 query = "BEGIN TRANSACTION;";
             }
         }
-        if (count != 100) {
+        if (count != 2000) {
             query += "COMMIT;";
             hustle_db->executeQuery(query);
         }
@@ -361,42 +360,55 @@ namespace hustle::operators {
     void SSBQueries::q11() {
        // std::cout << "q11" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice) as "
+                "select lo_discount, count(lo_discount) as "
                 "revenue "
                 "from lineorder, ddate "
-                "where lo_orderdate = d_datekey and d_year = 1993 and ((lo_discount "
-                "between 1 and 3) and lo_quantity < 25);";
+                "where lo_orderdate = d_datekey and d_year = 1993 and (lo_discount "
+                "between 1 and 3) "
+                "group by lo_discount "
+                "order by lo_discount";
+        hustle_db->executeQuery(query);
+        query =   "select lo_quantity, count(lo_extendedprice) as "
+                  "revenue "
+                  "from lineorder, ddate "
+                  "where lo_orderdate = d_datekey and  (lo_quantity < 25) "
+                  "group by lo_quantity order by lo_quantity;";
+        //hustle_db->executeQuery(query);
         query =
-                "select sum(lo_extendedprice) as "
+                "select count(lo_extendedprice) as "
                 "revenue "
                 "from lineorder "
-                "where  lo_quantity < 25;";
-        hustle_db->executeQuery(query);
+                "where lo_shipmode = 'TRUCK';";
+        //hustle_db->executeQuery(query);
     }
 
     void SSBQueries::q12() {
        // std::cout << "q12" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice * lo_discount) as "
+                "select d_yearmonthnum, sum(lo_extendedprice) as "
                 "revenue\n"
                 "from lineorder, ddate\n"
                 "where lo_orderdate = d_datekey\n"
-                "and d_yearmonthnum = 199401\n"
-                "and (lo_discount BETWEEN 4 and 6\n"
-                "and lo_quantity BETWEEN 26 and 35);";
+                "and (d_yearmonthnum = 199401)\n"
+                "and (lo_discount >= 4 and lo_discount <= 6\n"
+                "and lo_quantity >= 26 and lo_quantity <= 35)\n"
+                "group by d_yearmonthnum\n"
+                "order by d_yearmonthnum;";
         hustle_db->executeQuery(query);
     }
 
     void SSBQueries::q13() {
        // std::cout << "q13" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice * lo_discount) as "
+                "select d_year, d_weeknuminyear, sum(lo_extendedprice) as "
                 "revenue\n"
                 "from lineorder, ddate\n"
                 "where lo_orderdate = d_datekey\n"
-                "and d_weeknuminyear = 6 and d_year = 1994\n"
-                "and (lo_discount BETWEEN 5 and 7\n"
-                "and lo_quantity BETWEEN 36 and 40);";
+                "and (d_weeknuminyear = 6 and d_year = 1994)\n"
+                "and (lo_discount >= 5 and lo_discount <= 7\n"
+                "and lo_quantity >= 36 and lo_quantity <= 40)\n"
+                "group by d_year, d_weeknuminyear\n"
+                "order by d_year, d_weeknuminyear;";
         hustle_db->executeQuery(query);
     }
 
@@ -453,7 +465,7 @@ namespace hustle::operators {
                 "\t\tand lo_orderdate = d_datekey\n"
                 "\t\tand c_region = 'ASIA'\n"
                 "\t\tand s_region = 'ASIA'\n"
-                "\t\tand d_year >= 1992 and d_year <= 1997\n"
+                "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_nation, s_nation, d_year\n"
                 "\torder by d_year, revenue;";
         hustle_db->executeQuery(query);
@@ -469,7 +481,7 @@ namespace hustle::operators {
                 "\t\tand lo_orderdate = d_datekey\n"
                 "\t\tand c_nation = 'UNITED STATES'\n"
                 "\t\tand s_nation = 'UNITED STATES'\n"
-                "\t\tand d_year >= 1992 and d_year <= 1997\n"
+                "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
         hustle_db->executeQuery(query);
@@ -487,7 +499,7 @@ namespace hustle::operators {
                 "\t\tand (c_city='UNITED KI1' or c_city='UNITED KI5'))\n"
                 "\t\tand ((s_city='UNITED KI1' or s_city='UNITED KI5')\n"
                 "\t\tand s_nation = 'UNITED_KINGDOM')\n"
-                "\t\tand d_year >= 1992 and d_year <= 1997\n"
+                "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
         hustle_db->executeQuery(query);
