@@ -297,7 +297,7 @@ static void ssb_query43(benchmark::State &state) {
         ssb_queries->q43();
     }
 }
-#ifdef SSB_QUERY
+//#ifdef SSB_QUERY
 BENCHMARK(ssb_query11);
 BENCHMARK(ssb_query12);
 BENCHMARK(ssb_query13);
@@ -311,7 +311,7 @@ BENCHMARK(ssb_query34);
 BENCHMARK(ssb_query41);
 BENCHMARK(ssb_query42);
 BENCHMARK(ssb_query43);
-#else
+//#else
 BENCHMARK(query11);
 BENCHMARK(query12);
 BENCHMARK(query13);
@@ -325,7 +325,7 @@ BENCHMARK(query34);
 BENCHMARK(query41);
 BENCHMARK(query42);
 BENCHMARK(query43);
-#endif
+//#endif
 
 // TODO: Refactor this using C++ command line arg parser.
 AggregateType get_agg_type(int argc, char *argv[]) {
