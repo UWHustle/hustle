@@ -249,7 +249,7 @@ class Block {
    * @return -1 if the insertion failed, otherwise the highest row index now
    * present in the block.
    */
-  int InsertRecord(uint8_t *record, int32_t *serial_types);
+  int InsertRecord(uint8_t *record, int32_t *byte_widths);
 
   /**
    * Insert a record into the block.
@@ -259,7 +259,7 @@ class Block {
    * @return -1 if the insertion failed, otherwise the highest row index now
    * present in the block.
    */
-  int InsertRecord(std::vector<std::string_view> record, int32_t *serial_types);
+  int InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths);
 
   /**
    * Insert one or more records into the Block as a vector of ArrayData.

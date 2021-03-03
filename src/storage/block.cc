@@ -21,7 +21,7 @@
 
 #include <iostream>
 #include <vector>
-#include "storage/record_transformer.h"
+
 #include "absl/strings/numbers.h"
 #include "util.h"
 
@@ -483,10 +483,10 @@ void Block::InsertValues(int col_num, int offset,
   num_bytes += data_size;
 }
 
-int Block::InsertRecord(uint8_t *record, int32_t *serial_types) {
+int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
-    record_size += recordSerialGet(record, serial_types[i], NULL);
+    record_size += byte_widths[i];
   }
   // record does not fit in the block.
   if (record_size > get_bytes_left()) {
@@ -507,7 +507,6 @@ int Block::InsertRecord(uint8_t *record, int32_t *serial_types) {
   int head = 0;
 
   for (int i = 0; i < num_cols; i++) {
-      //std::cerr << "type:  " << schema->field(i)->type()->id() << " "  << i << std::endl;
     switch (schema->field(i)->type()->id()) {
       case arrow::Type::STRING: {
         auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
@@ -518,9 +517,8 @@ int Block::InsertRecord(uint8_t *record, int32_t *serial_types) {
         // result in copying the data.
         // Use index i-1 because byte_widths does not include the byte
         // width of the valid column.
-        int32_t byte_width = recordSerialGet(&record[head], serial_types[i], NULL);
         status =
-            data_buffer->Resize(data_buffer->size() + recordSerialGet(&record[head], byte_width, NULL), false);
+            data_buffer->Resize(data_buffer->size() + byte_widths[i], false);
         evaluate_status(status, __FUNCTION__, __LINE__);
         status = offsets_buffer->Resize(
             offsets_buffer->size() + sizeof(int32_t), false);
@@ -528,34 +526,33 @@ int Block::InsertRecord(uint8_t *record, int32_t *serial_types) {
 
         // Insert new offset
         auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
-        int32_t new_offset = offsets_data[num_rows] + byte_width;
+        int32_t new_offset = offsets_data[num_rows] + byte_widths[i];
         std::memcpy(&offsets_data[num_rows + 1], &new_offset,
                     sizeof(new_offset));
         auto *values_data =
             columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
-        std::memcpy(values_data, &record[head], byte_width);
+        std::memcpy(values_data, &record[head], byte_widths[i]);
         columns[i]->length++;
-        column_sizes[i] += byte_width;
-        head += byte_width;
-        num_bytes += byte_width;
+        column_sizes[i] += byte_widths[i];
+        head += byte_widths[i];
+        num_bytes += byte_widths[i];
         break;
       }
       case arrow::Type::DOUBLE:
       case arrow::Type::INT64: {
-         // std::cerr << "width " << serial_types[i] << std::endl;
-        InsertValue<int64_t>(i, head, &record[head], serial_types[i]);
+        InsertValue<int64_t>(i, head, &record[head], byte_widths[i]);
         break;
       }
       case arrow::Type::UINT32: {
-        InsertValue<uint32_t>(i, head, &record[head], serial_types[i]);
+        InsertValue<uint32_t>(i, head, &record[head], byte_widths[i]);
         break;
       }
       case arrow::Type::UINT16: {
-        InsertValue<uint32_t>(i, head, &record[head], serial_types[i]);
+        InsertValue<uint32_t>(i, head, &record[head], byte_widths[i]);
         break;
       }
       case arrow::Type::UINT8: {
-        InsertValue<uint8_t>(i, head, &record[head], serial_types[i]);
+        InsertValue<uint8_t>(i, head, &record[head], byte_widths[i]);
         break;
       }
       default:
@@ -567,41 +564,45 @@ int Block::InsertRecord(uint8_t *record, int32_t *serial_types) {
   return num_rows++;
 }
 
-template <typename field_size>
+template <typename field_type>
 void Block::InsertValue(int col_num, int &head, uint8_t *record_value,
-                        int serial_type) {
+                        int byte_width) {
   auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
       columns[col_num]->buffers[1]);
   auto status =
-      data_buffer->Resize(data_buffer->size() + sizeof(field_size), false);
+      data_buffer->Resize(data_buffer->size() + sizeof(field_type), false);
   evaluate_status(status, __FUNCTION__, __LINE__);
-  RecordValue  record_val;
-  int32_t byte_width = recordSerialGet(record_value, serial_type, &record_val);
-
-  if (byte_width >= sizeof(field_size)) {
-    auto *dest = columns[col_num]->GetMutableValues<field_size>(1, num_rows);
+  int32_t field_size = sizeof(field_type);
+  if (byte_width >= field_size) {
+    auto *dest = columns[col_num]->GetMutableValues<field_type>(1, num_rows);
     std::memcpy(dest, record_value, byte_width);
     head += byte_width;
     column_sizes[col_num] += byte_width;
     num_bytes += byte_width;
   } else {
     // TODO(suryadev): Study the scope for optimization
-    auto *dest = columns[col_num]->GetMutableValues<field_size>(1, num_rows);
+    auto *dest = columns[col_num]->GetMutableValues<field_type>(1, num_rows);
     uint8_t *value = NULL;
-    bool isZeroOneOpt = (record_val.flags & VAL_Int) && byte_width == 0;
+      uint8_t val;
+      bool isZeroOneOpt = byte_width < 0;
     if (isZeroOneOpt) {
-      value = reinterpret_cast<uint8_t *>(&record_val.val);
+        val = -(byte_width) - 8;
+        value = &val;
+        byte_width = 0;
+        value = (uint8_t *) calloc(sizeof(field_type), sizeof(uint8_t));
+        std::memcpy(value, &val, 1);
     } else {
-        value = (uint8_t *) calloc(sizeof(field_size), sizeof(uint8_t));
+        value = (uint8_t *) calloc(sizeof(field_type), sizeof(uint8_t));
         std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
                     byte_width);
     }
-    std::memcpy(dest, value, sizeof(field_size));
+    std::memcpy(dest, value, sizeof(field_type));
     head += byte_width;
-    column_sizes[col_num] += sizeof(field_size);
-    num_bytes += sizeof(field_size);
-    if (!isZeroOneOpt)
+    column_sizes[col_num] += sizeof(field_type);
+    num_bytes += sizeof(field_type);
+    if (!isZeroOneOpt) {
         free(value);
+    }
   }
 
   columns[col_num]->length++;

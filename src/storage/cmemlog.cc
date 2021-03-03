@@ -39,22 +39,23 @@ void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
   table_map[db_id][root_page_id] = std::string(table_name);
 }
 
-void memlog_add_column_change(int db_id, int root_page_id, char* column_info) {
-  std::string new_column = std::string(column_info); 
-  std::vector<std::string> result; 
-  std::istringstream iss(new_column); 
+void memlog_add_column_change(int db_id, int root_page_id, char *column_info) {
+  std::string new_column = std::string(column_info);
+  std::vector<std::string> result;
+  std::istringstream iss(new_column);
   std::string s;
-  while (iss >> s) { 
+  while (iss >> s) {
     result.push_back(s);
-  } 
+  }
 
   // TODO (@suryadev): Update the hustle schema based on the sqlite3 changes
 }
 
-void memlog_remove_table_mapping(int db_id, char* db_name, char *tbl_name) {
+void memlog_remove_table_mapping(int db_id, char *db_name, char *tbl_name) {
   std::lock_guard<std::mutex> lock(instance_lock);
   using namespace hustle;
-  std::shared_ptr<catalog::Catalog> catalog = HustleDB::getCatalog(std::string(db_name));
+  std::shared_ptr<catalog::Catalog> catalog =
+      HustleDB::getCatalog(std::string(db_name));
   auto table_itr = table_map[db_id].begin();
   std::string tbl_name_str = std::string(tbl_name);
   while (table_itr != table_map[db_id].end()) {
@@ -210,31 +211,33 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         u32 nBytes = getVarint32((const unsigned char *)head->data, hdrLen);
         u32 idx = nBytes;
         const unsigned char *hdr = (const unsigned char *)head->data;
-        std::vector<int32_t> serial_types;
+        std::vector<int32_t> byte_widths;
         /* read the col width from the record and user serialTypeLen
             to convert to exact col width */
         while (idx < hdrLen) {
           u32 typeLen;
           nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
-          //std::cout << "serial type: " <<  typeLen << " " << serialTypeLen(typeLen) << std::endl;
-          serial_types.emplace_back(typeLen);
+          byte_widths.emplace_back((typeLen == 8 || typeLen == 9)
+                                       ? -typeLen
+                                       : serialTypeLen(typeLen));
           idx += nBytes;
         }
 
         // Todo: (@suryadev) handle update and delete
         uint8_t *record_data = (uint8_t *)head->data;
         if (table != nullptr) {
-          size_t len = serial_types.size();
-          int32_t stypes[len];
-          std::copy(serial_types.begin(), serial_types.end(), stypes);
+          size_t len = byte_widths.size();
+          int32_t widths[len];
+          for (size_t i = 0; i < len; i++) {
+            widths[i] = byte_widths[i];
+          }
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
-            table->InsertRecordTable(head->rowId, record_data + hdrLen,
-                                     stypes);
+            table->InsertRecordTable(head->rowId, record_data + hdrLen, widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
             table->UpdateRecordTable(head->rowId, head->nUpdateMetaInfo,
-                                       head->updateMetaInfo,
-                                       record_data + hdrLen, stypes);
+                                     head->updateMetaInfo, record_data + hdrLen,
+                                     widths);
           }
         }
       }

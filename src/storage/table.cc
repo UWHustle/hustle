@@ -23,7 +23,6 @@
 
 #include <iostream>
 
-#include "storage/record_transformer.h"
 #include "storage/block.h"
 #include "storage/ma_block.h"
 #include "storage/util.h"
@@ -199,14 +198,13 @@ void DBTable::InsertRecords(
   num_rows += l;
 }
 
-int DBTable::get_record_size(int32_t *serial_types) {
+int DBTable::get_record_size(int32_t *byte_widths) {
   int record_size = 0;
   int num_cols = get_num_cols();
   for (int i = 0; i < num_cols; i++) {
     switch (schema->field(i)->type()->id()) {
       case arrow::Type::STRING: {
-          // Serial type to byte width on the column
-        record_size += (serial_types[i]-12)/2;
+        record_size += byte_widths[i];
         break;
       }
       case arrow::Type::DOUBLE:
@@ -235,13 +233,13 @@ int DBTable::get_record_size(int32_t *serial_types) {
 }
 
 // Tuple is passed in as an array of bytes which must be parsed.
-BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *serial_types) {
+BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   std::shared_ptr<Block> block = GetBlockForInsert();
-  int32_t record_size = this->get_record_size(serial_types);
+  int32_t record_size = this->get_record_size(byte_widths);
   if (block->get_bytes_left() < record_size) {
     block = CreateBlock();
   }
-  int32_t row_num = block->InsertRecord(record, serial_types);
+  int32_t row_num = block->InsertRecord(record, byte_widths);
   num_rows++;
   if (block->get_bytes_left() > fixed_record_width) {
     insert_pool[block->get_id()] = block;
@@ -251,7 +249,7 @@ BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *serial_types) {
 
 void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
                                 UpdateMetaInfo *updateMetaInfo, uint8_t *record,
-                                int32_t *serial_types) {
+                                int32_t *byte_widths) {
   auto block_map_it = block_map.find(row_id);
   if (block_map_it == block_map.end()) {
     return;
@@ -264,34 +262,34 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
   for (int i = 0; i < num_UpdateMetaInfo; i++) {
     int col_num = updateMetaInfo[i].colNum;
     while (col_num > curr_offset_col) {
-      offset += serial_types[curr_offset_col];
+      offset += byte_widths[curr_offset_col];
       curr_offset_col++;
     }
     switch (schema->field(col_num)->type()->id()) {
       case arrow::Type::STRING: {
         this->DeleteRecordTable(row_id);
-        this->InsertRecordTable(row_id, record, serial_types);
+        this->InsertRecordTable(row_id, record, byte_widths);
         return;
       }
       case arrow::Type::DOUBLE:
       case arrow::Type::INT64: {
         block->UpdateColumnValue<int64_t>(col_num, row_num, record + offset,
-                                          serial_types[col_num]);
+                                          byte_widths[col_num]);
         break;
       }
       case arrow::Type::UINT32: {
         block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
-                                           serial_types[i]);
+                                           byte_widths[i]);
         break;
       }
       case arrow::Type::UINT16: {
         block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
-                                           serial_types[i]);
+                                           byte_widths[i]);
         break;
       }
       case arrow::Type::UINT8: {
         block->UpdateColumnValue<uint8_t>(col_num, row_num, record + offset,
-                                          serial_types[i]);
+                                          byte_widths[i]);
         break;
       }
       default:
@@ -322,13 +320,17 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
 }
 
 void DBTable::InsertRecord(std::vector<std::string_view> values,
-                           int32_t *serial_types) {
+                           int32_t *byte_widths) {
   std::shared_ptr<Block> block = GetBlockForInsert();
-  int32_t record_size = this->get_record_size(serial_types);
+  int32_t record_size = 0;
+  // record size is incorrectly computed!
+  for (int i = 0; i < num_cols; i++) {
+    record_size += byte_widths[i];
+  }
   if (block->get_bytes_left() < record_size) {
     block = CreateBlock();
   }
-  block->InsertRecord(values, serial_types);
+  block->InsertRecord(values, byte_widths);
   num_rows++;
   if (block->get_bytes_left() > fixed_record_width) {
     insert_pool[block->get_id()] = block;
