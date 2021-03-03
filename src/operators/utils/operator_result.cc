@@ -86,7 +86,7 @@ DBTable::TablePtr OperatorResult::materialize(
         schema_builder.AddField(table->get_schema()->GetFieldByName(col_name));
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    auto col = get_table(table).get_column_by_name(col_name);
+    auto col = get_table(table).MaterializeColumn(col_name);
     out_cols.push_back(col);
   }
 

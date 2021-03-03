@@ -330,8 +330,8 @@ void LIP::initialize(Task *ctx) {
   for (int i = 0; i < dim_tables_.size(); i++) {
     ctx->spawnLambdaTask([this, i](Task *internal) {
       auto fact_join_col_name = fact_fk_col_names_[i];
-      fact_table_.get_column_by_name(internal, fact_join_col_name,
-                                     fact_fk_cols_[fact_join_col_name]);
+        fact_table_.MaterializeColumn(internal, fact_join_col_name,
+                                      fact_fk_cols_[fact_join_col_name]);
     });
   }
 }
