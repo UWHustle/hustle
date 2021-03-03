@@ -112,8 +112,6 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
         if (aggregate_refs_[0].expr_ref == nullptr) {
           agg_lazy_table_ = prev_result_->get_table(table);
           agg_lazy_table_.get_column_by_name(internal, col_name, agg_col_);
-          auto agg_col = agg_col_.chunked_array();
-          auto num_chunks = agg_col->num_chunks();
         } else {
           // For expression case, create expression object and initialize
           expression_ = std::make_shared<Expression>(
