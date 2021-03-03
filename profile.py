@@ -78,7 +78,9 @@ out_params = {
 }
 
 execute_str = \
-    "/local/repository/scripts/cloudlab/cloudlab.sh " + str(params.scale_factor) + ";" + \
+    "sudo chmod +755 /local/repository/scripts/cloudlab/cloudlab_setup.sh;" + \
+    "/local/repository/scripts/cloudlab/cloudlab_setup.sh " + str(params.scale_factor) + ";" + \
+    "sudo chmod +755 /mydata/repo/scripts/cloudlab/cloudlab.py" + \
     "/mydata/repo/scripts/cloudlab/cloudlab.py " + json.dumps(out_params) + " >> /mydata/report.txt;"
 node.addService(pg.Execute(shell="bash", command=execute_str))
 
