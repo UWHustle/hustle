@@ -16,9 +16,10 @@
 // under the License.
 
 #include "resolver/select_resolver.h"
-
+#include <cstring>
 #include <algorithm>
 #include <memory>
+#include <cctype>
 
 namespace hustle {
 namespace resolver {
@@ -238,11 +239,14 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
         zName = pEList->a[k].zEName;
       }
 
+      std::string agg_func_name(pEList->a[k].pExpr->u.zToken);
+      std::transform(agg_func_name.begin(), agg_func_name.end(), agg_func_name.begin(), ::toupper);
       if (expr->iColumn > 0) {
         ColumnReference colRef = {catalog_->getTable(expr->y.pTab->zName),
                                   expr->y.pTab->aCol[expr->iColumn].zName};
+          std::cout << "AGG FUNCTION: " << agg_func_name << std::endl;
         AggregateReference aggRef = {
-            aggregate_kernels_[pEList->a[k].pExpr->u.zToken],
+               aggregate_kernels_[agg_func_name],
             pEList->a[k].zEName, colRef};
         agg_references_->emplace_back(aggRef);
         std::shared_ptr<ProjectReference> projRef =
@@ -254,8 +258,9 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
           return false;
         }
         ColumnReference colRef = {};
+        std::cout << "AGG FUNCTION: " << agg_func_name << std::endl;
         AggregateReference aggRef = {
-            aggregate_kernels_[pEList->a[k].pExpr->u.zToken],
+            aggregate_kernels_[agg_func_name],
             pEList->a[k].zEName, colRef, expr_ref};
         agg_references_->emplace_back(aggRef);
         std::shared_ptr<ProjectReference> projRef =
