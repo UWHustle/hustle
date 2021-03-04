@@ -30,7 +30,7 @@
 using namespace testing;
 using namespace hustle::resolver;
 
-class BenchmarkTest : public Test {
+class SQLTest : public Test {
 public:
     static hustle::catalog::TableSchema part, supplier, customer, ddate,
             lineorder;
@@ -116,7 +116,7 @@ public:
         std::filesystem::remove_all("db_directory");
         EXPECT_FALSE(std::filesystem::exists("db_directory"));
 
-        BenchmarkTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory66");
+        SQLTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory66");
 
         // Create table part
         // hustle::catalog::TableSchema part("part");
@@ -138,16 +138,16 @@ public:
                 "p_size", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
         hustle::catalog::ColumnSchema p_container(
                 "p_container", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-        BenchmarkTest::part.addColumn(p_partkey);
-        BenchmarkTest::part.addColumn(p_name);
-        BenchmarkTest::part.addColumn(p_mfgr);
-        BenchmarkTest::part.addColumn(p_category);
-        BenchmarkTest::part.addColumn(p_brand1);
-        BenchmarkTest::part.addColumn(p_color);
-        BenchmarkTest::part.addColumn(p_type);
-        BenchmarkTest::part.addColumn(p_size);
-        BenchmarkTest::part.addColumn(p_container);
-        BenchmarkTest::part.setPrimaryKey({});
+        SQLTest::part.addColumn(p_partkey);
+        SQLTest::part.addColumn(p_name);
+        SQLTest::part.addColumn(p_mfgr);
+        SQLTest::part.addColumn(p_category);
+        SQLTest::part.addColumn(p_brand1);
+        SQLTest::part.addColumn(p_color);
+        SQLTest::part.addColumn(p_type);
+        SQLTest::part.addColumn(p_size);
+        SQLTest::part.addColumn(p_container);
+        SQLTest::part.setPrimaryKey({});
 
         // Create table supplier
         // hustle::catalog::TableSchema supplier("supplier");
@@ -165,14 +165,14 @@ public:
                 "s_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
         hustle::catalog::ColumnSchema s_phone(
                 "s_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
-        BenchmarkTest::supplier.addColumn(s_suppkey);
-        BenchmarkTest::supplier.addColumn(s_name);
-        BenchmarkTest::supplier.addColumn(s_address);
-        BenchmarkTest::supplier.addColumn(s_city);
-        BenchmarkTest::supplier.addColumn(s_nation);
-        BenchmarkTest::supplier.addColumn(s_region);
-        BenchmarkTest::supplier.addColumn(s_phone);
-        BenchmarkTest::supplier.setPrimaryKey({});
+        SQLTest::supplier.addColumn(s_suppkey);
+        SQLTest::supplier.addColumn(s_name);
+        SQLTest::supplier.addColumn(s_address);
+        SQLTest::supplier.addColumn(s_city);
+        SQLTest::supplier.addColumn(s_nation);
+        SQLTest::supplier.addColumn(s_region);
+        SQLTest::supplier.addColumn(s_phone);
+        SQLTest::supplier.setPrimaryKey({});
 
         // Create table customer
         // hustle::catalog::TableSchema customer("customer");
@@ -192,15 +192,15 @@ public:
                 "c_phone", {hustle::catalog::HustleType::CHAR, 15}, true, false);
         hustle::catalog::ColumnSchema c_mktsegment(
                 "c_mktsegment", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-        BenchmarkTest::customer.addColumn(c_suppkey);
-        BenchmarkTest::customer.addColumn(c_name);
-        BenchmarkTest::customer.addColumn(c_address);
-        BenchmarkTest::customer.addColumn(c_city);
-        BenchmarkTest::customer.addColumn(c_nation);
-        BenchmarkTest::customer.addColumn(c_region);
-        BenchmarkTest::customer.addColumn(c_phone);
-        BenchmarkTest::customer.addColumn(c_mktsegment);
-        BenchmarkTest::customer.setPrimaryKey({});
+        SQLTest::customer.addColumn(c_suppkey);
+        SQLTest::customer.addColumn(c_name);
+        SQLTest::customer.addColumn(c_address);
+        SQLTest::customer.addColumn(c_city);
+        SQLTest::customer.addColumn(c_nation);
+        SQLTest::customer.addColumn(c_region);
+        SQLTest::customer.addColumn(c_phone);
+        SQLTest::customer.addColumn(c_mktsegment);
+        SQLTest::customer.setPrimaryKey({});
 
         // Create table ddate
         // hustle::catalog::TableSchema ddate("ddate");
@@ -247,24 +247,24 @@ public:
                 "d_holidayfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
         hustle::catalog::ColumnSchema d_weekdayfl(
                 "d_weekdayfl", {hustle::catalog::HustleType::CHAR, 1}, true, false);
-        BenchmarkTest::ddate.addColumn(d_datekey);
-        BenchmarkTest::ddate.addColumn(d_date);
-        BenchmarkTest::ddate.addColumn(d_dayofweek);
-        BenchmarkTest::ddate.addColumn(d_month);
-        BenchmarkTest::ddate.addColumn(d_year);
-        BenchmarkTest::ddate.addColumn(d_yearmonthnum);
-        BenchmarkTest::ddate.addColumn(d_yearmonth);
-        BenchmarkTest::ddate.addColumn(d_daynuminweek);
-        BenchmarkTest::ddate.addColumn(d_daynuminmonth);
-        BenchmarkTest::ddate.addColumn(d_daynuminyear);
-        BenchmarkTest::ddate.addColumn(d_monthnuminyear);
-        BenchmarkTest::ddate.addColumn(d_weeknuminyear);
-        BenchmarkTest::ddate.addColumn(d_sellingseason);
-        BenchmarkTest::ddate.addColumn(d_lastdayinweekfl);
-        BenchmarkTest::ddate.addColumn(d_lastdayinmonthfl);
-        BenchmarkTest::ddate.addColumn(d_holidayfl);
-        BenchmarkTest::ddate.addColumn(d_weekdayfl);
-        BenchmarkTest::ddate.setPrimaryKey({});
+        SQLTest::ddate.addColumn(d_datekey);
+        SQLTest::ddate.addColumn(d_date);
+        SQLTest::ddate.addColumn(d_dayofweek);
+        SQLTest::ddate.addColumn(d_month);
+        SQLTest::ddate.addColumn(d_year);
+        SQLTest::ddate.addColumn(d_yearmonthnum);
+        SQLTest::ddate.addColumn(d_yearmonth);
+        SQLTest::ddate.addColumn(d_daynuminweek);
+        SQLTest::ddate.addColumn(d_daynuminmonth);
+        SQLTest::ddate.addColumn(d_daynuminyear);
+        SQLTest::ddate.addColumn(d_monthnuminyear);
+        SQLTest::ddate.addColumn(d_weeknuminyear);
+        SQLTest::ddate.addColumn(d_sellingseason);
+        SQLTest::ddate.addColumn(d_lastdayinweekfl);
+        SQLTest::ddate.addColumn(d_lastdayinmonthfl);
+        SQLTest::ddate.addColumn(d_holidayfl);
+        SQLTest::ddate.addColumn(d_weekdayfl);
+        SQLTest::ddate.setPrimaryKey({});
 
         // Create table lineorder
         // hustle::catalog::TableSchema lineorder("lineorder");
@@ -308,56 +308,56 @@ public:
                 false);
         hustle::catalog::ColumnSchema lo_shipmode(
                 "lo_shipmode", {hustle::catalog::HustleType::CHAR, 10}, true, false);
-        BenchmarkTest::lineorder.addColumn(lo_orderkey);
-        BenchmarkTest::lineorder.addColumn(lo_linenumber);
-        BenchmarkTest::lineorder.addColumn(lo_custkey);
-        BenchmarkTest::lineorder.addColumn(lo_partkey);
-        BenchmarkTest::lineorder.addColumn(lo_suppkey);
-        BenchmarkTest::lineorder.addColumn(lo_orderdate);
-        BenchmarkTest::lineorder.addColumn(lo_orderpriority);
-        BenchmarkTest::lineorder.addColumn(lo_shippriority);
-        BenchmarkTest::lineorder.addColumn(lo_quantity);
-        BenchmarkTest::lineorder.addColumn(lo_extendedprice);
-        BenchmarkTest::lineorder.addColumn(lo_ordertotalprice);
-        BenchmarkTest::lineorder.addColumn(lo_discount);
-        BenchmarkTest::lineorder.addColumn(lo_revenue);
-        BenchmarkTest::lineorder.addColumn(lo_supplycost);
-        BenchmarkTest::lineorder.addColumn(lo_tax);
-        BenchmarkTest::lineorder.addColumn(lo_commitdate);
-        BenchmarkTest::lineorder.addColumn(lo_shipmode);
-        BenchmarkTest::lineorder.setPrimaryKey({});
+        SQLTest::lineorder.addColumn(lo_orderkey);
+        SQLTest::lineorder.addColumn(lo_linenumber);
+        SQLTest::lineorder.addColumn(lo_custkey);
+        SQLTest::lineorder.addColumn(lo_partkey);
+        SQLTest::lineorder.addColumn(lo_suppkey);
+        SQLTest::lineorder.addColumn(lo_orderdate);
+        SQLTest::lineorder.addColumn(lo_orderpriority);
+        SQLTest::lineorder.addColumn(lo_shippriority);
+        SQLTest::lineorder.addColumn(lo_quantity);
+        SQLTest::lineorder.addColumn(lo_extendedprice);
+        SQLTest::lineorder.addColumn(lo_ordertotalprice);
+        SQLTest::lineorder.addColumn(lo_discount);
+        SQLTest::lineorder.addColumn(lo_revenue);
+        SQLTest::lineorder.addColumn(lo_supplycost);
+        SQLTest::lineorder.addColumn(lo_tax);
+        SQLTest::lineorder.addColumn(lo_commitdate);
+        SQLTest::lineorder.addColumn(lo_shipmode);
+        SQLTest::lineorder.setPrimaryKey({});
 
-        BenchmarkTest::lo = std::make_shared<hustle::storage::DBTable>(
-                "lineorder", BenchmarkTest::lineorder.getArrowSchema(), BLOCK_SIZE);
-        BenchmarkTest::c = std::make_shared<hustle::storage::DBTable>(
-                "customer", BenchmarkTest::customer.getArrowSchema(), BLOCK_SIZE);
-        BenchmarkTest::s = std::make_shared<hustle::storage::DBTable>(
-                "supplier", BenchmarkTest::supplier.getArrowSchema(), BLOCK_SIZE);
-        BenchmarkTest::p = std::make_shared<hustle::storage::DBTable>(
-                "part", BenchmarkTest::part.getArrowSchema(), BLOCK_SIZE);
-        BenchmarkTest::d = std::make_shared<hustle::storage::DBTable>(
-                "ddate", BenchmarkTest::ddate.getArrowSchema(), BLOCK_SIZE);
+        SQLTest::lo = std::make_shared<hustle::storage::DBTable>(
+                "lineorder", SQLTest::lineorder.getArrowSchema(), BLOCK_SIZE);
+        SQLTest::c = std::make_shared<hustle::storage::DBTable>(
+                "customer", SQLTest::customer.getArrowSchema(), BLOCK_SIZE);
+        SQLTest::s = std::make_shared<hustle::storage::DBTable>(
+                "supplier", SQLTest::supplier.getArrowSchema(), BLOCK_SIZE);
+        SQLTest::p = std::make_shared<hustle::storage::DBTable>(
+                "part", SQLTest::part.getArrowSchema(), BLOCK_SIZE);
+        SQLTest::d = std::make_shared<hustle::storage::DBTable>(
+                "ddate", SQLTest::ddate.getArrowSchema(), BLOCK_SIZE);
 
-        hustle_db->createTable(BenchmarkTest::lineorder, BenchmarkTest::lo);
-        hustle_db->createTable(BenchmarkTest::customer, BenchmarkTest::c);
-        hustle_db->createTable(BenchmarkTest::supplier, BenchmarkTest::s);
-        hustle_db->createTable(BenchmarkTest::part, BenchmarkTest::p);
-        hustle_db->createTable(BenchmarkTest::ddate, BenchmarkTest::d);
+        hustle_db->createTable(SQLTest::lineorder, SQLTest::lo);
+        hustle_db->createTable(SQLTest::customer, SQLTest::c);
+        hustle_db->createTable(SQLTest::supplier, SQLTest::s);
+        hustle_db->createTable(SQLTest::part, SQLTest::p);
+        hustle_db->createTable(SQLTest::ddate, SQLTest::d);
     }
 
 
 };
 
-hustle::catalog::TableSchema BenchmarkTest::part("part"),
-        BenchmarkTest::supplier("supplier"), BenchmarkTest::customer("customer"),
-        BenchmarkTest::ddate("ddate"), BenchmarkTest::lineorder("lineorder");
+hustle::catalog::TableSchema SQLTest::part("part"),
+        SQLTest::supplier("supplier"), SQLTest::customer("customer"),
+        SQLTest::ddate("ddate"), SQLTest::lineorder("lineorder");
 
-DBTable::TablePtr BenchmarkTest::lo, BenchmarkTest::d, BenchmarkTest::p,
-        BenchmarkTest::c, BenchmarkTest::s;
+DBTable::TablePtr SQLTest::lo, SQLTest::d, SQLTest::p,
+        SQLTest::c, SQLTest::s;
 
-std::shared_ptr<hustle::HustleDB> BenchmarkTest::hustle_db;
+std::shared_ptr<hustle::HustleDB> SQLTest::hustle_db;
 
-TEST_F(BenchmarkTest, q1) {
+TEST_F(SQLTest, q1) {
     std::string query =
             "select sum(lo_extendedprice) as "
             "revenue "
@@ -381,7 +381,7 @@ TEST_F(BenchmarkTest, q1) {
     EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
-TEST_F(BenchmarkTest, q2) {
+TEST_F(SQLTest, q2) {
     std::string query =
             "select sum(lo_extendedprice) as "
             "revenue\n"
@@ -406,7 +406,7 @@ TEST_F(BenchmarkTest, q2) {
     EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
-TEST_F(BenchmarkTest, q3) {
+TEST_F(SQLTest, q3) {
     std::string query =
             "select sum(lo_extendedprice) as "
             "revenue\n"
@@ -431,7 +431,7 @@ TEST_F(BenchmarkTest, q3) {
     EXPECT_EQ(select_resolver.project_references()->size(), 1);
 }
 
-TEST_F(BenchmarkTest, q4) {
+TEST_F(SQLTest, q4) {
     std::string query =
             "select sum(lo_revenue), d_year, p_brand1\n"
             "from lineorder, ddate, part, supplier\n"
@@ -458,7 +458,7 @@ TEST_F(BenchmarkTest, q4) {
     EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
-TEST_F(BenchmarkTest, q5) {
+TEST_F(SQLTest, q5) {
     std::string query =
             "select sum(lo_revenue), d_year, p_brand1\n"
             "\tfrom lineorder, ddate, part, supplier\n"
@@ -485,7 +485,7 @@ TEST_F(BenchmarkTest, q5) {
     EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
-TEST_F(BenchmarkTest, q6) {
+TEST_F(SQLTest, q6) {
     std::string query =
             "select sum(lo_revenue), d_year, p_brand1\n"
             "\tfrom lineorder, ddate, part, supplier\n"
@@ -512,7 +512,7 @@ TEST_F(BenchmarkTest, q6) {
     EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
-TEST_F(BenchmarkTest, q7) {
+TEST_F(SQLTest, q7) {
     std::string query =
             "select c_nation, s_nation, d_year, sum(lo_revenue) "
             "as revenue\n"
@@ -541,7 +541,7 @@ TEST_F(BenchmarkTest, q7) {
     EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
-TEST_F(BenchmarkTest, q8) {
+TEST_F(SQLTest, q8) {
     std::string query =
             "select c_city, s_city, d_year, sum(lo_revenue) as "
             "revenue\n"
@@ -570,7 +570,7 @@ TEST_F(BenchmarkTest, q8) {
     EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
-TEST_F(BenchmarkTest, q9) {
+TEST_F(SQLTest, q9) {
     std::string query =
             "select c_city, s_city, d_year, sum(lo_revenue) as "
             "revenue\n"
@@ -599,7 +599,7 @@ TEST_F(BenchmarkTest, q9) {
     EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
-TEST_F(BenchmarkTest, q10) {
+TEST_F(SQLTest, q10) {
     std::string query =
             "select c_city, s_city, d_year, sum(lo_revenue) as "
             "revenue\n"
@@ -628,7 +628,7 @@ TEST_F(BenchmarkTest, q10) {
     EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
-TEST_F(BenchmarkTest, q11) {
+TEST_F(SQLTest, q11) {
     std::string query =
             "select d_year, c_nation, "
             "sum(lo_revenue) as profit1\n"
@@ -658,7 +658,7 @@ TEST_F(BenchmarkTest, q11) {
     EXPECT_EQ(select_resolver.project_references()->size(), 3);
 }
 
-TEST_F(BenchmarkTest, q12) {
+TEST_F(SQLTest, q12) {
     std::string query =
             "select d_year, s_nation, p_category, sum(lo_revenue) "
             "as profit1\n"
@@ -689,7 +689,7 @@ TEST_F(BenchmarkTest, q12) {
     EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
-TEST_F(BenchmarkTest, q13) {
+TEST_F(SQLTest, q13) {
     std::string query =
             "select d_year, s_city, p_brand1, sum(lo_revenue) as "
             "profit1\n"
@@ -720,7 +720,7 @@ TEST_F(BenchmarkTest, q13) {
     EXPECT_EQ(select_resolver.project_references()->size(), 4);
 }
 
-TEST_F(BenchmarkTest, queryAggExpr) {
+TEST_F(SQLTest, queryAggExpr) {
     std::string query =
             "select sum(lo_extendedprice*lo_discount) as "
             "revenue\n"
