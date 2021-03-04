@@ -245,6 +245,9 @@ struct sqlite3;
 #define TK_SPACE                          179
 #define TK_ILLEGAL                        180
 
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
 struct VTable {
   struct sqlite3 *db;              /* Database connection associated with this table */
   Module *pMod;             /* Pointer to module implementation */
@@ -696,7 +699,7 @@ struct Schema {
   int cache_size;      /* Number of pages to use in the cache */
 };
 
-int resolveSelect(char* dbName, Select* queryTree);
+int resolveSelect(char* dbName, Select* queryTree, void* pArg, sqlite3_callback xCallback);
 
 #ifdef __cplusplus
 }

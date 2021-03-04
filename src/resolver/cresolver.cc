@@ -260,9 +260,10 @@ std::shared_ptr<hustle::storage::DBTable> execute(
       }),
       hustle::CreateLambdaTask([&plan, &out_table, &sync_lock] {
         OperatorResult::OpResultPtr agg_result_out = plan->getOperatorResult();
-        std::shared_ptr<hustle::storage::DBTable> out_table =
+        out_table =
             agg_result_out->materialize(plan->getResultColumns());
         //out_table->print();
+
         sync_lock.release();
       })));
   sync_lock.wait();
@@ -270,7 +271,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
   return out_table;
 }
 
-int resolveSelect(char *dbName, Sqlite3Select *queryTree) {
+int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs, sqlite3_callback xCallback) {
   // TODO: (@srsuryadev) resolve the select query
   // return 0 if query is supported in column store else return 1
   using hustle::resolver::SelectResolver;
@@ -286,6 +287,7 @@ int resolveSelect(char *dbName, Sqlite3Select *queryTree) {
     if (plan != nullptr) {
       std::shared_ptr<hustle::storage::DBTable> outTable =
           execute(plan, select_resolver, catalog);
+      outTable->print_result(pArgs, xCallback);
     } else {
       return 0;
     }

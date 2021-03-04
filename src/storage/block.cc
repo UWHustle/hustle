@@ -225,6 +225,72 @@ void Block::ComputeByteSize() {
   }
 }
 
+    void Block::print_result(void *pArg, sqlite3_callback callback) {
+        // Create Arrays from ArrayData so we can easily read column data
+        std::vector<std::shared_ptr<arrow::Array>> arrays;
+        for (int i = 0; i < num_cols; i++) {
+            arrays.push_back(arrow::MakeArray(columns[i]));
+        }
+        char **azCols = (char**)malloc((2*num_cols+1)*sizeof(const char*));
+        for (int i = 0; i < num_cols; i++) {
+            std::string field_name  = schema->field_names().at(i);
+            azCols[i] = (char*)field_name.c_str();
+        }
+        for (int row = 0; row < num_rows; row++) {
+            auto valid_col =
+                    std::static_pointer_cast<arrow::BooleanArray>(arrow::MakeArray(valid));
+            char **azVals = &azCols[num_cols];
+
+            for (int i = 0; i < num_cols; i++) {
+                switch (schema->field(i)->type()->id()) {
+                    case arrow::Type::STRING: {
+                        auto col = std::static_pointer_cast<arrow::StringArray>(arrays[i]);
+                        azVals[i] = (char*)col->GetString(row).c_str();
+                        break;
+                    }
+                    case arrow::Type::type::FIXED_SIZE_BINARY: {
+                        auto col =
+                                std::static_pointer_cast<arrow::FixedSizeBinaryArray>(arrays[i]);
+                        azVals[i] = (char*)col->GetString(row).c_str();
+                        break;
+                    }
+                    case arrow::Type::type::INT64: {
+                        auto col = std::static_pointer_cast<arrow::Int64Array>(arrays[i]);
+                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
+                        break;
+                    }
+                    case arrow::Type::type::UINT32: {
+                        auto col = std::static_pointer_cast<arrow::UInt32Array>(arrays[i]);
+                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
+                        break;
+                    }
+                    case arrow::Type::type::UINT16: {
+                        auto col = std::static_pointer_cast<arrow::UInt16Array>(arrays[i]);
+                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
+                        break;
+                    }
+                    case arrow::Type::type::UINT8: {
+                        auto col = std::static_pointer_cast<arrow::UInt8Array>(arrays[i]);
+                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
+                        break;
+                    }
+                    case arrow::Type::type::DOUBLE: {
+                        auto col = std::static_pointer_cast<arrow::DoubleArray>(arrays[i]);
+                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
+                        break;
+                    }
+                    default: {
+                        throw std::logic_error(
+                                std::string("Block created with unsupported type: ") +
+                                schema->field(i)->type()->ToString());
+                    }
+                }
+            }
+            callback(pArg, num_cols, azVals, azCols);
+        }
+        free(azCols);
+    }
+
 void Block::print() {
   // Create Arrays from ArrayData so we can easily read column data
   std::vector<std::shared_ptr<arrow::Array>> arrays;

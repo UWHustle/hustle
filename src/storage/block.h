@@ -48,6 +48,7 @@
  * However, support for any fixed-width type can be added by introducing
  * additional case statements in each switch block.
  */
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
 
 namespace hustle::storage {
 
@@ -238,7 +239,9 @@ class Block {
    */
   std::map<int, int> &get_row_id_map() { return row_id_map; }
 
-  /**
+  void print_result(void *pArg, sqlite3_callback callback);
+
+    /**
    * Insert a record into the Block.
    *
    * @param record Values to be inserted into each column. Values should be

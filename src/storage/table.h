@@ -31,6 +31,8 @@
 
 #define ENABLE_METADATA_BY_DEFAULT true
 
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
 namespace hustle::storage {
 
 /**
@@ -298,6 +300,19 @@ class DBTable {
     }
   }
 
+
+  /**
+   * Print the contents of all blocks in the table, including the valid column.
+  */
+  inline void print_result(void *pArgs, sqlite3_callback callback) {
+        if (blocks.empty()) {
+            std::cout << "Table is empty." << std::endl;
+        } else {
+            for (int i = 0; i < blocks.size(); i++) {
+                blocks[i]->print_result(pArgs, callback);
+            }
+        }
+  }
   /**
    * Get valid-bit column of all blocks in the table.
    *
