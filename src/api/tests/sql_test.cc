@@ -30,6 +30,10 @@
 using namespace testing;
 using namespace hustle::resolver;
 
+#define BLOCK_SIZE \
+  256  // Force the block size to small size for the sake of this test
+
+
 class SQLTest : public Test {
 public:
     static hustle::catalog::TableSchema part, supplier, customer, ddate,
@@ -113,10 +117,10 @@ public:
           );
          */
 
-        std::filesystem::remove_all("db_directory");
-        EXPECT_FALSE(std::filesystem::exists("db_directory"));
+        std::filesystem::remove_all("db_directory_sql");
+        EXPECT_FALSE(std::filesystem::exists("db_directory_sql"));
 
-        SQLTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory66");
+        SQLTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory_sql");
 
         // Create table part
         // hustle::catalog::TableSchema part("part");
@@ -343,6 +347,46 @@ public:
         hustle_db->createTable(SQLTest::supplier, SQLTest::s);
         hustle_db->createTable(SQLTest::part, SQLTest::p);
         hustle_db->createTable(SQLTest::ddate, SQLTest::d);
+
+        std::string query = "BEGIN TRANSACTION;";
+        for (int i = 0; i < 800; i++) {
+            query += "INSERT INTO lineorder VALUES ("+std::to_string(i)+", "+std::to_string(i+1)+", "+std::to_string(i+3)+", "+std::to_string(i+4)+ ","\
+        ""+std::to_string(i+5)+", "+std::to_string(i+6)+", '"+std::string("test_a" + std::to_string(i))+"', '"+std::string("test_b" + std::to_string(i))+"', "+std::to_string(1000+i)+", "+std::to_string(2000+i)+", "+std::to_string(3000+i)+", "+std::to_string(4000+i)+", "+std::to_string(5000+i)+", "+std::to_string(6000+i)+", "+std::to_string(7000+i)+", "+std::to_string(8000+i)+", '"+std::string("test_z" + std::to_string(i))+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        query = "BEGIN TRANSACTION;";
+        for (int i = 0; i < 100; i ++) {
+            query +=  "INSERT INTO part VALUES ("+std::to_string(5*i)+", '"+std::string("part_a_"+std::to_string(i))+"', '"+std::string("part_b_"+std::to_string(i))+"', '"+std::string("part_c_"+std::to_string(i))+"', "\
+        "'"+std::string("part_d_"+std::to_string(i))+"', '"+std::string("part_e_"+std::to_string(i))+"', '"+std::string("part_f_"+std::to_string(i))+"', "+std::to_string(i)+", '"+std::string("part_g_"+std::to_string(i))+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        query = "BEGIN TRANSACTION;";
+        for (int i = 0; i < 100; i ++) {
+            query += "INSERT INTO supplier VALUES ("+std::to_string(5*i + 1)+", '"+ std::string("supplier_a_"+std::to_string(i))+"', '"+ std::string("supplier_b_"+std::to_string(i))+"', '"+ std::string("supplier_c_"+std::to_string(i))+"', "\
+        "'"+ std::string("supplier_d_"+std::to_string(i))+"', '"+ std::string("supplier_e_"+std::to_string(i))+"', '"+std::string("supplier_f_"+std::to_string(i))+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        query = "BEGIN TRANSACTION;";
+        for (int i = 0; i < 100; i ++) {
+            query += "INSERT INTO customer VALUES ("+std::to_string(5*i + 2)+", '"+ std::string("customer_a_"+std::to_string(i))+"', '"+ std::string("customer_b_"+std::to_string(i)) +"', '"+ std::string("customer_c_"+std::to_string(i)) +"', "\
+        "'"+ std::string("customer_d_"+std::to_string(i)) +"', '"+std::string("customer_e_"+std::to_string(i)) +"', '"+std::string("customer_f_"+std::to_string(i))+"', '"+std::string("customer_e_"+std::to_string(i))+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+
+        query = "BEGIN TRANSACTION;";
+        for (int i = 0; i < 20; i ++) {
+            query += "INSERT INTO ddate VALUES ("+std::to_string(5*i + 3)+", '"+ std::string("ddate_a_"+std::to_string(i)) +"', '"+ std::string("ddate_b_"+std::to_string(i)) +"', '"+ std::string("ddate_c_"+std::to_string(i)) + "',"\
+        ""+std::to_string(i+10)+", "+std::to_string(i+50)+", '"+std::string("ddate_c_"+std::to_string(i))+"', "+std::string("ddate_d_"+std::to_string(i))+", "+std::string("ddate_e_"+std::to_string(i))+", "+std::string("ddate_f_"+std::to_string(i))+", "+std::string("ddate_g_"+std::to_string(i))+", "+std::to_string(i+60000)+", '"+ std::string("ddate_h_"+std::to_string(i)) +"', '"+std::string("ddate_i_"+std::to_string(i))+"', '"+std::string("ddate_j_"+std::to_string(i))+"', '"+std::string("ddate_k_"+std::to_string(i))+"', '"+std::string("ddate_l_"+std::to_string(i))+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
     }
 
 
