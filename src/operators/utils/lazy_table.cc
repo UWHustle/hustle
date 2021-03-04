@@ -63,7 +63,7 @@ std::shared_ptr<arrow::ChunkedArray> LazyTable::MaterializeColumn(int i) {
   if (materialized_cols_[i] != nullptr) {
     return materialized_cols_[i];
   }
-  assert((filter.kind() != arrow::Datum::NONE) ^ (indices.kind() != arrow::Datum::NONE) &&
+  assert(((filter.kind() == arrow::Datum::NONE) || (indices.kind() == arrow::Datum::NONE)) &&
     "Any one of the filter or indices are allowed to materialize column and not both.");
   auto col = arrow::Datum(table->get_column(i));
   if (filter.kind() != arrow::Datum::NONE) {
@@ -83,8 +83,7 @@ void LazyTable::MaterializeColumn(Task *ctx, std::string col_name,
 }
 
 void LazyTable::MaterializeColumn(Task *ctx, int i, arrow::Datum &out) {
-    assert((filter.kind() != arrow::Datum::NONE)  &&
-           "Multithreaded filtering of columns not supported.");
+
   if (materialized_cols_[i] != nullptr) {
     out.value = materialized_cols_[i];
       return;
