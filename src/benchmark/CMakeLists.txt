@@ -28,4 +28,20 @@ target_link_libraries(hustle_src_benchmark_main PUBLIC
         benchmark::benchmark
         )
 
+add_executable(hustle_benchmark_test "tests/benchmark_test.cc")
+target_link_libraries(hustle_benchmark_test
+        gtest
+        gtest_main
+        sqlite_utils_parse
+        gmock
+        hustle_src_catalog
+        sqlite3
+        hustleDB
+        hustle_src_operators
+        hustle_src_storage
+        hustle_src_resolver
+        )
+add_test(HustleSQLiteBenchmark_test hustle_benchmark_test)
+
+
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")
