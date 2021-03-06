@@ -1,11 +1,26 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Created by SURYADEV on 14/02/21.
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 #include "ssb_queries.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
+
 
 namespace hustle::operators {
     SSBQueries::SSBQueries() {
@@ -270,7 +285,7 @@ namespace hustle::operators {
         hustle_db->createTable(part, p);
         hustle_db->createTable(lineorder, lo);
 
-        FILE* stream = fopen("../../../ssb/data/lineorder.tbl", "r");
+        FILE* stream = fopen("../../../ssb/data/lineorder2.tbl", "r");
         char line[2048];
         std::string query = "BEGIN TRANSACTION;";
         int count = 0;
@@ -367,7 +382,8 @@ namespace hustle::operators {
                 "between 1 and 3) "
                 "group by lo_discount "
                 "order by lo_discount";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
         query =   "select lo_quantity, count(lo_extendedprice) as "
                   "revenue "
                   "from lineorder, ddate "
@@ -394,7 +410,8 @@ namespace hustle::operators {
                 "and lo_quantity >= 26 and lo_quantity <= 35)\n"
                 "group by d_yearmonthnum\n"
                 "order by d_yearmonthnum;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q13() {
@@ -409,7 +426,8 @@ namespace hustle::operators {
                 "and lo_quantity >= 36 and lo_quantity <= 40)\n"
                 "group by d_year, d_weeknuminyear\n"
                 "order by d_year, d_weeknuminyear;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q21() {
@@ -424,7 +442,8 @@ namespace hustle::operators {
                 "and s_region = 'AMERICA'\n"
                 "group by d_year, p_brand1\n"
                 "order by d_year, p_brand1;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q22() {
@@ -438,7 +457,8 @@ namespace hustle::operators {
                 "\t\tand s_region = 'ASIA'\n"
                 "\tgroup by d_year, p_brand1\n"
                 "\torder by d_year, p_brand1;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q23() {
@@ -452,7 +472,8 @@ namespace hustle::operators {
                 "\t\tand s_region = 'EUROPE'\n"
                 "\tgroup by d_year, p_brand1\n"
                 "\torder by d_year, p_brand1;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q31() {
@@ -468,7 +489,8 @@ namespace hustle::operators {
                 "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_nation, s_nation, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q32() {
@@ -484,7 +506,8 @@ namespace hustle::operators {
                 "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q33() {
@@ -502,7 +525,8 @@ namespace hustle::operators {
                 "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q34() {
@@ -520,7 +544,8 @@ namespace hustle::operators {
                 "\t\tand d_yearmonth = 'Dec1997'\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << result << std::endl;
     }
 
     void SSBQueries::q41() {
@@ -537,7 +562,8 @@ namespace hustle::operators {
                 "\t\tand (p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2')\n"
                 "\tgroup by d_year, c_nation\n"
                 "\torder by d_year, c_nation;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << "q41\n" << result << std::endl;
     }
 
     void SSBQueries::q42() {
@@ -555,7 +581,8 @@ namespace hustle::operators {
                 "\t\tand (p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2')\n"
                 "\tgroup by d_year, s_nation, p_category\n"
                 "\torder by d_year, s_nation, p_category;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << "q42\n" << result << std::endl;
     }
 
     void SSBQueries::q43() {
@@ -573,6 +600,7 @@ namespace hustle::operators {
                 "\t\tand p_category = 'MFGR#14'\n"
                 "\tgroup by d_year, s_city, p_brand1\n"
                 "\torder by d_year, s_city, p_brand1;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        std::cout << "q43\n" << result << std::endl;
     }
 }
