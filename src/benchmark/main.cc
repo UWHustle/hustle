@@ -371,20 +371,20 @@ int get_test(int argc, char *argv[]) {
       }
       i += 1;
       auto v = std::string(argv[i]);
-      if (v.find("ssb") != ((size_t)-1)) {
+      if (!v.compare("ssb")) {
         bench_type = SSB_WORKLOAD;
         std::cout << "Benchmark using SSB workload." << std::endl;
-      } else if (v.find("tatp") != ((size_t)-1)) {
+      } else if (!v.compare("tatp")) {
         bench_type = TATP_WORKLOAD;
-        std::cout << "Benchmark using aggregate workload" << std::endl;
-      } else if (v.find("aggregate") != ((size_t)-1)) {
+        std::cout << "Benchmark using tatp workload" << std::endl;
+      } else if (!v.compare("aggregate")) {
         bench_type = AGGREGATE_WORKLOAD;
         std::cout << "Benchmark using aggregate workload" << std::endl;
-      } else if (v.find("queries") != ((size_t)-1)) {
+      } else if (!v.compare("ssb_queries")) {
           bench_type = SSB_QUERIES_WORKLOAD;
-          std::cout << "Benchmark using aggregate workload" << std::endl;
+          std::cout << "Benchmark using SSB query based workload" << std::endl;
       } else {
-        std::cerr << "Expected --benchmark [ssb | aggregate], got " << v
+        std::cerr << "Expected --benchmark [ssb | aggregate | ssb_queries], got " << v
                   << std::endl;
         exit(1);
       }
@@ -469,7 +469,7 @@ int run_ssb_queries() {
     } else {
         ::benchmark::Initialize(NULL, NULL);
 
-        std::cout << "Stated running ssb querybenchmarks ..." << std::endl;
+        std::cout << "Stated running ssb query benchmarks ..." << std::endl;
         ::benchmark::RunSpecifiedBenchmarks();
 
     }
