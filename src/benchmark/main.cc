@@ -373,7 +373,8 @@ int get_test(int argc, char *argv[]) {
       auto v = std::string(argv[i]);
       if (!v.compare("ssb")) {
         bench_type = SSB_WORKLOAD;
-        std::cout << "Benchmark using SSB workload." << std::endl;
+        std::cout << "Please use \"ssb_queries\" instead of \"ssb\"." << std::endl;
+        exit(1);
       } else if (!v.compare("tatp")) {
         bench_type = TATP_WORKLOAD;
         std::cout << "Benchmark using tatp workload" << std::endl;
