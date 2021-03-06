@@ -47,7 +47,6 @@ add_library(hustle_src_utils_ParallelHashmap ../empty_src.cc parallel_hashmap/ph
 add_library(hustle_src_utils_Config ../empty_src.cc config.h)
 add_library(hustle_src_utils_skew ../empty_src.cc skew.h)
 add_library(hustle_src_utils_bit_utils ../empty_src.cc bit_utils.h)
-add_library(hustle_src_utils_string_utils ../empty_src.cc string_utils.h)
 
 
 add_library(hustle_src_utils_BloomFilter ../empty_src.cc bloom_filter.h histogram.h)

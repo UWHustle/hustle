@@ -21,18 +21,3 @@ target_link_libraries(hustle_hustleDB_test
         )
 add_test(HustleDB_test hustle_hustleDB_test)
 
-add_executable(hustle_sql_test "../api/tests/sql_test.cc")
-target_link_libraries(hustle_sql_test
-        gtest
-        gtest_main
-        sqlite_utils_parse
-        gmock
-        hustle_src_catalog
-        sqlite3
-        hustleDB
-        hustle_src_operators
-        hustle_src_storage
-        hustle_src_resolver
-        hustle_src_utils_string_utils
-        )
-add_test(HustleSQL_test hustle_sql_test)
