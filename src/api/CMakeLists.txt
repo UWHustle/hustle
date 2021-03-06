@@ -33,5 +33,6 @@ target_link_libraries(hustle_sql_test
         hustle_src_operators
         hustle_src_storage
         hustle_src_resolver
+        hustle_src_utils_string_utils
         )
 add_test(HustleSQL_test hustle_sql_test)
