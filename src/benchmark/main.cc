@@ -19,8 +19,8 @@
 
 #include "aggregate_workload.h"
 #include "skew.h"
-#include "ssb_workload.h"
 #include "ssb_queries.h"
+#include "ssb_workload.h"
 #include "storage/util.h"
 #include "tatp_workload.h"
 
@@ -28,7 +28,6 @@ using namespace hustle::operators;
 using namespace std::chrono;
 
 #define DEBUG false
-#define SSB_QUERY true
 
 SSB *workload;
 SSBQueries *ssb_queries;
@@ -219,85 +218,84 @@ static void query43(benchmark::State &state) {
   }
 }
 
-
 static void ssb_query11(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q11();
-    }
+  for (auto _ : state) {
+    ssb_queries->q11();
+  }
 }
 
 static void ssb_query12(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q12();
-    }
+  for (auto _ : state) {
+    ssb_queries->q12();
+  }
 }
 
 static void ssb_query13(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q13();
-    }
+  for (auto _ : state) {
+    ssb_queries->q13();
+  }
 }
 
 static void ssb_query21(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q21();
-    }
+  for (auto _ : state) {
+    ssb_queries->q21();
+  }
 }
 
 static void ssb_query22(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q22();
-    }
+  for (auto _ : state) {
+    ssb_queries->q22();
+  }
 }
 
 static void ssb_query23(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q23();
-    }
+  for (auto _ : state) {
+    ssb_queries->q23();
+  }
 }
 
 static void ssb_query31(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q31();
-    }
+  for (auto _ : state) {
+    ssb_queries->q31();
+  }
 }
 
 static void ssb_query32(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q32();
-    }
+  for (auto _ : state) {
+    ssb_queries->q32();
+  }
 }
 
 static void ssb_query33(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q33();
-    }
+  for (auto _ : state) {
+    ssb_queries->q33();
+  }
 }
 
 static void ssb_query34(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q34();
-    }
+  for (auto _ : state) {
+    ssb_queries->q34();
+  }
 }
 
 static void ssb_query41(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q41();
-    }
+  for (auto _ : state) {
+    ssb_queries->q41();
+  }
 }
 
 static void ssb_query42(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q42();
-    }
+  for (auto _ : state) {
+    ssb_queries->q42();
+  }
 }
 
 static void ssb_query43(benchmark::State &state) {
-    for (auto _ : state) {
-        ssb_queries->q43();
-    }
+  for (auto _ : state) {
+    ssb_queries->q43();
+  }
 }
-#ifdef SSB_QUERY
+
 BENCHMARK(ssb_query11);
 BENCHMARK(ssb_query12);
 BENCHMARK(ssb_query13);
@@ -311,21 +309,6 @@ BENCHMARK(ssb_query34);
 BENCHMARK(ssb_query41);
 BENCHMARK(ssb_query42);
 BENCHMARK(ssb_query43);
-#else
-BENCHMARK(query11);
-BENCHMARK(query12);
-BENCHMARK(query13);
-BENCHMARK(query21);
-BENCHMARK(query22);
-BENCHMARK(query23);
-BENCHMARK(query31);
-BENCHMARK(query32);
-BENCHMARK(query33);
-BENCHMARK(query34);
-BENCHMARK(query41);
-BENCHMARK(query42);
-BENCHMARK(query43);
-#endif
 
 // TODO: Refactor this using C++ command line arg parser.
 AggregateType get_agg_type(int argc, char *argv[]) {
@@ -373,7 +356,8 @@ int get_test(int argc, char *argv[]) {
       auto v = std::string(argv[i]);
       if (!v.compare("ssb")) {
         bench_type = SSB_WORKLOAD;
-        std::cout << "Please use \"ssb_queries\" instead of \"ssb\"." << std::endl;
+        std::cout << "Please use \"ssb_queries\" instead of \"ssb\"."
+                  << std::endl;
         exit(1);
       } else if (!v.compare("tatp")) {
         bench_type = TATP_WORKLOAD;
@@ -382,14 +366,15 @@ int get_test(int argc, char *argv[]) {
         bench_type = AGGREGATE_WORKLOAD;
         std::cout << "Benchmark using aggregate workload" << std::endl;
       } else if (!v.compare("ssb_queries")) {
-          bench_type = SSB_QUERIES_WORKLOAD;
-          std::cout << "Benchmark using SSB query based workload" << std::endl;
+        bench_type = SSB_QUERIES_WORKLOAD;
+        std::cout << "Benchmark using SSB query based workload" << std::endl;
       } else {
-        std::cerr << "Expected --benchmark [ssb | aggregate | ssb_queries], got " << v
-                  << std::endl;
+        std::cerr
+            << "Expected --benchmark [ssb | aggregate | ssb_queries], got " << v
+            << std::endl;
         exit(1);
       }
-    } 
+    }
   }
   return bench_type;
 }
@@ -399,29 +384,20 @@ int ssb_main(int argc, char *argv[]) {
 
   std::cout << "Started initializing with the required data ..." << std::endl;
   read_from_csv();
-
-  if (DEBUG) {
-    workload = new SSB(0, true, agg_type);
-    workload->q11();
-    workload->q12();
-    workload->q13();
-    workload->q21_lip();
-    workload->q22_lip();
-    workload->q23_lip();
-    workload->q31_lip();
-    workload->q32_lip();
-    workload->q33_lip();
-    workload->q34_lip();
-    workload->q41_lip();
-    workload->q42_lip();
-    workload->q43_lip();
-  } else {
-    workload = new SSB(0, false, agg_type);
-    ::benchmark::Initialize(&argc, argv);
-
-    std::cout << "Stated running benchmarks ..." << std::endl;
-    ::benchmark::RunSpecifiedBenchmarks();
-  }
+  workload = new SSB(0, true, agg_type);
+  workload->q11();
+  workload->q12();
+  workload->q13();
+  workload->q21_lip();
+  workload->q22_lip();
+  workload->q23_lip();
+  workload->q31_lip();
+  workload->q32_lip();
+  workload->q33_lip();
+  workload->q34_lip();
+  workload->q41_lip();
+  workload->q42_lip();
+  workload->q43_lip();
   return 0;
 }
 
@@ -452,45 +428,44 @@ int aggregate_main(int argc, char *argv[]) {
 }
 
 int run_ssb_queries() {
-    ssb_queries = new SSBQueries(DEBUG);
-    if (DEBUG) {
-        ssb_queries->q11();
-        ssb_queries->q12();
-        ssb_queries->q13();
-        ssb_queries->q21();
-        ssb_queries->q22();
-        ssb_queries->q23();
-        ssb_queries->q31();
-        ssb_queries->q32();
-        ssb_queries->q33();
-        ssb_queries->q34();
-        ssb_queries->q41();
-        ssb_queries->q42();
-        ssb_queries->q43();
-    } else {
-        ::benchmark::Initialize(NULL, NULL);
+  ssb_queries = new SSBQueries(DEBUG);
+  if (DEBUG) {
+    ssb_queries->q11();
+    ssb_queries->q12();
+    ssb_queries->q13();
+    ssb_queries->q21();
+    ssb_queries->q22();
+    ssb_queries->q23();
+    ssb_queries->q31();
+    ssb_queries->q32();
+    ssb_queries->q33();
+    ssb_queries->q34();
+    ssb_queries->q41();
+    ssb_queries->q42();
+    ssb_queries->q43();
+  } else {
+    ::benchmark::Initialize(NULL, NULL);
 
-        std::cout << "Stated running ssb query benchmarks ..." << std::endl;
-        ::benchmark::RunSpecifiedBenchmarks();
-
-    }
-    delete ssb_queries;
-    return 0;
+    std::cout << "Stated running ssb query benchmarks ..." << std::endl;
+    ::benchmark::RunSpecifiedBenchmarks();
+  }
+  delete ssb_queries;
+  return 0;
 }
 
 int main(int argc, char *argv[]) {
   int benchmark_type = get_test(argc, argv);
 
   if (benchmark_type == AGGREGATE_WORKLOAD) {
-      return aggregate_main(argc, argv);
+    return aggregate_main(argc, argv);
   } else if (benchmark_type == SSB_WORKLOAD) {
-      return ssb_main(argc, argv);
+    return ssb_main(argc, argv);
   } else if (benchmark_type == TATP_WORKLOAD) {
-      TATP tatp;
-      tatp.RunBenchmark();
-      return 0;
+    TATP tatp;
+    tatp.RunBenchmark();
+    return 0;
   } else if (benchmark_type == SSB_QUERIES_WORKLOAD) {
-      return run_ssb_queries();
+    return run_ssb_queries();
   }
 
   std::cerr << "Abort: Wrong benchmark type: " << benchmark_type << std::endl;
