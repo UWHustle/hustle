@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <vector>
+#include <string.h>
 
 #include "absl/strings/numbers.h"
 #include "util.h"
@@ -240,12 +241,14 @@ void Block::ComputeByteSize() {
             auto valid_col =
                     std::static_pointer_cast<arrow::BooleanArray>(arrow::MakeArray(valid));
             char **azVals = &azCols[num_cols];
-
-            for (int i = 0; i < num_cols; i++) {
+            int i = 0;
+            for (i = 0; i < num_cols; i++) {
                 switch (schema->field(i)->type()->id()) {
                     case arrow::Type::STRING: {
                         auto col = std::static_pointer_cast<arrow::StringArray>(arrays[i]);
-                        azVals[i] = (char*)col->GetString(row).c_str();
+                        azVals[i] = (char*)malloc(col->GetString(row).length()+1);
+                        memcpy(azVals[i], (char*)col->GetString(row).c_str(), col->GetString(row).length());
+                        azVals[i][col->GetString(row).length()] = 0;
                         break;
                     }
                     case arrow::Type::type::FIXED_SIZE_BINARY: {
@@ -256,7 +259,9 @@ void Block::ComputeByteSize() {
                     }
                     case arrow::Type::type::INT64: {
                         auto col = std::static_pointer_cast<arrow::Int64Array>(arrays[i]);
-                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
+                        azVals[i] = (char*)malloc(std::to_string(col->Value(row)).length()+1);
+                        memcpy(azVals[i], (char*)std::to_string(col->Value(row)).c_str(), std::to_string(col->Value(row)).length());
+                        azVals[i][std::to_string(col->Value(row)).length()] = 0;
                         break;
                     }
                     case arrow::Type::type::UINT32: {
@@ -286,7 +291,9 @@ void Block::ComputeByteSize() {
                     }
                 }
             }
+            azVals[i] = 0;
             callback(pArg, num_cols, azVals, azCols);
+            for (int i = 0; i < num_cols; i++) {free(azVals[i]);}
         }
         free(azCols);
     }

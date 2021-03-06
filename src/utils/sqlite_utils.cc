@@ -18,7 +18,7 @@
 #include "utils/sqlite_utils.h"
 
 #include <iostream>
-
+#include <stdio.h>
 #include "absl/strings/str_cat.h"
 #include "sqlite3/sqlite3.h"
 
@@ -30,13 +30,14 @@ namespace {
 // The callback function used by sqlite
 static int callback_print_plan(void *result, int argc, char **argv,
                                char **azColName) {
-  for (int i = 0; i < argc; i++) {
-    if (std::strcmp(azColName[i], "detail") == 0) {
-      absl::StrAppend((std::string *)result, argv[i]);
-      absl::StrAppend((std::string *)result, "\n");
-    }
-  }
-  return 0;
+        for (int i = 0; i < argc; i++) {
+            if (i != 0) {
+                absl::StrAppend((std::string *) result, " | ");
+            }
+            absl::StrAppend((std::string *)result, argv[i] ? argv[i] : "NULL");
+        }
+        absl::StrAppend((std::string *)result, "\n");
+        return 0;
 }
 
 }  // namespace
@@ -82,8 +83,8 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
             sqlite3_errmsg(db));
   }
 
-  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", callback_print_plan,
-                    &result, &zErrMsg);
+  rc = sqlite3_exec(db, "PRAGMA journal_mode=WAL;", NULL,
+                    NULL, &zErrMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -93,6 +94,7 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
   rc = sqlite3_exec(db, sql.c_str(), callback_print_plan, &result, &zErrMsg);
 
   if (rc != SQLITE_OK) {
+      std::cerr << "SQL error " << std::endl;
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
   }
@@ -128,7 +130,7 @@ bool executeSqliteNoOutput(const std::string &sqlitePath,
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
   }
-  rc = sqlite3_exec(db, sql.c_str(), nullptr, 0, &zErrMsg);
+  rc = sqlite3_exec(db, sql.c_str(),  callback_print_plan, 0, &zErrMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
