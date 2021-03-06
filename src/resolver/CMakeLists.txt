@@ -21,6 +21,7 @@ target_link_libraries(hustle_resolver_test
         hustle_src_catalog
         sqlite3
         hustleDB
+        hustle_src_operators
         hustle_src_storage
         hustle_src_resolver
         )

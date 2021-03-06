@@ -1,10 +1,30 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Created by SURYADEV on 14/02/21.
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 #include "ssb_queries.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
+
 
 namespace hustle::operators {
-    SSBQueries::SSBQueries() {
+    SSBQueries::SSBQueries(bool is_output_enabled) {
+        this->is_output_enabled = is_output_enabled;
         std::filesystem::remove_all("db_directory");
         hustle_db = std::make_shared<HustleDB>("db_directory");
         // it will only start if it is not running.
@@ -220,88 +240,163 @@ namespace hustle::operators {
         lineorder.addColumn(lo_shipmode);
         lineorder.setPrimaryKey({});
         lo_schema = lineorder.getArrowSchema();
-        /*
-        DBTable::TablePtr t;
 
-        t = read_from_csv_file("../../../ssb/data/customer.tbl", c_schema,
-                               20 * BLOCK_SIZE);
-        write_to_file("../../../ssb/data/customer.hsl", *t);
-
-        t = read_from_csv_file("../../../ssb/data/supplier.tbl", s_schema,
-                               20 * BLOCK_SIZE);
-        write_to_file("../../../ssb/data/supplier.hsl", *t);
-
-        t = read_from_csv_file("../../../ssb/data/date.tbl", d_schema,
-                               20 * BLOCK_SIZE);
-        write_to_file("../../../ssb/data/date.hsl", *t);
-
-        t = read_from_csv_file("../../../ssb/data/part.tbl", p_schema,
-                               20 * BLOCK_SIZE);
-        write_to_file("../../../ssb/data/part.hsl", *t);
-
-        t = read_from_csv_file("../../../ssb/data/lineorder.tbl", lo_schema,
-                               20 * BLOCK_SIZE);
-        write_to_file("../../../ssb/data/lineorder.hsl", *t);*/
 
         std::cout << "read the table files..." << std::endl;
         DBTable::TablePtr lo, c, s, p, d;
-        lo = read_from_file("../../../ssb/data/lineorder.hsl", true, "lineorder");
-        d = read_from_file("../../../ssb/data/date.hsl", true, "ddate");
-        p = read_from_file("../../../ssb/data/part.hsl", true, "part");
-        c = read_from_file("../../../ssb/data/customer.hsl", true, "customer");
-        s = read_from_file("../../../ssb/data/supplier.hsl", true, "supplier");
 
+        lo = std::make_shared<hustle::storage::DBTable>("lineorder", lo_schema, BLOCK_SIZE);
+        d = std::make_shared<hustle::storage::DBTable>("ddate", d_schema,
+                                                        BLOCK_SIZE);
+        p = std::make_shared<hustle::storage::DBTable>("part", p_schema,
+                                                        BLOCK_SIZE);
+        c = std::make_shared<hustle::storage::DBTable>("customer", c_schema,
+                                                        BLOCK_SIZE);
+        s = std::make_shared<hustle::storage::DBTable>("supplier", s_schema,
+                                                       BLOCK_SIZE);
         hustle_db->createTable(supplier, s);
         hustle_db->createTable(customer, c);
         hustle_db->createTable(ddate, d);
         hustle_db->createTable(part, p);
         hustle_db->createTable(lineorder, lo);
+
+        FILE* stream = fopen("../../../ssb/data/lineorder.tbl", "r");
+        char line[2048];
+        std::string query = "BEGIN TRANSACTION;";
+        int count = 0;
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            query += "INSERT INTO lineorder VALUES ("+std::string(fields[0])+", "+std::string(fields[1])+", "+std::string(fields[2])+", "+std::string(fields[3])+ ","\
+        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', '"+std::string(fields[7])+"', "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", "+std::string(fields[12])+", "+std::string(fields[13])+", "+std::string(fields[14])+", "+std::string(fields[15])+", '"+std::string(fields[16])+"');\n";
+            count++;
+            if (count == 10000) {
+                query += "COMMIT;";
+                hustle_db->executeQuery(query);
+                query = "BEGIN TRANSACTION;";
+            }
+        }
+        if (count != 2000) {
+            query += "COMMIT;";
+            hustle_db->executeQuery(query);
+        }
+        std::cout << "lineorder done" << std::endl;
+
+        stream = fopen("../../../ssb/data/part.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            query +=  "INSERT INTO part VALUES ("+std::string(fields[0])+", '"+std::string(fields[1])+"', '"+std::string(fields[2])+"', '"+std::string(fields[3])+"', "\
+        "'"+std::string(fields[4])+"', '"+std::string(fields[5])+"', '"+std::string(fields[6])+"', "+std::string(fields[7])+", '"+std::string(fields[8])+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+        std::cout << "part done" << std::endl;
+
+        stream = fopen("../../../ssb/data/supplier.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            //std::cout << line << std::endl;
+            char** fields = getfields(tmp, 17);
+             query += "INSERT INTO supplier VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2])+"', '"+ std::string(fields[3])+"', "\
+        "'"+ std::string(fields[4])+"', '"+ std::string(fields[5])+"', '"+std::string(fields[6])+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+        std::cout << "supplier done" << std::endl;
+
+        stream = fopen("../../../ssb/data/customer.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+             query += "INSERT INTO customer VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) +"', "\
+        "'"+ std::string(fields[4]) +"', '"+std::string(fields[5]) +"', '"+std::string(fields[6])+"', '"+std::string(fields[7])+"');\n";
+            //hustle_db->executeQuery(query);
+
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+        std::cout << "customer done" << std::endl;
+
+        stream = fopen("../../../ssb/data/date.tbl", "r");
+        query = "BEGIN TRANSACTION;";
+        while (fgets(line, 2048, stream)) {
+            char* tmp = strdup(line);
+            char** fields = getfields(tmp, 17);
+            query += "INSERT INTO ddate VALUES ("+std::string(fields[0])+", '"+ std::string(fields[1])+"', '"+ std::string(fields[2]) +"', '"+ std::string(fields[3]) + "',"\
+        ""+std::string(fields[4])+", "+std::string(fields[5])+", '"+std::string(fields[6])+"', "+std::string(fields[7])+", "+std::string(fields[8])+", "+std::string(fields[9])+", "+std::string(fields[10])+", "+std::string(fields[11])+", '"+ std::string(fields[12]) +"', '"+std::string(fields[13])+"', '"+std::string(fields[14])+"', '"+std::string(fields[15])+"', '"+ std::string(fields[16])+"');\n";
+        }
+        query += "COMMIT;";
+        hustle_db->executeQuery(query);
+        std::cout << "date done" << std::endl;
+    }
+
+
+    char** SSBQueries::getfields (char* line, int num){
+        char **fields = (char **)malloc(num * sizeof(char*));
+        char* field;
+        int index = 0;
+        for (field = strtok(line, "|");
+             field && *field;
+             field = strtok(NULL, "|\n")) {
+            fields[index++] = field;
+        }
+        return fields;
     }
 
     void SSBQueries::q11() {
-        std::cout << "q11" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice) as "
+                "select lo_discount, count(lo_discount) as "
                 "revenue "
                 "from lineorder, ddate "
-                "where lo_orderdate = d_datekey and d_year = 1993 and ((lo_discount "
-                "between 1 and 3) and lo_quantity < 25);";
-        query =
-                "select sum(lo_extendedprice) as "
-                "revenue "
-                "from lineorder "
-                "where  lo_quantity < 25;";
-        hustle_db->executeQuery(query);
+                "where lo_orderdate = d_datekey and d_year = 1993 and (lo_discount "
+                "between 1 and 3) "
+                "group by lo_discount "
+                "order by lo_discount";
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q12() {
-        std::cout << "q12" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice * lo_discount) as "
+                "select d_yearmonthnum, sum(lo_extendedprice) as "
                 "revenue\n"
                 "from lineorder, ddate\n"
                 "where lo_orderdate = d_datekey\n"
-                "and d_yearmonthnum = 199401\n"
-                "and (lo_discount BETWEEN 4 and 6\n"
-                "and lo_quantity BETWEEN 26 and 35);";
-        hustle_db->executeQuery(query);
+                "and (d_yearmonthnum = 199401)\n"
+                "and (lo_discount >= 4 and lo_discount <= 6\n"
+                "and lo_quantity >= 26 and lo_quantity <= 35)\n"
+                "group by d_yearmonthnum\n"
+                "order by d_yearmonthnum;";
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q13() {
-        std::cout << "q13" << std::endl;
         std::string query =
-                "select sum(lo_extendedprice * lo_discount) as "
+                "select d_year, d_weeknuminyear, sum(lo_extendedprice) as "
                 "revenue\n"
                 "from lineorder, ddate\n"
                 "where lo_orderdate = d_datekey\n"
-                "and d_weeknuminyear = 6 and d_year = 1994\n"
-                "and (lo_discount BETWEEN 5 and 7\n"
-                "and lo_quantity BETWEEN 36 and 40);";
-        hustle_db->executeQuery(query);
+                "and (d_weeknuminyear = 6 and d_year = 1994)\n"
+                "and (lo_discount >= 5 and lo_discount <= 7\n"
+                "and lo_quantity >= 36 and lo_quantity <= 40)\n"
+                "group by d_year, d_weeknuminyear\n"
+                "order by d_year, d_weeknuminyear;";
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q21() {
-        std::cout << "q21" << std::endl;
         std::string query =
                 "select sum(lo_revenue), d_year, p_brand1\n"
                 "from lineorder, ddate, part, supplier\n"
@@ -312,8 +407,10 @@ namespace hustle::operators {
                 "and s_region = 'AMERICA'\n"
                 "group by d_year, p_brand1\n"
                 "order by d_year, p_brand1;";
-        hustle_db->executeQuery(query);
-    }
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }    }
 
     void SSBQueries::q22() {
         std::string query =
@@ -326,7 +423,10 @@ namespace hustle::operators {
                 "\t\tand s_region = 'ASIA'\n"
                 "\tgroup by d_year, p_brand1\n"
                 "\torder by d_year, p_brand1;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q23() {
@@ -340,7 +440,10 @@ namespace hustle::operators {
                 "\t\tand s_region = 'EUROPE'\n"
                 "\tgroup by d_year, p_brand1\n"
                 "\torder by d_year, p_brand1;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q31() {
@@ -353,10 +456,13 @@ namespace hustle::operators {
                 "\t\tand lo_orderdate = d_datekey\n"
                 "\t\tand c_region = 'ASIA'\n"
                 "\t\tand s_region = 'ASIA'\n"
-                "\t\tand d_year >= 1992 and d_year <= 1997\n"
+                "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_nation, s_nation, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q32() {
@@ -369,10 +475,13 @@ namespace hustle::operators {
                 "\t\tand lo_orderdate = d_datekey\n"
                 "\t\tand c_nation = 'UNITED STATES'\n"
                 "\t\tand s_nation = 'UNITED STATES'\n"
-                "\t\tand d_year >= 1992 and d_year <= 1997\n"
+                "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q33() {
@@ -387,10 +496,13 @@ namespace hustle::operators {
                 "\t\tand (c_city='UNITED KI1' or c_city='UNITED KI5'))\n"
                 "\t\tand ((s_city='UNITED KI1' or s_city='UNITED KI5')\n"
                 "\t\tand s_nation = 'UNITED_KINGDOM')\n"
-                "\t\tand d_year >= 1992 and d_year <= 1997\n"
+                "\t\tand (d_year >= 1992 and d_year <= 1997)\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q34() {
@@ -408,7 +520,10 @@ namespace hustle::operators {
                 "\t\tand d_yearmonth = 'Dec1997'\n"
                 "\tgroup by c_city, s_city, d_year\n"
                 "\torder by d_year, revenue;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q41() {
@@ -425,7 +540,10 @@ namespace hustle::operators {
                 "\t\tand (p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2')\n"
                 "\tgroup by d_year, c_nation\n"
                 "\torder by d_year, c_nation;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q42() {
@@ -443,7 +561,10 @@ namespace hustle::operators {
                 "\t\tand (p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2')\n"
                 "\tgroup by d_year, s_nation, p_category\n"
                 "\torder by d_year, s_nation, p_category;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
 
     void SSBQueries::q43() {
@@ -461,8 +582,9 @@ namespace hustle::operators {
                 "\t\tand p_category = 'MFGR#14'\n"
                 "\tgroup by d_year, s_city, p_brand1\n"
                 "\torder by d_year, s_city, p_brand1;";
-        hustle_db->executeQuery(query);
+        std::string result = hustle_db->executeQuery(query);
+        if (this->is_output_enabled) {
+            std::cout << result << std::endl;
+        }
     }
-
-
 }

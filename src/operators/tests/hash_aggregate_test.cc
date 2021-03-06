@@ -244,7 +244,7 @@ TEST_F(HashAggregateTestFixture, CountTest) {
 //    status = int_builder.Append(90);
 //    status = int_builder.Finish(&expected_agg_col_1);
 //
-//    EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_agg_col_1));
+//    EXPECT_TRUE(out_table->MaterializeColumn(0)->chunk(0)->Equals(expected_agg_col_1));
 //}
 
 /*

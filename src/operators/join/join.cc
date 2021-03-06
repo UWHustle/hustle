@@ -113,10 +113,10 @@ void Join::HashJoin(int join_id, Task *ctx) {
       CreateLambdaTask([this, join_id](Task *internal) {
         left_ = prev_result_->get_table(lefts_[join_id].table);
         right_ = prev_result_->get_table(rights_[join_id].table);
-        left_.get_column_by_name(internal, left_col_names_[join_id],
-                                 left_join_col_);
-        right_.get_column_by_name(internal, right_col_names_[join_id],
-                                  right_join_col_);
+          left_.MaterializeColumn(internal, left_col_names_[join_id],
+                                  left_join_col_);
+          right_.MaterializeColumn(internal, right_col_names_[join_id],
+                                   right_join_col_);
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
         // Build phase
@@ -419,7 +419,7 @@ OperatorResult::OpResultPtr Join::BackPropogateResult(
   } else {
     new_index_chunks = left_index_chunks;
   }
-  output_lazy_tables.emplace_back(left.table, left.filter, new_indices,
+  output_lazy_tables.emplace_back(left.table, arrow::Datum(), new_indices,
                                   new_index_chunks, left.hash_table());
 
   // Update the indices of the right LazyTable. If there was no previous
@@ -435,7 +435,7 @@ OperatorResult::OpResultPtr Join::BackPropogateResult(
     new_indices = right_indices_of_indices;
   }
   new_index_chunks = arrow::Datum();
-  output_lazy_tables.emplace_back(right.table, right.filter, new_indices,
+  output_lazy_tables.emplace_back(right.table, arrow::Datum(), new_indices,
                                   new_index_chunks, right.hash_table());
 
   // Propogate the join to the other tables in the previous OperatorResult.
@@ -449,12 +449,12 @@ OperatorResult::OpResultPtr Join::BackPropogateResult(
                      .Value(&new_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-        output_lazy_tables.emplace_back(lazy_table.table, lazy_table.filter,
+        output_lazy_tables.emplace_back(lazy_table.table, arrow::Datum(),
                                         new_indices, arrow::Datum(),
                                         lazy_table.hash_table());
       } else {
         output_lazy_tables.emplace_back(
-            lazy_table.table, lazy_table.filter, lazy_table.indices,
+            lazy_table.table, arrow::Datum(), lazy_table.indices,
             lazy_table.index_chunks, lazy_table.hash_table());
       }
     }

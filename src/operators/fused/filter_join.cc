@@ -305,8 +305,8 @@ void FilterJoin::Initialize(Task *ctx) {
   for (size_t table_idx = 0; table_idx < dim_tables_.size(); table_idx++) {
     ctx->spawnLambdaTask([this, table_idx](Task *internal) {
       auto fact_join_col_name = fact_fk_col_names_[table_idx];
-      fact_table_.get_column_by_name(internal, fact_join_col_name,
-                                     fact_fk_cols_[fact_join_col_name]);
+        fact_table_.MaterializeColumn(internal, fact_join_col_name,
+                                      fact_fk_cols_[fact_join_col_name]);
     });
   }
 }
@@ -421,13 +421,13 @@ void FilterJoin::Finish() {
 
   std::vector<LazyTable> output_lazy_tables;
   // Create a new lazy fact table with the new index array
-  output_lazy_tables.emplace_back(fact_table_.table, fact_table_.filter,
+  output_lazy_tables.emplace_back(fact_table_.table, arrow::Datum(),
                                   fact_indices, fact_index_chunks);
   // Add all dimension tables to the output without changing them.
   for (size_t dim_tbl_idx = 0; dim_tbl_idx < dim_tables_.size();
        dim_tbl_idx++) {
     output_lazy_tables.emplace_back(dim_tables_[dim_tbl_idx].table,
-                                    dim_tables_[dim_tbl_idx].filter,
+                                    arrow::Datum(),
                                     dim_indices[dim_tbl_idx], arrow::Datum(),
                                     dim_tables_[dim_tbl_idx].hash_table());
   }

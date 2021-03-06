@@ -27,6 +27,7 @@
 #include "operators/fused/filter_join.h"
 #include "operators/fused/select_build_hash.h"
 #include "operators/select/select.h"
+#include "operators/select/predicate.h"
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
 #include "scheduler/threading/synchronization_lock.h"
@@ -246,7 +247,6 @@ std::shared_ptr<hustle::storage::DBTable> execute(
     hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
   std::shared_ptr<hustle::storage::DBTable> out_table;
   using namespace hustle::operators;
-
   hustle::Scheduler &scheduler = hustle::HustleDB::getScheduler();
   SynchronizationLock sync_lock;
 
@@ -260,9 +260,10 @@ std::shared_ptr<hustle::storage::DBTable> execute(
       }),
       hustle::CreateLambdaTask([&plan, &out_table, &sync_lock] {
         OperatorResult::OpResultPtr agg_result_out = plan->getOperatorResult();
-        std::shared_ptr<hustle::storage::DBTable> out_table =
+        out_table =
             agg_result_out->materialize(plan->getResultColumns());
-        out_table->print();
+        //out_table->print();
+
         sync_lock.release();
       })));
   sync_lock.wait();
@@ -270,7 +271,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
   return out_table;
 }
 
-int resolveSelect(char *dbName, Sqlite3Select *queryTree) {
+int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs, sqlite3_callback xCallback) {
   // TODO: (@srsuryadev) resolve the select query
   // return 0 if query is supported in column store else return 1
   using hustle::resolver::SelectResolver;
@@ -286,6 +287,7 @@ int resolveSelect(char *dbName, Sqlite3Select *queryTree) {
     if (plan != nullptr) {
       std::shared_ptr<hustle::storage::DBTable> outTable =
           execute(plan, select_resolver, catalog);
+      outTable->out_table(pArgs, xCallback);
     } else {
       return 0;
     }

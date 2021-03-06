@@ -85,7 +85,7 @@ class LazyTable {
    * @return A new ChunkedArray column containing only active rows of the
    * column.
    */
-  std::shared_ptr<arrow::ChunkedArray> get_column(int i);
+  std::shared_ptr<arrow::ChunkedArray> MaterializeColumn(int i);
 
   std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table() {
     return hash_table_;
@@ -100,11 +100,11 @@ class LazyTable {
    * @return A new ChunkedArray column containing only active rows of the
    * column.
    */
-  std::shared_ptr<arrow::ChunkedArray> get_column_by_name(std::string col_name);
+  std::shared_ptr<arrow::ChunkedArray> MaterializeColumn(std::string col_name);
 
-  void get_column_by_name(Task* ctx, std::string col_name, arrow::Datum& out);
+  void MaterializeColumn(Task* ctx, std::string col_name, arrow::Datum& out);
 
-  void get_column(Task* ctx, int i, arrow::Datum& out);
+  void MaterializeColumn(Task* ctx, int i, arrow::Datum& out);
 
   inline void set_materialized_column(
       int i, std::shared_ptr<arrow::ChunkedArray> col) {

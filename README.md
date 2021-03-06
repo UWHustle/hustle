@@ -49,7 +49,7 @@ sh ./scripts/ssb/gen_benchmark_data.sh ${SCALE_FACTOR}
 To run the ssb benchmark,
 
 ```
-sh ./scripts/ssb/run_benchmark.sh ssb [arrow_aggregate | hash_aggregate]
+sh ./scripts/ssb/run_benchmark.sh  ssb_queries
 ```
 
 To run the tatp benchmark,

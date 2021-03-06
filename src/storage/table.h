@@ -25,11 +25,13 @@
 #include <unordered_map>
 #include <utility>
 
-#include "cmemlog.h"
 #include "storage/block.h"
+#include "storage/cmemlog.h"
 #include "storage/ma_block.h"
 
 #define ENABLE_METADATA_BY_DEFAULT true
+
+typedef int (*sqlite3_callback)(void *, int, char **, char **);
 
 namespace hustle::storage {
 
@@ -101,7 +103,7 @@ class DBTable {
     std::shared_ptr<Block> block;
     if (metadata_enabled) {
       block = std::make_shared<MetadataAttachedBlock>(block_id, schema,
-                                                     block_capacity);
+                                                      block_capacity);
     } else {
       block = std::make_shared<Block>(block_id, schema, block_capacity);
     }
@@ -298,6 +300,20 @@ class DBTable {
     }
   }
 
+  /**
+   * Outputs the table contents to the callback fn passed.
+   * @param pArg call back arg to return the result from it
+   * @param callback  output callback format (sqlite3 compatible)
+   */
+  inline void out_table(void *pArgs, sqlite3_callback callback) {
+    if (blocks.empty()) {
+      std::cout << "Table is empty." << std::endl;
+    } else {
+      for (const auto &[blk_idx, blk] : blocks) {
+        blk->out_block(pArgs, callback);
+      }
+    }
+  }
   /**
    * Get valid-bit column of all blocks in the table.
    *

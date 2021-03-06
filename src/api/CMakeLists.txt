@@ -20,3 +20,4 @@ target_link_libraries(hustle_hustleDB_test
         hustleDB
         )
 add_test(HustleDB_test hustle_hustleDB_test)
+

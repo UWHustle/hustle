@@ -39,22 +39,23 @@ void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
   table_map[db_id][root_page_id] = std::string(table_name);
 }
 
-void memlog_add_column_change(int db_id, int root_page_id, char* column_info) {
-  std::string new_column = std::string(column_info); 
-  std::vector<std::string> result; 
-  std::istringstream iss(new_column); 
+void memlog_add_column_change(int db_id, int root_page_id, char *column_info) {
+  std::string new_column = std::string(column_info);
+  std::vector<std::string> result;
+  std::istringstream iss(new_column);
   std::string s;
-  while (iss >> s) { 
+  while (iss >> s) {
     result.push_back(s);
-  } 
+  }
 
   // TODO (@suryadev): Update the hustle schema based on the sqlite3 changes
 }
 
-void memlog_remove_table_mapping(int db_id, char* db_name, char *tbl_name) {
+void memlog_remove_table_mapping(int db_id, char *db_name, char *tbl_name) {
   std::lock_guard<std::mutex> lock(instance_lock);
   using namespace hustle;
-  std::shared_ptr<catalog::Catalog> catalog = HustleDB::getCatalog(std::string(db_name));
+  std::shared_ptr<catalog::Catalog> catalog =
+      HustleDB::getCatalog(std::string(db_name));
   auto table_itr = table_map[db_id].begin();
   std::string tbl_name_str = std::string(tbl_name);
   while (table_itr != table_map[db_id].end()) {
@@ -216,7 +217,12 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         while (idx < hdrLen) {
           u32 typeLen;
           nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
-          byte_widths.emplace_back(serialTypeLen(typeLen));
+          // Add the byte width to the vector, if its 0 or 1 sqlite3 serial encoding
+          // add the negative serial encoding value
+          // TODO (@suryadev) : Instead of bytewidth pass on the serial encoding throughout the call
+          byte_widths.emplace_back((typeLen == ZERO_TYPE_ENCODING || typeLen == ONE_TYPE_ENCODING)
+                                       ? -typeLen
+                                       : serialTypeLen(typeLen));
           idx += nBytes;
         }
 
@@ -230,12 +236,11 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
           }
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
-            table->InsertRecordTable(head->rowId, record_data + hdrLen,
-                                       widths);
+            table->InsertRecordTable(head->rowId, record_data + hdrLen, widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
             table->UpdateRecordTable(head->rowId, head->nUpdateMetaInfo,
-                                       head->updateMetaInfo,
-                                       record_data + hdrLen, widths);
+                                     head->updateMetaInfo, record_data + hdrLen,
+                                     widths);
           }
         }
       }
