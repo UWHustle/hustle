@@ -116,7 +116,7 @@ TEST(HustleDB, getPlan) {
   std::string plan =
       hustleDB.getPlan("EXPLAIN QUERY PLAN SELECT c1,c2 FROM Subscriber;");
 
-  EXPECT_EQ(plan, "SCAN TABLE Subscriber\n");
+  EXPECT_EQ(plan, "2 | 0 | 0 | SCAN TABLE Subscriber\n");
 
   std::filesystem::remove_all("db_directory");
 }

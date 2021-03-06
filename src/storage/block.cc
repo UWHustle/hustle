@@ -18,10 +18,10 @@
 #include "block.h"
 
 #include <arrow/scalar.h>
+#include <string.h>
 
 #include <iostream>
 #include <vector>
-#include <string.h>
 
 #include "absl/strings/numbers.h"
 #include "util.h"
@@ -131,7 +131,10 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
 
 Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
              int capacity, bool enable_metadata)
-    : capacity(capacity), id(id), num_bytes(0), metadata_enabled(enable_metadata){
+    : capacity(capacity),
+      id(id),
+      num_bytes(0),
+      metadata_enabled(enable_metadata) {
   arrow::Status status;
   num_rows = record_batch->num_rows();
   schema = std::move(record_batch->schema());
@@ -226,77 +229,88 @@ void Block::ComputeByteSize() {
   }
 }
 
-    void Block::print_result(void *pArg, sqlite3_callback callback) {
-        // Create Arrays from ArrayData so we can easily read column data
-        std::vector<std::shared_ptr<arrow::Array>> arrays;
-        for (int i = 0; i < num_cols; i++) {
-            arrays.push_back(arrow::MakeArray(columns[i]));
+void Block::out_block(void *pArg, sqlite3_callback callback) {
+  // Create Arrays from ArrayData so we can easily read column data
+  std::vector<std::shared_ptr<arrow::Array>> arrays;
+  for (int i = 0; i < num_cols; i++) {
+    arrays.push_back(arrow::MakeArray(columns[i]));
+  }
+  char **azCols = (char **)malloc((2 * num_cols + 1) * sizeof(const char *));
+  for (int i = 0; i < num_cols; i++) {
+    std::string field_name = schema->field_names().at(i);
+    azCols[i] = (char *)field_name.c_str();
+  }
+  for (int row = 0; row < num_rows; row++) {
+    auto valid_col =
+        std::static_pointer_cast<arrow::BooleanArray>(arrow::MakeArray(valid));
+    char **azVals = &azCols[num_cols];
+    int i = 0;
+    for (i = 0; i < num_cols; i++) {
+      char *col_txt = NULL;
+      size_t txt_length = 0;
+      switch (schema->field(i)->type()->id()) {
+        case arrow::Type::STRING: {
+          auto col = std::static_pointer_cast<arrow::StringArray>(arrays[i]);
+          col_txt = (char *)col->GetString(row).c_str();
+          txt_length = col->GetString(row).length();
+          break;
         }
-        char **azCols = (char**)malloc((2*num_cols+1)*sizeof(const char*));
-        for (int i = 0; i < num_cols; i++) {
-            std::string field_name  = schema->field_names().at(i);
-            azCols[i] = (char*)field_name.c_str();
+        case arrow::Type::type::FIXED_SIZE_BINARY: {
+          auto col =
+              std::static_pointer_cast<arrow::FixedSizeBinaryArray>(arrays[i]);
+          col_txt = (char *)col->GetString(row).c_str();
+          txt_length = col->GetString(row).length();
+          break;
         }
-        for (int row = 0; row < num_rows; row++) {
-            auto valid_col =
-                    std::static_pointer_cast<arrow::BooleanArray>(arrow::MakeArray(valid));
-            char **azVals = &azCols[num_cols];
-            int i = 0;
-            for (i = 0; i < num_cols; i++) {
-                switch (schema->field(i)->type()->id()) {
-                    case arrow::Type::STRING: {
-                        auto col = std::static_pointer_cast<arrow::StringArray>(arrays[i]);
-                        azVals[i] = (char*)malloc(col->GetString(row).length()+1);
-                        memcpy(azVals[i], (char*)col->GetString(row).c_str(), col->GetString(row).length());
-                        azVals[i][col->GetString(row).length()] = 0;
-                        break;
-                    }
-                    case arrow::Type::type::FIXED_SIZE_BINARY: {
-                        auto col =
-                                std::static_pointer_cast<arrow::FixedSizeBinaryArray>(arrays[i]);
-                        azVals[i] = (char*)col->GetString(row).c_str();
-                        break;
-                    }
-                    case arrow::Type::type::INT64: {
-                        auto col = std::static_pointer_cast<arrow::Int64Array>(arrays[i]);
-                        azVals[i] = (char*)malloc(std::to_string(col->Value(row)).length()+1);
-                        memcpy(azVals[i], (char*)std::to_string(col->Value(row)).c_str(), std::to_string(col->Value(row)).length());
-                        azVals[i][std::to_string(col->Value(row)).length()] = 0;
-                        break;
-                    }
-                    case arrow::Type::type::UINT32: {
-                        auto col = std::static_pointer_cast<arrow::UInt32Array>(arrays[i]);
-                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
-                        break;
-                    }
-                    case arrow::Type::type::UINT16: {
-                        auto col = std::static_pointer_cast<arrow::UInt16Array>(arrays[i]);
-                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
-                        break;
-                    }
-                    case arrow::Type::type::UINT8: {
-                        auto col = std::static_pointer_cast<arrow::UInt8Array>(arrays[i]);
-                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
-                        break;
-                    }
-                    case arrow::Type::type::DOUBLE: {
-                        auto col = std::static_pointer_cast<arrow::DoubleArray>(arrays[i]);
-                        azVals[i] = (char*)std::to_string(col->Value(row)).c_str();
-                        break;
-                    }
-                    default: {
-                        throw std::logic_error(
-                                std::string("Block created with unsupported type: ") +
-                                schema->field(i)->type()->ToString());
-                    }
-                }
-            }
-            azVals[i] = 0;
-            callback(pArg, num_cols, azVals, azCols);
-            for (int i = 0; i < num_cols; i++) {free(azVals[i]);}
+        case arrow::Type::type::INT64: {
+          auto col = std::static_pointer_cast<arrow::Int64Array>(arrays[i]);
+          col_txt = (char *)std::to_string(col->Value(row)).c_str();
+          txt_length = std::to_string(col->Value(row)).length();
+          break;
         }
-        free(azCols);
+        case arrow::Type::type::UINT32: {
+          auto col = std::static_pointer_cast<arrow::UInt32Array>(arrays[i]);
+          col_txt = (char *)std::to_string(col->Value(row)).c_str();
+          txt_length = std::to_string(col->Value(row)).length();
+          break;
+        }
+        case arrow::Type::type::UINT16: {
+          auto col = std::static_pointer_cast<arrow::UInt16Array>(arrays[i]);
+          col_txt = (char *)std::to_string(col->Value(row)).c_str();
+          txt_length = std::to_string(col->Value(row)).length();
+          break;
+        }
+        case arrow::Type::type::UINT8: {
+          auto col = std::static_pointer_cast<arrow::UInt8Array>(arrays[i]);
+          col_txt = (char *)std::to_string(col->Value(row)).c_str();
+          txt_length = std::to_string(col->Value(row)).length();
+          break;
+        }
+        case arrow::Type::type::DOUBLE: {
+          auto col = std::static_pointer_cast<arrow::DoubleArray>(arrays[i]);
+          col_txt = (char *)std::to_string(col->Value(row)).c_str();
+          txt_length = std::to_string(col->Value(row)).length();
+          break;
+        }
+        default: {
+          throw std::logic_error(
+              std::string("Block created with unsupported type: ") +
+              schema->field(i)->type()->ToString());
+        }
+      }
+      azVals[i] = (char *)malloc(txt_length + 1);
+      memcpy(azVals[i], (char *)col_txt, txt_length);
+      azVals[i][txt_length] = 0;
     }
+    callback(pArg, num_cols, azVals, azCols);
+    i = 0;
+    while (i < num_cols) {
+      free(azVals[i]);
+      i++;
+    }
+  }
+  free(azCols);
+}
 
 void Block::print() {
   // Create Arrays from ArrayData so we can easily read column data
@@ -656,25 +670,26 @@ void Block::InsertValue(int col_num, int &head, uint8_t *record_value,
     // TODO(suryadev): Study the scope for optimization
     auto *dest = columns[col_num]->GetMutableValues<field_type>(1, num_rows);
     uint8_t *value = NULL;
-      uint8_t val;
-      bool isZeroOneOpt = byte_width < 0;
+    // Handle 0 or 1 storage encoding optimization from sqlite3 record
+    bool isZeroOneOpt = byte_width < 0;
     if (isZeroOneOpt) {
-        val = -(byte_width) - 8;
-        value = &val;
-        byte_width = 0;
-        value = (uint8_t *) calloc(sizeof(field_type), sizeof(uint8_t));
-        std::memcpy(value, &val, 1);
+      // Get zero or one from encoding in negative byte width
+      uint8_t val = -(byte_width)-ZERO_TYPE_ENCODING;  // 0 or 1
+      value = &val;
+      value = (uint8_t *)calloc(sizeof(field_type), sizeof(uint8_t));
+      std::memcpy(value, &val, 1);
+      byte_width = 0;
     } else {
-        value = (uint8_t *) calloc(sizeof(field_type), sizeof(uint8_t));
-        std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
-                    byte_width);
+      value = (uint8_t *)calloc(sizeof(field_type), sizeof(uint8_t));
+      std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
+                  byte_width);
     }
     std::memcpy(dest, value, sizeof(field_type));
     head += byte_width;
     column_sizes[col_num] += sizeof(field_type);
     num_bytes += sizeof(field_type);
     if (!isZeroOneOpt) {
-        free(value);
+      free(value);
     }
   }
 

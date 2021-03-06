@@ -35,6 +35,8 @@ extern "C" {
 
 #define DEFAULT_DB_ID 0
 
+#define ZERO_TYPE_ENCODING 8
+#define ONE_TYPE_ENCODING  9
 /**
  * MemLog is a temporary in-memory store used by the SQLite write transaction
  * to record the updates and during commit, the records in the Memlog are

@@ -217,7 +217,10 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         while (idx < hdrLen) {
           u32 typeLen;
           nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
-          byte_widths.emplace_back((typeLen == 8 || typeLen == 9)
+          // Add the byte width to the vector, if its 0 or 1 sqlite3 serial encoding
+          // add the negative serial encoding value
+          // TODO (@suryadev) : Instead of bytewidth pass on the serial encoding throughout the call
+          byte_widths.emplace_back((typeLen == ZERO_TYPE_ENCODING || typeLen == ONE_TYPE_ENCODING)
                                        ? -typeLen
                                        : serialTypeLen(typeLen));
           idx += nBytes;

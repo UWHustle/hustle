@@ -287,7 +287,7 @@ int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs, sqlite3_c
     if (plan != nullptr) {
       std::shared_ptr<hustle::storage::DBTable> outTable =
           execute(plan, select_resolver, catalog);
-      outTable->print_result(pArgs, xCallback);
+      outTable->out_table(pArgs, xCallback);
     } else {
       return 0;
     }

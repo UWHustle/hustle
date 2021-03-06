@@ -197,7 +197,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
             Expr* firstExpr = pExpr->x.pList->a[0].pExpr;
             Expr* secondExpr = pExpr->x.pList->a[1].pExpr;
             if (firstExpr->op == TK_INTEGER && secondExpr->op == TK_INTEGER) {
-                std::cout << "In between resolve " << firstExpr->u.iValue << " " << secondExpr->u.iValue << std::endl;
                 ldatum = arrow::Datum((int64_t)firstExpr->u.iValue);
                 rdatum = arrow::Datum((int64_t)secondExpr->u.iValue);
                 Predicate left_predicate = {colRef, arrow::compute::CompareOperator::GREATER_EQUAL, ldatum};
@@ -252,7 +251,6 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       if (expr->iColumn > 0) {
         ColumnReference colRef = {catalog_->getTable(expr->y.pTab->zName),
                                   expr->y.pTab->aCol[expr->iColumn].zName};
-          std::cout << "AGG FUNCTION: " << agg_func_name << std::endl;
         AggregateReference aggRef = {
                aggregate_kernels_[agg_func_name],
             pEList->a[k].zEName, colRef};
@@ -266,7 +264,6 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
           return false;
         }
         ColumnReference colRef = {};
-        std::cout << "AGG FUNCTION: " << agg_func_name << std::endl;
         AggregateReference aggRef = {
             aggregate_kernels_[agg_func_name],
             pEList->a[k].zEName, colRef, expr_ref};

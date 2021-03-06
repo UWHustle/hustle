@@ -27,7 +27,7 @@
 namespace hustle::operators {
     class SSBQueries {
     public:
-        SSBQueries();
+        SSBQueries(bool is_output_enabled = false);
 
         void LoadTables();
         char** getfields (char* line, int num);
@@ -52,6 +52,7 @@ namespace hustle::operators {
         ~SSBQueries();
 
     private:
+        bool is_output_enabled;
         std::shared_ptr<HustleDB> hustle_db;
         std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
                 d_schema;

@@ -239,7 +239,12 @@ class Block {
    */
   std::map<int, int> &get_row_id_map() { return row_id_map; }
 
-  void print_result(void *pArg, sqlite3_callback callback);
+  /**
+   * Outputs the block contents to the callback fn passed.
+   * @param pArg call back arg to return the result from it
+   * @param callback  output callback format (sqlite3 compatible)
+   */
+  void out_block(void *pArg, sqlite3_callback callback);
 
     /**
    * Insert a record into the Block.
