@@ -27,7 +27,7 @@
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "ssb_workload.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 namespace hustle::operators {
 

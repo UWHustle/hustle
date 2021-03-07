@@ -25,7 +25,7 @@
 #include "resolver/cresolver.h"
 #include "resolver/select_resolver.h"
 #include "sqlite3/sqlite3.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 #include "utils/sqlite_utils_parse.h"
 #include "utils/string_utils.h"
 

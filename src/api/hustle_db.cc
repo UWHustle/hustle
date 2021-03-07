@@ -54,36 +54,36 @@ HustleDB::HustleDB(std::string DBpath)
 };
 
 std::string HustleDB::get_plan(const std::string &sql) {
-  return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
+  return utils::execute_sqlite_result(SqliteDBPath_, sql);
 }
 
 bool HustleDB::create_table(const TableSchema ts) {
-  return catalog_->addTable(ts);
+  return catalog_->AddTable(ts);
 }
 
 bool HustleDB::create_table(const TableSchema ts,
                             DBTable::TablePtr table_ref) {
-  return catalog_->addTable(ts, table_ref);
+  return catalog_->AddTable(ts, table_ref);
 }
 
 void HustleDB::load_tables() {
-  utils::loadTables(SqliteDBPath_, hustle::HustleDB::catalogs[SqliteDBPath_]->getTables());
+    utils::load_tables(SqliteDBPath_, hustle::HustleDB::catalogs[SqliteDBPath_]->GetTableNames());
 }
 
 std::string HustleDB::execute_query_result(const std::string &sql) {
-  return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
+  return utils::execute_sqlite_result(SqliteDBPath_, sql);
 }
 
 bool HustleDB::execute_query(const std::string &sql) {
-  return utils::executeSqliteNoOutput(SqliteDBPath_, sql);
+  return utils::execute_sqlite_query(SqliteDBPath_, sql);
 }
 
 bool HustleDB::drop_table(const std::string &name) {
-  return catalog_->dropTable(name);
+  return catalog_->DropTable(name);
 }
 
 bool HustleDB::drop_mem_table(const std::string &name) {
-  return catalog_->dropMemTable(name);
+  return catalog_->DropMemTable(name);
 }
 
 }  // namespace hustle

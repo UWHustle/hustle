@@ -22,7 +22,7 @@
 #include "catalog/catalog.h"
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 namespace hustle::operators {
     class SSBQueries {

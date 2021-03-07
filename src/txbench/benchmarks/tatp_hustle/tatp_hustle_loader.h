@@ -7,7 +7,7 @@
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
 #include "sqlite3/sqlite3.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 namespace txbench {
 

@@ -26,6 +26,7 @@ add_executable(hustle_src_benchmark_main main.cc
 target_link_libraries(hustle_src_benchmark_main PUBLIC
         hustle_src_benchmark
         benchmark::benchmark
+        ${GFLAGS_LIB_NAME}
         )
 
 add_definitions(-DHUSTLE_BUILD_DIRECTORY="\\"${CMAKE_SOURCE_DIR}\\"")

@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "storage/table.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 namespace hustle::operators {
 

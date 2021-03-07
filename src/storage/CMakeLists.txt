@@ -2,9 +2,9 @@ add_library(
         hustle_src_storage
         table.h table.cc
         block.h block.cc
-        util.h  util.cc
+        utils/util.h utils/util.cc
         cmemlog.h cmemlog.cc
-        record_transformer.h
+        utils/record_utils.h
         metadata_unit.h
         metadata_units/sma.cc metadata_units/sma.h
         ma_block.cc ma_block.h)
