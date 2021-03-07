@@ -9,7 +9,7 @@ def generate_test_data():
         os.remove('lineorder.tbl')
     except OSError as error:
         pass
-    with open('lineorder.tbl', 'w', newline='') as file:
+    with open('lineorder.tbl', 'wb') as file:
         writer = csv.writer(file, delimiter='|')
         for x in range(0, 200, 5):
             for p in range(100):
@@ -27,7 +27,7 @@ def generate_test_data():
         os.remove('part.tbl')
     except OSError as error:
         pass
-    with open('part.tbl', 'w', newline='') as file:
+    with open('part.tbl', 'wb') as file:
         writer = csv.writer(file, delimiter='|')
         for p in range(100):
             writer.writerow(
@@ -36,7 +36,7 @@ def generate_test_data():
         os.remove('supplier.tbl')
     except OSError as error:
         pass
-    with open('supplier.tbl', 'w', newline='') as file:
+    with open('supplier.tbl', 'wb') as file:
         writer = csv.writer(file, delimiter='|')
         for p in range(100):
             writer.writerow(
@@ -45,7 +45,7 @@ def generate_test_data():
         os.remove('customer.tbl')
     except OSError as error:
         pass
-    with open('customer.tbl', 'w', newline='') as file:
+    with open('customer.tbl', 'wb') as file:
         writer = csv.writer(file, delimiter='|')
         for p in range(100):
             writer.writerow(
@@ -55,7 +55,7 @@ def generate_test_data():
         os.remove('date.tbl')
     except OSError as error:
         pass
-    with open('date.tbl', 'w', newline='') as file:
+    with open('date.tbl', 'wb') as file:
         writer = csv.writer(file, delimiter='|')
         for p in range(0, 30, 1):
             writer.writerow([int("199201"+str(p)), p % 7, p %
