@@ -51,8 +51,8 @@ void initialize_sqlite3() {
   sqlite3_initialize();
 }
 
-void loadTables(const std::string &sqlitePath,
-                std::vector<std::string> tables) {
+void load_tables(const std::string &sqlitePath,
+                 std::vector<std::string> tables) {
   sqlite3 *db;
   int rc = sqlite3_open_v2(
       sqlitePath.c_str(), &db,
@@ -66,8 +66,8 @@ void loadTables(const std::string &sqlitePath,
 
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // Returns
-std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
-                                            const std::string &sql) {
+std::string execute_sqlite_result(const std::string &sqlitePath,
+                                  const std::string &sql) {
   sqlite3 *db;
   char *zErrMsg = 0;
   int rc;
@@ -105,8 +105,8 @@ std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
 
 // Executes the sql statement on sqlite database at the sqlitePath path.
 // No output is returned
-bool executeSqliteNoOutput(const std::string &sqlitePath,
-                           const std::string &sql) {
+bool execute_sqlite_query(const std::string &sqlitePath,
+                          const std::string &sql) {
   sqlite3 *db;
   char *zErrMsg = 0;
   int rc;

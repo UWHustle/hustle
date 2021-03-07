@@ -77,7 +77,7 @@ Catalog Catalog::CreateCatalog(std::string CatalogPath,
     }
     // Rebuild the sqlite db catalog.
     for (const auto &t : catalog.tables_) {
-      utils::executeSqliteNoOutput(SqlitePath, createCreateSql(t.second.table_schema));
+        utils::execute_sqlite_query(SqlitePath, createCreateSql(t.second.table_schema));
     }
     return catalog;
   } else {
@@ -116,8 +116,8 @@ void Catalog::SaveToFile() {
 }
 
 bool Catalog::dropTable(std::string name) {
-  if (!utils::executeSqliteNoOutput(SqlitePath_,
-                                    absl::StrCat("DROP TABLE ", name, ";"))) {
+  if (!utils::execute_sqlite_query(SqlitePath_,
+                                   absl::StrCat("DROP TABLE ", name, ";"))) {
     std::cerr << "SqliteDB catalog out of sync" << std::endl;
     return false;
   }
@@ -156,7 +156,7 @@ bool Catalog::addTable(TableSchema t, DBTable::TablePtr table_ref) {
   tables_[t.getName()] = {t, table_ref};
   SaveToFile();
 
-  if (!utils::executeSqliteNoOutput(SqlitePath_, createCreateSql(t))) {
+  if (!utils::execute_sqlite_query(SqlitePath_, createCreateSql(t))) {
     std::cerr << "SqliteDB catalog out of sync" << std::endl;
   }
   return true;

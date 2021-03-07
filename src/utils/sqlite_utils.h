@@ -26,17 +26,17 @@ namespace utils {
 
 void initialize_sqlite3();
 
-void loadTables(const std::string &sqlitePath, std::vector<std::string> tables);
+void load_tables(const std::string &sqlitePath, std::vector<std::string> tables);
 
 // Executes the sql query specified in sql on the database at sqlitePath,
 // no output is returned.
-bool executeSqliteNoOutput(const std::string &sqlitePath,
-                           const std::string &sql);
+bool execute_sqlite_query(const std::string &sqlitePath,
+                          const std::string &sql);
 
 // Executes the sql query specified in sql on the database at sqlitePath,
 // the output is returned as a string.
-std::string executeSqliteReturnOutputString(const std::string &sqlitePath,
-                                            const std::string &sql);
+std::string execute_sqlite_result(const std::string &sqlitePath,
+                                  const std::string &sql);
 
 }  // namespace utils
 }  // namespace hustle

@@ -54,7 +54,7 @@ HustleDB::HustleDB(std::string DBpath)
 };
 
 std::string HustleDB::get_plan(const std::string &sql) {
-  return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
+  return utils::execute_sqlite_result(SqliteDBPath_, sql);
 }
 
 bool HustleDB::create_table(const TableSchema ts) {
@@ -67,15 +67,15 @@ bool HustleDB::create_table(const TableSchema ts,
 }
 
 void HustleDB::load_tables() {
-  utils::loadTables(SqliteDBPath_, hustle::HustleDB::catalogs[SqliteDBPath_]->getTables());
+    utils::load_tables(SqliteDBPath_, hustle::HustleDB::catalogs[SqliteDBPath_]->getTables());
 }
 
 std::string HustleDB::execute_query_result(const std::string &sql) {
-  return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
+  return utils::execute_sqlite_result(SqliteDBPath_, sql);
 }
 
 bool HustleDB::execute_query(const std::string &sql) {
-  return utils::executeSqliteNoOutput(SqliteDBPath_, sql);
+  return utils::execute_sqlite_query(SqliteDBPath_, sql);
 }
 
 bool HustleDB::drop_table(const std::string &name) {
