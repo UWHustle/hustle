@@ -35,6 +35,13 @@ using namespace hustle::resolver;
 #define BLOCK_SIZE \
   1024  // Force the block size to small size for the sake of this test
 
+#define ROOT_PATH "../../../test/data/"
+#define LINE_ORDER_PATH ROOT_PATH "lineorder.tbl"
+#define SUPPLIER_PATH ROOT_PATH "supplier.tbl"
+#define CUSTOMER_PATH ROOT_PATH "customer.tbl"
+#define PART_PATH ROOT_PATH "part.tbl"
+#define DATE_PATH ROOT_PATH "date.tbl"
+
 class SQLTest : public Test {
  public:
   static hustle::catalog::TableSchema part, supplier, customer, ddate,
@@ -187,16 +194,14 @@ class SQLTest : public Test {
     SQLTest::d = std::make_shared<hustle::storage::DBTable>(
         "ddate", SQLTest::ddate.getArrowSchema(), BLOCK_SIZE);
 
-      hustle_db->create_table(SQLTest::lineorder, SQLTest::lo);
-      hustle_db->create_table(SQLTest::customer, SQLTest::c);
-      hustle_db->create_table(SQLTest::supplier, SQLTest::s);
-      hustle_db->create_table(SQLTest::part, SQLTest::p);
-      hustle_db->create_table(SQLTest::ddate, SQLTest::d);
+    hustle_db->create_table(SQLTest::lineorder, SQLTest::lo);
+    hustle_db->create_table(SQLTest::customer, SQLTest::c);
+    hustle_db->create_table(SQLTest::supplier, SQLTest::s);
+    hustle_db->create_table(SQLTest::part, SQLTest::p);
+    hustle_db->create_table(SQLTest::ddate, SQLTest::d);
 
     std::cerr << "Create Table " << std::endl;
-    // SQLTest::lo = read_from_csv_file("../../../ssb/test/lineorder.tbl",
-    // SQLTest::lineorder.getArrowSchema(),  BLOCK_SIZE);
-    FILE* stream = fopen("../../../ssb/test/lineorder.tbl", "r");
+    FILE* stream = fopen(LINE_ORDER_PATH, "r");
     char line[2048];
     std::string query = "BEGIN TRANSACTION;";
     int count = 0;
@@ -219,18 +224,18 @@ class SQLTest : public Test {
       count++;
       if (count == 10000) {
         query += "COMMIT;";
-          hustle_db->execute_query_result(query);
+        hustle_db->execute_query_result(query);
         query = "BEGIN TRANSACTION;";
       }
     }
     if (count != 2000) {
       query += "COMMIT;";
-        hustle_db->execute_query_result(query);
+      hustle_db->execute_query_result(query);
     }
 
     std::cerr << "lineorder done" << std::endl;
 
-    stream = fopen("../../../ssb/test/part.tbl", "r");
+    stream = fopen(PART_PATH, "r");
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -242,10 +247,10 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[3])) + "');\n";
     }
     query += "COMMIT;";
-      hustle_db->execute_query_result(query);
+    hustle_db->execute_query_result(query);
     std::cerr << "part done" << std::endl;
 
-    stream = fopen("../../../ssb/test/supplier.tbl", "r");
+    stream = fopen(SUPPLIER_PATH, "r");
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -258,10 +263,10 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[3])) + "');\n";
     }
     query += "COMMIT;";
-      hustle_db->execute_query_result(query);
+    hustle_db->execute_query_result(query);
     std::cerr << "supplier done" << std::endl;
 
-    stream = fopen("../../../ssb/test/customer.tbl", "r");
+    stream = fopen(CUSTOMER_PATH, "r");
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -273,10 +278,10 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[3])) + "');\n";
     }
     query += "COMMIT;";
-      hustle_db->execute_query_result(query);
+    hustle_db->execute_query_result(query);
     std::cerr << "customer done" << std::endl;
 
-    stream = fopen("../../../ssb/test/date.tbl", "r");
+    stream = fopen(DATE_PATH, "r");
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -291,10 +296,10 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[6])) + "');\n";
     }
     query += "COMMIT;";
-      hustle_db->execute_query_result(query);
+    hustle_db->execute_query_result(query);
     std::cerr << "date done" << std::endl;
 
-      hustle::HustleDB::start_scheduler();
+    hustle::HustleDB::start_scheduler();
   }
 
   void TearDown() override { hustle::HustleDB::stop_scheduler(); }
@@ -316,7 +321,7 @@ TEST_F(SQLTest, q1) {
       "where lo_orderdate = d_datekey and d_year = 1993 and (lo_discount "
       "BETWEEN 0 and 3 and lo_quantity < 25);";
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "3257506\n");
+  EXPECT_EQ(output, "3249196\n");
 }
 
 TEST_F(SQLTest, q2) {
@@ -328,7 +333,7 @@ TEST_F(SQLTest, q2) {
       "and (lo_discount BETWEEN 5 and 7\n"
       "and lo_quantity BETWEEN 26 and 35);";
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "40305654\n");
+  EXPECT_EQ(output, "40072918\n");
 }
 
 TEST_F(SQLTest, q3) {
@@ -342,7 +347,7 @@ TEST_F(SQLTest, q3) {
       "and lo_quantity < 50);";
 
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "18058284\n");
+  EXPECT_EQ(output, "18047544\n");
 }
 
 TEST_F(SQLTest, q4) {
@@ -357,7 +362,7 @@ TEST_F(SQLTest, q4) {
       "group by d_year, p_brand1\n"
       "order by d_year, p_brand1;";
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "151764 | 1993 | MFGR#12\n248116 | 1994 | MFGR#12\n");
+  EXPECT_EQ(output, "157732 | 1993 | MFGR#12\n256164 | 1994 | MFGR#12\n");
 }
 
 TEST_F(SQLTest, q5) {
@@ -373,7 +378,7 @@ TEST_F(SQLTest, q5) {
       "\torder by d_year, p_brand1;";
 
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "202070 | 1993 | MFGR#24\n313615 | 1994 | MFGR#24\n");
+  EXPECT_EQ(output, "205060 | 1993 | MFGR#24\n304755 | 1994 | MFGR#24\n");
 }
 
 TEST_F(SQLTest, q6) {
@@ -389,7 +394,7 @@ TEST_F(SQLTest, q6) {
       "\torder by d_year, p_brand1;";
 
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "226068 | 1993 | MFGR#22\n334290 | 1994 | MFGR#22\n");
+  EXPECT_EQ(output, "229908 | 1993 | MFGR#22\n381816 | 1994 | MFGR#22\n");
 }
 
 TEST_F(SQLTest, q7) {
@@ -408,8 +413,8 @@ TEST_F(SQLTest, q7) {
 
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output,
-            "CNATION55 | SNATION55 | 1993 | 257614\nCNATION55 | SNATION55 | "
-            "1994 | 411880\n");
+            "CNATION55 | SNATION55 | 1993 | 280385\nCNATION55 | SNATION55 | "
+            "1994 | 441735\n");
 }
 
 TEST_F(SQLTest, q8) {
@@ -429,7 +434,7 @@ TEST_F(SQLTest, q8) {
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(
       output,
-      "CCITY30 | SCITY30 | 1993 | 339688\nCCITY30 | SCITY30 | 1994 | 478056\n");
+      "CCITY30 | SCITY30 | 1993 | 268832\nCCITY30 | SCITY30 | 1994 | 524080\n");
 }
 
 TEST_F(SQLTest, q9) {
@@ -447,10 +452,10 @@ TEST_F(SQLTest, q9) {
       "\torder by d_year asc, revenue desc;";
 
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output,
-            "CCITY25 | SCITY25 | 1993 | 327609\nCCITY20 | SCITY20 | 1993 | "
-            "407808\nCCITY20 | SCITY20 | 1994 | 499617\nCCITY25 | SCITY25 | "
-            "1994 | 526320\n");
+  EXPECT_EQ(
+      output,
+      "CCITY20 | SCITY20 | 1993 | 330615\nCCITY25 | SCITY25 | 1993 | 377766\n"
+      "CCITY20 | SCITY20 | 1994 | 484488\nCCITY25 | SCITY25 | 1994 | 507591\n");
 }
 
 TEST_F(SQLTest, q10) {
@@ -470,7 +475,7 @@ TEST_F(SQLTest, q10) {
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(
       output,
-      "CCITY60 | SCITY60 | 1993 | 398220\nCCITY40 | SCITY40 | 1993 | 411550\n");
+      "CCITY60 | SCITY60 | 1993 | 375640\nCCITY40 | SCITY40 | 1993 | 398070\n");
 }
 
 TEST_F(SQLTest, q11) {
@@ -489,7 +494,7 @@ TEST_F(SQLTest, q11) {
       "\torder by d_year, c_nation;";
 
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "1993 | CNATION71 | 444774\n1994 | CNATION71 | 658856\n");
+  EXPECT_EQ(output, "1993 | CNATION71 | 466708\n1994 | CNATION71 | 706893\n");
 }
 
 TEST_F(SQLTest, q12) {
@@ -510,8 +515,8 @@ TEST_F(SQLTest, q12) {
 
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output,
-            "1993 | SNATION32 | MFGR#32 | 468912\n1994 | SNATION32 | MFGR#32 | "
-            "727692\n");
+            "1993 | SNATION32 | MFGR#32 | 418572\n1994 | SNATION32 | MFGR#32 | "
+            "768180\n");
 }
 
 TEST_F(SQLTest, q13) {
@@ -533,5 +538,5 @@ TEST_F(SQLTest, q13) {
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(
       output,
-      "1993 | SCITY55 | MFGR#55 | 478426\n1994 | SCITY55 | MFGR#55 | 764920\n");
+      "1993 | SCITY55 | MFGR#55 | 520715\n1994 | SCITY55 | MFGR#55 | 820365\n");
 }
