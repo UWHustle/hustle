@@ -5,6 +5,7 @@ import os
 
 
 def generate_test_data():
+    random.seed(30)
     try:
         os.remove('lineorder.tbl')
     except OSError as error:
