@@ -222,8 +222,8 @@ TEST_F(HustleTableTest, Insert) {
   DBTable::TablePtr c =
       std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_insert");
-  hustleDB.createTable(customer, c);
-  hustleDB.executeQuery(query);
+    hustleDB.create_table(customer, c);
+    hustleDB.execute_query_result(query);
   EXPECT_EQ(c->get_num_rows(), 2);
   EXPECT_EQ(c->get_num_cols(), 8);
   std::filesystem::remove_all("db_directory_insert");
@@ -269,15 +269,15 @@ TEST_F(HustleTableTest, Update) {
   DBTable::TablePtr customer_table_ptr =
       std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_update");
-  hustleDB.createTable(customer_table, customer_table_ptr);
-  hustleDB.executeQuery(query);
+    hustleDB.create_table(customer_table, customer_table_ptr);
+    hustleDB.execute_query_result(query);
 
   query =
       "BEGIN TRANSACTION;"
       "UPDATE customer_table set c_region = 'fine' where c_custkey=800224;"
       "COMMIT;";
 
-  hustleDB.executeQuery(query);
+    hustleDB.execute_query_result(query);
   auto col = std::static_pointer_cast<arrow::StringArray>(
       customer_table_ptr->get_column(5)->chunk(0));
   EXPECT_EQ(col->GetString(0), "fine");
@@ -291,7 +291,7 @@ TEST_F(HustleTableTest, Update) {
       "BEGIN TRANSACTION;"
       "UPDATE customer_table set c_mktsegment = 1123 where c_custkey=800224;"
       "COMMIT;";
-  hustleDB.executeQuery(query);
+    hustleDB.execute_query_result(query);
   EXPECT_EQ(int_col->Value(0), 1123);
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 1);
   EXPECT_EQ(customer_table_ptr->get_num_blocks(), 1);
@@ -339,13 +339,13 @@ TEST_F(HustleTableTest, Delete) {
   DBTable::TablePtr customer_table_ptr = std::make_shared<DBTable>(
       "customer_table_d", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_delete");
-  hustleDB.createTable(customer_table, customer_table_ptr);
-  hustleDB.executeQuery(query);
+    hustleDB.create_table(customer_table, customer_table_ptr);
+    hustleDB.execute_query_result(query);
   query =
       "BEGIN TRANSACTION;"
       "DELETE FROM customer_table_d where c_custkey=800224;"
       "COMMIT;";
-  hustleDB.executeQuery(query);
+    hustleDB.execute_query_result(query);
   auto col = std::static_pointer_cast<arrow::StringArray>(
       customer_table_ptr->get_column(5)->chunk(0));
   EXPECT_EQ(customer_table_ptr->get_num_rows(), 0);
@@ -398,22 +398,22 @@ TEST_F(HustleTableTest, Load) {
   DBTable::TablePtr c =
       std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_load");
-  hustleDB.createTable(customer, c);
-  hustleDB.executeQuery(query);
+    hustleDB.create_table(customer, c);
+    hustleDB.execute_query_result(query);
   EXPECT_EQ(c->get_num_rows(), 2);
   EXPECT_EQ(c->get_num_cols(), 8);
 
-  hustleDB.dropMemTable("customer_table_test");
+    hustleDB.drop_mem_table("customer_table_test");
   c = std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
-  hustleDB.createTable(customer, c);
-  hustleDB.loadTables();
+    hustleDB.create_table(customer, c);
+    hustleDB.load_tables();
   EXPECT_EQ(c->get_num_rows(), 2);
 
   query =
       "BEGIN TRANSACTION;"
       "DELETE FROM customer_table_test where c_custkey=800224;"
       "COMMIT;";
-  hustleDB.executeQuery(query);
+    hustleDB.execute_query_result(query);
   EXPECT_EQ(c->get_num_rows(), 1);
 
   query =
@@ -421,7 +421,7 @@ TEST_F(HustleTableTest, Load) {
       "UPDATE customer_table_test set c_mktsegment = 1123 where "
       "c_custkey=800225;"
       "COMMIT;";
-  hustleDB.executeQuery(query);
+    hustleDB.execute_query_result(query);
 
   auto int_col =
       std::static_pointer_cast<arrow::StringArray>(c->get_column(1)->chunk(0));

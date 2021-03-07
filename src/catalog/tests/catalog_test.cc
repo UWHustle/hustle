@@ -80,10 +80,10 @@ TEST(CatalogTest, AddTable) {
   std::filesystem::remove("catalog.json");
   std::filesystem::remove("hustle_sqlite.db");
   hustle::HustleDB hustleDB("db_directory");
-  std::shared_ptr<Catalog> catalog = hustleDB.getCatalog("db_directory/hustle_sqlite.db");
+  std::shared_ptr<Catalog> catalog = hustleDB.get_catalog("db_directory/hustle_sqlite.db");
   
   EXPECT_FALSE(catalog->TableExists("Subscriber"));
-  std::cout << "SQLITE DB PATH: " << hustleDB.getSqliteDBPath() << std::endl;
+  std::cout << "SQLITE DB PATH: " << hustleDB.get_sqlite_path() << std::endl;
   TableSchema ts("Subscriber");
   ColumnSchema c1("c1", {HustleType::INTEGER, 0}, true, false);
   ColumnSchema c2("c2", {HustleType::CHAR, 10}, false, true);
@@ -113,7 +113,7 @@ TEST(CatalogTest, DropTable) {
   std::filesystem::remove("hustle_sqlite.db");
   hustle::HustleDB hustleDB("db_directory");
 
-  std::shared_ptr<Catalog> catalog = hustleDB.getCatalog("db_directory/hustle_sqlite.db");
+  std::shared_ptr<Catalog> catalog = hustleDB.get_catalog("db_directory/hustle_sqlite.db");
   TableSchema ts1("AccessInfo_drop");
   ColumnSchema c3("c3", {HustleType::INTEGER, 0}, true, false);
   ColumnSchema c4("c4", {HustleType::CHAR, 5}, false, true);
@@ -365,7 +365,7 @@ TEST(CatalogTest, Serialization) {
 
   
   hustle::HustleDB hustleDB("db_directory");
-  std::shared_ptr<Catalog> catalog_ptr = hustleDB.getCatalog("db_directory/hustle_sqlite.db");
+  std::shared_ptr<Catalog> catalog_ptr = hustleDB.get_catalog("db_directory/hustle_sqlite.db");
   EXPECT_TRUE(true);
   TableSchema ts("Subscriber_Serial");
   ColumnSchema c1("c1", {HustleType::INTEGER, 0}, true, false);
@@ -457,7 +457,7 @@ TEST(CatalogTest, Serialization) {
 TEST(CatalogSerialization, LoadFromFile) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
-  std::shared_ptr<Catalog> catalog = hustleDB.getCatalog("db_directory/hustle_sqlite.db");
+  std::shared_ptr<Catalog> catalog = hustleDB.get_catalog("db_directory/hustle_sqlite.db");
   
 
   TableSchema ts("Subscriber2");

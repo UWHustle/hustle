@@ -31,7 +31,7 @@ make -j all
 
 To run the test go into the build directory and use:
 ```
-ctest --output-on-failure
+./run_test.sh 
 ```
 
 ## Run Benchmark

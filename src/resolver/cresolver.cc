@@ -247,7 +247,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
     hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
   std::shared_ptr<hustle::storage::DBTable> out_table;
   using namespace hustle::operators;
-  hustle::Scheduler &scheduler = hustle::HustleDB::getScheduler();
+  hustle::Scheduler &scheduler = hustle::HustleDB::get_scheduler();
   SynchronizationLock sync_lock;
 
   scheduler.addTask(CreateTaskChain(
@@ -275,7 +275,7 @@ int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs, sqlite3_c
   // TODO: (@srsuryadev) resolve the select query
   // return 0 if query is supported in column store else return 1
   using hustle::resolver::SelectResolver;
-  Catalog *catalog = hustle::HustleDB::getCatalog(dbName).get();
+  Catalog *catalog = hustle::HustleDB::get_catalog(dbName).get();
   if (dbName == NULL || catalog == nullptr) return 0;
 
   SelectResolver *select_resolver = new SelectResolver(catalog);

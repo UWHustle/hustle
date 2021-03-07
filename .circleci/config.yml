@@ -18,4 +18,5 @@ jobs:
       - run: mkdir build
       - run: (cd build && ../cmake-3.15.5/bin/cmake .. )
       - run: (cd build && make -j 4)
+      - run: (cd test/data && python test_generate_data.py)
       - run: (cd build && ../cmake-3.15.5/bin/ctest --verbose --output-on-failure)

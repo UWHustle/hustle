@@ -1,22 +1,19 @@
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include <iostream>
 
 #include "api/hustle_db.h"
 #include "catalog/catalog.h"
 #include "catalog/column_schema.h"
 #include "catalog/table_schema.h"
+#include "sqlite3/sqlite3.h"
 #include "storage/util.h"
 
-
-#include "catalog/catalog.h"
-#include "sqlite3/sqlite3.h"
-
-#include <stdlib.h> 
-#include <unistd.h> 
-#include <pthread.h> 
-  
-// The function to be executed by all threads 
-void *readQuery(void *db) { 
-   std::string query =
+// The function to be executed by all threads
+void *readQuery(void *db) {
+  std::string query =
       "select d_year, s_nation, p_category, sum(lo_revenue) "
       "as profit1\n"
       "\tfrom ddate, customer, supplier, part, lineorder\n"
@@ -31,12 +28,12 @@ void *readQuery(void *db) {
       "\tgroup by d_year, s_nation, p_category\n"
       "\torder by d_year, s_nation, p_category;";
 
-  ((hustle::HustleDB*)db)->executeQuery(query);
-} 
+    ((hustle::HustleDB *) db)->execute_query_result(query);
+}
 
-// The function to be executed by all threads 
-void *readQuery2(void *db) { 
-   std::string query =
+// The function to be executed by all threads
+void *readQuery2(void *db) {
+  std::string query =
       "select c_region, sum(lo_revenue) "
       "as profit1\n"
       "\tfrom customer, lineorder\n"
@@ -46,18 +43,18 @@ void *readQuery2(void *db) {
       "\tgroup by  c_region\n"
       "\torder by  c_region;";
 
-  ((hustle::HustleDB*)db)->executeQuery(query);
-} 
+    ((hustle::HustleDB *) db)->execute_query_result(query);
+}
 
-// The function to be executed by all threads 
-void *writeQuery(void *db) { 
-   std::string query =
+// The function to be executed by all threads
+void *writeQuery(void *db) {
+  std::string query =
       "BEGIN TRANSACTION; "
       "INSERT INTO customer VALUES (800224, 'James', "
       " 'good',"
       "'Houston', 'Great',"
       "         'best1', 'fit', 'done');"
-       "INSERT INTO customer VALUES (800225, 'James1', "
+      "INSERT INTO customer VALUES (800225, 'James1', "
       " 'good1',"
       "'Houston1', 'Great1',"
       "         'best2', 'fit', 'done');"
@@ -67,45 +64,44 @@ void *writeQuery(void *db) {
       "         'best3', 'fit', 'done');"
       "COMMIT;";
 
-  ((hustle::HustleDB*)db)->executeQuery(query);
-} 
+    ((hustle::HustleDB *) db)->execute_query_result(query);
+}
 
-// The function to be executed by all threads 
-void *updateQuery(void *db) { 
-   std::string query =
+// The function to be executed by all threads
+void *updateQuery(void *db) {
+  std::string query =
       "BEGIN TRANSACTION;"
       "UPDATE customer set c_region = 'fine' where c_custkey=800224;"
       "COMMIT;";
 
-  ((hustle::HustleDB*)db)->executeQuery(query);
-} 
+    ((hustle::HustleDB *) db)->execute_query_result(query);
+}
 
-
-void *deleteQuery(void *db) { 
-   std::string query =
+void *deleteQuery(void *db) {
+  std::string query =
       "BEGIN TRANSACTION;"
       "DELETE FROM customer where c_custkey=800226;"
       "COMMIT;";
 
-  ((hustle::HustleDB*)db)->executeQuery(query);
-} 
+    ((hustle::HustleDB *) db)->execute_query_result(query);
+}
 
-
-void *writeQuery2(void *db) { 
-   std::cout << "In write query" << std::endl;
-   std::string query =
+void *writeQuery2(void *db) {
+  std::cout << "In write query" << std::endl;
+  std::string query =
       "BEGIN TRANSACTION; "
       "INSERT INTO lineorder VALUES (7, 4, 800224,"
       "163073, 48,"
-      "19960404, '3-MEDIUM', 0, 28, 3180996, 13526467, 2, 3085567, 68164, 4, 19960702, 'TRUCKS');"
-        "INSERT INTO lineorder VALUES (8, 4, 800225,"
+      "19960404, '3-MEDIUM', 0, 28, 3180996, 13526467, 2, 3085567, 68164, 4, "
+      "19960702, 'TRUCKS');"
+      "INSERT INTO lineorder VALUES (8, 4, 800225,"
       "163073, 48,"
-      "19960404, '3-MEDIUM', 0, 28, 3180996, 13526467, 2, 3085567, 68164, 4, 19960702, 'TRUCKS');"
+      "19960404, '3-MEDIUM', 0, 28, 3180996, 13526467, 2, 3085567, 68164, 4, "
+      "19960702, 'TRUCKS');"
       "COMMIT;";
 
-  ((hustle::HustleDB*)db)->executeQuery(query);
-} 
-  
+    ((hustle::HustleDB *) db)->execute_query_result(query);
+}
 
 int main(int argc, char *argv[]) {
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
@@ -316,56 +312,66 @@ int main(int argc, char *argv[]) {
   lineorder.addColumn(lo_shipmode);
   lineorder.setPrimaryKey({});
   lo_schema = lineorder.getArrowSchema();
-/*
-  std::shared_ptr<DBTable> t;
+  
+  /*
+    DBTable::TablePtr t;
 
-   t = read_from_csv_file("../ssb/data/customer.tbl", c_schema,
-                         20 * BLOCK_SIZE);
-  write_to_file("../ssb/data/customer.hsl", *t);
+     t = read_from_csv_file("../ssb/data/customer.tbl", c_schema,
+                           20 * BLOCK_SIZE);
+    write_to_file("../ssb/data/customer.hsl", *t);
 
-  t = read_from_csv_file("../ssb/data/supplier.tbl", s_schema,
-                         20 * BLOCK_SIZE);
-  write_to_file("../ssb/data/supplier.hsl", *t);
+    t = read_from_csv_file("../ssb/data/supplier.tbl", s_schema,
+                           20 * BLOCK_SIZE);
+    write_to_file("../ssb/data/supplier.hsl", *t);
 
-  t = read_from_csv_file("../ssb/data/date.tbl", d_schema,
-                         20 * BLOCK_SIZE);
-  write_to_file("../ssb/data/date.hsl", *t);
+    t = read_from_csv_file("../ssb/data/date.tbl", d_schema,
+                           20 * BLOCK_SIZE);
+    write_to_file("../ssb/data/date.hsl", *t);
 
-  t = read_from_csv_file("../ssb/data/part.tbl", p_schema,
-                         20 * BLOCK_SIZE);
-  write_to_file("../ssb/data/part.hsl", *t);
+    t = read_from_csv_file("../ssb/data/part.tbl", p_schema,
+                           20 * BLOCK_SIZE);
+    write_to_file("../ssb/data/part.hsl", *t);
 
-  t = read_from_csv_file("../ssb/data/lineorder.tbl", lo_schema,
-                         20 * BLOCK_SIZE);
-  write_to_file("../ssb/data/lineorder.hsl", *t);*/
-
+    t = read_from_csv_file("../ssb/data/lineorder.tbl", lo_schema,
+                           20 * BLOCK_SIZE);
+    write_to_file("../ssb/data/lineorder.hsl", *t);
+    */
   std::cout << "read the table files..." << std::endl;
-  std::shared_ptr<DBTable> lo, c, s, p, d;
-  lo = read_from_file("../ssb/data/lineorder.hsl");
-  d = read_from_file("../ssb/data/date.hsl");
-  p = read_from_file("../ssb/data/part.hsl");
-  c = read_from_file("../ssb/data/customer.hsl");
-  s = read_from_file("../ssb/data/supplier.hsl");
+  DBTable::TablePtr lo, c, s, p, d;
+  lo = read_from_file("../ssb/data/lineorder.hsl", true, "lineorder");
+  d = read_from_file("../ssb/data/date.hsl", true, "ddate");
+  p = read_from_file("../ssb/data/part.hsl", true, "part");
+  c = read_from_file("../ssb/data/customer.hsl", true, "customer");
+  s = read_from_file("../ssb/data/supplier.hsl", true, "supplier");
 
-  c = std::make_shared<hustle::storage::DBTable>("table", c_schema, BLOCK_SIZE);
+  //c = std::make_shared<hustle::storage::DBTable>("table", c_schema, BLOCK_SIZE);
 
   std::filesystem::remove_all("db_directory");
   // EXPECT_FALSE(std::filesystem::exists("db_directory"));
 
   hustle::HustleDB hustleDB("db_directory");
   // it will only start if it is not running.
-  hustle::HustleDB::startScheduler();
+    hustle::HustleDB::start_scheduler();
 
-  hustleDB.createTable(supplier, s);
+    hustleDB.create_table(supplier, s);
 
-  hustleDB.createTable(customer, c); 
+    hustleDB.create_table(customer, c);
 
-  hustleDB.createTable(ddate, d);
-  hustleDB.createTable(part, p);
-  hustleDB.createTable(lineorder, lo);
-  
+    hustleDB.create_table(ddate, d);
+    hustleDB.create_table(part, p);
+    hustleDB.create_table(lineorder, lo);
 
   std::string query =
+      "select  d_year, sum(lo_discount - lo_discount) as "
+      "revenue\n"
+      "from lineorder, ddate\n"
+      "where lo_orderdate = d_datekey\n"
+      "and d_yearmonthnum = 199401\n"
+      "and (lo_discount <50\n"
+      "and lo_quantity < 105)\n"
+      "\tgroup by d_year;";
+    hustleDB.execute_query_result(query);
+  query =
       "select d_year, s_nation, p_category, sum(lo_revenue) "
       "as profit1\n"
       "\tfrom ddate, customer, supplier, part, lineorder\n"
@@ -380,7 +386,7 @@ int main(int argc, char *argv[]) {
       "\tgroup by d_year, s_nation, p_category\n"
       "\torder by d_year, s_nation, p_category;";
 
-  hustleDB.executeQuery(query);
+  //hustleDB.execute_query_result(query);
 
   std::string query2 =
       "BEGIN TRANSACTION; "
@@ -388,44 +394,44 @@ int main(int argc, char *argv[]) {
       " 'good',"
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
-       "INSERT INTO customer VALUES (1, 'James1', "
+      "INSERT INTO customer VALUES (1, 'James1', "
       " 'good1',"
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "CREATE TABLE recipes ("
-        "recipe_id INT NOT NULL,"
-        "recipe_name VARCHAR(30) NOT NULL,"
-        "PRIMARY KEY (recipe_id),"
-        "UNIQUE (recipe_name)"
+      "recipe_id INT NOT NULL,"
+      "recipe_name VARCHAR(30) NOT NULL,"
+      "PRIMARY KEY (recipe_id),"
+      "UNIQUE (recipe_name)"
       ");"
       "INSERT INTO recipes  "
       "VALUES (1,'Tacos');"
       "COMMIT;";
-  hustleDB.executeQuery(query2);
+  // hustleDB.execute_query_result(query2);
 
-  pthread_t tid1, tid2, tid3; 
-  
-  // Let us create three threads 
+  pthread_t tid1, tid2, tid3;
 
-  pthread_create(&tid1, NULL, readQuery, (void *)&hustleDB); 
-  pthread_create(&tid2, NULL, readQuery, (void *)&hustleDB);
-  pthread_create(&tid3, NULL, writeQuery, (void *)&hustleDB); 
-  
-  pthread_join(tid1, NULL); 
-  pthread_join(tid2, NULL); 
-  pthread_join(tid3, NULL); 
+  // Let us create three threads
+  /*
+   pthread_create(&tid1, NULL, readQuery, (void *)&hustleDB);
+   pthread_create(&tid2, NULL, readQuery, (void *)&hustleDB);
+   pthread_create(&tid3, NULL, writeQuery, (void *)&hustleDB);
 
-  writeQuery((void *)&hustleDB);
-  writeQuery2((void *)&hustleDB);
-  readQuery((void *)&hustleDB);
-  readQuery2((void *)&hustleDB);
+   pthread_join(tid1, NULL);
+   pthread_join(tid2, NULL);
+   pthread_join(tid3, NULL);
 
-  updateQuery((void *)&hustleDB);
-  readQuery2((void *)&hustleDB);
+   writeQuery((void *)&hustleDB);
+   writeQuery2((void *)&hustleDB);
+   readQuery((void *)&hustleDB);
+   readQuery2((void *)&hustleDB);
 
-  deleteQuery((void *)&hustleDB);
-  readQuery2((void *)&hustleDB);
+   updateQuery((void *)&hustleDB);
+   readQuery2((void *)&hustleDB);
 
-  hustle::HustleDB::stopScheduler();
+   deleteQuery((void *)&hustleDB);
+   readQuery2((void *)&hustleDB);*/
+
+    hustle::HustleDB::stop_scheduler();
   return 0;
 }

@@ -18,7 +18,7 @@ void txbench::TATPHustleLoader::load() {
   std::mt19937 mt(rd());
 
   RandomGenerator rg;
-  hustle::HustleDB::startScheduler();
+    hustle::HustleDB::start_scheduler();
   std::shared_ptr<arrow::Schema> s_schema, ai_schema, sf_schema, cf_schema;
   std::shared_ptr<hustle::HustleDB> hustle_db =
       txbench::TATPHustleBenchmark::getHustleDB();
@@ -204,12 +204,12 @@ void txbench::TATPHustleLoader::load() {
   cf = std::make_shared<hustle::storage::DBTable>("Call_Forwarding", cf_schema,
                                                   BLOCK_SIZE);
 
-  hustle_db->createTable(subscriber, s);
+    hustle_db->create_table(subscriber, s);
 
-  hustle_db->createTable(access_info, ai);
+    hustle_db->create_table(access_info, ai);
 
-  hustle_db->createTable(special_facility, sf);
-  hustle_db->createTable(call_forwarding, cf);
+    hustle_db->create_table(special_facility, sf);
+    hustle_db->create_table(call_forwarding, cf);
 
   std::vector<int> subscriber_ids(n_rows_);
   std::iota(subscriber_ids.begin(), subscriber_ids.end(), 1);
@@ -290,11 +290,11 @@ void txbench::TATPHustleLoader::load() {
   ac_query += "COMMIT;";
   sf_query += "COMMIT;";
   cf_query += "COMMIT;";
-  hustle_db->executeQuery(s_query);
-  hustle_db->executeQuery(ac_query);
-  hustle_db->executeQuery(sf_query);
-  hustle_db->executeQuery(cf_query);
+    hustle_db->execute_query_result(s_query);
+    hustle_db->execute_query_result(ac_query);
+    hustle_db->execute_query_result(sf_query);
+    hustle_db->execute_query_result(cf_query);
 
-  //hustle::HustleDB::stopScheduler();
+  //hustle::HustleDB::stop_scheduler();
   std::cout << "loaded the values" << std::endl;
 }
