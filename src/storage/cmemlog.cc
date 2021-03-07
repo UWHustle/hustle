@@ -55,7 +55,7 @@ void memlog_remove_table_mapping(int db_id, char *db_name, char *tbl_name) {
   std::lock_guard<std::mutex> lock(instance_lock);
   using namespace hustle;
   std::shared_ptr<catalog::Catalog> catalog =
-      HustleDB::getCatalog(std::string(db_name));
+          HustleDB::get_catalog(std::string(db_name));
   auto table_itr = table_map[db_id].begin();
   std::string tbl_name_str = std::string(tbl_name);
   while (table_itr != table_map[db_id].end()) {
@@ -182,7 +182,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
   using namespace hustle;
 
   std::shared_ptr<catalog::Catalog> catalog =
-      HustleDB::getCatalog(mem_log->db_name);
+          HustleDB::get_catalog(mem_log->db_name);
 
   int table_index = 0;
   struct DBRecord *tmp_record;

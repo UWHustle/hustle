@@ -27,8 +27,8 @@ namespace hustle {
 
 std::map<std::string, std::shared_ptr<Catalog>> hustle::HustleDB::catalogs = {};
 
-void HustleDB::addCatalog(std::string db_name,
-                          std::shared_ptr<Catalog> catalog) {
+void HustleDB::add_catalog(std::string db_name,
+                           std::shared_ptr<Catalog> catalog) {
   auto catalog_itr = hustle::HustleDB::catalogs.find(db_name);
   if (catalog_itr != hustle::HustleDB::catalogs.end()) {
     return;
@@ -36,7 +36,7 @@ void HustleDB::addCatalog(std::string db_name,
   hustle::HustleDB::catalogs[db_name] = catalog;
 }
 
-std::shared_ptr<Catalog> HustleDB::getCatalog(std::string db_name) {
+std::shared_ptr<Catalog> HustleDB::get_catalog(std::string db_name) {
   return hustle::HustleDB::catalogs[db_name];
 }
 
@@ -50,50 +50,40 @@ HustleDB::HustleDB(std::string DBpath)
     std::filesystem::create_directories(DBpath);
   }
   utils::initialize_sqlite3();
-  this->addCatalog(SqliteDBPath_, catalog_);
+    this->add_catalog(SqliteDBPath_, catalog_);
 };
 
-std::string HustleDB::getPlan(const std::string &sql) {
+std::string HustleDB::get_plan(const std::string &sql) {
   return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
 }
 
-bool HustleDB::createTable(const TableSchema ts) {
+bool HustleDB::create_table(const TableSchema ts) {
   return catalog_->addTable(ts);
 }
 
-bool HustleDB::createTable(const TableSchema ts,
-                           DBTable::TablePtr table_ref) {
+bool HustleDB::create_table(const TableSchema ts,
+                            DBTable::TablePtr table_ref) {
   return catalog_->addTable(ts, table_ref);
 }
 
-void HustleDB::loadTables() {
+void HustleDB::load_tables() {
   utils::loadTables(SqliteDBPath_, hustle::HustleDB::catalogs[SqliteDBPath_]->getTables());
 }
 
-std::string HustleDB::executeQuery(const std::string &sql) {
+std::string HustleDB::execute_query_result(const std::string &sql) {
   return utils::executeSqliteReturnOutputString(SqliteDBPath_, sql);
 }
 
-bool HustleDB::executeNoOutputQuery(const std::string &sql) {
+bool HustleDB::execute_query(const std::string &sql) {
   return utils::executeSqliteNoOutput(SqliteDBPath_, sql);
 }
 
-bool HustleDB::dropTable(const std::string &name) {
+bool HustleDB::drop_table(const std::string &name) {
   return catalog_->dropTable(name);
 }
 
-bool HustleDB::dropMemTable(const std::string &name) {
+bool HustleDB::drop_mem_table(const std::string &name) {
   return catalog_->dropMemTable(name);
-}
-
-bool HustleDB::insert() {
-  // TODO(nicholas) once arrow is integrated
-  return true;
-}
-
-bool HustleDB::select() {
-  // TODO(nicholas) once arrow is integrated
-  return true;
 }
 
 }  // namespace hustle

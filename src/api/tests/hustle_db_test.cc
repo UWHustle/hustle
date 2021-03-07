@@ -44,7 +44,7 @@ TEST(HustleDB, createTable) {
   std::filesystem::remove_all("db_directory");
 
   hustle::HustleDB hustleDB("db_directory/db_dir_nested");
-  hustle::HustleDB::startScheduler();
+    hustle::HustleDB::start_scheduler();
 
   TableSchema ts("Subscriber");
   ColumnSchema c1("c1", {HustleType::INTEGER, 0}, true, false);
@@ -52,10 +52,10 @@ TEST(HustleDB, createTable) {
   ts.addColumn(c1);
   ts.addColumn(c2);
   ts.setPrimaryKey({"c1", "c2"});
-  EXPECT_TRUE(hustleDB.createTable(ts));
+  EXPECT_TRUE(hustleDB.create_table(ts));
 
-  EXPECT_TRUE(hustleDB.getCatalog()->TableExists(ts.getName()));
-  EXPECT_FALSE(hustleDB.createTable(ts));
+  EXPECT_TRUE(hustleDB.get_catalog()->TableExists(ts.getName()));
+  EXPECT_FALSE(hustleDB.create_table(ts));
 
   EXPECT_TRUE(
       std::filesystem::exists("db_directory/db_dir_nested/catalog.json"));
@@ -63,10 +63,10 @@ TEST(HustleDB, createTable) {
       std::filesystem::exists("db_directory/db_dir_nested/hustle_sqlite.db"));
 
   hustle::HustleDB hustleDB2("db_directory");
-  EXPECT_TRUE(hustleDB.getCatalog()->TableExists(ts.getName()));
+  EXPECT_TRUE(hustleDB.get_catalog()->TableExists(ts.getName()));
 
   std::filesystem::remove_all("db_directory");
-  hustle::HustleDB::stopScheduler();
+    hustle::HustleDB::stop_scheduler();
 }
 
 TEST(HustleDB, DropTable) {
@@ -80,17 +80,17 @@ TEST(HustleDB, DropTable) {
   ts.addColumn(c1);
   ts.addColumn(c2);
   ts.setPrimaryKey({"c1", "c2"});
-  EXPECT_TRUE(hustleDB.createTable(ts));
+  EXPECT_TRUE(hustleDB.create_table(ts));
 
-  EXPECT_TRUE(hustle::HustleDB::getCatalog("db_directory/db_dir_nested/hustle_sqlite.db")->TableExists(ts.getName()));
+  EXPECT_TRUE(hustle::HustleDB::get_catalog("db_directory/db_dir_nested/hustle_sqlite.db")->TableExists(ts.getName()));
 
   EXPECT_TRUE(
       std::filesystem::exists("db_directory/db_dir_nested/catalog.json"));
   EXPECT_TRUE(
       std::filesystem::exists("db_directory/db_dir_nested/hustle_sqlite.db"));
   
-  EXPECT_TRUE(hustleDB.dropTable(ts.getName()));
-  EXPECT_FALSE(hustle::HustleDB::getCatalog("db_directory/db_dir_nested/hustle_sqlite.db")->TableExists(ts.getName()));
+  EXPECT_TRUE(hustleDB.drop_table(ts.getName()));
+  EXPECT_FALSE(hustle::HustleDB::get_catalog("db_directory/db_dir_nested/hustle_sqlite.db")->TableExists(ts.getName()));
 
   EXPECT_TRUE(
       std::filesystem::exists("db_directory/db_dir_nested/catalog.json"));
@@ -111,10 +111,10 @@ TEST(HustleDB, getPlan) {
   ts.addColumn(c1);
   ts.addColumn(c2);
   ts.setPrimaryKey({"c1", "c2"});
-  EXPECT_TRUE(hustleDB.createTable(ts));
+  EXPECT_TRUE(hustleDB.create_table(ts));
 
   std::string plan =
-      hustleDB.getPlan("EXPLAIN QUERY PLAN SELECT c1,c2 FROM Subscriber;");
+          hustleDB.get_plan("EXPLAIN QUERY PLAN SELECT c1,c2 FROM Subscriber;");
 
   EXPECT_EQ(plan, "2 | 0 | 0 | SCAN TABLE Subscriber\n");
 

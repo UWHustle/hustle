@@ -34,38 +34,31 @@ class HustleDB {
  public:
   static std::map<std::string, std::shared_ptr<Catalog>> catalogs;
 
-  static Scheduler &getScheduler() { return Scheduler::GlobalInstance(); }
+  static Scheduler &get_scheduler() { return Scheduler::GlobalInstance(); }
 
-  static void addCatalog(std::string db_name, std::shared_ptr<Catalog> catalog);
+  static void add_catalog(std::string db_name, std::shared_ptr<Catalog> catalog);
 
-  static std::shared_ptr<Catalog> getCatalog(std::string db_name);
+  static std::shared_ptr<Catalog> get_catalog(std::string db_name);
 
   HustleDB(std::string path);
 
-  bool createTable(const TableSchema ts);
+  bool create_table(const TableSchema ts);
 
-  bool createTable(const TableSchema ts, DBTable::TablePtr table_ref);
+  bool create_table(const TableSchema ts, DBTable::TablePtr table_ref);
 
-  void loadTables();
+  void load_tables();
 
-  bool dropTable(const std::string &name);
+  bool drop_table(const std::string &name);
 
-  bool dropMemTable(const std::string &name);
+  bool drop_mem_table(const std::string &name);
 
-  std::string executeQuery(const std::string &sql);
+  std::string execute_query_result(const std::string &sql);
 
-  bool executeNoOutputQuery(const std::string &sql);
+  bool execute_query(const std::string &sql);
 
-  std::string getPlan(const std::string &sql);
+  std::string get_plan(const std::string &sql);
 
-  const std::string getSqliteDBPath() { return SqliteDBPath_; }
-  // Not implemented yet.
-  bool insert();
-
-  // Not implemented yet.
-  bool select();
-
-  static bool startScheduler() {
+  static bool start_scheduler() {
     if (!Scheduler::GlobalInstance().isActive()) {
       Scheduler::GlobalInstance().start();
       return true;
@@ -73,7 +66,7 @@ class HustleDB {
     return false;
   }
 
-  static bool stopScheduler() {
+  static bool stop_scheduler() {
     if (Scheduler::GlobalInstance().isActive()) {
       Scheduler::GlobalInstance().join();
       return true;
@@ -81,7 +74,9 @@ class HustleDB {
     return false;
   }
 
-  Catalog *getCatalog() { return catalog_.get(); }
+  const std::string get_sqlite_path() { return SqliteDBPath_; }
+
+  Catalog *get_catalog() { return catalog_.get(); }
 
    ~HustleDB() {}
 

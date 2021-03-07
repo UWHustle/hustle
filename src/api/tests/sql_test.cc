@@ -187,11 +187,11 @@ class SQLTest : public Test {
     SQLTest::d = std::make_shared<hustle::storage::DBTable>(
         "ddate", SQLTest::ddate.getArrowSchema(), BLOCK_SIZE);
 
-    hustle_db->createTable(SQLTest::lineorder, SQLTest::lo);
-    hustle_db->createTable(SQLTest::customer, SQLTest::c);
-    hustle_db->createTable(SQLTest::supplier, SQLTest::s);
-    hustle_db->createTable(SQLTest::part, SQLTest::p);
-    hustle_db->createTable(SQLTest::ddate, SQLTest::d);
+      hustle_db->create_table(SQLTest::lineorder, SQLTest::lo);
+      hustle_db->create_table(SQLTest::customer, SQLTest::c);
+      hustle_db->create_table(SQLTest::supplier, SQLTest::s);
+      hustle_db->create_table(SQLTest::part, SQLTest::p);
+      hustle_db->create_table(SQLTest::ddate, SQLTest::d);
 
     std::cerr << "Create Table " << std::endl;
     // SQLTest::lo = read_from_csv_file("../../../ssb/test/lineorder.tbl",
@@ -219,13 +219,13 @@ class SQLTest : public Test {
       count++;
       if (count == 10000) {
         query += "COMMIT;";
-        hustle_db->executeQuery(query);
+          hustle_db->execute_query_result(query);
         query = "BEGIN TRANSACTION;";
       }
     }
     if (count != 2000) {
       query += "COMMIT;";
-      hustle_db->executeQuery(query);
+        hustle_db->execute_query_result(query);
     }
 
     std::cerr << "lineorder done" << std::endl;
@@ -242,7 +242,7 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[3])) + "');\n";
     }
     query += "COMMIT;";
-    hustle_db->executeQuery(query);
+      hustle_db->execute_query_result(query);
     std::cerr << "part done" << std::endl;
 
     stream = fopen("../../../ssb/test/supplier.tbl", "r");
@@ -258,7 +258,7 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[3])) + "');\n";
     }
     query += "COMMIT;";
-    hustle_db->executeQuery(query);
+      hustle_db->execute_query_result(query);
     std::cerr << "supplier done" << std::endl;
 
     stream = fopen("../../../ssb/test/customer.tbl", "r");
@@ -273,7 +273,7 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[3])) + "');\n";
     }
     query += "COMMIT;";
-    hustle_db->executeQuery(query);
+      hustle_db->execute_query_result(query);
     std::cerr << "customer done" << std::endl;
 
     stream = fopen("../../../ssb/test/date.tbl", "r");
@@ -291,13 +291,13 @@ class SQLTest : public Test {
                StringUtils::trim(std::string(fields[6])) + "');\n";
     }
     query += "COMMIT;";
-    hustle_db->executeQuery(query);
+      hustle_db->execute_query_result(query);
     std::cerr << "date done" << std::endl;
 
-    hustle::HustleDB::startScheduler();
+      hustle::HustleDB::start_scheduler();
   }
 
-  void TearDown() override { hustle::HustleDB::stopScheduler(); }
+  void TearDown() override { hustle::HustleDB::stop_scheduler(); }
 };
 
 hustle::catalog::TableSchema SQLTest::part("part"),
@@ -315,7 +315,7 @@ TEST_F(SQLTest, q1) {
       "from lineorder, ddate "
       "where lo_orderdate = d_datekey and d_year = 1993 and (lo_discount "
       "BETWEEN 0 and 3 and lo_quantity < 25);";
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "3257506\n");
 }
 
@@ -327,7 +327,7 @@ TEST_F(SQLTest, q2) {
       "where lo_orderdate = d_datekey\n"
       "and (lo_discount BETWEEN 5 and 7\n"
       "and lo_quantity BETWEEN 26 and 35);";
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "40305654\n");
 }
 
@@ -341,7 +341,7 @@ TEST_F(SQLTest, q3) {
       "and (lo_discount < 50\n"
       "and lo_quantity < 50);";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "18058284\n");
 }
 
@@ -356,7 +356,7 @@ TEST_F(SQLTest, q4) {
       "and( s_region = 'SREGION12')\n"
       "group by d_year, p_brand1\n"
       "order by d_year, p_brand1;";
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "151764 | 1993 | MFGR#12\n248116 | 1994 | MFGR#12\n");
 }
 
@@ -372,7 +372,7 @@ TEST_F(SQLTest, q5) {
       "\tgroup by d_year, p_brand1\n"
       "\torder by d_year, p_brand1;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "202070 | 1993 | MFGR#24\n313615 | 1994 | MFGR#24\n");
 }
 
@@ -388,7 +388,7 @@ TEST_F(SQLTest, q6) {
       "\tgroup by d_year, p_brand1\n"
       "\torder by d_year, p_brand1;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "226068 | 1993 | MFGR#22\n334290 | 1994 | MFGR#22\n");
 }
 
@@ -406,7 +406,7 @@ TEST_F(SQLTest, q7) {
       "\tgroup by c_nation, s_nation, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output,
             "CNATION55 | SNATION55 | 1993 | 257614\nCNATION55 | SNATION55 | "
             "1994 | 411880\n");
@@ -426,7 +426,7 @@ TEST_F(SQLTest, q8) {
       "\tgroup by c_city, s_city, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(
       output,
       "CCITY30 | SCITY30 | 1993 | 339688\nCCITY30 | SCITY30 | 1994 | 478056\n");
@@ -446,7 +446,7 @@ TEST_F(SQLTest, q9) {
       "\tgroup by c_city, s_city, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output,
             "CCITY25 | SCITY25 | 1993 | 327609\nCCITY20 | SCITY20 | 1993 | "
             "407808\nCCITY20 | SCITY20 | 1994 | 499617\nCCITY25 | SCITY25 | "
@@ -467,7 +467,7 @@ TEST_F(SQLTest, q10) {
       "\tgroup by c_city, s_city, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(
       output,
       "CCITY60 | SCITY60 | 1993 | 398220\nCCITY40 | SCITY40 | 1993 | 411550\n");
@@ -488,7 +488,7 @@ TEST_F(SQLTest, q11) {
       "\tgroup by d_year, c_nation\n"
       "\torder by d_year, c_nation;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "1993 | CNATION71 | 444774\n1994 | CNATION71 | 658856\n");
 }
 
@@ -508,7 +508,7 @@ TEST_F(SQLTest, q12) {
       "\tgroup by d_year, s_nation, p_category\n"
       "\torder by d_year, s_nation, p_category;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output,
             "1993 | SNATION32 | MFGR#32 | 468912\n1994 | SNATION32 | MFGR#32 | "
             "727692\n");
@@ -530,7 +530,7 @@ TEST_F(SQLTest, q13) {
       "\tgroup by d_year, s_city, p_brand1\n"
       "\torder by d_year, s_city, p_brand1;";
 
-  std::string output = hustle_db->executeQuery(query);
+  std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(
       output,
       "1993 | SCITY55 | MFGR#55 | 478426\n1994 | SCITY55 | MFGR#55 | 764920\n");

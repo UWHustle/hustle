@@ -25,11 +25,11 @@ TATP::TATP() {
   std::filesystem::remove_all("db_directory");
   hustle_db = std::make_shared<HustleDB>("db_directory2");
   // it will only start if it is not running.
-  hustle::HustleDB::startScheduler();
+    hustle::HustleDB::start_scheduler();
   CreateTable();
 }
 
-TATP::~TATP() { hustle::HustleDB::stopScheduler(); }
+TATP::~TATP() { hustle::HustleDB::stop_scheduler(); }
 
 void TATP::CreateTable() {
   std::shared_ptr<arrow::Schema> s_schema, ai_schema, sf_schema, cf_schema;
@@ -215,12 +215,12 @@ void TATP::CreateTable() {
   cf = std::make_shared<hustle::storage::DBTable>("Call_Forwarding", cf_schema,
                                                   BLOCK_SIZE);
 
-  hustle_db->createTable(subscriber, s);
+    hustle_db->create_table(subscriber, s);
 
-  hustle_db->createTable(access_info, ai);
+    hustle_db->create_table(access_info, ai);
 
-  hustle_db->createTable(special_facility, sf);
-  hustle_db->createTable(call_forwarding, cf);
+    hustle_db->create_table(special_facility, sf);
+    hustle_db->create_table(call_forwarding, cf);
 
   std::cout << "Subscriber insert" << std::endl;
   std::string query = "BEGIN TRANSACTION; ";
@@ -237,7 +237,7 @@ void TATP::CreateTable() {
              "131321, 131321, 131321, 131321);";
   }
   query += "COMMIT;";
-  hustle_db->executeQuery(query);
+    hustle_db->execute_query_result(query);
 
   query = "BEGIN TRANSACTION; ";
   for (int i = 9; i < 1000000; i++) {
@@ -247,7 +247,7 @@ void TATP::CreateTable() {
              "'LOW', 'Great');";
   }
   query += "COMMIT;";
-  hustle_db->executeQuery(query);
+    hustle_db->execute_query_result(query);
   std::cout << "access info insert ends" << std::endl;
 
   query = "BEGIN TRANSACTION; ";
@@ -257,10 +257,10 @@ void TATP::CreateTable() {
              ", 131321,"
              "131321, 131321,"
              "'great');";
-    // hustleDB.executeQuery(query);
+    // hustleDB.execute_query_result(query);
   }
   query += "COMMIT;";
-  hustle_db->executeQuery(query);
+    hustle_db->execute_query_result(query);
 
   query = "BEGIN TRANSACTION; ";
   for (int i = 9; i < 1000000; i++) {
@@ -269,10 +269,10 @@ void TATP::CreateTable() {
              ", 131,"
              "131321,"
              "'great');";
-    // hustleDB.executeQuery(query);
+    // hustleDB.execute_query_result(query);
   }
   query += "COMMIT;";
-  hustle_db->executeQuery(query);
+    hustle_db->execute_query_result(query);
 }
 
 void TATP::RunBenchmark() {
@@ -300,7 +300,7 @@ void TATP::RunQuery1() {
       "WHERE s_id=10;";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 1");
-  hustle_db->executeQuery(query1);
+    hustle_db->execute_query_result(query1);
   container->endEvent("tatp - 1");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -321,7 +321,7 @@ void TATP::RunQuery2() {
       "AND end_time > 1000);";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 2");
-  hustle_db->executeQuery(query2);
+    hustle_db->execute_query_result(query2);
   container->endEvent("tatp - 2");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -336,7 +336,7 @@ void TATP::RunQuery3() {
       "AND ai_type=131321;";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 3");
-  hustle_db->executeQuery(query3);
+    hustle_db->execute_query_result(query3);
   container->endEvent("tatp - 3");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -350,7 +350,7 @@ void TATP::RunQuery4() {
       "WHERE s_id=10; ";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 4.1");
-  hustle_db->executeQuery(query4);
+    hustle_db->execute_query_result(query4);
   container->endEvent("tatp - 4.1");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -367,7 +367,7 @@ void TATP::RunQuery4() {
       "msc_location, vlr_location "
       "FROM Subscriber "
       "WHERE s_id=10;";
-  hustle_db->executeQuery(query4);
+    hustle_db->execute_query_result(query4);
 
   std::cout << "Running Query4.2 : " << std::endl;
   query4 =
@@ -377,7 +377,7 @@ void TATP::RunQuery4() {
       "AND sf_sf_type=10";
   container = simple_profiler.getContainer();
   container->startEvent("tatp - 4.2");
-  hustle_db->executeQuery(query4);
+    hustle_db->execute_query_result(query4);
   container->endEvent("tatp - 4.2");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -388,7 +388,7 @@ void TATP::RunQuery4() {
       "data_a "
       "FROM Special_Facility "
       "WHERE sf_s_id=10 AND sf_sf_type=10;";
-  hustle_db->executeQuery(query4);
+    hustle_db->execute_query_result(query4);
 }
 
 void TATP::RunQuery5() {
@@ -399,7 +399,7 @@ void TATP::RunQuery5() {
       "WHERE sub_nbr='h10';";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 5");
-  hustle_db->executeQuery(query5);
+    hustle_db->execute_query_result(query5);
   container->endEvent("tatp - 5");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -415,7 +415,7 @@ void TATP::RunQuery5() {
       "msc_location, vlr_location "
       "FROM Subscriber "
       "WHERE s_id=10;";
-  hustle_db->executeQuery(query5);
+    hustle_db->execute_query_result(query5);
 }
 
 void TATP::RunQuery6() {
@@ -428,7 +428,7 @@ void TATP::RunQuery6() {
       "COMMIT;";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 6");
-  hustle_db->executeQuery(query6);
+    hustle_db->execute_query_result(query6);
   container->endEvent("tatp - 6");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -437,7 +437,7 @@ void TATP::RunQuery6() {
       "SELECT cf_s_id, start_time, end_time "
       "FROM Call_Forwarding "
       "WHERE cf_s_id=1111111;";
-  hustle_db->executeQuery(query6);
+    hustle_db->execute_query_result(query6);
 }
 
 void TATP::RunQuery7() {
@@ -447,7 +447,7 @@ void TATP::RunQuery7() {
       "WHERE cf_s_id = 11;";
   auto container = simple_profiler.getContainer();
   container->startEvent("tatp - 7");
-  hustle_db->executeQuery(query7);
+    hustle_db->execute_query_result(query7);
   container->endEvent("tatp - 7");
   simple_profiler.summarizeToStream(std::cout);
   simple_profiler.clear();
@@ -456,7 +456,7 @@ void TATP::RunQuery7() {
       "SELECT cf_s_id, start_time, end_time "
       "FROM Call_Forwarding "
       "WHERE cf_s_id=11;";
-  hustle_db->executeQuery(query7);
+    hustle_db->execute_query_result(query7);
 }
 
 }  // namespace hustle::operators
