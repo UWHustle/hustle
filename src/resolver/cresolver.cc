@@ -62,7 +62,7 @@ std::optional<bool> build_select(
         std::make_shared<OperatorResult>();
     OperatorResult::OpResultPtr output_result =
         std::make_shared<OperatorResult>();
-    auto table_ptr = catalog->getTable(table_name);
+    auto table_ptr = catalog->GetTable(table_name);
     if (table_ptr == nullptr) return std::nullopt;
     std::unique_ptr<hustle::operators::Select> select;
     if (ENABLE_FUSED_OPERATOR &&

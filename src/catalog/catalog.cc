@@ -90,17 +90,17 @@ std::shared_ptr<Catalog> Catalog::CreateCatalogObject(std::string CatalogPath,
   return std::make_shared<Catalog>(CatalogPath, SqlitePath);
 }
 
-DBTable::TablePtr Catalog::getTable(size_t table_id) {
+DBTable::TablePtr Catalog::GetTable(size_t table_id) {
   // TODO: maintain a structure for storing tables in the db
   return nullptr;
 }
 
-DBTable::TablePtr Catalog::getTable(std::string name) {
-  auto search = tables_.find(name);
+DBTable::TablePtr Catalog::GetTable(std::string table_name) {
+  auto search = tables_.find(table_name);
   if (search == tables_.end()) {
     return nullptr;
   }
-  return tables_[name].table;
+  return tables_[table_name].table;
 }
 
 void Catalog::SaveToFile() {
@@ -115,7 +115,7 @@ void Catalog::SaveToFile() {
   out.close();
 }
 
-bool Catalog::dropTable(std::string name) {
+bool Catalog::DropTable(std::string name) {
   if (!utils::execute_sqlite_query(SqlitePath_,
                                    absl::StrCat("DROP TABLE ", name, ";"))) {
     std::cerr << "SqliteDB catalog out of sync" << std::endl;
@@ -124,7 +124,7 @@ bool Catalog::dropTable(std::string name) {
   return true;
 }
 
-bool Catalog::dropMemTable(std::string name) {
+bool Catalog::DropMemTable(std::string name) {
   auto search = tables_.find(name);
   if (search == tables_.end()) {
     return false;
@@ -143,11 +143,11 @@ std::optional<TableSchema *> Catalog::TableExists(std::string name) {
   return &tables_[name].table_schema;
 }
 
-bool Catalog::addTable(TableSchema t) {
-  return this->addTable(t, nullptr);
+bool Catalog::AddTable(TableSchema t) {
+  return this->AddTable(t, nullptr);
 }
 
-bool Catalog::addTable(TableSchema t, DBTable::TablePtr table_ref) {
+bool Catalog::AddTable(TableSchema t, DBTable::TablePtr table_ref) {
  auto search = tables_.find(t.getName());
   if (search != tables_.end()) {
     return false;

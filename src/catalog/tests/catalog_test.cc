@@ -90,7 +90,7 @@ TEST(CatalogTest, AddTable) {
   ts.addColumn(c1);
   ts.addColumn(c2);
   ts.setPrimaryKey({"c1", "c2"});
-  EXPECT_TRUE(catalog->addTable(ts));
+  EXPECT_TRUE(catalog->AddTable(ts));
 
   EXPECT_TRUE(catalog->TableExists("Subscriber"));
   EXPECT_FALSE(catalog->TableExists("AccessInfo"));
@@ -102,8 +102,8 @@ TEST(CatalogTest, AddTable) {
   ts1.addColumn(c4);
   ts1.setPrimaryKey({"c3"});
   
-  EXPECT_TRUE(catalog->addTable(ts1));
-  EXPECT_FALSE(catalog->addTable(ts1));
+  EXPECT_TRUE(catalog->AddTable(ts1));
+  EXPECT_FALSE(catalog->AddTable(ts1));
 
   EXPECT_TRUE(catalog->TableExists("AccessInfo"));
 }
@@ -120,15 +120,15 @@ TEST(CatalogTest, DropTable) {
   ts1.addColumn(c3);
   ts1.addColumn(c4);
   ts1.setPrimaryKey({"c3"});
-  EXPECT_TRUE(catalog->addTable(ts1));
-  EXPECT_FALSE(catalog->addTable(ts1));
+  EXPECT_TRUE(catalog->AddTable(ts1));
+  EXPECT_FALSE(catalog->AddTable(ts1));
 
   EXPECT_TRUE(catalog->TableExists("AccessInfo_drop"));
   EXPECT_EQ(catalog->TableExists("AccessInfo_drop").value()->getName(), "AccessInfo_drop");
-  EXPECT_TRUE(catalog->dropTable("AccessInfo_drop"));
+  EXPECT_TRUE(catalog->DropTable("AccessInfo_drop"));
 
   EXPECT_FALSE(catalog->TableExists("AccessInfo_drop"));
-  EXPECT_FALSE(catalog->dropTable("AccessInfo_drop"));
+  EXPECT_FALSE(catalog->DropTable("AccessInfo_drop"));
 }
 
 TEST(ColumnType, Serialization) {
@@ -373,7 +373,7 @@ TEST(CatalogTest, Serialization) {
   ts.addColumn(c1);
   ts.addColumn(c2);
   ts.setPrimaryKey({"c1", "c2"});
-  EXPECT_TRUE(catalog_ptr->addTable(ts));
+  EXPECT_TRUE(catalog_ptr->AddTable(ts));
   EXPECT_TRUE(catalog_ptr->TableExists("Subscriber_Serial"));
 
 
@@ -386,8 +386,8 @@ TEST(CatalogTest, Serialization) {
   ts1.addColumn(c3);
   ts1.addColumn(c4);
   ts1.setPrimaryKey({"c3"});
-  EXPECT_TRUE(catalog_ptr->addTable(ts1));
-  EXPECT_FALSE(catalog_ptr->addTable(ts1));
+  EXPECT_TRUE(catalog_ptr->AddTable(ts1));
+  EXPECT_FALSE(catalog_ptr->AddTable(ts1));
 
   EXPECT_TRUE(catalog_ptr->TableExists("AccessInfo_Serial"));
   EXPECT_EQ(catalog_ptr->TableExists("AccessInfo_Serial").value()->getName(), "AccessInfo_Serial");
@@ -424,8 +424,8 @@ TEST(CatalogTest, Serialization) {
 
   EXPECT_TRUE(catalog_cereal.TableExists("Subscriber_Serial"));
   EXPECT_TRUE(catalog_cereal.TableExists("AccessInfo_Serial"));
-  EXPECT_FALSE(catalog_cereal.addTable(ts1));
-  EXPECT_FALSE(catalog_cereal.addTable(ts));
+  EXPECT_FALSE(catalog_cereal.AddTable(ts1));
+  EXPECT_FALSE(catalog_cereal.AddTable(ts));
 
   EXPECT_EQ(catalog_cereal.TableExists("AccessInfo_Serial").value()->getName(),
             "AccessInfo_Serial");
@@ -473,16 +473,16 @@ TEST(CatalogSerialization, LoadFromFile) {
   ts1.addColumn(c3);
   ts1.addColumn(c4);
   ts1.setPrimaryKey({"c3"});
-  EXPECT_TRUE(catalog->addTable(ts));
+  EXPECT_TRUE(catalog->AddTable(ts));
   EXPECT_TRUE(catalog->TableExists("Subscriber2"));
 
-  EXPECT_TRUE(catalog->addTable(ts1));
-  EXPECT_FALSE(catalog->addTable(ts1));
+  EXPECT_TRUE(catalog->AddTable(ts1));
+  EXPECT_FALSE(catalog->AddTable(ts1));
 
   EXPECT_TRUE(catalog->TableExists("Subscriber2"));
   EXPECT_TRUE(catalog->TableExists("AccessInfo2"));
-  EXPECT_FALSE(catalog->addTable(ts1));
-  EXPECT_FALSE(catalog->addTable(ts));
+  EXPECT_FALSE(catalog->AddTable(ts1));
+  EXPECT_FALSE(catalog->AddTable(ts));
 
   EXPECT_EQ(catalog->TableExists("AccessInfo2").value()->getName(), "AccessInfo2");
   EXPECT_TRUE(catalog->TableExists("AccessInfo2").value()->ColumnExists("c3"));

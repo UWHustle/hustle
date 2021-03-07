@@ -62,21 +62,21 @@ class Catalog {
   static std::shared_ptr<Catalog> CreateCatalogObject(std::string CatalogPath,
                                                       std::string SqlitePath);
 
-  bool addTable(TableSchema t);
-  bool addTable(TableSchema t, DBTable::TablePtr table_ref);
+  bool AddTable(TableSchema t);
+  bool AddTable(TableSchema t, DBTable::TablePtr table_ref);
 
-  bool dropMemTable(std::string name);
+  bool DropMemTable(std::string name);
 
-  bool dropTable(std::string name);
+  bool DropTable(std::string name);
 
   std::optional<TableSchema*> TableExists(std::string name);
 
   void print() const;
 
-  DBTable::TablePtr getTable(size_t table_id);
-  DBTable::TablePtr getTable(std::string table_name);
+  DBTable::TablePtr GetTable(size_t table_id);
+  DBTable::TablePtr GetTable(std::string table_name);
 
-  std::vector<std::string> getTables(){ 
+  std::vector<std::string> GetTableNames(){
     std::vector<std::string> result;
     std::transform(tables_.begin(), tables_.end(),
     std::inserter(result, result.end()),
@@ -84,7 +84,7 @@ class Catalog {
     return result;
   }
 
-  std::vector<TableSchema> getTableSchemas(){ 
+  std::vector<TableSchema> GetTableSchemas(){
     std::vector<TableSchema> tables;
     std::transform(tables_.begin(), tables_.end(),
     std::inserter(tables, tables.end()),
