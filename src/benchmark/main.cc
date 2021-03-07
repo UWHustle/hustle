@@ -16,6 +16,7 @@
 // under the License.
 
 #include <benchmark/benchmark.h>
+#include <gflags/gflags.h>
 
 #include "aggregate_workload.h"
 #include "skew.h"
@@ -23,7 +24,6 @@
 #include "ssb_workload.h"
 #include "storage/util.h"
 #include "tatp_workload.h"
-#include <gflags/gflags.h>
 
 using namespace hustle::operators;
 using namespace std::chrono;
@@ -384,10 +384,9 @@ int run_ssb_queries() {
 }
 
 int main(int argc, char *argv[]) {
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
-    std::cout << "args: " << FLAGS_debug << " " << FLAGS_benchmark << std::endl;
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
   if (!FLAGS_benchmark.compare("aggregate")) {
-      return aggregate_main();
+    return aggregate_main();
   } else if (!FLAGS_benchmark.compare("ssb")) {
     return ssb_main();
   } else if (!FLAGS_benchmark.compare("tatp")) {
