@@ -21,3 +21,17 @@ target_link_libraries(hustle_hustleDB_test
         )
 add_test(HustleDB_test hustle_hustleDB_test)
 
+add_executable(hustle_SQL_test "tests/sql_test.cc")
+target_link_libraries(hustle_SQL_test
+        gtest
+        gtest_main
+        gmock
+        hustle_src_catalog
+        sqlite3
+        absl::container absl::hash
+        absl::flat_hash_map
+        hustleDB
+        )
+add_test(SQL_test hustle_SQL_test)
+
+
