@@ -61,7 +61,7 @@ void memlog_remove_table_mapping(int db_id, char *db_name, char *tbl_name) {
   while (table_itr != table_map[db_id].end()) {
     if (table_itr->second.compare(tbl_name_str) == 0) {
       table_map[db_id].erase(table_itr->first);
-      catalog->dropMemTable(tbl_name_str);
+        catalog->DropMemTable(tbl_name_str);
       break;
     }
     table_itr++;
@@ -195,7 +195,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
     }
 
     auto table =
-        catalog->getTable(table_map[DEFAULT_DB_ID][table_index].c_str());
+            catalog->GetTable(table_map[DEFAULT_DB_ID][table_index].c_str());
     if (table == nullptr) {
       table_index++;
       continue;

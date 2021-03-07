@@ -45,8 +45,8 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
 
       if ((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
           (rightExpr != NULL && rightExpr->op == TK_COLUMN)) {
-        auto table_1 = catalog_->getTable(leftExpr->y.pTab->zName);
-        auto table_2 = catalog_->getTable(rightExpr->y.pTab->zName);
+        auto table_1 = catalog_->GetTable(leftExpr->y.pTab->zName);
+        auto table_2 = catalog_->GetTable(rightExpr->y.pTab->zName);
         ColumnReference lRef = {
             table_1, leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
         ColumnReference rRef = {
@@ -86,7 +86,7 @@ std::shared_ptr<ExprReference> SelectResolver::ResolveAggExpr(Expr* expr) {
       expr_ref->op = expr->op;
       if (expr->op == TK_COLUMN || expr->op == TK_AGG_COLUMN) {
         expr_ref->column_ref = std::make_shared<ColumnReference>();
-        expr_ref->column_ref->table = catalog_->getTable(expr->y.pTab->zName);
+        expr_ref->column_ref->table = catalog_->GetTable(expr->y.pTab->zName);
         expr_ref->column_ref->col_name =
             expr->y.pTab->aCol[expr->iColumn].zName;
       }
@@ -156,7 +156,7 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
       if ((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
           (rightExpr != NULL &&
            (rightExpr->op == TK_INTEGER || rightExpr->op == TK_STRING))) {
-        colRef = {catalog_->getTable(leftExpr->y.pTab->zName),
+        colRef = {catalog_->GetTable(leftExpr->y.pTab->zName),
                   leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
         if (rightExpr->op == TK_STRING) {
           datum = arrow::Datum(
@@ -192,7 +192,7 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         arrow::Datum ldatum, rdatum;
         Expr* leftExpr = pExpr->pLeft;
         if (leftExpr != NULL && leftExpr->op == TK_COLUMN){
-            colRef = {catalog_->getTable(leftExpr->y.pTab->zName),
+            colRef = {catalog_->GetTable(leftExpr->y.pTab->zName),
                       leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
             Expr* firstExpr = pExpr->x.pList->a[0].pExpr;
             Expr* secondExpr = pExpr->x.pList->a[1].pExpr;
@@ -249,7 +249,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       std::string agg_func_name(pEList->a[k].pExpr->u.zToken);
       std::transform(agg_func_name.begin(), agg_func_name.end(), agg_func_name.begin(), ::toupper);
       if (expr->iColumn > 0) {
-        ColumnReference colRef = {catalog_->getTable(expr->y.pTab->zName),
+        ColumnReference colRef = {catalog_->GetTable(expr->y.pTab->zName),
                                   expr->y.pTab->aCol[expr->iColumn].zName};
         AggregateReference aggRef = {
                aggregate_kernels_[agg_func_name],
@@ -275,7 +275,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     } else if (pEList->a[k].pExpr->op == TK_COLUMN ||
                pEList->a[k].pExpr->op == TK_AGG_COLUMN) {
       Expr* expr = pEList->a[k].pExpr;
-      ColumnReference colRef = {catalog_->getTable(expr->y.pTab->zName),
+      ColumnReference colRef = {catalog_->GetTable(expr->y.pTab->zName),
                                 expr->y.pTab->aCol[expr->iColumn].zName};
       std::shared_ptr<ProjectReference> projRef =
           std::make_shared<ProjectReference>(ProjectReference{colRef});
@@ -299,7 +299,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       if (pGroupBy->a[i].pExpr->iColumn >= 0) {
         std::shared_ptr<ColumnReference> colRef =
             std::make_shared<ColumnReference>(ColumnReference{
-                catalog_->getTable(pGroupBy->a[i].pExpr->y.pTab->zName),
+                    catalog_->GetTable(pGroupBy->a[i].pExpr->y.pTab->zName),
                 pGroupBy->a[i]
                     .pExpr->y.pTab->aCol[pGroupBy->a[i].pExpr->iColumn]
                     .zName});
@@ -322,7 +322,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
                     ->alias});
           } else {
             colRef = std::make_shared<ColumnReference>(ColumnReference{
-                catalog_->getTable(pOrderBy->a[i].pExpr->y.pTab->zName),
+                    catalog_->GetTable(pOrderBy->a[i].pExpr->y.pTab->zName),
                 pOrderBy->a[i]
                     .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
                     .zName});
