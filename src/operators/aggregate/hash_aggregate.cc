@@ -17,7 +17,7 @@
 
 #include "operators/aggregate/hash_aggregate.h"
 
-#include <storage/util.h>
+#include <storage/utils/util.h>
 
 // TODO: Merge this reference with the one in aggregate.cc.
 //  Maybe put this in aggregate.h?

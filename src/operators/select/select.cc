@@ -27,7 +27,7 @@
 
 #include "storage/ma_block.h"
 #include "storage/table.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 #include "utils/bit_utils.h"
 
 namespace hustle {

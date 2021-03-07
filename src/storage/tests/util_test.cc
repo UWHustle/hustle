@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 #include <arrow/io/api.h>
 

@@ -22,7 +22,7 @@
 #include "skew.h"
 #include "ssb_queries.h"
 #include "ssb_workload.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 #include "tatp_workload.h"
 
 using namespace hustle::operators;

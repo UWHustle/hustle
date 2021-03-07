@@ -29,7 +29,7 @@
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "scheduler/scheduler_flags.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 #include "utils/arrow_compute_wrappers.h"
 #include "utils/config.h"
 

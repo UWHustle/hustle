@@ -28,7 +28,7 @@
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 #define BLOCK_SIZE 108
 

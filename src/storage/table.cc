@@ -25,7 +25,7 @@
 
 #include "storage/block.h"
 #include "storage/ma_block.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 namespace hustle::storage {
 

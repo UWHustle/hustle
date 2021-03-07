@@ -30,7 +30,7 @@
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 using namespace testing;
 using namespace hustle::operators;

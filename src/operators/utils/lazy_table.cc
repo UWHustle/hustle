@@ -22,7 +22,7 @@
 
 #include "operators/utils/operator_result.h"
 #include "scheduler/threading/synchronization_lock.h"
-#include "storage/util.h"
+#include "storage/utils/util.h"
 
 namespace hustle::operators {
 
