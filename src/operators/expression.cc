@@ -144,6 +144,7 @@ Expression::ExecuteBlockHandler(
       "not supported for this type.");
 }
 
+// Execute block handler does not support date time interval.
 template <>
 arrow::Datum Expression::ExecuteBlockHandler<arrow::DayTimeIntervalType>(
     bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,

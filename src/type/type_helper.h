@@ -133,6 +133,24 @@ namespace hustle {
     HUSTLE_ARROW_MAX_ID_CASE_STMT();                                           \
   };
 
-}  // namespace hustle
+template <typename, typename = void>
+struct has_builder_type : std::false_type {
+  using BuilderType = void;
+  using is_defalut_constructable = std::is_default_constructible<BuilderType>;
+  static constexpr bool is_defalut_constructable_v =
+      is_defalut_constructable::value;
+};
+
+template <typename DataType>
+struct has_builder_type<
+    DataType, std::void_t<typename arrow::TypeTraits<DataType>::BuilderType>>
+    : std::true_type {
+  using BuilderType = void;
+  using is_defalut_constructable = std::is_default_constructible<BuilderType>;
+  static constexpr bool is_defalut_constructable_v =
+      is_defalut_constructable::value;
+};
+
+};  // namespace hustle
 
 #endif  // HUSTLE_TYPE_HELPER_H
