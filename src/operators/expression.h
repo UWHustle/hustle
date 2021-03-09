@@ -58,15 +58,15 @@ typedef struct OpElem OpElem;
 /**
  * This class helps in evaluating the expression in the SQL query
  * and return the result to the operator at which it is called.
- * 
+ *
  * It converts the expression to postfix and reuse the single result output
  * for all the operator evaluation.
- * 
- * It operates on a chunk level, hence it can be integrated to the multithreaded code
- * which operate on a chunk. However, creation and initialization of the object needed
- * to be done only once.
  *
- * Currently, expression columns all belong single table only supported. 
+ * It operates on a chunk level, hence it can be integrated to the multithreaded
+ * code which operate on a chunk. However, creation and initialization of the
+ * object needed to be done only once.
+ *
+ * Currently, expression columns all belong single table only supported.
  * */
 class Expression {
  private:
@@ -81,7 +81,6 @@ class Expression {
 
   void ConvertPostfix(hustle::Task* ctx, std::shared_ptr<ExprReference> expr);
 
-
   // Execute an arithmetic operator for two column of the chunk in the table
   template <typename ArrayType, typename ArrayPrimitiveType>
   arrow::Datum ExecuteBlock(int op, std::shared_ptr<arrow::Array> result,
@@ -93,11 +92,28 @@ class Expression {
                             std::shared_ptr<arrow::Array> left_col,
                             std::shared_ptr<arrow::Array> right_col);
 
+  // Arrow type handler for ExecuteBlock.
+  // Only enables type with ctype into the ExecuteBlock.
+  // Otherwise, throw a runtime error.
+  // In addition, DateTimeInterval types are disabled because
+  // no arithmetic binary operator are supported.
+  template <typename DataType>
+  std::enable_if_t<arrow::has_c_type<DataType>::value, arrow::Datum>
+  ExecuteBlockHandler(
+      bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
+      const std::shared_ptr<arrow::Array>& right_col);
+
+  template <typename DataType>
+  std::enable_if_t<!arrow::has_c_type<DataType>::value, arrow::Datum>
+  ExecuteBlockHandler(
+      bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
+      const std::shared_ptr<arrow::Array>& right_col);
+
  public:
   Expression(OperatorResult::OpResultPtr prev_op_output,
              std::shared_ptr<ExprReference> expr);
 
-  // Initializes the expression and its corresponding postfix in the object 
+  // Initializes the expression and its corresponding postfix in the object
   void Initialize(hustle::Task* ctx);
 
   // Starting point to invoke the evaluation of the expression for a chunk
