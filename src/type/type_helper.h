@@ -134,24 +134,41 @@ namespace hustle {
     HUSTLE_ARROW_MAX_ID_CASE_STMT();                                           \
   };
 
+//
+// has_builder_type
+//
+// Tells if a DataType has a builder
+// and some properties about the builder.
+//
+
 template <typename, typename = void>
 struct has_builder_type : std::false_type {
   using BuilderType = void;
-  using is_defalut_constructable = std::is_default_constructible<BuilderType>;
-  static constexpr bool is_defalut_constructable_v =
-      is_defalut_constructable::value;
+  using is_defalut_constructable = std::false_type;
+  static constexpr bool is_defalut_constructable_v = false;
 };
 
 template <typename DataType>
 struct has_builder_type<
     DataType, std::void_t<typename arrow::TypeTraits<DataType>::BuilderType>>
     : std::true_type {
-  using BuilderType = void;
+  using BuilderType = typename arrow::TypeTraits<DataType>::BuilderType;
   using is_defalut_constructable = std::is_default_constructible<BuilderType>;
   static constexpr bool is_defalut_constructable_v =
       is_defalut_constructable::value;
 };
 
+template <typename T, typename R = void>
+using enable_if_builder_default_constructable =
+    std::enable_if_t<has_builder_type<T>::is_defalut_constructable_v, R>;
+
+template <typename T, typename R = void>
+using enable_if_builder_non_default_constructable = std::enable_if_t<has_builder_type<T>::value &&
+                 !has_builder_type<T>::is_defalut_constructable_v,
+    R>;
+
+template <typename T, typename R = void>
+using enable_if_no_builder = std::enable_if_t<!has_builder_type<T>::value, R>;
 };  // namespace hustle
 
 #endif  // HUSTLE_TYPE_HELPER_H

@@ -192,6 +192,7 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
 
 //
 // CreateGroupBuilderVectorHandler
+//
 // Predicates handle three classes
 //  - [1] default constructable
 //  - [2] non default constructable
@@ -202,8 +203,7 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
 //  - (b) DictionaryType (unimplemented)
 
 template <typename T>
-std::enable_if_t<has_builder_type<T>::is_defalut_constructable_v, void>
-CreateGroupBuilderVectorHandler(
+enable_if_builder_default_constructable<T> CreateGroupBuilderVectorHandler(
     const std::shared_ptr<arrow::Field>& field,
     std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
   using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
@@ -211,10 +211,7 @@ CreateGroupBuilderVectorHandler(
 }
 
 template <typename T>
-std::enable_if_t<has_builder_type<T>::value &&
-                     !has_builder_type<T>::is_defalut_constructable_v,
-                 void>
-CreateGroupBuilderVectorHandler(
+enable_if_builder_non_default_constructable<T> CreateGroupBuilderVectorHandler(
     const std::shared_ptr<arrow::Field>& field,
     std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
   std::cerr << "Aggregate does not support group bys of type " +
@@ -223,8 +220,7 @@ CreateGroupBuilderVectorHandler(
 }
 
 template <typename T>
-std::enable_if_t<!has_builder_type<T>::value, void>
-CreateGroupBuilderVectorHandler(
+enable_if_no_builder<T> CreateGroupBuilderVectorHandler(
     const std::shared_ptr<arrow::Field>& field,
     std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
   std::cerr << "Aggregate does not support group bys of type " +
@@ -250,8 +246,6 @@ void CreateGroupBuilderVectorHandler<arrow::ExtensionType>(
                    field->type()->ToString()
             << std::endl;
 }
-
-
 
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 Aggregate::CreateGroupBuilderVector() {
