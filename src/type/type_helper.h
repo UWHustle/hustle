@@ -23,6 +23,7 @@
 #include <iostream>
 
 namespace hustle {
+
 // Placeholder case statement. Simply throws error at runtime.
 #define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                       \
   {                                                                         \
@@ -38,7 +39,7 @@ namespace hustle {
 // Default macro that handles the MAX_ID case.
 // Simply throw an error and abort.
 #define HUSTLE_ARROW_MAX_ID_CASE_STMT()                                  \
-  case Type::MAX_ID: {                                                   \
+  case arrow::Type::MAX_ID: {                                            \
     std::cerr << "Encountered MAX_ID in switch statement." << std::endl; \
     exit(1);                                                             \
   }
@@ -105,7 +106,8 @@ namespace hustle {
     _HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::EXTENSION,                  \
                                    arrow::ExtensionType);                   \
     HUSTLE_ARROW_MAX_ID_CASE_STMT();                                        \
-  };  // namespace hustle
+  };
+
 
 }  // namespace hustle
 
