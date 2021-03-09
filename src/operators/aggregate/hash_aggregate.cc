@@ -405,6 +405,11 @@ hash_t GetHashKeyHandler(U &group_by_chunk, int item_index) {
                 arrow::is_fixed_size_binary_type<T>::value) {
     return GetHashKeyHandlerStringLike<T>(group_by_chunk, item_index);
   }
+  /* TODO: Hash Key throw type list:
+   * null fixed_size_binary date32 date64 time32 time64 timestamp
+   * day_time_interval month_interval duration decimal struct list large_list
+   * fixed_size_list map dense_union sparse_union dictionary extension
+   */
   throw std::runtime_error(std::string("Unhashable type: ") + T::type_name());
 }
 
