@@ -190,25 +190,49 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
   });
 }
 
-template <typename T, typename GroupByBuilderType>
+//
+// CreateGroupBuilderVectorHandler
+// Predicates handle three classes
+//  - [1] default constructable
+//  - [2] non default constructable
+//  - [3] no builder
+//
+// There are 2 specialized templates
+//  - (a) FixedWidthBinaryType: use the field type to init the builder.
+//  - (b) DictionaryType (unimplemented)
+
+template <typename T>
 std::enable_if_t<has_builder_type<T>::is_defalut_constructable_v, void>
-CreateGroupBuilderVectorHandler(const std::shared_ptr<arrow::Field>& field,
-                                GroupByBuilderType& group_builders) {
+CreateGroupBuilderVectorHandler(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
   using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
   group_builders.push_back(std::make_shared<BuilderType>());
 }
 
-template <typename T, typename GroupByBuilderType>
+template <typename T>
 std::enable_if_t<has_builder_type<T>::value &&
                      !has_builder_type<T>::is_defalut_constructable_v,
                  void>
-CreateGroupBuilderVectorHandler(const std::shared_ptr<arrow::Field>& field,
-                                GroupByBuilderType& group_builders) {
+CreateGroupBuilderVectorHandler(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
   std::cerr << "Aggregate does not support group bys of type " +
                    field->type()->ToString()
             << std::endl;
 }
 
+template <typename T>
+std::enable_if_t<!has_builder_type<T>::value, void>
+CreateGroupBuilderVectorHandler(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
+  std::cerr << "Aggregate does not support group bys of type " +
+                   field->type()->ToString()
+            << std::endl;
+}
+
+// CreateGroupBuilderVectorHandler specialized template for FixedSizeBinaryType
 template <>
 void CreateGroupBuilderVectorHandler<arrow::FixedSizeBinaryType>(
     const std::shared_ptr<arrow::Field>& field,
@@ -217,14 +241,17 @@ void CreateGroupBuilderVectorHandler<arrow::FixedSizeBinaryType>(
       std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
 }
 
-template <typename T, typename GroupByBuilderType>
-std::enable_if_t<!has_builder_type<T>::value, void>
-CreateGroupBuilderVectorHandler(const std::shared_ptr<arrow::Field>& field,
-                                GroupByBuilderType& group_builders) {
+// CreateGroupBuilderVectorHandler specialized template for ExtensionType
+template <>
+void CreateGroupBuilderVectorHandler<arrow::ExtensionType>(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
   std::cerr << "Aggregate does not support group bys of type " +
                    field->type()->ToString()
             << std::endl;
 }
+
+
 
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 Aggregate::CreateGroupBuilderVector() {
@@ -242,27 +269,6 @@ Aggregate::CreateGroupBuilderVector() {
 
     HUSTLE_SWITCH_ARROW_TYPE(enum_type);
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
-
-    switch (enum_type) {
-      case arrow::Type::STRING: {
-        group_builders.push_back(std::make_shared<arrow::StringBuilder>());
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        group_builders.push_back(
-            std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
-        break;
-      }
-      case arrow::Type::INT64: {
-        group_builders.push_back(std::make_shared<arrow::Int64Builder>());
-        break;
-      }
-      default: {
-        std::cerr << "Aggregate does not support group bys of type " +
-                         field->type()->ToString()
-                  << std::endl;
-      }
-    }
   }
   return group_builders;
 }
