@@ -75,6 +75,7 @@ namespace hustle {
 #define HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow_enum_type_, data_type_) \
   case arrow_enum_type_: {                                          \
     HUSTLE_ARROW_TYPE_CASE_STMT(data_type_);                        \
+    break;                                                          \
   };
 
 // The Big switch statement that make arrow type transform to the DataType type
