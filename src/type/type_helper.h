@@ -163,12 +163,21 @@ using enable_if_builder_default_constructable =
     std::enable_if_t<has_builder_type<T>::is_defalut_constructable_v, R>;
 
 template <typename T, typename R = void>
-using enable_if_builder_non_default_constructable = std::enable_if_t<has_builder_type<T>::value &&
-                 !has_builder_type<T>::is_defalut_constructable_v,
-    R>;
+using enable_if_builder_non_default_constructable =
+    std::enable_if_t<has_builder_type<T>::value &&
+                         !has_builder_type<T>::is_defalut_constructable_v,
+                     R>;
 
 template <typename T, typename R = void>
 using enable_if_no_builder = std::enable_if_t<!has_builder_type<T>::value, R>;
+
+template <class, class = void>
+struct has_ctype_member : std::false_type {};
+
+template <class T>
+struct has_ctype_member<T, std::void_t<typename arrow::TypeTraits<T>::CType>>
+    : std::true_type {};
+
 };  // namespace hustle
 
 #endif  // HUSTLE_TYPE_HELPER_H
