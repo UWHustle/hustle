@@ -135,10 +135,7 @@ namespace hustle {
   };
 
 //
-// has_builder_type
-//
-// Tells if a DataType has a builder
-// and some properties about the builder.
+// Type Traits
 //
 
 template <typename, typename = void>
@@ -171,12 +168,140 @@ using enable_if_builder_non_default_constructable =
 template <typename T, typename R = void>
 using enable_if_no_builder = std::enable_if_t<!has_builder_type<T>::value, R>;
 
+// TODO: CType concept may be different. Some types have ctype nested in the
+//      body but not in the trait, and some (primitives) will expose that.
 template <class, class = void>
 struct has_ctype_member : std::false_type {};
 
 template <class T>
 struct has_ctype_member<T, std::void_t<typename arrow::TypeTraits<T>::CType>>
     : std::true_type {};
+
+// TODO: Make these two builder factory a class?
+// Create Array Builder
+//    Use CreateBuilder as the central function.
+//
+//template <typename T>
+//std::shared_ptr<arrow::ArrayBuilder> _CreateDefaultBuilder(
+//    arrow::MemoryPool*) {
+//  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
+//  return std::make_shared<BuilderType>();
+//}
+//
+//template <typename T>
+//std::shared_ptr<arrow::ArrayBuilder> _CreateBuilder_TypeDefault(
+//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
+//  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
+//  auto datatype = std::make_shared<T>();
+//  return std::make_shared<BuilderType>(datatype, mem_pool);
+//}
+//
+//template <typename T>
+//std::shared_ptr<arrow::ArrayBuilder> CreateBuilder(
+//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
+//  // [1] Builder is default constructable.
+//  if constexpr (has_builder_type<T>::value &&
+//                has_builder_type<T>::is_defalut_constructable_v) {
+//    return _CreateDefaultBuilder<T>(mem_pool);
+//  }
+//  // [2] DataType is default constructable.
+//  if constexpr (std::is_default_constructible_v<T>) {
+//    return _CreateBuilder_TypeDefault<T>(mem_pool);
+//  }
+//  // TODO: I am hesitate to make this a compile time error.
+//  // [3] We can do nothing if it only has a default constructor.
+//  throw std::runtime_error("Builder cannot default construct for type: " +
+//                           T::type_name());
+//}
+
+//
+// Create Array From Field
+//
+// Use CreateArrayBuilderFromField as the central function.
+// Type classification
+// [1] Independent. Type does not depend on the field at all.
+//    null bool int8 int16 int32 int64 uint8 uint16 uint32 uint64
+//    halffloat float double
+//    day_time_interval month_interval
+//    utf8 binary large_utf8 large_binary
+// [2] Required Identity Type Constructable.
+// Must/May be good to construct from its own type with specification.
+//    date32 date64 time32 time64 timestamp duration
+//    decimal fixed_size_binary
+// [3] List-like type. Provide a data type and construct builder.
+// [4] Struct type. Need to construct the builder for each fields.
+// [5] Map. Need to construct the index and value builder.
+// [6] DenseUnion, SparseUnion.
+// [7] dictionary: Need to specify the exact typing, and establish builders.
+//      DictionaryBuilder<T>
+// [8] Extension: No support. Extension type does not have a builder.
+
+template <typename DataType>
+class BuilderFactory {
+  BuilderFactory(){}
+  BuilderFactory(const DataType & dataType):dataType(dataType){}
+
+ private:
+  std::shared_ptr<DataType> dataType;
+
+};
+
+//template <typename T>
+//std::shared_ptr<arrow::ArrayBuilder>
+//_CreateArrayBuilderDefaultConstructableFromField(
+//    const std::shared_ptr<arrow::Field>& field,
+//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
+//  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
+//  auto datatype = field->type();
+//  return std::make_shared<BuilderType>(datatype);
+//}
+//
+//template <typename T>
+//constexpr int CreateArrayBuilderFromFieldArbitrator() {
+//  if constexpr (std::is_same_v<T, arrow::NullType> ||
+//                arrow::is_number_type<T>::value ||
+//                std::is_same_v<T, arrow::StringType>) {
+//    return 1;
+//  } else if constexpr (has_builder_type<T>::is_defalut_constructable_v) {
+//    return 2;
+//  }
+//  return 0;
+//}
+//
+//template <typename T, int switch_case_num>
+//std::shared_ptr<arrow::ArrayBuilder> CreateArrayBuilderFromFieldInternal(
+//    const std::shared_ptr<arrow::Field>& field, arrow::MemoryPool* mem_pool) {
+//  if constexpr (switch_case_num == 1) {
+//    return _CreateDefaultBuilder<T>(mem_pool);
+//  } else if constexpr (switch_case_num == 2) {
+//    return _CreateArrayBuilderDefaultConstructableFromField<T>(field, mem_pool);
+//  }
+//  //  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
+//  //  auto datatype = field->type();
+//  //  return std::make_shared<BuilderType>(datatype);
+//}
+//
+//std::shared_ptr<arrow::ArrayBuilder> CreateArrayBuilderFromField(
+//    const std::shared_ptr<arrow::Field>& field,
+//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
+//  // Find the class of the field.
+//
+//  auto enum_type = field->type()->id();
+//  std::shared_ptr<arrow::ArrayBuilder> result;
+//
+//#undef HUSTLE_ARROW_TYPE_CASE_STMT
+//#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_type)                                \
+//  {                                                                            \
+//    constexpr int switch_case_num =                                            \
+//        CreateArrayBuilderFromFieldArbitrator<arrow_type>();                   \
+//    result = CreateArrayBuilderFromFieldInternal<arrow_type, switch_case_num>( \
+//        field, mem_pool);                                                      \
+//  }
+//  HUSTLE_SWITCH_ARROW_TYPE(enum_type)
+//#undef HUSTLE_ARROW_TYPE_CASE_STMT
+//  return result;
+//}
+
 
 };  // namespace hustle
 
