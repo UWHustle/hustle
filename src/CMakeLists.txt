@@ -34,6 +34,7 @@ target_link_libraries(hustle_main
         hustle_src_catalog
         hustle_src_storage
         hustle_src_resolver
+        hustle_src_type
         hustle_src_operators
         hustle_src_scheduler_Scheduler
         hustle_src_optimizer_ExecutionPlan
@@ -42,6 +43,7 @@ target_link_libraries(hustle_main
         glog
         )
 
+add_subdirectory(type)
 add_subdirectory(utils)
 add_subdirectory(catalog)
 add_subdirectory(api)

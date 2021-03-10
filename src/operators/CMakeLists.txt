@@ -17,7 +17,9 @@ add_library(
         utils/lazy_table.cc utils/lazy_table.h
         utils/operator_result.cc utils/operator_result.h
         ../utils/bloom_filter.h
-        ../utils/xxHash.h aggregate/base_aggregate.h utils/aggregate_factory.cc utils/aggregate_factory.h)
+        ../utils/xxHash.h aggregate/base_aggregate.h utils/aggregate_factory.cc utils/aggregate_factory.h
+
+)
 
 
 target_include_directories(hustle_src_operators PUBLIC ${ARROW_INCLUDE_DIR})
@@ -27,6 +29,7 @@ target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_utils_ArrowComputeWrappers
         hustle_src_utils_Config
         hustle_src_utils_ParallelHashmap
+        hustle_src_type
         ${ARROW_SHARED_LIB}
         )
 
