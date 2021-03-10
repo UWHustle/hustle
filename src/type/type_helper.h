@@ -34,7 +34,7 @@ namespace hustle {
 //
 //  // 2. Define the case body. This will be called for each arrow type.
 //  //    arrow_data_type_: a subclass of arrow::DataType
-//  #define HUSTLE_ARROW_TYPE_CASE_STMT \
+//  #define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_) \
 //        { std::cout << arrow_data_type_::name() << std::endl; }
 //
 //  // 3. Call the switch statement
@@ -177,131 +177,341 @@ template <class T>
 struct has_ctype_member<T, std::void_t<typename arrow::TypeTraits<T>::CType>>
     : std::true_type {};
 
-// TODO: Make these two builder factory a class?
+template <typename T, typename... Ts>
+using isOneOf = std::disjunction<std::is_same<T, Ts>...>;
+
+template <typename T>
+using is_string_type = isOneOf<T, arrow::StringType, arrow::LargeStringType>;
+
 // Create Array Builder
 //    Use CreateBuilder as the central function.
 //
-//template <typename T>
-//std::shared_ptr<arrow::ArrayBuilder> _CreateDefaultBuilder(
-//    arrow::MemoryPool*) {
-//  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
-//  return std::make_shared<BuilderType>();
-//}
-//
-//template <typename T>
-//std::shared_ptr<arrow::ArrayBuilder> _CreateBuilder_TypeDefault(
-//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
-//  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
-//  auto datatype = std::make_shared<T>();
-//  return std::make_shared<BuilderType>(datatype, mem_pool);
-//}
-//
-//template <typename T>
-//std::shared_ptr<arrow::ArrayBuilder> CreateBuilder(
-//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
-//  // [1] Builder is default constructable.
-//  if constexpr (has_builder_type<T>::value &&
-//                has_builder_type<T>::is_defalut_constructable_v) {
-//    return _CreateDefaultBuilder<T>(mem_pool);
-//  }
-//  // [2] DataType is default constructable.
-//  if constexpr (std::is_default_constructible_v<T>) {
-//    return _CreateBuilder_TypeDefault<T>(mem_pool);
-//  }
-//  // TODO: I am hesitate to make this a compile time error.
-//  // [3] We can do nothing if it only has a default constructor.
-//  throw std::runtime_error("Builder cannot default construct for type: " +
-//                           T::type_name());
-//}
 
-//
-// Create Array From Field
-//
-// Use CreateArrayBuilderFromField as the central function.
-// Type classification
-// [1] Independent. Type does not depend on the field at all.
-//    null bool int8 int16 int32 int64 uint8 uint16 uint32 uint64
-//    halffloat float double
-//    day_time_interval month_interval
-//    utf8 binary large_utf8 large_binary
-// [2] Required Identity Type Constructable.
-// Must/May be good to construct from its own type with specification.
-//    date32 date64 time32 time64 timestamp duration
-//    decimal fixed_size_binary
-// [3] List-like type. Provide a data type and construct builder.
-// [4] Struct type. Need to construct the builder for each fields.
-// [5] Map. Need to construct the index and value builder.
-// [6] DenseUnion, SparseUnion.
-// [7] dictionary: Need to specify the exact typing, and establish builders.
-//      DictionaryBuilder<T>
-// [8] Extension: No support. Extension type does not have a builder.
-
-template <typename DataType>
-class BuilderFactory {
-  BuilderFactory(){}
-  BuilderFactory(const DataType & dataType):dataType(dataType){}
-
- private:
-  std::shared_ptr<DataType> dataType;
-
+namespace details {
+enum BulidCategory {
+  independent = 0,
+  required_identity = 1,
+  list_like_type = 2,
+  struct_type = 3,
+  map_type = 4,
+  union_type = 5,
+  dict_type = 6,
+  extension_type = 7
 };
 
-//template <typename T>
-//std::shared_ptr<arrow::ArrayBuilder>
-//_CreateArrayBuilderDefaultConstructableFromField(
-//    const std::shared_ptr<arrow::Field>& field,
-//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
-//  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
-//  auto datatype = field->type();
-//  return std::make_shared<BuilderType>(datatype);
-//}
-//
-//template <typename T>
-//constexpr int CreateArrayBuilderFromFieldArbitrator() {
-//  if constexpr (std::is_same_v<T, arrow::NullType> ||
-//                arrow::is_number_type<T>::value ||
-//                std::is_same_v<T, arrow::StringType>) {
-//    return 1;
-//  } else if constexpr (has_builder_type<T>::is_defalut_constructable_v) {
-//    return 2;
-//  }
-//  return 0;
-//}
-//
-//template <typename T, int switch_case_num>
-//std::shared_ptr<arrow::ArrayBuilder> CreateArrayBuilderFromFieldInternal(
-//    const std::shared_ptr<arrow::Field>& field, arrow::MemoryPool* mem_pool) {
-//  if constexpr (switch_case_num == 1) {
-//    return _CreateDefaultBuilder<T>(mem_pool);
-//  } else if constexpr (switch_case_num == 2) {
-//    return _CreateArrayBuilderDefaultConstructableFromField<T>(field, mem_pool);
-//  }
-//  //  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
-//  //  auto datatype = field->type();
-//  //  return std::make_shared<BuilderType>(datatype);
-//}
-//
-//std::shared_ptr<arrow::ArrayBuilder> CreateArrayBuilderFromField(
-//    const std::shared_ptr<arrow::Field>& field,
-//    arrow::MemoryPool* mem_pool = arrow::default_memory_pool()) {
-//  // Find the class of the field.
-//
-//  auto enum_type = field->type()->id();
-//  std::shared_ptr<arrow::ArrayBuilder> result;
-//
-//#undef HUSTLE_ARROW_TYPE_CASE_STMT
-//#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_type)                                \
-//  {                                                                            \
-//    constexpr int switch_case_num =                                            \
-//        CreateArrayBuilderFromFieldArbitrator<arrow_type>();                   \
-//    result = CreateArrayBuilderFromFieldInternal<arrow_type, switch_case_num>( \
-//        field, mem_pool);                                                      \
-//  }
-//  HUSTLE_SWITCH_ARROW_TYPE(enum_type)
-//#undef HUSTLE_ARROW_TYPE_CASE_STMT
-//  return result;
-//}
+template <typename T>
+static constexpr BulidCategory builder_category() {
+  // TODO: Replace the magic numbers to some enum
+  // [1] Independent Type
+  constexpr bool class_1 =
+      std::disjunction_v<arrow::is_number_type<T>, arrow::is_boolean_type<T>,
+                         arrow::is_null_type<T>, arrow::is_interval_type<T>,
+                         is_string_type<T>, arrow::is_any_binary_type<T>,
+                         arrow::is_date_type<T>>;
 
+  // [2] Required identity type construction
+  constexpr bool class_2 =
+      std::disjunction_v<arrow::is_timestamp_type<T>,
+                         arrow::is_duration_type<T>, arrow::is_decimal_type<T>,
+                         arrow::is_time_type<T>,
+                         std::is_same<T, arrow::FixedSizeBinaryType>>;
+
+  if constexpr (class_1) {
+    return BulidCategory::independent;
+  }
+  if constexpr (class_2) {
+    return BulidCategory::required_identity;
+  }
+  if constexpr (std::is_same_v<T, arrow::MapType>) {
+    return BulidCategory::map_type;
+  }
+  if constexpr (arrow::is_list_like_type<T>::value) {
+    return BulidCategory::list_like_type;
+  }
+  if constexpr (std::is_same_v<T, arrow::StructType>) {
+    return BulidCategory::struct_type;
+  }
+  if constexpr (arrow::is_union_type<T>::value) {
+    return BulidCategory::union_type;
+  }
+  if constexpr (std::is_same_v<T, arrow::DictionaryType>) {
+    return BulidCategory::dict_type;
+  }
+  // Extension type not support for builder
+  return BulidCategory::extension_type;
+}
+
+std::shared_ptr<arrow::DataType> TestFields(arrow::Type::type type_enum) {
+  static std::shared_ptr<arrow::DataType> dataTypes[] = {
+      arrow::null(),
+      arrow::boolean(),
+      arrow::uint8(),
+      arrow::int8(),
+      arrow::uint16(),
+      arrow::int16(),
+      arrow::uint32(),
+      arrow::int32(),
+      arrow::uint64(),
+      arrow::int64(),
+      arrow::float16(),
+      arrow::float32(),
+      arrow::float64(),
+      arrow::utf8(),
+      arrow::binary(),
+      arrow::fixed_size_binary(32),
+      arrow::date32(),
+      arrow::date64(),
+      arrow::timestamp(arrow::TimeUnit::MICRO),
+      arrow::time32(arrow::TimeUnit::SECOND),
+      arrow::time64(arrow::TimeUnit::MICRO),  // micro / nano
+      arrow::month_interval(),
+      arrow::day_time_interval(),
+      arrow::decimal(9, 10),
+      arrow::list(arrow::int8()),
+      arrow::struct_({arrow::field("a", arrow::int8()),
+                      arrow::field("b", arrow::int32())}),
+      arrow::sparse_union({arrow::field("a", arrow::int8()),
+                           arrow::field("b", arrow::int32())}),
+      arrow::dense_union({arrow::field("a", arrow::int8()),
+                          arrow::field("b", arrow::int32())}),
+      arrow::dictionary(arrow::int32(), arrow::utf8()),
+      arrow::map(arrow::binary(), arrow::int64()),
+      nullptr,
+      arrow::fixed_size_list(arrow::int64(), 10),
+      arrow::duration(arrow::TimeUnit::MICRO),
+      arrow::large_utf8(),
+      arrow::large_binary(),
+      arrow::large_list(arrow::int8()),
+      nullptr};
+  int item_index = int(type_enum);
+  return dataTypes[item_index];
+}
+}  // namespace details
+
+std::shared_ptr<arrow::ArrayBuilder> getBuilder(
+    const std::shared_ptr<arrow::DataType> &dataType);
+
+template <typename DataTypeT>
+class BuilderFactory {
+ public:
+  static constexpr details::BulidCategory CATEGORY =
+      details::builder_category<DataTypeT>();
+  static constexpr bool shouldThrowRunTimeError = false;
+
+  BuilderFactory() {
+    if constexpr (shouldThrowRunTimeError) {
+      if constexpr (CATEGORY != 1) {
+        throw std::runtime_error(
+            std::string(
+                "Builder factory can't use default constructor for type: ") +
+            DataTypeT::type_name());
+      }
+    }
+  };
+
+  explicit BuilderFactory(std::shared_ptr<arrow::DataType> dataType)
+      : _dataType(std::move(dataType)) {
+    if constexpr (shouldThrowRunTimeError) {
+      if constexpr (CATEGORY == 0 || CATEGORY == 7) {
+        throw std::runtime_error(
+            std::string("Builder factory can't support type: ") +
+            DataTypeT::type_name());
+      }
+    }
+  }
+
+  explicit BuilderFactory(const std::shared_ptr<arrow::Field> &field)
+      : _dataType(field->type()) {
+    if constexpr (shouldThrowRunTimeError) {
+      if constexpr (CATEGORY == 0 || CATEGORY == 7) {
+        throw std::runtime_error(
+            std::string("Builder factory can't support type: ") +
+            DataTypeT::type_name());
+      }
+    }
+  }
+
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> GetBuilder() {
+    return GetBuilderInternal<CATEGORY>();
+  }
+
+ private:
+  // Type classification
+  // [1] Independent. Type does not depend on the field at all.
+  //    null bool int8 int16 int32 int64 uint8 uint16 uint32 uint64
+  //    halffloat float double
+  //    date32 date64
+  //    day_time_interval month_interval
+  //    utf8 binary large_utf8 large_binary
+  // [2] Required Identity Type Constructable.
+  // Must/May be good to construct from its own type with specification.
+  //    time32 time64 timestamp duration
+  //    decimal fixed_size_binary
+  // [3] List-like type. Provide a data type and construct builder.
+  // [4] Struct type. Need to construct the builder for each fields.
+  // [5] Map. Need to construct the index and value builder.
+  // [6] DenseUnion, SparseUnion.
+  // [7] dictionary: Need to specify the exact typing, and establish builders.
+  //      DictionaryBuilder<T>
+  // [8] Extension: No support. Extension type does not have a builder.
+
+  template <details::BulidCategory category>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> GetBuilderInternal() {
+    arrow::Status status(
+        arrow::StatusCode::TypeError,
+        std::string("Builder factory can't produce builder for type: ") +
+            DataTypeT::type_name());
+    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(status);
+    return result;
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::independent>() {
+    using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
+    auto builder_ptr = std::make_shared<BuilderType>();
+    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+    return result;
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::required_identity>() {
+    using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
+    auto builder_ptr = std::make_shared<BuilderType>(
+        this->_dataType, arrow::default_memory_pool());
+    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+    return result;
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::list_like_type>() {
+    using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
+    // TODO: List type should find the builder with this->_dataType 's nested
+    // type.
+    std::shared_ptr<arrow::ArrayBuilder> value_builder =
+        std::make_shared<arrow::Int8Builder>();
+    auto builder_ptr = std::make_shared<BuilderType>(
+        arrow::default_memory_pool(), value_builder, this->_dataType);
+    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+    return result;
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::struct_type>() {
+    std::shared_ptr<arrow::StructType> datatype =
+        dynamic_pointer_cast<arrow::StructType>(this->_dataType);
+    const int num_fields = datatype->num_fields();
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
+    for (int i = 0; i < num_fields; i++) {
+      auto sub_type = datatype->field(i)->type();
+      auto sub_builder = getBuilder(sub_type);
+      builders.emplace_back(sub_builder);
+    }
+    auto builder_ptr = std::make_shared<arrow::StructBuilder>(
+        datatype, arrow::default_memory_pool(), builders);
+    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+    return result;
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::map_type>() {
+    std::shared_ptr<arrow::MapType> data_type =
+        std::dynamic_pointer_cast<arrow::MapType>(this->_dataType);
+
+    auto key_type = data_type->key_type();
+    auto item_type = data_type->item_type();
+
+    auto key_builder = getBuilder(key_type);
+    auto item_builer = getBuilder(item_type);
+
+    auto builder_ptr = make_shared<arrow::MapBuilder>(
+        arrow::default_memory_pool(), key_builder, item_builer);
+    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+    return result;
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::union_type>() {
+    std::shared_ptr<arrow::UnionType> data_type =
+        std::dynamic_pointer_cast<arrow::UnionType>(this->_dataType);
+    const int num_fields = data_type->num_fields();
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
+    for (int i = 0; i < num_fields; i++) {
+      auto sub_type = data_type->field(i)->type();
+      auto sub_builder = getBuilder(sub_type);
+      builders.emplace_back(sub_builder);
+    }
+    auto builder_ptr = make_shared<arrow::SparseUnionBuilder>(
+        arrow::default_memory_pool(), builders, data_type);
+    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+    return result;
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::dict_type>() {
+    std::shared_ptr<arrow::DictionaryType> data_type =
+        std::dynamic_pointer_cast<arrow::DictionaryType>(this->_dataType);
+    // Can only maps an integer to the corresponding dict type.
+    // Now we just care about if the index.
+    auto index_type = data_type->index_type();
+    auto value_type = data_type->value_type();
+
+    // TODO: (Future) Support all integer types.
+    switch (index_type->id()) {
+      case arrow::Type::INT8: {
+        auto builder_ptr =
+            make_shared<arrow::DictionaryBuilder<arrow::Int8Type>>(
+                value_type, arrow::default_memory_pool());
+        arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+        return result;
+      }
+      case arrow::Type::INT32: {
+        auto builder_ptr =
+            make_shared<arrow::DictionaryBuilder<arrow::Int32Type>>(
+                value_type, arrow::default_memory_pool());
+        arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
+        return result;
+      }
+      default:
+        return arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>(
+            arrow::Status(arrow::StatusCode::NotImplemented,
+                          "No support dict index other than int8 or int 32! "
+                          "Got unexpected index type: " +
+                              index_type->ToString()));
+    }
+  }
+
+  template <>
+  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
+  GetBuilderInternal<details::BulidCategory::extension_type>() {
+    // TODO: No support yet.
+    return arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>(arrow::Status(
+        arrow::StatusCode::NotImplemented, "No support for Extension type!"));
+  }
+
+  std::shared_ptr<arrow::DataType> _dataType;
+};
+
+std::shared_ptr<arrow::ArrayBuilder> getBuilder(
+    const std::shared_ptr<arrow::DataType> &dataType) {
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+#define HUSTLE_ARROW_TYPE_CASE_STMT(T)          \
+  {                                             \
+    auto factory = BuilderFactory<T>(dataType); \
+    auto result = factory.GetBuilder();         \
+    return result.ValueOrDie();                 \
+  }
+  auto enum_type = dataType->id();
+  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+  return nullptr;
+}
 
 };  // namespace hustle
 
