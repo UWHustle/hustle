@@ -192,7 +192,7 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
 
 //
 // CreateGroupBuilderVectorHandler
-//
+// TODO: Refactor this using the waterflow. Put this under type_helper.h.
 // Predicates handle three classes
 //  - [1] default constructable
 //  - [2] non default constructable
@@ -383,9 +383,8 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
         break;
       }
       default: {
-        std::cerr << "Cannot insert unsupported aggregate type: " +
-                         group_type_->field(i)->type()->ToString()
-                  << std::endl;
+        throw std::runtime_error("Cannot insert unsupported aggregate type: " +
+                                 group_type_->field(i)->type()->ToString());
       }
     }
   }

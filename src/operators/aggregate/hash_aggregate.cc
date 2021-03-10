@@ -285,26 +285,8 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 HashAggregate::CreateGroupBuilderVector() {
   std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
   for (auto &field : group_type_->fields()) {
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
-        group_builders.push_back(std::make_shared<arrow::StringBuilder>());
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        group_builders.push_back(
-            std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
-        break;
-      }
-      case arrow::Type::INT64: {
-        group_builders.push_back(std::make_shared<arrow::Int64Builder>());
-        break;
-      }
-      default: {
-        std::cerr << "Aggregate does not support group bys of type " +
-                         field->type()->ToString()
-                  << std::endl;
-      }
-    }
+    auto builder = getBuilder(field->type());
+    group_builders.push_back(builder);
   }
   return group_builders;
 }
