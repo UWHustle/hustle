@@ -188,7 +188,26 @@ using is_string_type = isOneOf<T, arrow::StringType, arrow::LargeStringType>;
 //
 
 namespace details {
+
 enum BulidCategory {
+  // Type classification
+  // [1] Independent. Type does not depend on the field at all.
+  //    null bool int8 int16 int32 int64 uint8 uint16 uint32 uint64
+  //    halffloat float double
+  //    date32 date64
+  //    day_time_interval month_interval
+  //    utf8 binary large_utf8 large_binary
+  // [2] Required Identity Type Constructable.
+  // Must/May be good to construct from its own type with specification.
+  //    time32 time64 timestamp duration
+  //    decimal fixed_size_binary
+  // [3] List-like type. Provide a data type and construct builder.
+  // [4] Struct type. Need to construct the builder for each fields.
+  // [5] Map. Need to construct the index and value builder.
+  // [6] DenseUnion, SparseUnion.
+  // [7] dictionary: Need to specify the exact typing, and establish builders.
+  //      DictionaryBuilder<T>
+  // [8] Extension: No support. Extension type does not have a builder.
   independent = 0,
   required_identity = 1,
   list_like_type = 2,
@@ -293,25 +312,12 @@ class BuilderFactory {
   }
 
  private:
-  // Type classification
-  // [1] Independent. Type does not depend on the field at all.
-  //    null bool int8 int16 int32 int64 uint8 uint16 uint32 uint64
-  //    halffloat float double
-  //    date32 date64
-  //    day_time_interval month_interval
-  //    utf8 binary large_utf8 large_binary
-  // [2] Required Identity Type Constructable.
-  // Must/May be good to construct from its own type with specification.
-  //    time32 time64 timestamp duration
-  //    decimal fixed_size_binary
-  // [3] List-like type. Provide a data type and construct builder.
-  // [4] Struct type. Need to construct the builder for each fields.
-  // [5] Map. Need to construct the index and value builder.
-  // [6] DenseUnion, SparseUnion.
-  // [7] dictionary: Need to specify the exact typing, and establish builders.
-  //      DictionaryBuilder<T>
-  // [8] Extension: No support. Extension type does not have a builder.
-
+  //
+  // GetBuilder internal function template family.
+  //
+  // For each group, defines a template to handle the building process.
+  // See details::BuildCategory for the type specification and classification.
+  //
   template <details::BulidCategory category>
   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> GetBuilderInternal() {
     arrow::Status status(
@@ -359,7 +365,7 @@ class BuilderFactory {
   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
   GetBuilderInternal<details::BulidCategory::struct_type>() {
     std::shared_ptr<arrow::StructType> datatype =
-        dynamic_pointer_cast<arrow::StructType>(this->_dataType);
+        std::dynamic_pointer_cast<arrow::StructType>(this->_dataType);
     const int num_fields = datatype->num_fields();
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
     for (int i = 0; i < num_fields; i++) {
@@ -385,7 +391,7 @@ class BuilderFactory {
     auto key_builder = getBuilder(key_type);
     auto item_builer = getBuilder(item_type);
 
-    auto builder_ptr = make_shared<arrow::MapBuilder>(
+    auto builder_ptr = std::make_shared<arrow::MapBuilder>(
         arrow::default_memory_pool(), key_builder, item_builer);
     arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
     return result;
@@ -403,7 +409,7 @@ class BuilderFactory {
       auto sub_builder = getBuilder(sub_type);
       builders.emplace_back(sub_builder);
     }
-    auto builder_ptr = make_shared<arrow::SparseUnionBuilder>(
+    auto builder_ptr = std::make_shared<arrow::SparseUnionBuilder>(
         arrow::default_memory_pool(), builders, data_type);
     arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
     return result;
@@ -423,14 +429,14 @@ class BuilderFactory {
     switch (index_type->id()) {
       case arrow::Type::INT8: {
         auto builder_ptr =
-            make_shared<arrow::DictionaryBuilder<arrow::Int8Type>>(
+            std::make_shared<arrow::DictionaryBuilder<arrow::Int8Type>>(
                 value_type, arrow::default_memory_pool());
         arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
         return result;
       }
       case arrow::Type::INT32: {
         auto builder_ptr =
-            make_shared<arrow::DictionaryBuilder<arrow::Int32Type>>(
+            std::make_shared<arrow::DictionaryBuilder<arrow::Int32Type>>(
                 value_type, arrow::default_memory_pool());
         arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
         return result;
@@ -454,7 +460,6 @@ class BuilderFactory {
 
   std::shared_ptr<arrow::DataType> _dataType;
 };
-
 
 };  // namespace hustle
 
