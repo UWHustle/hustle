@@ -319,27 +319,19 @@ class BuilderFactory {
   // See details::BuildCategory for the type specification and classification.
   //
   template <details::BulidCategory category>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> GetBuilderInternal() {
-    arrow::Status status(
-        arrow::StatusCode::TypeError,
-        std::string("Builder factory can't produce builder for type: ") +
-            DataTypeT::type_name());
-    arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(status);
-    return result;
-  }
-
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::independent>() {
+  std::enable_if_t<(category == details::BulidCategory::independent),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
     auto builder_ptr = std::make_shared<BuilderType>();
     arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
     return result;
   }
 
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::required_identity>() {
+  template <details::BulidCategory category>
+  std::enable_if_t<(category == details::BulidCategory::required_identity),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
     auto builder_ptr = std::make_shared<BuilderType>(
         this->_dataType, arrow::default_memory_pool());
@@ -347,9 +339,10 @@ class BuilderFactory {
     return result;
   }
 
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::list_like_type>() {
+  template <details::BulidCategory category>
+  std::enable_if_t<(category == details::BulidCategory::list_like_type),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
     // TODO: List type should find the builder with this->_dataType 's nested
     // type.
@@ -361,9 +354,10 @@ class BuilderFactory {
     return result;
   }
 
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::struct_type>() {
+  template <details::BulidCategory category>
+  std::enable_if_t<(category == details::BulidCategory::struct_type),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     std::shared_ptr<arrow::StructType> datatype =
         std::dynamic_pointer_cast<arrow::StructType>(this->_dataType);
     const int num_fields = datatype->num_fields();
@@ -379,9 +373,10 @@ class BuilderFactory {
     return result;
   }
 
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::map_type>() {
+  template <details::BulidCategory category>
+  std::enable_if_t<(category == details::BulidCategory::map_type),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     std::shared_ptr<arrow::MapType> data_type =
         std::dynamic_pointer_cast<arrow::MapType>(this->_dataType);
 
@@ -397,9 +392,10 @@ class BuilderFactory {
     return result;
   }
 
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::union_type>() {
+  template <details::BulidCategory category>
+  std::enable_if_t<(category == details::BulidCategory::union_type),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     std::shared_ptr<arrow::UnionType> data_type =
         std::dynamic_pointer_cast<arrow::UnionType>(this->_dataType);
     const int num_fields = data_type->num_fields();
@@ -415,9 +411,10 @@ class BuilderFactory {
     return result;
   }
 
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::dict_type>() {
+  template <details::BulidCategory category>
+  std::enable_if_t<(category == details::BulidCategory::dict_type),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     std::shared_ptr<arrow::DictionaryType> data_type =
         std::dynamic_pointer_cast<arrow::DictionaryType>(this->_dataType);
     // Can only maps an integer to the corresponding dict type.
@@ -450,9 +447,10 @@ class BuilderFactory {
     }
   }
 
-  template <>
-  arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>
-  GetBuilderInternal<details::BulidCategory::extension_type>() {
+  template <details::BulidCategory category>
+  std::enable_if_t<(category == details::BulidCategory::extension_type),
+                   arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>>
+  GetBuilderInternal() {
     // TODO: No support yet.
     return arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>(arrow::Status(
         arrow::StatusCode::NotImplemented, "No support for Extension type!"));
