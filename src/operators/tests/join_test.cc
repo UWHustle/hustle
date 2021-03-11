@@ -35,7 +35,7 @@ using namespace hustle::operators;
 
 class JoinTestFixture : public testing::Test {
  protected:
-  std::shared_ptr<arrow::Schema> schema;
+  std::shared_ptr<arrow::Schema> s_schema, r_schema, t_schema;
 
   arrow::Int64Builder int_builder;
   arrow::StringBuilder str_builder;
@@ -51,10 +51,16 @@ class JoinTestFixture : public testing::Test {
   void SetUp() override {
     arrow::Status status;
 
-    auto field_1 = arrow::field("key", arrow::int64());
-    auto field_2 = arrow::field("data", arrow::utf8());
+    auto r_field_1 = arrow::field("rkey", arrow::int64());
+    auto r_field_2 = arrow::field("rdata", arrow::utf8());
+    auto s_field_1 = arrow::field("skey", arrow::int64());
+    auto s_field_2 = arrow::field("sdata", arrow::utf8());
+    auto t_field_1 = arrow::field("tkey", arrow::int64());
+    auto t_field_2 = arrow::field("tdata", arrow::utf8());
 
-    schema = arrow::schema({field_1, field_2});
+    s_schema = arrow::schema({s_field_1, s_field_2});
+    r_schema = arrow::schema({r_field_1, r_field_2});
+    t_schema = arrow::schema({t_field_1, t_field_2});
 
     std::ofstream R_csv;
     std::ofstream S_csv;
@@ -89,14 +95,14 @@ class JoinTestFixture : public testing::Test {
  * WHERE R.key == S.key
  */
 TEST_F(JoinTestFixture, EquiJoin1) {
-  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-  S = read_from_csv_file("S.csv", schema, BLOCK_SIZE);
+  R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
+  S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
 
-  ColumnReference R_ref_1 = {R, "key"};
-  ColumnReference R_ref_2 = {R, "data"};
+  ColumnReference R_ref_1 = {R, "rkey"};
+  ColumnReference R_ref_2 = {R, "rdata"};
 
-  ColumnReference S_ref_1 = {S, "key"};
-  ColumnReference S_ref_2 = {S, "data"};
+  ColumnReference S_ref_1 = {S, "skey"};
+  ColumnReference S_ref_2 = {S, "sdata"};
 
   auto result = std::make_shared<OperatorResult>();
   auto out_result = std::make_shared<OperatorResult>();
@@ -120,16 +126,16 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 
   // Construct expected results
   arrow::Status status;
-  status = int_builder.AppendValues({0, 1, 2});
+  status = int_builder.AppendValues({2, 1, 0});
   status = int_builder.Finish(&expected_R_col_1);
 
-  status = int_builder.AppendValues({0, 1, 2});
+  status = int_builder.AppendValues({2, 1, 0});
   status = int_builder.Finish(&expected_S_col_1);
 
-  status = str_builder.AppendValues({"R0", "R1", "R2"});
+  status = str_builder.AppendValues({"R2", "R1", "R0"});
   status = str_builder.Finish(&expected_R_col_2);
 
-  status = str_builder.AppendValues({"S0", "S1", "S2"});
+  status = str_builder.AppendValues({"S2", "S1", "S0"});
   status = str_builder.Finish(&expected_S_col_2);
 
   EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_R_col_1));
@@ -139,35 +145,35 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 }
 
 /*
- * SELECT *
+ * SELECT R.key, S.data
  * FROM R, S, T
  * WHERE R.key == S.key AND
  *       R.key == T.key
  */
 TEST_F(JoinTestFixture, EquiJoin2) {
-  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-  S = read_from_csv_file("S.csv", schema, BLOCK_SIZE);
-  T = read_from_csv_file("T.csv", schema, BLOCK_SIZE);
+  R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
+  S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
+  T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
 
-  ColumnReference R_ref_1 = {R, "key"};
-  ColumnReference R_ref_2 = {R, "data"};
+  ColumnReference R_ref_1 = {R, "rkey"};
+  ColumnReference R_ref_2 = {R, "rdata"};
 
-  ColumnReference S_ref_1 = {S, "key"};
-  ColumnReference S_ref_2 = {S, "data"};
+  ColumnReference S_ref_1 = {S, "skey"};
+  ColumnReference S_ref_2 = {S, "sdata"};
 
-  ColumnReference T_ref_1 = {T, "key"};
-  ColumnReference T_ref_2 = {T, "data"};
+  ColumnReference T_ref_1 = {T, "tkey"};
+  ColumnReference T_ref_2 = {T, "tdata"};
 
   auto result = std::make_shared<OperatorResult>();
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
-  result->append(S);
+  // result->append(S);
   result->append(T);
 
   JoinPredicate join_pred_RS = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
   JoinPredicate join_pred_RT = {R_ref_1, arrow::compute::EQUAL, T_ref_1};
 
-  JoinGraph graph({{join_pred_RS, join_pred_RT}});
+  JoinGraph graph({{join_pred_RT}});
   Join join_op(0, {result}, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
@@ -178,67 +184,70 @@ TEST_F(JoinTestFixture, EquiJoin2) {
   scheduler.join();
 
   auto out_table = out_result->materialize(
-      {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});
-  ////    out_table->print();
+      {R_ref_1, /*R_ref_2,S_ref_1, S_ref_2, T_ref_1,*/ T_ref_2});
+
+  result = std::make_shared<OperatorResult>();
+  out_result = std::make_shared<OperatorResult>();
+  result->append(out_table);
+  // result->append(S);
+  result->append(S);
+  ColumnReference out_r_ref_1 = {out_table, "rkey"};
+  ColumnReference out_t_ref_2 = {out_table, "rdata"};
+
+  JoinPredicate join_pred_OS = {out_r_ref_1, arrow::compute::EQUAL, S_ref_1};
+
+  JoinGraph rs_graph({{join_pred_OS}});
+  Join rs_join_op(0, {result}, out_result, graph);
+
+  scheduler.addTask(rs_join_op.createTask());
+
+  scheduler.start();
+  scheduler.join();
+
+  out_table = out_result->materialize({out_r_ref_1, S_ref_2});
+  out_table->print();
 
   // Construct expected results
   arrow::Status status;
-  status = int_builder.AppendValues({0, 1, 2});
-  status = int_builder.Finish(&expected_R_col_1);
-
-  status = int_builder.AppendValues({0, 1, 2});
-  status = int_builder.Finish(&expected_S_col_1);
 
   status = int_builder.AppendValues({0, 1, 2});
   status = int_builder.Finish(&expected_T_col_1);
 
-  status = str_builder.AppendValues({"R0", "R1", "R2"});
-  status = str_builder.Finish(&expected_R_col_2);
-
-  status = str_builder.AppendValues({"S0", "S1", "S2"});
-  status = str_builder.Finish(&expected_S_col_2);
-
-  status = str_builder.AppendValues({"T0", "T1", "T2"});
+  status = str_builder.AppendValues({"S3", "S2", "S1"});
   status = str_builder.Finish(&expected_T_col_2);
 
-  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_R_col_1));
-  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_R_col_2));
-  EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_S_col_1));
-  EXPECT_TRUE(out_table->get_column(3)->chunk(0)->Equals(expected_S_col_2));
-  EXPECT_TRUE(out_table->get_column(4)->chunk(0)->Equals(expected_T_col_1));
-  EXPECT_TRUE(out_table->get_column(5)->chunk(0)->Equals(expected_T_col_2));
+  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_T_col_1));
+  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_T_col_2));
 }
 
 /*
- * SELECT *
+ * SELECT R.key, T.data
  * FROM R, S, T
  * WHERE R.key == S.key AND
  *       S.key == T.key
  */
 TEST_F(JoinTestFixture, EquiJoin3) {
-  R = read_from_csv_file("R.csv", schema, BLOCK_SIZE);
-  S = read_from_csv_file("S.csv", schema, BLOCK_SIZE);
-  T = read_from_csv_file("T.csv", schema, BLOCK_SIZE);
+  R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
+  S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
+  T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
 
-  ColumnReference R_ref_1 = {R, "key"};
-  ColumnReference R_ref_2 = {R, "data"};
+  ColumnReference R_ref_1 = {R, "rkey"};
+  ColumnReference R_ref_2 = {R, "rdata"};
 
-  ColumnReference S_ref_1 = {S, "key"};
-  ColumnReference S_ref_2 = {S, "data"};
+  ColumnReference S_ref_1 = {S, "skey"};
+  ColumnReference S_ref_2 = {S, "sdata"};
 
-  ColumnReference T_ref_1 = {T, "key"};
-  ColumnReference T_ref_2 = {T, "data"};
+  ColumnReference T_ref_1 = {T, "tkey"};
+  ColumnReference T_ref_2 = {T, "tdata"};
 
   auto result = std::make_shared<OperatorResult>();
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
   result->append(S);
-  result->append(T);
 
   JoinPredicate join_pred_RS = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
-  JoinPredicate join_pred_ST = {S_ref_1, arrow::compute::EQUAL, T_ref_1};
 
-  JoinGraph graph({{join_pred_RS}, {join_pred_ST}});
+  JoinGraph graph({{join_pred_RS}});
   Join join_op(0, {result}, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
@@ -247,34 +256,36 @@ TEST_F(JoinTestFixture, EquiJoin3) {
   scheduler.start();
   scheduler.join();
 
-  auto out_table = out_result->materialize(
-      {R_ref_1, R_ref_2, S_ref_1, S_ref_2, T_ref_1, T_ref_2});
-  ////    out_table->print();
+  auto out_table =
+      out_result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
 
+  result = std::make_shared<OperatorResult>();
+  out_result = std::make_shared<OperatorResult>();
+  result->append(out_table);
+  // result->append(S);
+  result->append(T);
+  ColumnReference out_r_ref_1 = {out_table, "rkey"};
+  ColumnReference out_s_ref_1 = {out_table, "skey"};
+
+  ColumnReference out_t_ref_2 = {out_table, "rdata"};
+  JoinPredicate join_pred_OS = {out_s_ref_1, arrow::compute::EQUAL, T_ref_1};
+
+  JoinGraph rs_graph({{join_pred_OS}});
+  Join rs_join_op(0, {result}, out_result, rs_graph);
+
+  scheduler.addTask(rs_join_op.createTask());
+
+  scheduler.start();
+  scheduler.join();
+
+  out_table = out_result->materialize({out_r_ref_1, T_ref_2});
   // Construct expected results
   arrow::Status status;
   status = int_builder.AppendValues({0, 1, 2});
   status = int_builder.Finish(&expected_R_col_1);
-
-  status = int_builder.AppendValues({0, 1, 2});
-  status = int_builder.Finish(&expected_S_col_1);
-
-  status = int_builder.AppendValues({0, 1, 2});
-  status = int_builder.Finish(&expected_T_col_1);
-
-  status = str_builder.AppendValues({"R0", "R1", "R2"});
-  status = str_builder.Finish(&expected_R_col_2);
-
-  status = str_builder.AppendValues({"S0", "S1", "S2"});
-  status = str_builder.Finish(&expected_S_col_2);
-
   status = str_builder.AppendValues({"T0", "T1", "T2"});
   status = str_builder.Finish(&expected_T_col_2);
 
   EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_R_col_1));
-  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_R_col_2));
-  EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_S_col_1));
-  EXPECT_TRUE(out_table->get_column(3)->chunk(0)->Equals(expected_S_col_2));
-  EXPECT_TRUE(out_table->get_column(4)->chunk(0)->Equals(expected_T_col_1));
-  EXPECT_TRUE(out_table->get_column(5)->chunk(0)->Equals(expected_T_col_2));
+  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_T_col_2));
 }

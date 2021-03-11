@@ -67,6 +67,10 @@ void Join::execute(Task *ctx) {
   for (auto &jpred : predicates) {
     auto left_ref = jpred.left_col_ref_;
     auto right_ref = jpred.right_col_ref_;
+    if (left_ref.table->get_num_rows() < right_ref.table->get_num_rows()) {
+      left_ref = jpred.right_col_ref_;
+      right_ref = jpred.left_col_ref_;
+    }
 
     left_col_names_.push_back(left_ref.col_name);
     right_col_names_.push_back(right_ref.col_name);
@@ -113,10 +117,10 @@ void Join::HashJoin(int join_id, Task *ctx) {
       CreateLambdaTask([this, join_id](Task *internal) {
         left_ = prev_result_->get_table(lefts_[join_id].table);
         right_ = prev_result_->get_table(rights_[join_id].table);
-          left_.MaterializeColumn(internal, left_col_names_[join_id],
-                                  left_join_col_);
-          right_.MaterializeColumn(internal, right_col_names_[join_id],
-                                   right_join_col_);
+        left_.MaterializeColumn(internal, left_col_names_[join_id],
+                                left_join_col_);
+        right_.MaterializeColumn(internal, right_col_names_[join_id],
+                                 right_join_col_);
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
         // Build phase
@@ -216,7 +220,6 @@ void Join::Clear() {
   joined_index_chunks_.clear();
   finished_.clear();
 }
-
 
 void Join::ProbeHashTableBlock(
     int join_id, const std::shared_ptr<arrow::ChunkedArray> &probe_col,
