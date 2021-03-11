@@ -184,6 +184,10 @@ template <typename DataType>
 using is_string_type =
     isOneOf<DataType, arrow::StringType, arrow::LargeStringType>;
 
+template <typename DataType>
+using is_binary_type =
+    isOneOf<DataType, arrow::BinaryType, arrow::LargeBinaryType>;
+
 template <typename DataType, typename ReturnType>
 using enable_if_has_c_type =
     std::enable_if_t<arrow::has_c_type<DataType>::value, ReturnType>;
@@ -191,6 +195,8 @@ using enable_if_has_c_type =
 template <typename DataType, typename ReturnType>
 using enable_if_has_no_c_type =
     std::enable_if_t<!arrow::has_c_type<DataType>::value, ReturnType>;
+
+
 
 // Create Array Builder
 //    Use CreateBuilder as the central function.
@@ -227,6 +233,9 @@ enum BuildCategory {
   extension_type = 7
 };
 
+
+
+
 template <typename T>
 static constexpr BuildCategory builder_category() {
   // TODO: Replace the magic numbers to some enum
@@ -234,7 +243,7 @@ static constexpr BuildCategory builder_category() {
   constexpr bool class_1 =
       std::disjunction_v<arrow::is_number_type<T>, arrow::is_boolean_type<T>,
                          arrow::is_null_type<T>, arrow::is_interval_type<T>,
-                         is_string_type<T>, arrow::is_any_binary_type<T>,
+                         is_binary_type<T>,
                          arrow::is_date_type<T>>;
 
   // [2] Required identity type construction
