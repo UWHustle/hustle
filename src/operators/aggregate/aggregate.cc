@@ -24,6 +24,7 @@
 #include <utility>
 
 #include "storage/utils/util.h"
+#include "type/type_helper.h"
 
 #define AGGREGATE_OUTPUT_TABLE "aggregate"
 
@@ -136,8 +137,8 @@ void Aggregate::InitializeGroupByColumn(Task* ctx, std::size_t group_index) {
   std::scoped_lock<std::mutex> lock(mutex_);
   group_by_index_map_.emplace(group_by_refs_[group_index].col_name,
                               group_index);
-    group_by_tables_[group_index].MaterializeColumn(
-            ctx, group_by_refs_[group_index].col_name, group_by_cols_[group_index]);
+  group_by_tables_[group_index].MaterializeColumn(
+      ctx, group_by_refs_[group_index].col_name, group_by_cols_[group_index]);
 }
 
 void Aggregate::InitializeGroupFilters(Task* ctx) {
@@ -189,30 +190,79 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
   });
 }
 
+//
+// CreateGroupBuilderVectorHandler
+// TODO: Refactor this using the waterflow. Put this under type_helper.h.
+// Predicates handle three classes
+//  - [1] default constructable
+//  - [2] non default constructable
+//  - [3] no builder
+//
+// There are 2 specialized templates
+//  - (a) FixedWidthBinaryType: use the field type to init the builder.
+//  - (b) DictionaryType (unimplemented)
+
+template <typename T>
+enable_if_builder_default_constructable<T> CreateGroupBuilderVectorHandler(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
+  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
+  group_builders.push_back(std::make_shared<BuilderType>());
+}
+
+template <typename T>
+enable_if_builder_non_default_constructable<T> CreateGroupBuilderVectorHandler(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
+  std::cerr << "Aggregate does not support group bys of type " +
+                   field->type()->ToString()
+            << std::endl;
+}
+
+template <typename T>
+enable_if_no_builder<T> CreateGroupBuilderVectorHandler(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
+  std::cerr << "Aggregate does not support group bys of type " +
+                   field->type()->ToString()
+            << std::endl;
+}
+
+// CreateGroupBuilderVectorHandler specialized template for FixedSizeBinaryType
+template <>
+void CreateGroupBuilderVectorHandler<arrow::FixedSizeBinaryType>(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
+  group_builders.push_back(
+      std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
+}
+
+// CreateGroupBuilderVectorHandler specialized template for ExtensionType
+template <>
+void CreateGroupBuilderVectorHandler<arrow::ExtensionType>(
+    const std::shared_ptr<arrow::Field>& field,
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
+  std::cerr << "Aggregate does not support group bys of type " +
+                   field->type()->ToString()
+            << std::endl;
+}
+
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 Aggregate::CreateGroupBuilderVector() {
   std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
   for (auto& field : group_type_->fields()) {
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
-        group_builders.push_back(std::make_shared<arrow::StringBuilder>());
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        group_builders.push_back(
-            std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
-        break;
-      }
-      case arrow::Type::INT64: {
-        group_builders.push_back(std::make_shared<arrow::Int64Builder>());
-        break;
-      }
-      default: {
-        std::cerr << "Aggregate does not support group bys of type " +
-                         field->type()->ToString()
-                  << std::endl;
-      }
-    }
+    auto enum_type = field->type()->id();
+
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+
+#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                         \
+  {                                                                           \
+    CreateGroupBuilderVectorHandler<arrow_data_type_>(field, group_builders); \
+    break;                                                                    \
+  }
+
+    HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
   }
   return group_builders;
 }
@@ -333,9 +383,8 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
         break;
       }
       default: {
-        std::cerr << "Cannot insert unsupported aggregate type: " +
-                         group_type_->field(i)->type()->ToString()
-                  << std::endl;
+        throw std::runtime_error("Cannot insert unsupported aggregate type: " +
+                                 group_type_->field(i)->type()->ToString());
       }
     }
   }
@@ -415,7 +464,7 @@ void Aggregate::ComputeAggregates(Task* ctx) {
         auto table = aggregate_refs_[0].col_ref.table;
         auto col_name = aggregate_refs_[0].col_ref.col_name;
         agg_lazy_table_ = prev_result_->get_table(table);
-          agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
+        agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
       }),
       CreateLambdaTask([this](Task* internal) {
         // Initialize the slots to hold the current iteration value for each
