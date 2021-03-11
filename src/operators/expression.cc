@@ -21,7 +21,6 @@
 #include <cassert>
 
 #include "scheduler/threading/synchronization_lock.h"
-#include "type/type_helper.h"
 
 namespace hustle::operators {
 
@@ -122,8 +121,9 @@ arrow::Datum Expression::ExecuteBlock(bool is_result,
   }
 }
 
+
 template <typename T>
-std::enable_if_t<arrow::has_c_type<T>::value, arrow::Datum>
+enable_if_has_c_type<T, arrow::Datum>
 Expression::ExecuteBlockHandler(
     bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
     const std::shared_ptr<arrow::Array>& right_col) {
@@ -135,7 +135,7 @@ Expression::ExecuteBlockHandler(
 };
 
 template <typename T>
-std::enable_if_t<!arrow::has_c_type<T>::value, arrow::Datum>
+enable_if_has_no_c_type<T, arrow::Datum>
 Expression::ExecuteBlockHandler(
     bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
     const std::shared_ptr<arrow::Array>& right_col) {

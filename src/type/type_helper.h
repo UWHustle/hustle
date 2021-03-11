@@ -180,8 +180,17 @@ struct has_ctype_member<T, std::void_t<typename arrow::TypeTraits<T>::CType>>
 template <typename T, typename... Ts>
 using isOneOf = std::disjunction<std::is_same<T, Ts>...>;
 
-template <typename T>
-using is_string_type = isOneOf<T, arrow::StringType, arrow::LargeStringType>;
+template <typename DataType>
+using is_string_type =
+    isOneOf<DataType, arrow::StringType, arrow::LargeStringType>;
+
+template <typename DataType, typename ReturnType>
+using enable_if_has_c_type =
+    std::enable_if_t<arrow::has_c_type<DataType>::value, ReturnType>;
+
+template <typename DataType, typename ReturnType>
+using enable_if_has_no_c_type =
+    std::enable_if_t<!arrow::has_c_type<DataType>::value, ReturnType>;
 
 // Create Array Builder
 //    Use CreateBuilder as the central function.
@@ -189,7 +198,7 @@ using is_string_type = isOneOf<T, arrow::StringType, arrow::LargeStringType>;
 
 namespace details {
 
-enum BulidCategory {
+enum BuildCategory {
   // Type classification
   // [1] Independent. Type does not depend on the field at all.
   //    null bool int8 int16 int32 int64 uint8 uint16 uint32 uint64
@@ -219,7 +228,7 @@ enum BulidCategory {
 };
 
 template <typename T>
-static constexpr BulidCategory builder_category() {
+static constexpr BuildCategory builder_category() {
   // TODO: Replace the magic numbers to some enum
   // [1] Independent Type
   constexpr bool class_1 =
@@ -236,28 +245,28 @@ static constexpr BulidCategory builder_category() {
                          std::is_same<T, arrow::FixedSizeBinaryType>>;
 
   if constexpr (class_1) {
-    return BulidCategory::independent;
+    return BuildCategory::independent;
   }
   if constexpr (class_2) {
-    return BulidCategory::required_identity;
+    return BuildCategory::required_identity;
   }
   if constexpr (std::is_same_v<T, arrow::MapType>) {
-    return BulidCategory::map_type;
+    return BuildCategory::map_type;
   }
   if constexpr (arrow::is_list_like_type<T>::value) {
-    return BulidCategory::list_like_type;
+    return BuildCategory::list_like_type;
   }
   if constexpr (std::is_same_v<T, arrow::StructType>) {
-    return BulidCategory::struct_type;
+    return BuildCategory::struct_type;
   }
   if constexpr (arrow::is_union_type<T>::value) {
-    return BulidCategory::union_type;
+    return BuildCategory::union_type;
   }
   if constexpr (std::is_same_v<T, arrow::DictionaryType>) {
-    return BulidCategory::dict_type;
+    return BuildCategory::dict_type;
   }
   // Extension type not support for builder
-  return BulidCategory::extension_type;
+  return BuildCategory::extension_type;
 }
 
 std::shared_ptr<arrow::DataType> TestFields(arrow::Type::type type_enum);
@@ -270,7 +279,7 @@ std::shared_ptr<arrow::ArrayBuilder> getBuilder(
 template <typename DataTypeT>
 class BuilderFactory {
  public:
-  static constexpr details::BulidCategory CATEGORY =
+  static constexpr details::BuildCategory CATEGORY =
       details::builder_category<DataTypeT>();
   static constexpr bool shouldThrowRunTimeError = false;
 
@@ -320,21 +329,21 @@ class BuilderFactory {
   //
   using BuilderReturnType = arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>;
 
-  template <details::BulidCategory category,
-            details::BulidCategory categoryTarget>
+  template <details::BuildCategory category,
+            details::BuildCategory categoryTarget>
   using RType = typename std::enable_if_t<(category == categoryTarget),
                                           BuilderReturnType>;
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::independent> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::independent> GetBuilderInternal() {
     using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
     auto builder_ptr = std::make_shared<BuilderType>();
     arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
     return result;
   }
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::required_identity> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::required_identity> GetBuilderInternal() {
     using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
     auto builder_ptr = std::make_shared<BuilderType>(
         this->_dataType, arrow::default_memory_pool());
@@ -342,8 +351,8 @@ class BuilderFactory {
     return result;
   }
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::list_like_type> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::list_like_type> GetBuilderInternal() {
     using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
     // TODO: List type should find the builder with this->_dataType 's nested
     // type.
@@ -355,8 +364,8 @@ class BuilderFactory {
     return result;
   }
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::struct_type> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::struct_type> GetBuilderInternal() {
     std::shared_ptr<arrow::StructType> datatype =
         std::dynamic_pointer_cast<arrow::StructType>(this->_dataType);
     const int num_fields = datatype->num_fields();
@@ -372,8 +381,8 @@ class BuilderFactory {
     return result;
   }
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::map_type> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::map_type> GetBuilderInternal() {
     std::shared_ptr<arrow::MapType> data_type =
         std::dynamic_pointer_cast<arrow::MapType>(this->_dataType);
 
@@ -389,8 +398,8 @@ class BuilderFactory {
     return result;
   }
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::union_type> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::union_type> GetBuilderInternal() {
     std::shared_ptr<arrow::UnionType> data_type =
         std::dynamic_pointer_cast<arrow::UnionType>(this->_dataType);
     const int num_fields = data_type->num_fields();
@@ -406,8 +415,8 @@ class BuilderFactory {
     return result;
   }
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::dict_type> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::dict_type> GetBuilderInternal() {
     std::shared_ptr<arrow::DictionaryType> data_type =
         std::dynamic_pointer_cast<arrow::DictionaryType>(this->_dataType);
     // Can only maps an integer to the corresponding dict type.
@@ -440,8 +449,8 @@ class BuilderFactory {
     }
   }
 
-  template <details::BulidCategory cat>
-  RType<cat, details::BulidCategory::extension_type> GetBuilderInternal() {
+  template <details::BuildCategory cat>
+  RType<cat, details::BuildCategory::extension_type> GetBuilderInternal() {
     // TODO: No support yet.
     return arrow::Result<std::shared_ptr<arrow::ArrayBuilder>>(arrow::Status(
         arrow::StatusCode::NotImplemented, "No support for Extension type!"));

@@ -28,6 +28,7 @@
 
 #include "operators/operator.h"
 #include "operators/utils/operator_result.h"
+#include "type/type_helper.h"
 
 #define TK_COLUMN 164
 #define TK_AGG_COLUMN 166
@@ -98,13 +99,13 @@ class Expression {
   // In addition, DateTimeInterval types are disabled because
   // no arithmetic binary operator are supported.
   template <typename DataType>
-  std::enable_if_t<arrow::has_c_type<DataType>::value, arrow::Datum>
+  enable_if_has_c_type<DataType, arrow::Datum>
   ExecuteBlockHandler(
       bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
       const std::shared_ptr<arrow::Array>& right_col);
 
   template <typename DataType>
-  std::enable_if_t<!arrow::has_c_type<DataType>::value, arrow::Datum>
+  enable_if_has_no_c_type<DataType, arrow::Datum>
   ExecuteBlockHandler(
       bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
       const std::shared_ptr<arrow::Array>& right_col);
