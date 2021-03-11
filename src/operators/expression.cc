@@ -189,6 +189,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
       }
       auto enum_type = l_chunk->type()->id();
 
+
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
 #define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                      \
   {                                                                        \
