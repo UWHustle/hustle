@@ -15,7 +15,7 @@ FetchContent_MakeAvailable(googletest)
 FetchContent_Declare(
         abseil
         GIT_REPOSITORY  https://github.com/abseil/abseil-cpp.git
-        GIT_TAG         20200225.1
+        GIT_TAG         20200923.3
 )
 FetchContent_MakeAvailable(abseil)
 
