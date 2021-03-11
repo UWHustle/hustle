@@ -243,7 +243,7 @@ static constexpr BuildCategory builder_category() {
   constexpr bool class_1 =
       std::disjunction_v<arrow::is_number_type<T>, arrow::is_boolean_type<T>,
                          arrow::is_null_type<T>, arrow::is_interval_type<T>,
-                         is_binary_type<T>,
+                         is_binary_type<T>, is_string_type<T>,
                          arrow::is_date_type<T>>;
 
   // [2] Required identity type construction
