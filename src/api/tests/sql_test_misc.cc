@@ -333,7 +333,7 @@ TEST_F(SQLMiscTest, q1_join_reorder) {
   EXPECT_EQ(output, "3249196\n");
 }
 
-TEST_F(SQLMiscTest, q2) {
+TEST_F(SQLMiscTest, q2_join_reorder) {
   std::string query =
       "select sum(lo_extendedprice * lo_discount) as "
       "revenue\n"
@@ -345,7 +345,7 @@ TEST_F(SQLMiscTest, q2) {
   EXPECT_EQ(output, "20036459\n");
 }
 
-TEST_F(SQLMiscTest, q3) {
+TEST_F(SQLMiscTest, q3_join_reorder) {
   std::string query =
       "select sum(lo_extendedprice) as "
       "revenue\n"
@@ -359,7 +359,7 @@ TEST_F(SQLMiscTest, q3) {
   EXPECT_EQ(output, "6015848\n");
 }
 
-TEST_F(SQLMiscTest, q4) {
+TEST_F(SQLMiscTest, q_without_agg_and_join) {
   std::string query =
       "select d_month, d_weeknuminyear, d_dayofweek, d_yearmonth\n"
       "from ddate\n"
@@ -368,3 +368,25 @@ TEST_F(SQLMiscTest, q4) {
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "5 | 5 | 5 | Jan1992\n");
 }
+
+TEST_F(SQLMiscTest, q_without_agg) {
+    std::string query =
+            "select lo_orderkey, lo_revenue, lo_quantity, d_month, d_yearmonth\n"
+            "from ddate, lineorder\n"
+            "where d_datekey = 1992015 and (lo_quantity = 29 and lo_revenue = 946)\n;";
+
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "128 | 946 | 29 | 5 | Jan1992\n"
+                      "197 | 946 | 29 | 5 | Jan1992\n");
+}
+
+TEST_F(SQLMiscTest, q_without_join) {
+    std::string query =
+            "select Count(lo_orderkey)\n"
+            "from  lineorder\n"
+            "where (lo_quantity = 29 and lo_revenue = 946)\n;";
+
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "2\n");
+}
+
