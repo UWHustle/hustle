@@ -61,7 +61,8 @@ class SQLMiscTest : public Test {
   }
 
   SQLMiscTest() {
-    std::filesystem::remove_all("db_directory_sql");
+    int num_remove = std::filesystem::remove_all("db_directory_sql");
+    std::cout << "Num of removes: " << num_remove << std::endl;
     EXPECT_FALSE(std::filesystem::exists("db_directory_sql"));
 
     SQLMiscTest::hustle_db =
@@ -195,6 +196,12 @@ class SQLMiscTest : public Test {
     SQLMiscTest::d = std::make_shared<hustle::storage::DBTable>(
         "ddate", SQLMiscTest::ddate.getArrowSchema(), BLOCK_SIZE);
 
+    SQLMiscTest::lo.reset();
+    SQLMiscTest::c.reset();
+    SQLMiscTest::s.reset();
+    SQLMiscTest::p.reset();
+    SQLMiscTest::d.reset();
+
     hustle_db->create_table(SQLMiscTest::lineorder, SQLMiscTest::lo);
     hustle_db->create_table(SQLMiscTest::customer, SQLMiscTest::c);
     hustle_db->create_table(SQLMiscTest::supplier, SQLMiscTest::s);
@@ -314,7 +321,7 @@ DBTable::TablePtr SQLMiscTest::lo, SQLMiscTest::d, SQLMiscTest::p,
     SQLMiscTest::c, SQLMiscTest::s;
 
 std::shared_ptr<hustle::HustleDB> SQLMiscTest::hustle_db;
-/*
+
 TEST_F(SQLMiscTest, q1_join_reorder) {
   std::string query =
       "select sum(lo_extendedprice*lo_discount) as "
@@ -324,9 +331,7 @@ TEST_F(SQLMiscTest, q1_join_reorder) {
       "BETWEEN 0 and 3 and lo_quantity < 25);";
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "3249196\n");
-}*/
-
-/*
+}
 
 TEST_F(SQLMiscTest, q2) {
   std::string query =
@@ -337,7 +342,7 @@ TEST_F(SQLMiscTest, q2) {
       "and (lo_discount BETWEEN 5 and 7\n"
       "and lo_quantity BETWEEN 26 and 35);";
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "40072918\n");
+  EXPECT_EQ(output, "20036459\n");
 }
 
 TEST_F(SQLMiscTest, q3) {
@@ -351,9 +356,8 @@ TEST_F(SQLMiscTest, q3) {
       "and lo_quantity < 50);";
 
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "18047544\n");
+  EXPECT_EQ(output, "6015848\n");
 }
- */
 
 TEST_F(SQLMiscTest, q4) {
   std::string query =
@@ -362,5 +366,5 @@ TEST_F(SQLMiscTest, q4) {
       "where d_datekey = 1992015\n;";
 
   std::string output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "18047544\n");
+  EXPECT_EQ(output, "5 | 5 | 5 | Jan1992\n");
 }
