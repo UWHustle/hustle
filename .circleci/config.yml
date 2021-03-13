@@ -2,15 +2,15 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: 'ubuntu-2004:202010-01'
+      image: 'ubuntu-1604:201903-01' # 'ubuntu-2004:202010-01'
     steps:
       - checkout
       - restore_cache:
-          keys: my-cache-v5
+          keys: my-cache-v4
       - run: ./install_requirements.sh
       - run: ./install_arrow.sh
       - save_cache:
-          key: my-cache-v5
+          key: my-cache-v4
           paths:
             - arrow
             - cmake-3.15.5
