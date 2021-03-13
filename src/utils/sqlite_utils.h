@@ -18,6 +18,7 @@
 #ifndef HUSTLE_SQLITE_UTILS_H
 #define HUSTLE_SQLITE_UTILS_H
 
+#include <iostream>
 #include <map>
 #include <vector>
 

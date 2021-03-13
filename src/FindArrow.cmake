@@ -7,7 +7,6 @@
 #  ARROW_SHARED_IMP_LIB, path to libarrow's import library (MSVC only)
 #  ARROW_FOUND, whether arrow has been found
 
-include(FindPkgConfig)
 include(GNUInstallDirs)
 
 if("$ENV{ARROW_HOME}" STREQUAL "")

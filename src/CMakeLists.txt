@@ -18,6 +18,7 @@ include_directories(${THIRD_PARTY_SOURCE_DIR}/glog/src)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+find_package(PkgConfig REQUIRED)
 find_package(Arrow REQUIRED)
 
 add_executable(
