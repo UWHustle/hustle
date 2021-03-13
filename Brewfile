@@ -1,4 +1,4 @@
 brew "cmake"
 brew "pkgconfig"
-brew "google-benchmark"
 brew "libconfig"
+brew "gcc@10"
