@@ -36,7 +36,7 @@ elif [[ `uname` == "Linux" ]]; then
     then
       git clone https://github.com/google/benchmark.git
       git clone https://github.com/google/googletest.git benchmark/googletest
-      cd benchmark
+      cd benchmark || exit 1
       cmake -E make_directory "build"
       cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
       sudo cmake --build "build" --config Release --target install
