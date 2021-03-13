@@ -1,4 +1,4 @@
-THIRD_PARTY_DIR=`pwd`
+THIRD_PARTY_DIR=$(pwd)
 if [ "${PWD##*/}" != "third_party" ]; then
   echo "ERROR: This script can be run only from the third party directory"
   exit 1
@@ -6,24 +6,26 @@ fi
 
 PATCH_DIR=${THIRD_PARTY_DIR}/patches
 
-third_party_dir_names=("gflags"
-"glog"
+third_party_dir_names=(
+  "gflags" "glog"
 )
 
-third_party_lib_urls=("https://github.com/gflags/gflags/archive/v2.1.2.tar.gz"
-"https://github.com/google/glog/archive/v0.3.5.tar.gz"
+third_party_lib_urls=(
+  "https://github.com/gflags/gflags/archive/v2.1.2.tar.gz"
+  "https://github.com/google/glog/archive/v0.3.5.tar.gz"
 )
 
-downloaded_archive_names=("v2.1.2.tar.gz"
-"v0.3.5.tar.gz"
+downloaded_archive_names=(
+  "v2.1.2.tar.gz"
+  "v0.3.5.tar.gz"
 )
 
-tar_options=("-xzf"
-"-xzf"
+tar_options=(
+  "-xzf"
+  "-xzf"
 )
 
-for ((lib_index=0; lib_index < ${#third_party_dir_names[*]}; lib_index++))
-do
+for ((lib_index = 0; lib_index < ${#third_party_dir_names[*]}; lib_index++)); do
   # If the third party directory is not present, create it.
   if [ ! -d ${third_party_dir_names[lib_index]} ]; then
     mkdir ${third_party_dir_names[lib_index]}
@@ -55,15 +57,13 @@ do
   # Back to the third_party directory.
   cd ${THIRD_PARTY_DIR}
 
-  if [ "${third_party_dir_names[lib_index]}" == "gflags" ]
-  then
+  if [ "${third_party_dir_names[lib_index]}" == "gflags" ]; then
     # Apply gflags patch.
     patch ${THIRD_PARTY_DIR}/gflags/CMakeLists.txt ${PATCH_DIR}/gflags/CMakeLists.patch
     patch ${THIRD_PARTY_DIR}/gflags/src/gflags_reporting.cc ${PATCH_DIR}/gflags/gflags_reporting.cc.patch
   fi
 
-  if [ "${third_party_dir_names[lib_index]}" == "glog" ]
-  then
+  if [ "${third_party_dir_names[lib_index]}" == "glog" ]; then
     # Apply glog patches.
     patch ${THIRD_PARTY_DIR}/glog/CMakeLists.txt ${PATCH_DIR}/glog/glogCMakeLists.txt.patch
     patch ${THIRD_PARTY_DIR}/glog/src/utilities.cc ${PATCH_DIR}/glog/utilities.cc.patch
