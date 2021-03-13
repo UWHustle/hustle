@@ -29,12 +29,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googlebenchmark)
 
 
-## Hustle Apache Arrow
+## Apache Arrow
+#set(ARROW_BUILD_BENCHMARKS FALSE)
+#set(ARROW_BUILD_TESTS FALSE)
 #FetchContent_Declare(
-#        hustle_arrow
-#        GIT_REPOSITORY  https://github.com/UWQuickstep/arrow.git
+#        arrow
+#        GIT_REPOSITORY  https://github.com/apache/arrow.git
+#        GIT_TAG d613aa68789288d3503dfbd8376a41f2d28b6c9d
 #)
-#FetchContent_MakeAvailable(hustle_arrow)
+#FetchContent_MakeAvailable(arrow)
 
 ### NNG
 #FetchContent_Declare(
