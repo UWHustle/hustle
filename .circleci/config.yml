@@ -2,32 +2,11 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: 'ubuntu-1604:201903-01'
-    steps:
-      - checkout
-      - restore_cache:
-          keys: my-cache-v4
-      - run: ./install_requirements.sh
-      - run: ./install_arrow.sh
-      - save_cache:
-          key: my-cache-v4
-          paths:
-            - arrow
-            - cmake-3.15.5
-            - benchmark
-      - run: mkdir build
-      - run: (cd build && ../cmake-3.15.5/bin/cmake .. )
-      - run: (cd build && make -j 4)
-      - run: (cd test/data && python test_generate_data.py)
-      - run: (cd build && ../cmake-3.15.5/bin/ctest --verbose --output-on-failure)
-
-  buildcpp20:
-    machine:
       image: 'ubuntu-2004:202010-01'
     steps:
       - checkout
       - restore_cache:
-          keys: my-cache-v4
+          keys: my-cache-v5
       - run: ./install_requirements.sh
       - run: ./install_arrow.sh
       - save_cache:

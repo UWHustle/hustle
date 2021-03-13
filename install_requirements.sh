@@ -48,8 +48,10 @@ if [[ $(uname) == "Linux" ]]; then
   # TODO: Put this in a tmp directory.
   sudo apt-get install libssl-dev autoconf libtool libcurl4 --yes
   # TODO: May want to lock to a release
-  git clone https://github.com/bagder/curl.git
-  cd curl
+  if [ ! -d "curl" ]; then
+    git clone https://github.com/bagder/curl.git
+  fi
+  cd curl || exit
   autoreconf -fi
   ./configure --with-ssl
   make -j$(nproc)
@@ -63,7 +65,7 @@ if [[ $(uname) == "Linux" ]]; then
     tar -xzvf cmake-3.15.5.tar.gz
     rm -f cmake-3.15.5.tar.gz
   fi
-  cd cmake-3.15.5
+  cd cmake-3.15.5 || exit
   ./bootstrap
   make -j$(nproc)
   sudo make install
@@ -80,7 +82,7 @@ if [[ $(uname) == "Linux" ]]; then
     cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
     sudo cmake --build "build" --config Release --target install
   else
-    cd benchmark/build
+    cd benchmark/build || exit
     sudo make install -j4
   fi
 fi
