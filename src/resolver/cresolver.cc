@@ -212,6 +212,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   size_t join_id = NULL_OP_ID, agg_id = NULL_OP_ID, select_id = NULL_OP_ID;
   if (agg_op != nullptr) {
     agg_id = plan->addOperator(std::move(agg_op));
+    plan->setOperatorResult(agg_result_out);
   }
 
   if (join_op != nullptr) {
@@ -219,12 +220,22 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   } else if (filter_join_op != nullptr) {
     join_id = plan->addOperator(std::move(filter_join_op));
   }
+  if (join_id != NULL_OP_ID && plan->getOperatorResult() == nullptr) {
+        plan->setOperatorResult(join_result_out);
+  }
 
   for (auto &select_op : select_operators) {
     select_id = plan->addOperator(std::move(select_op));
     if (join_id != NULL_OP_ID) {
-      plan->createLink(select_id, join_id);
+        plan->createLink(select_id, join_id);
     }
+  }
+  if (select_id != NULL_OP_ID && plan->getOperatorResult() == nullptr) {
+      // Since you do not have a join there will be only one table
+      assert(select_result.size() == 1);
+      std::cerr << "select result " << std::endl;
+      std::cerr << "size: " << agg_project_cols.size() << std::endl;
+      plan->setOperatorResult(select_result.at(0));
   }
 
   // Declare aggregate dependency on join operator
@@ -235,10 +246,9 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     } else {
       plan->createLink(join_id, agg_id);
     }
+    plan->setOperatorResult(agg_result_out);
   }
-  plan->setOperatorResult(agg_result_out);
   plan->setResultColumns(agg_project_cols);
-
   return plan;
 }
 

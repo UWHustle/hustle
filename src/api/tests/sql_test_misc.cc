@@ -42,7 +42,7 @@ using namespace hustle::resolver;
 #define PART_PATH ROOT_PATH "part.tbl"
 #define DATE_PATH ROOT_PATH "date.tbl"
 
-class SQLTest : public Test {
+class SQLMiscTest : public Test {
  public:
   static hustle::catalog::TableSchema part, supplier, customer, ddate,
       lineorder;
@@ -60,11 +60,12 @@ class SQLTest : public Test {
     return fields;
   }
 
-  void SetUp() override {
+  SQLMiscTest() {
     std::filesystem::remove_all("db_directory_sql");
     EXPECT_FALSE(std::filesystem::exists("db_directory_sql"));
 
-    SQLTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory_sql");
+    SQLMiscTest::hustle_db =
+        std::make_shared<hustle::HustleDB>("db_directory_sql");
 
     // Create table part
     // hustle::catalog::TableSchema part("part");
@@ -76,11 +77,11 @@ class SQLTest : public Test {
         "p_category", {hustle::catalog::HustleType::CHAR, 7}, true, false);
     hustle::catalog::ColumnSchema p_brand1(
         "p_brand1", {hustle::catalog::HustleType::CHAR, 9}, true, false);
-    SQLTest::part.addColumn(p_partkey);
-    SQLTest::part.addColumn(p_mfgr);
-    SQLTest::part.addColumn(p_category);
-    SQLTest::part.addColumn(p_brand1);
-    SQLTest::part.setPrimaryKey({});
+    SQLMiscTest::part.addColumn(p_partkey);
+    SQLMiscTest::part.addColumn(p_mfgr);
+    SQLMiscTest::part.addColumn(p_category);
+    SQLMiscTest::part.addColumn(p_brand1);
+    SQLMiscTest::part.setPrimaryKey({});
 
     // Create table supplier
     // hustle::catalog::TableSchema supplier("supplier");
@@ -93,11 +94,11 @@ class SQLTest : public Test {
     hustle::catalog::ColumnSchema s_region(
         "s_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
 
-    SQLTest::supplier.addColumn(s_suppkey);
-    SQLTest::supplier.addColumn(s_city);
-    SQLTest::supplier.addColumn(s_nation);
-    SQLTest::supplier.addColumn(s_region);
-    SQLTest::supplier.setPrimaryKey({});
+    SQLMiscTest::supplier.addColumn(s_suppkey);
+    SQLMiscTest::supplier.addColumn(s_city);
+    SQLMiscTest::supplier.addColumn(s_nation);
+    SQLMiscTest::supplier.addColumn(s_region);
+    SQLMiscTest::supplier.setPrimaryKey({});
 
     // Create table customer
     // hustle::catalog::TableSchema customer("customer");
@@ -109,11 +110,11 @@ class SQLTest : public Test {
         "c_nation", {hustle::catalog::HustleType::CHAR, 15}, true, false);
     hustle::catalog::ColumnSchema c_region(
         "c_region", {hustle::catalog::HustleType::CHAR, 12}, true, false);
-    SQLTest::customer.addColumn(c_suppkey);
-    SQLTest::customer.addColumn(c_city);
-    SQLTest::customer.addColumn(c_nation);
-    SQLTest::customer.addColumn(c_region);
-    SQLTest::customer.setPrimaryKey({});
+    SQLMiscTest::customer.addColumn(c_suppkey);
+    SQLMiscTest::customer.addColumn(c_city);
+    SQLMiscTest::customer.addColumn(c_nation);
+    SQLMiscTest::customer.addColumn(c_region);
+    SQLMiscTest::customer.setPrimaryKey({});
 
     // Create table ddate
     // hustle::catalog::TableSchema ddate("ddate");
@@ -134,14 +135,14 @@ class SQLTest : public Test {
     hustle::catalog::ColumnSchema d_yearmonth(
         "d_yearmonth", {hustle::catalog::HustleType::CHAR, 8}, true, false);
 
-    SQLTest::ddate.addColumn(d_datekey);
-    SQLTest::ddate.addColumn(d_dayofweek);
-    SQLTest::ddate.addColumn(d_month);
-    SQLTest::ddate.addColumn(d_year);
-    SQLTest::ddate.addColumn(d_weeknuminyear);
-    SQLTest::ddate.addColumn(d_yearmonthnum);
-    SQLTest::ddate.addColumn(d_yearmonth);
-    SQLTest::ddate.setPrimaryKey({});
+    SQLMiscTest::ddate.addColumn(d_datekey);
+    SQLMiscTest::ddate.addColumn(d_dayofweek);
+    SQLMiscTest::ddate.addColumn(d_month);
+    SQLMiscTest::ddate.addColumn(d_year);
+    SQLMiscTest::ddate.addColumn(d_weeknuminyear);
+    SQLMiscTest::ddate.addColumn(d_yearmonthnum);
+    SQLMiscTest::ddate.addColumn(d_yearmonth);
+    SQLMiscTest::ddate.setPrimaryKey({});
 
     // Create table lineorder
     // hustle::catalog::TableSchema lineorder("lineorder");
@@ -171,34 +172,34 @@ class SQLTest : public Test {
     hustle::catalog::ColumnSchema lo_discount(
         "lo_discount", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
 
-    SQLTest::lineorder.addColumn(lo_orderkey);
-    SQLTest::lineorder.addColumn(lo_linenumber);
-    SQLTest::lineorder.addColumn(lo_custkey);
-    SQLTest::lineorder.addColumn(lo_partkey);
-    SQLTest::lineorder.addColumn(lo_suppkey);
-    SQLTest::lineorder.addColumn(lo_orderdate);
-    SQLTest::lineorder.addColumn(lo_quantity);
-    SQLTest::lineorder.addColumn(lo_revenue);
-    SQLTest::lineorder.addColumn(lo_extendedprice);
-    SQLTest::lineorder.addColumn(lo_discount);
-    SQLTest::lineorder.setPrimaryKey({});
+    SQLMiscTest::lineorder.addColumn(lo_orderkey);
+    SQLMiscTest::lineorder.addColumn(lo_linenumber);
+    SQLMiscTest::lineorder.addColumn(lo_custkey);
+    SQLMiscTest::lineorder.addColumn(lo_partkey);
+    SQLMiscTest::lineorder.addColumn(lo_suppkey);
+    SQLMiscTest::lineorder.addColumn(lo_orderdate);
+    SQLMiscTest::lineorder.addColumn(lo_quantity);
+    SQLMiscTest::lineorder.addColumn(lo_revenue);
+    SQLMiscTest::lineorder.addColumn(lo_extendedprice);
+    SQLMiscTest::lineorder.addColumn(lo_discount);
+    SQLMiscTest::lineorder.setPrimaryKey({});
 
-    SQLTest::lo = std::make_shared<hustle::storage::DBTable>(
-        "lineorder", SQLTest::lineorder.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::c = std::make_shared<hustle::storage::DBTable>(
-        "customer", SQLTest::customer.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::s = std::make_shared<hustle::storage::DBTable>(
-        "supplier", SQLTest::supplier.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::p = std::make_shared<hustle::storage::DBTable>(
-        "part", SQLTest::part.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::d = std::make_shared<hustle::storage::DBTable>(
-        "ddate", SQLTest::ddate.getArrowSchema(), BLOCK_SIZE);
+    SQLMiscTest::lo = std::make_shared<hustle::storage::DBTable>(
+        "lineorder", SQLMiscTest::lineorder.getArrowSchema(), BLOCK_SIZE);
+    SQLMiscTest::c = std::make_shared<hustle::storage::DBTable>(
+        "customer", SQLMiscTest::customer.getArrowSchema(), BLOCK_SIZE);
+    SQLMiscTest::s = std::make_shared<hustle::storage::DBTable>(
+        "supplier", SQLMiscTest::supplier.getArrowSchema(), BLOCK_SIZE);
+    SQLMiscTest::p = std::make_shared<hustle::storage::DBTable>(
+        "part", SQLMiscTest::part.getArrowSchema(), BLOCK_SIZE);
+    SQLMiscTest::d = std::make_shared<hustle::storage::DBTable>(
+        "ddate", SQLMiscTest::ddate.getArrowSchema(), BLOCK_SIZE);
 
-    hustle_db->create_table(SQLTest::lineorder, SQLTest::lo);
-    hustle_db->create_table(SQLTest::customer, SQLTest::c);
-    hustle_db->create_table(SQLTest::supplier, SQLTest::s);
-    hustle_db->create_table(SQLTest::part, SQLTest::p);
-    hustle_db->create_table(SQLTest::ddate, SQLTest::d);
+    hustle_db->create_table(SQLMiscTest::lineorder, SQLMiscTest::lo);
+    hustle_db->create_table(SQLMiscTest::customer, SQLMiscTest::c);
+    hustle_db->create_table(SQLMiscTest::supplier, SQLMiscTest::s);
+    hustle_db->create_table(SQLMiscTest::part, SQLMiscTest::p);
+    hustle_db->create_table(SQLMiscTest::ddate, SQLMiscTest::d);
 
     std::cerr << "Create Table " << std::endl;
     FILE* stream = fopen(LINE_ORDER_PATH, "r");
@@ -305,15 +306,16 @@ class SQLTest : public Test {
   void TearDown() override { hustle::HustleDB::stop_scheduler(); }
 };
 
-hustle::catalog::TableSchema SQLTest::part("part"),
-    SQLTest::supplier("supplier"), SQLTest::customer("customer"),
-    SQLTest::ddate("ddate"), SQLTest::lineorder("lineorder");
+hustle::catalog::TableSchema SQLMiscTest::part("part"),
+    SQLMiscTest::supplier("supplier"), SQLMiscTest::customer("customer"),
+    SQLMiscTest::ddate("ddate"), SQLMiscTest::lineorder("lineorder");
 
-DBTable::TablePtr SQLTest::lo, SQLTest::d, SQLTest::p, SQLTest::c, SQLTest::s;
+DBTable::TablePtr SQLMiscTest::lo, SQLMiscTest::d, SQLMiscTest::p,
+    SQLMiscTest::c, SQLMiscTest::s;
 
-std::shared_ptr<hustle::HustleDB> SQLTest::hustle_db;
-
-TEST_F(SQLTest, q1_join_reorder) {
+std::shared_ptr<hustle::HustleDB> SQLMiscTest::hustle_db;
+/*
+TEST_F(SQLMiscTest, q1_join_reorder) {
   std::string query =
       "select sum(lo_extendedprice*lo_discount) as "
       "revenue "
@@ -322,9 +324,11 @@ TEST_F(SQLTest, q1_join_reorder) {
       "BETWEEN 0 and 3 and lo_quantity < 25);";
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "3249196\n");
-}
+}*/
 
-TEST_F(SQLTest, q2) {
+/*
+
+TEST_F(SQLMiscTest, q2) {
   std::string query =
       "select sum(lo_extendedprice * lo_discount) as "
       "revenue\n"
@@ -336,7 +340,7 @@ TEST_F(SQLTest, q2) {
   EXPECT_EQ(output, "40072918\n");
 }
 
-TEST_F(SQLTest, q3) {
+TEST_F(SQLMiscTest, q3) {
   std::string query =
       "select sum(lo_extendedprice) as "
       "revenue\n"
@@ -345,6 +349,17 @@ TEST_F(SQLTest, q3) {
       "and (d_weeknuminyear = 6 and d_year = 1994)\n"
       "and (lo_discount < 50\n"
       "and lo_quantity < 50);";
+
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "18047544\n");
+}
+ */
+
+TEST_F(SQLMiscTest, q4) {
+  std::string query =
+      "select d_month, d_weeknuminyear, d_dayofweek, d_yearmonth\n"
+      "from ddate\n"
+      "where d_datekey = 1992015\n;";
 
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "18047544\n");
