@@ -117,7 +117,7 @@ namespace hustle {
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::DECIMAL,                        \
                                   arrow::Decimal128Type);                      \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::DECIMAL256,                     \
-                                  arrow::Decima256Type);                       \
+                                  arrow::Decimal256Type);                       \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::STRUCT, arrow::StructType);     \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::LIST, arrow::ListType);         \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::LARGE_LIST,                     \
