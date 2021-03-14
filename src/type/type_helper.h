@@ -116,6 +116,8 @@ namespace hustle {
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::DURATION, arrow::DurationType); \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::DECIMAL,                        \
                                   arrow::Decimal128Type);                      \
+    HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::DECIMAL256,                     \
+                                  arrow::Decima256Type);                       \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::STRUCT, arrow::StructType);     \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::LIST, arrow::ListType);         \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::LARGE_LIST,                     \
@@ -196,8 +198,6 @@ template <typename DataType, typename ReturnType>
 using enable_if_has_no_c_type =
     std::enable_if_t<!arrow::has_c_type<DataType>::value, ReturnType>;
 
-
-
 // Create Array Builder
 //    Use CreateBuilder as the central function.
 //
@@ -232,9 +232,6 @@ enum BuildCategory {
   dict_type = 6,
   extension_type = 7
 };
-
-
-
 
 template <typename T>
 static constexpr BuildCategory builder_category() {
