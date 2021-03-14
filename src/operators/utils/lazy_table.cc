@@ -48,7 +48,7 @@ LazyTable::LazyTable(DBTable::TablePtr table, arrow::Datum filter,
 LazyTable::LazyTable(
     DBTable::TablePtr table, arrow::Datum filter, arrow::Datum indices,
     arrow::Datum index_chunks,
-    std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table)
+    std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>> hash_table)
     : LazyTable(table, filter, indices, index_chunks) {
   this->hash_table_ = hash_table;
 }

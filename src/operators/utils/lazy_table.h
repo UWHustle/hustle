@@ -74,7 +74,7 @@ class LazyTable {
   LazyTable(
       DBTable::TablePtr table, arrow::Datum filter, arrow::Datum indices,
       arrow::Datum index_chunks,
-      std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table);
+      std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>> hash_table);
 
   /**
    * Materialize the active rows of one column of the LazyTable. This is
@@ -87,7 +87,7 @@ class LazyTable {
    */
   std::shared_ptr<arrow::ChunkedArray> MaterializeColumn(int i);
 
-  std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table() {
+  std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>> hash_table() {
     return hash_table_;
   }
 

@@ -149,8 +149,10 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_j,
               // Remember the matched index in the dimension table
               // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
+                  // FilterJoin supports only join on unique key columns
+                  assert(key_value_pair->second.size() == 1);
                 indices[join_row_idx] = row + offset;
-                dim_indices[join_row_idx] = key_value_pair->second.index;
+                dim_indices[join_row_idx] = key_value_pair->second.at(0).index;
                 join_row_idx++;
               }
             }
@@ -188,7 +190,9 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_j,
               // Remember the matched index in the dimension table
               // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
-                dim_indices[join_row_idx++] = key_value_pair->second.index;
+                  // FilterJoin supports only join on unique key columns
+                  assert(key_value_pair->second.size() == 1);
+                dim_indices[join_row_idx++] = key_value_pair->second.at(0).index;
               } else {
                 // There's no matched value in the current dimension table
                 // then remove the stored matched indices in the prev dimension

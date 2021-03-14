@@ -69,7 +69,7 @@ class Join : public Operator {
 
   void Clear() override;
 
-  inline void set_prev_result(std::vector<std::shared_ptr<OperatorResult>> prev_result) {
+  inline void set_prev_result(std::vector<OperatorResult::OpResultPtr> prev_result) {
     prev_result_vec_ = prev_result;
   }
 
@@ -95,7 +95,7 @@ class Join : public Operator {
   std::vector<std::string> left_col_names_, right_col_names_;
 
   // Results from upstream operators
-  std::vector<std::shared_ptr<OperatorResult>> prev_result_vec_;
+  std::vector<OperatorResult::OpResultPtr> prev_result_vec_;
   // Results from upstream operators condensed into one object
   // Where the output result will be stored once the operator is executed.a
   OperatorResult::OpResultPtr prev_result_, output_result_;
@@ -104,7 +104,7 @@ class Join : public Operator {
   JoinGraph graph_;
 
   // Hash table for the right table in each join
-  std::vector<std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>>>
+  std::vector<std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>>
       hash_tables_;
 
   // new_left_indices_vector[i] = the indices of rows joined in chunk i in

@@ -51,7 +51,7 @@ SelectBuildHash::SelectBuildHash(const std::size_t query_id,
     : Select(query_id, table, prev_result, output_result, tree, options),
       join_column_(join_column) {
   filters_.resize(table_->get_num_blocks());
-  hash_table_ = std::make_shared<phmap::flat_hash_map<int64_t, RecordID>>();
+  hash_table_ = std::make_shared<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>();
 }
 
 void SelectBuildHash::execute(Task *ctx) {
@@ -111,16 +111,16 @@ void SelectBuildHash::ExecuteBlock(int block_index) {
 
     for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
       if (arrow::BitUtil::GetBit(filter_data, row)) {
-        (*hash_table_)[block_data[row]] = {
+        (*hash_table_)[block_data[row]] = {{
             (uint32_t)chunk_row_offsets_[block_index] + row,
-            (uint16_t)block_index};
+            (uint16_t)block_index}};
       }
     }
   } else {
     for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
-      (*hash_table_)[block_data[row]] = {
+      (*hash_table_)[block_data[row]] = {{
           (uint32_t)chunk_row_offsets_[block_index] + row,
-          (uint16_t)block_index};
+          (uint16_t)block_index}};
     }
   }
 }
