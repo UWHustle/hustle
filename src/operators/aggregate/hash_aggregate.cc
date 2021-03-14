@@ -750,17 +750,18 @@ void HashAggregate::SortResult(std::vector<arrow::Datum> &groups,
 
   // If we are sorting after computing all aggregates, we evaluate the ORDER BY
   // clause in reverse order.
+  // TODO: Why do we handle order by in a reversed way?
   for (int i = order_by_refs_.size() - 1; i >= 0; i--) {
     auto order_ref = order_by_refs_[i];
     // A nullptr indicates that we are sorting by the aggregate column
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
     if (order_ref.table == nullptr) {
-      status = arrow::compute::SortToIndices(*aggregates.make_array())
-                   .Value(&sorted_indices);
+      status = arrow::compute::SortIndices(*aggregates.make_array())
+          .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
       auto group = groups[order_to_group[i]];
-      status = arrow::compute::SortToIndices(*group.make_array())
+      status = arrow::compute::SortIndices(*group.make_array())
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     }
