@@ -111,16 +111,28 @@ void SelectBuildHash::ExecuteBlock(int block_index) {
 
     for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
       if (arrow::BitUtil::GetBit(filter_data, row)) {
-        (*hash_table_)[block_data[row]] = {{
-            (uint32_t)chunk_row_offsets_[block_index] + row,
-            (uint16_t)block_index}};
+          auto key_value_pair =
+                  hash_table_->find(block_data[row]);
+          if (key_value_pair != hash_table_->end()) {
+              auto record_ids = hash_table_->find(block_data[row])->second;
+              record_ids.push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
+              (*hash_table_)[block_data[row]] = record_ids;
+          } else {
+              (*hash_table_)[block_data[row]] = {{(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index}};
+          }
       }
     }
   } else {
     for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
-      (*hash_table_)[block_data[row]] = {{
-          (uint32_t)chunk_row_offsets_[block_index] + row,
-          (uint16_t)block_index}};
+        auto key_value_pair =
+                hash_table_->find(block_data[row]);
+        if (key_value_pair != hash_table_->end()) {
+            auto record_ids = hash_table_->find(block_data[row])->second;
+            record_ids.push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
+            (*hash_table_)[block_data[row]] = record_ids;
+        } else {
+            (*hash_table_)[block_data[row]] = {{(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index}};
+        }
     }
   }
 }
