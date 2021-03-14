@@ -209,7 +209,12 @@ class SQLMiscTest : public Test {
     hustle_db->create_table(SQLMiscTest::ddate, SQLMiscTest::d);
 
     std::cerr << "Create Table " << std::endl;
+    std::string error_msg("File not found: test data - ");
     FILE* stream = fopen(LINE_ORDER_PATH, "r");
+    if (stream == NULL) {
+        error_msg.append(LINE_ORDER_PATH);
+        throw std::runtime_error(error_msg);
+    }
     char line[2048];
     std::string query = "BEGIN TRANSACTION;";
     int count = 0;
@@ -244,6 +249,10 @@ class SQLMiscTest : public Test {
     std::cerr << "lineorder done" << std::endl;
 
     stream = fopen(PART_PATH, "r");
+      if (stream == NULL) {
+          error_msg.append(PART_PATH);
+          throw std::runtime_error(error_msg);
+      }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -259,6 +268,10 @@ class SQLMiscTest : public Test {
     std::cerr << "part done" << std::endl;
 
     stream = fopen(SUPPLIER_PATH, "r");
+      if (stream == NULL) {
+          error_msg.append(SUPPLIER_PATH);
+          throw std::runtime_error(error_msg);
+      }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -275,6 +288,10 @@ class SQLMiscTest : public Test {
     std::cerr << "supplier done" << std::endl;
 
     stream = fopen(CUSTOMER_PATH, "r");
+      if (stream == NULL) {
+          error_msg.append(CUSTOMER_PATH);
+          throw std::runtime_error(error_msg);
+      }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -290,6 +307,10 @@ class SQLMiscTest : public Test {
     std::cerr << "customer done" << std::endl;
 
     stream = fopen(DATE_PATH, "r");
+      if (stream == NULL) {
+          error_msg.append(DATE_PATH);
+          throw std::runtime_error(error_msg);
+      }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
