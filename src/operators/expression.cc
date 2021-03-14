@@ -121,10 +121,8 @@ arrow::Datum Expression::ExecuteBlock(bool is_result,
   }
 }
 
-
 template <typename T>
-enable_if_has_c_type<T, arrow::Datum>
-Expression::ExecuteBlockHandler(
+enable_if_has_c_type<T, arrow::Datum> Expression::ExecuteBlockHandler(
     bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
     const std::shared_ptr<arrow::Array>& right_col) {
   using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
@@ -135,8 +133,7 @@ Expression::ExecuteBlockHandler(
 };
 
 template <typename T>
-enable_if_has_no_c_type<T, arrow::Datum>
-Expression::ExecuteBlockHandler(
+enable_if_has_no_c_type<T, arrow::Datum> Expression::ExecuteBlockHandler(
     bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
     const std::shared_ptr<arrow::Array>& right_col) {
   throw std::runtime_error(
@@ -188,7 +185,6 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
             "expression evaluation currently not supported.");
       }
       auto enum_type = l_chunk->type()->id();
-
 
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
 #define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                      \
