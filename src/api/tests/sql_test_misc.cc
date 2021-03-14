@@ -376,8 +376,8 @@ TEST_F(SQLMiscTest, q_without_agg) {
             "where d_datekey = 1992015 and (lo_quantity = 29 and lo_revenue = 946)\n;";
 
     std::string output = hustle_db->execute_query_result(query);
-    EXPECT_EQ(output, "128 | 946 | 29 | 5 | Jan1992\n"
-                      "197 | 946 | 29 | 5 | Jan1992\n");
+    EXPECT_EQ(output, "12713 | 946 | 29 | 5 | Jan1992\n"
+                      "19527 | 946 | 29 | 5 | Jan1992\n");
 }
 
 TEST_F(SQLMiscTest, q_without_join) {
@@ -388,5 +388,23 @@ TEST_F(SQLMiscTest, q_without_join) {
 
     std::string output = hustle_db->execute_query_result(query);
     EXPECT_EQ(output, "2\n");
+}
+
+TEST_F(SQLMiscTest, q_joins_non_unique_columns) {
+    std::string query =
+            "select lo_orderkey, d_datekey, d_dayofweek\n"
+            "from  lineorder, ddate\n"
+            "where d_dayofweek = lo_custkey and (lo_quantity = 20 and lo_revenue = 763);\n";
+
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "6 | 1992011 | 1\n6 | 1993121 | 1\n6 | 1994021 | 1\n6 | 1994031 | 1\n6 | 1992018 | 1\n6 | 1993128 | 1\n6 | 1994028 | 1\n6 | 1994038 | 1\n6 | 19920115 | 1\n6 | 19931215 | 1\n6 | 19940215 | 1\n6 | 19940315 | 1\n6 | 19920122 | 1\n6 | 19931222 | 1\n6 | 19940222 | 1\n6 | 19940322 | 1\n6 | 19920129 | 1\n6 | 19931229 | 1\n6 | 19940229 | 1\n6 | 19940329 | 1\n");
+
+    query =
+            "select Count(d_dayofweek)\n"
+            "from  ddate\n"
+            "where d_dayofweek = 1;\n";
+
+    output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "20\n");
 }
 
