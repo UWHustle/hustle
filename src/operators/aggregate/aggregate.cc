@@ -298,8 +298,8 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
           isNotOneOf<T, arrow::ExtensionType, arrow::DictionaryType>>;
 
       if constexpr (is_supported_type) {
-        using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
-        using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+        using BuilderType = GetArrowBuilderType<T>;
+        using ArrayType = GetArrowArrayType<T>;
 
         if constexpr (arrow::is_number_type<T>::value) {
           // Downcast the column's builder

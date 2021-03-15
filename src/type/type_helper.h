@@ -33,6 +33,21 @@ namespace hustle {
 // Type Traits
 //
 
+template <typename DataType>
+using GetArrowBuilderType = typename arrow::TypeTraits<DataType>::BuilderType;
+
+template <typename DataType>
+using GetArrowArrayType = typename arrow::TypeTraits<DataType>::ArrayType;
+
+template <typename DataType>
+using GetArrowScalarType = typename arrow::TypeTraits<DataType>::ScalarType;
+
+// template <typename DataType>
+// using GetArrowCType = typename arrow::TypeTraits<DataType>::CType;
+
+template <typename DataType>
+using GetArrowCType = typename DataType::c_type;
+
 template <typename, typename = void>
 struct has_array_type : std::false_type {
   using ArrayType = void;
@@ -42,7 +57,7 @@ template <typename DataType>
 struct has_array_type<
     DataType, std::void_t<typename arrow::TypeTraits<DataType>::ArrayType>>
     : std::true_type {
-  using BuilderType = typename arrow::TypeTraits<DataType>::BuilderType;
+  using BuilderType = GetArrowBuilderType<DataType>;
 };
 
 template <typename, typename = void>
@@ -56,12 +71,11 @@ template <typename DataType>
 struct has_builder_type<
     DataType, std::void_t<typename arrow::TypeTraits<DataType>::BuilderType>>
     : std::true_type {
-  using BuilderType = typename arrow::TypeTraits<DataType>::BuilderType;
+  using BuilderType = GetArrowBuilderType<DataType>;
   using is_defalut_constructable = std::is_default_constructible<BuilderType>;
   static constexpr bool is_defalut_constructable_v =
       is_defalut_constructable::value;
 };
-
 
 // TODO: CType concept may be different. Some types have ctype nested in the
 //      body but not in the trait, and some (primitives) will expose that.
@@ -391,7 +405,7 @@ class BuilderFactory {
 
   template <Category cat>
   RType<cat, Category::independent> GetBuilderInternal() {
-    using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
+    using BuilderType = GetArrowBuilderType<DataTypeT>;
     auto builder_ptr = std::make_shared<BuilderType>();
     arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
     return result;
@@ -399,7 +413,7 @@ class BuilderFactory {
 
   template <Category cat>
   RType<cat, Category::required_identity> GetBuilderInternal() {
-    using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
+    using BuilderType = GetArrowBuilderType<DataTypeT>;
     auto builder_ptr = std::make_shared<BuilderType>(
         this->_dataType, arrow::default_memory_pool());
     arrow::Result<std::shared_ptr<arrow::ArrayBuilder>> result(builder_ptr);
@@ -408,7 +422,7 @@ class BuilderFactory {
 
   template <Category cat>
   RType<cat, Category::list_like_type> GetBuilderInternal() {
-    using BuilderType = typename arrow::TypeTraits<DataTypeT>::BuilderType;
+    using BuilderType = GetArrowBuilderType<DataTypeT>;
     // TODO: List type should find the builder with this->_dataType 's nested
     // type.
     std::shared_ptr<arrow::ArrayBuilder> value_builder =

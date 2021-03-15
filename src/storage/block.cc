@@ -72,7 +72,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
       if constexpr (arrow::is_number_type<T>::value &&
                     has_ctype_member<T>::value) {
         // TODO: Does number type always have CType?
-        using CType = typename arrow::TypeTraits<T>::CType;
+        using CType = GetArrowCType<T>;
         columns.push_back(AllocateColumnData<CType>(field->type(), init_rows));
         return;
       } else if constexpr (std::is_same_v<T, arrow::StringType>) {
@@ -163,7 +163,7 @@ void Block::ComputeByteSize() {
   for (int i = 0; i < num_cols; i++) {
     auto get_byte_size = [&, this]<typename T>(T *ptr) {
       if constexpr (has_ctype_member<T>::value) {
-        using CType = typename arrow::TypeTraits<T>::CType;
+        using CType = GetArrowCType<T>;
         int byte_width = sizeof(CType);
         column_sizes[i] = byte_width * columns[i]->length;
         num_bytes += byte_width * columns[i]->length;
