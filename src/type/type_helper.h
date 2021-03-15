@@ -62,18 +62,6 @@ struct has_builder_type<
       is_defalut_constructable::value;
 };
 
-template <typename T, typename R = void>
-using enable_if_builder_default_constructable =
-    std::enable_if_t<has_builder_type<T>::is_defalut_constructable_v, R>;
-
-template <typename T, typename R = void>
-using enable_if_builder_non_default_constructable =
-    std::enable_if_t<has_builder_type<T>::value &&
-                         !has_builder_type<T>::is_defalut_constructable_v,
-                     R>;
-
-template <typename T, typename R = void>
-using enable_if_no_builder = std::enable_if_t<!has_builder_type<T>::value, R>;
 
 // TODO: CType concept may be different. Some types have ctype nested in the
 //      body but not in the trait, and some (primitives) will expose that.
