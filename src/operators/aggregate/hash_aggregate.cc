@@ -353,48 +353,6 @@ void HashAggregate::FirstPhaseAggregateChunks(Task *internal, size_t tid,
   }
 }
 
-//
-// GetHashKeyHandlers
-// - [1] GetHashKeyHandlerPrimitive: Hash primitive C types.
-// - [2] GetHashKeyHandlerStringLike: Hash string-like (binary) types.
-// Otherwise, marked unhashable.
-//
-template <typename T, typename U>
-hash_t GetHashKeyHandlerPrimitive(U &group_by_chunk, int item_index) {
-  using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
-  // TODO: What is the difference between CType and the c_type?
-  //  using CType = typename arrow::TypeTraits<T>::CType;
-  using CType = typename T::c_type;
-
-  auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
-  CType val = col->Value(item_index);
-  return std::hash<CType>{}(val);
-}
-template <typename T, typename U>
-hash_t GetHashKeyHandlerStringLike(U &group_by_chunk, int item_index) {
-  using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
-  auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
-  auto val = col->GetString(item_index);
-  return std::hash<std::string>{}(val);
-}
-
-template <typename T, typename U>
-hash_t GetHashKeyHandler(U &group_by_chunk, int item_index) {
-  if constexpr (arrow::is_primitive_ctype<T>::value) {
-    return GetHashKeyHandlerPrimitive<T>(group_by_chunk, item_index);
-  }
-  if constexpr (arrow::is_base_binary_type<T>::value ||
-                arrow::is_fixed_size_binary_type<T>::value) {
-    return GetHashKeyHandlerStringLike<T>(group_by_chunk, item_index);
-  }
-  /* TODO: Hash Key throw type list:
-   * null fixed_size_binary date32 date64 time32 time64 timestamp
-   * day_time_interval month_interval duration decimal struct list large_list
-   * fixed_size_list map dense_union sparse_union dictionary extension
-   */
-  throw std::runtime_error(std::string("Unhashable type: ") + T::type_name());
-}
-
 void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
                                               int chunk_index) {
   // if expression not null then evaluate the expression to get the result
@@ -438,18 +396,55 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
       auto group_by_chunk = group_by.chunked_array()->chunk(chunk_index);
 
       auto group_by_type = group_by.type();
-      auto group_by_type_id = group_by_type->id();
+      auto enum_type = group_by_type->id();
+      auto rawptr = group_by.type().get();
       hash_t next_key = 0;
       // TODO: Factor this out as template functions.
 
+      auto get_hash_key = [&, this]<typename U>(U ptr_) -> hash_t {
+        using T = typename std::remove_pointer_t<U>;
+        if constexpr (arrow::is_primitive_ctype<T>::value) {
+          {
+            using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+            // TODO: What is the difference between CType and the c_type?
+            //  using CType = typename arrow::TypeTraits<T>::CType;
+            using CType = typename T::c_type;
+
+            auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
+            CType val = col->Value(item_index);
+            return std::hash<CType>{}(val);
+          }
+        }
+        if constexpr (arrow::is_base_binary_type<T>::value ||
+                      arrow::is_fixed_size_binary_type<T>::value) {
+          {
+            using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+            auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
+            auto val = col->GetString(item_index);
+            return std::hash<std::string>{}(val);
+          }
+        }
+        /* TODO: Hash Key throw type list:
+         * null fixed_size_binary date32 date64 time32 time64 timestamp
+         * day_time_interval month_interval duration decimal struct list
+         * large_list fixed_size_list map dense_union sparse_union dictionary
+         * extension
+         */
+        throw std::runtime_error(std::string("Unhashable type: ") +
+                                 T::type_name());
+        return 0;  // Disable compiler error on return type.
+      };
+
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_) \
-  { next_key = GetHashKeyHandler<DataType_>(group_by_chunk, item_index); }
-
-      HUSTLE_SWITCH_ARROW_TYPE(group_by_type_id);
-
+#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)    \
+  {                                               \
+    auto ptr = dynamic_cast<DataType_ *>(rawptr); \
+    next_key = get_hash_key(ptr);                 \
+    break;                                        \
+  }
+      HUSTLE_SWITCH_ARROW_TYPE(enum_type);
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
-
+      
       key = HashAggregateStrategy::HashCombine(key, next_key);
     }
     agg_item_key = key;
@@ -757,7 +752,7 @@ void HashAggregate::SortResult(std::vector<arrow::Datum> &groups,
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
     if (order_ref.table == nullptr) {
       status = arrow::compute::SortIndices(*aggregates.make_array())
-          .Value(&sorted_indices);
+                   .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
       auto group = groups[order_to_group[i]];
