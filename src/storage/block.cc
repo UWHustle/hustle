@@ -74,7 +74,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         // TODO: Does number type always have CType?
         using CType = GetArrowCType<T>;
         columns.push_back(AllocateColumnData<CType>(field->type(), init_rows));
-        return;
+
       } else if constexpr (std::is_same_v<T, arrow::StringType>) {
         // TODO: The condition could be string-like.
         // Although the data buffer is empty, the offsets buffer should
@@ -95,7 +95,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         // use it.
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, offsets, data}));
-        return;
+
       } else if constexpr (std::is_same_v<T, arrow::FixedSizeBinaryType>) {
         auto field_size = field->type()->layout().FixedWidth(1).byte_width;
         result = arrow::AllocateResizableBuffer(field_size * init_rows);
@@ -104,9 +104,11 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         data->ZeroPadding();
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
+
+      } else {
+        throw std::runtime_error("Block created with unsupported type: " +
+                                 std::string(T::type_name()));
       }
-      throw std::runtime_error("Block created with unsupported type: " +
-                               std::string(T::type_name()));
     };
 
     type_switcher(field->type(), get_allocate_buffer);
@@ -222,10 +224,12 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
           auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           col_txt = (char *)col->GetString(row).c_str();
           txt_length = col->GetString(row).length();
+          return;
+        } else {
+          throw std::logic_error(
+              std::string("Block created with unsupported type: ") +
+              schema->field(i)->type()->ToString());
         }
-        throw std::logic_error(
-            std::string("Block created with unsupported type: ") +
-            schema->field(i)->type()->ToString());
       };
 
       type_switcher(data_type, lambda_func);
