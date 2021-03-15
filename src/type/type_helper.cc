@@ -69,16 +69,16 @@ std::shared_ptr<arrow::DataType> TestFields(arrow::Type::type type_enum) {
 
 std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     const std::shared_ptr<arrow::DataType> &dataType) {
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(T)          \
+#undef _HUSTLE_ARROW_TYPE_CASE_STMT
+#define _HUSTLE_ARROW_TYPE_CASE_STMT(T)          \
   {                                             \
     auto factory = BuilderFactory<T>(dataType); \
     auto result = factory.GetBuilder();         \
     return result.ValueOrDie();                 \
   }
   auto enum_type = dataType->id();
-  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
+  _HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+#undef _HUSTLE_ARROW_TYPE_CASE_STMT
   return nullptr;
 };
 
