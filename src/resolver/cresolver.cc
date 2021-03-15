@@ -233,8 +233,6 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   if (select_id != NULL_OP_ID && plan->getOperatorResult() == nullptr) {
       // Since you do not have a join there will be only one table
       assert(select_result.size() == 1);
-      std::cerr << "select result " << std::endl;
-      std::cerr << "size: " << agg_project_cols.size() << std::endl;
       plan->setOperatorResult(select_result.at(0));
   }
 
