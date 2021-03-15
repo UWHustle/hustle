@@ -35,6 +35,29 @@ To run the test go into the build directory and use:
 ```
 
 
+## Run Benchmark
+
+You can use the following commands to run the ssb benchmark, (before running the below commands make sure you have built the executable from the source files using the steps provided in the previous section).
+
+To generate the ssb benchmark data, 
+
+```
+sh ./scripts/ssb/gen_benchmark_data.sh ${SCALE_FACTOR}
+```
+(Usually scale factor can be 1 or 10).
+
+
+To run the ssb benchmark,
+
+```
+sh ./scripts/ssb/run_benchmark.sh  ssb_queries
+```
+
+To run the tatp benchmark,
+
+```
+sh ./scripts/tatp/run_benchmark.sh 
+```
 
 ## (Pilot) Build Hustle with C++20
 
@@ -78,27 +101,3 @@ To run the test go into the build directory and use:
 ./run_test.sh 
 ```
 
-
-## Run Benchmark
-
-You can use the following commands to run the ssb benchmark, (before running the below commands make sure you have built the executable from the source files using the steps provided in the previous section).
-
-To generate the ssb benchmark data, 
-
-```
-sh ./scripts/ssb/gen_benchmark_data.sh ${SCALE_FACTOR}
-```
-(Usually scale factor can be 1 or 10).
-
-
-To run the ssb benchmark,
-
-```
-sh ./scripts/ssb/run_benchmark.sh  ssb_queries
-```
-
-To run the tatp benchmark,
-
-```
-sh ./scripts/tatp/run_benchmark.sh 
-```
