@@ -29,6 +29,15 @@ namespace hustle {
 //  This is the current constraint that lambda templates can't be initialized
 //  with non-type parameter.
 
+template <typename DataType, const char *fn_name, int lineno, const char *msg>
+constexpr void throw_type_error() {
+  // TODO: (Refactor) C++20 has format string as a constexpr.
+  constexpr auto result = std::string(fn_name) + ":" + std::to_string(lineno) +
+                          ":" + "Unsupported type error " + "(" +
+                          DataType::type_name() + "): " + std::string(msg);
+  throw std::logic_error(result);
+}
+
 //
 // Type Traits
 //
