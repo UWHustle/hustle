@@ -19,8 +19,8 @@ elif [[ `uname` == "Linux" ]]; then
       make -j$(nproc)
     else
       cd cmake-3.15.5
+      sudo make install -j4
     fi
-    sudo make install
     cd ..
     sudo apt-get update
     sudo apt-get install software-properties-common --yes
@@ -42,6 +42,6 @@ elif [[ `uname` == "Linux" ]]; then
       sudo cmake --build "build" --config Release --target install
     else
       cd benchmark/build
+      sudo make install -j4
     fi
-    sudo make install -j4
 fi

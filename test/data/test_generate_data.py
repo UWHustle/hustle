@@ -12,18 +12,20 @@ def generate_test_data():
         pass
     with open('lineorder.tbl', 'wb') as file:
         writer = csv.writer(file, delimiter='|')
+        line_key = 0
         for x in range(0, 200, 5):
             for p in range(100):
-                writer.writerow([x, x, p, p, p, 1993121, random.randint(0, 30), random.randint(
+                writer.writerow([line_key, line_key, p, p, p, 1993121, random.randint(0, 30), random.randint(
                     0, 1000),  random.randint(0, 1000), random.randint(0, 5)])
-                writer.writerow([x + 1, x, p, p, p, 1993121, random.randint(0, 30),
+                writer.writerow([line_key + 1, line_key, p, p, p, 1993121, random.randint(0, 30),
                                  random.randint(0, 1000),  random.randint(0, 1000), random.randint(0, 5)])
-                writer.writerow([x + 2, x, p, p, p, 1994024, random.randint(25, 30),
+                writer.writerow([line_key + 2, line_key, p, p, p, 1994024, random.randint(25, 30),
                                  random.randint(0, 1000), random.randint(0, 1000), random.randint(3, 7)])
-                writer.writerow([x + 3, x, p, p, p, 1994034, random.randint(25, 30),
+                writer.writerow([line_key + 3, line_key, p, p, p, 1994034, random.randint(25, 30),
                                  random.randint(0, 1000),  random.randint(0, 1000), random.randint(3, 7)])
-                writer.writerow([x + 4, x, p, p, p, 1994035, random.randint(25, 30),
+                writer.writerow([line_key + 4, line_key, p, p, p, 1994035, random.randint(25, 30),
                                  random.randint(0, 1000),  random.randint(0, 1000), random.randint(4, 7)])
+                line_key = line_key + 5
     try:
         os.remove('part.tbl')
     except OSError as error:

@@ -34,7 +34,7 @@ namespace hustle::operators {
 
 struct LookupFilterJoin {
   std::shared_ptr<BloomFilter> bloom_filter;
-  std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table;
+  std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>> hash_table;
   std::vector<std::vector<uint32_t>> indices_;
 };
 

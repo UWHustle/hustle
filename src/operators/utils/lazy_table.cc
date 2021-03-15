@@ -16,6 +16,7 @@
 // under the License.
 
 #include "operators/utils/lazy_table.h"
+
 #include <cassert>
 #include <iostream>
 #include <utility>
@@ -48,7 +49,8 @@ LazyTable::LazyTable(DBTable::TablePtr table, arrow::Datum filter,
 LazyTable::LazyTable(
     DBTable::TablePtr table, arrow::Datum filter, arrow::Datum indices,
     arrow::Datum index_chunks,
-    std::shared_ptr<phmap::flat_hash_map<int64_t, RecordID>> hash_table)
+    std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>
+        hash_table)
     : LazyTable(table, filter, indices, index_chunks) {
   this->hash_table_ = hash_table;
 }
@@ -63,8 +65,10 @@ std::shared_ptr<arrow::ChunkedArray> LazyTable::MaterializeColumn(int i) {
   if (materialized_cols_[i] != nullptr) {
     return materialized_cols_[i];
   }
-  assert(((filter.kind() == arrow::Datum::NONE) || (indices.kind() == arrow::Datum::NONE)) &&
-    "Any one of the filter or indices are allowed to materialize column and not both.");
+  assert(((filter.kind() == arrow::Datum::NONE) ||
+          (indices.kind() == arrow::Datum::NONE)) &&
+         "Any one of the filter or indices are allowed to materialize column "
+         "and not both.");
   auto col = arrow::Datum(table->get_column(i));
   if (filter.kind() != arrow::Datum::NONE) {
     status = arrow::compute::Filter(col, filter).Value(&col);
@@ -79,21 +83,19 @@ std::shared_ptr<arrow::ChunkedArray> LazyTable::MaterializeColumn(int i) {
 
 void LazyTable::MaterializeColumn(Task *ctx, std::string col_name,
                                   arrow::Datum &out) {
-    MaterializeColumn(ctx, table->get_schema()->GetFieldIndex(col_name), out);
+  MaterializeColumn(ctx, table->get_schema()->GetFieldIndex(col_name), out);
 }
 
 void LazyTable::MaterializeColumn(Task *ctx, int i, arrow::Datum &out) {
-
   if (materialized_cols_[i] != nullptr) {
     out.value = materialized_cols_[i];
-      return;
+    return;
   }
-    out = table->get_column(i);
-    if (indices.kind() != arrow::Datum::NONE) {
-      context_.apply_indices(ctx, out, indices, index_chunks, out);
-    }
-    materialized_cols_[i] = out.chunked_array();
-
+  out = table->get_column(i);
+  if (indices.kind() != arrow::Datum::NONE) {
+    context_.apply_indices(ctx, out, indices, index_chunks, out);
+  }
+  materialized_cols_[i] = out.chunked_array();
 }
 
 }  // namespace hustle::operators
