@@ -136,6 +136,14 @@ namespace hustle {
     HUSTLE_ARROW_MAX_ID_CASE_STMT();                                           \
   };
 
+// TODO: Put requirement constraints that Functor must only have one argument
+//  that accepts a (const T * ptr_) and will never use it.
+//  This is the current constraint that lambda templates can't be initialized
+//  with non-type parameter.
+template <typename Functor>
+void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
+                   Functor func);
+
 //
 // Type Traits
 //
