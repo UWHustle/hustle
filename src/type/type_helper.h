@@ -303,11 +303,12 @@ std::shared_ptr<arrow::ArrayBuilder> getBuilder(
 
 template <typename T>
 concept ArrowSwitchFunctor = requires(T func) {
+  // TODO: May lead to trouble when lambda function is declared as [&]
   // Can pass in an arrow::DataType pointer.
-  func((arrow::DataType *)nullptr);
+  //  func((arrow::DataType *)nullptr);
   // Return value is void
   //  std::is_void_v<T>;
-
+    true;
 };
 
 // Big arrow switch function.
