@@ -286,40 +286,62 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
   // Loop over columns in group builder, and append one of its unique values to
   // its builder.
   for (std::size_t i = 0; i < group_type_->num_fields(); ++i) {
-    switch (group_type_->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        // Downcast the column's builder
-        auto col_group_builder =
-            (arrow::StringBuilder*)(group_builder_->child(i));
-        // Downcast the column's unique_values
-        auto col_unique_values =
-            std::static_pointer_cast<arrow::StringArray>(unique_values_[i]);
+    auto enum_type = group_type_->field(i)->type()->id();
+    auto rawptr = group_type_->field(i)->type().get();
 
-        // Append one of the unique values to the column's builder.
-        status = col_group_builder->Append(
-            col_unique_values->GetString(group_id[i]));
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        break;
-      }
-      case arrow::Type::INT64: {
-        // Downcast the column's builder
-        auto col_group_builder =
-            (arrow::Int64Builder*)(group_builder_->child(i));
-        // Downcast the column's unique_values
-        auto col_unique_values =
-            std::static_pointer_cast<arrow::Int64Array>(unique_values_[i]);
+    // Handle the insertion of record.
+    auto insert_handler = [&, this]<typename U>(U ptr_) {
+      using T = typename std::remove_pointer_t<U>;
 
-        // Append one of the unique values to the column's builder.
-        status =
-            col_group_builder->Append(col_unique_values->Value(group_id[i]));
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        break;
+      // TODO: Add support for other types.
+      //  Right now we only support types that have builder and array
+      //  in the type trait. It should be obvious that we can:
+      //  - [1] Get builder from field spec
+      //  - [2] Get array for most cases (except for Dict and Extension).
+      constexpr bool is_supported_type = std::conjunction_v<
+          has_builder_type<T>, has_array_type<T>,
+          isNotOneOf<T, arrow::ExtensionType, arrow::DictionaryType>>;
+
+      if constexpr (is_supported_type) {
+        using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
+        using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+
+        if constexpr (arrow::is_number_type<T>::value) {
+          // Downcast the column's builder
+          auto col_group_builder = (BuilderType*)(group_builder_->child(i));
+          // Downcast the column's unique_values
+          auto col_unique_values =
+              std::static_pointer_cast<ArrayType>(unique_values_[i]);
+          status =
+              col_group_builder->Append(col_unique_values->Value(group_id[i]));
+          evaluate_status(status, __FUNCTION__, __LINE__);
+          return;
+
+        } else if constexpr (arrow::is_string_type<T>::value) {
+          // Downcast the column's builder
+          auto col_group_builder = (BuilderType*)(group_builder_->child(i));
+          // Downcast the column's unique_values
+          auto col_unique_values =
+              std::static_pointer_cast<ArrayType>(unique_values_[i]);
+          status = col_group_builder->Append(
+              col_unique_values->GetString(group_id[i]));
+          evaluate_status(status, __FUNCTION__, __LINE__);
+          return;
+        }
       }
-      default: {
-        throw std::runtime_error("Cannot insert unsupported aggregate type: " +
-                                 group_type_->field(i)->type()->ToString());
-      }
-    }
+      throw std::runtime_error("Cannot insert unsupported aggregate type:" +
+                               group_type_->field(i)->type()->ToString());
+    };
+
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)   \
+  {                                              \
+    auto ptr = dynamic_cast<DataType_*>(rawptr); \
+    insert_handler(ptr);                         \
+    break;                                       \
+  }
+    HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
   }
   // StructBuilder does not automatically update its length when we append to
   // its children. We must do this manually.
@@ -333,7 +355,6 @@ void Aggregate::InsertGroupAggregate(int agg_index) {
   arrow::Status status =
       aggregate_builder_casted->Append(aggregate_data_[agg_index]);
   evaluate_status(status, __FUNCTION__, __LINE__);
-  return;
 }
 
 arrow::Datum Aggregate::ComputeUniqueValues(const ColumnReference& group_ref) {

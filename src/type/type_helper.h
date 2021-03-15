@@ -117,7 +117,7 @@ namespace hustle {
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::DECIMAL,                        \
                                   arrow::Decimal128Type);                      \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::DECIMAL256,                     \
-                                  arrow::Decimal256Type);                       \
+                                  arrow::Decimal256Type);                      \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::STRUCT, arrow::StructType);     \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::LIST, arrow::ListType);         \
     HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::LARGE_LIST,                     \
@@ -139,6 +139,18 @@ namespace hustle {
 //
 // Type Traits
 //
+
+template <typename, typename = void>
+struct has_array_type : std::false_type {
+  using ArrayType = void;
+};
+
+template <typename DataType>
+struct has_array_type<
+    DataType, std::void_t<typename arrow::TypeTraits<DataType>::ArrayType>>
+    : std::true_type {
+  using BuilderType = typename arrow::TypeTraits<DataType>::BuilderType;
+};
 
 template <typename, typename = void>
 struct has_builder_type : std::false_type {
@@ -181,6 +193,9 @@ struct has_ctype_member<T, std::void_t<typename arrow::TypeTraits<T>::CType>>
 
 template <typename T, typename... Ts>
 using isOneOf = std::disjunction<std::is_same<T, Ts>...>;
+
+template <typename T, typename... Ts>
+using isNotOneOf = std::negation<isOneOf<T, Ts...>>;
 
 template <typename DataType>
 using is_string_type =

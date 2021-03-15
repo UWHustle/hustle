@@ -444,7 +444,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
   }
       HUSTLE_SWITCH_ARROW_TYPE(enum_type);
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
-      
+
       key = HashAggregateStrategy::HashCombine(key, next_key);
     }
     agg_item_key = key;
