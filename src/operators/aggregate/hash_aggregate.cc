@@ -401,7 +401,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
       hash_t next_key = 0;
       auto get_hash_key = [&]<typename T>(T *ptr_) {
         if constexpr (arrow::is_primitive_ctype<T>::value) {
-          using ArrayType = GetArrowArrayType<T>;
+          using ArrayType = ArrowGetArrayType<T>;
           using CType = GetArrowCType<T>;
 
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
@@ -411,7 +411,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
         }
         if constexpr (arrow::is_base_binary_type<T>::value ||
                       arrow::is_fixed_size_binary_type<T>::value) {
-          using ArrayType = GetArrowArrayType<T>;
+          using ArrayType = ArrowGetArrayType<T>;
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
           auto val = col->GetString(item_index);
           next_key = std::hash<std::string>{}(val);
