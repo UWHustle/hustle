@@ -161,7 +161,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
                       !std::is_same_v<T, arrow::DayTimeIntervalType>) {
           std::cout << "Detect CType" << std::endl;
           using ArrayType = ArrowGetArrayType<T>;
-          using ScalarType = ArrowScalarGetType<T>;
+          using ScalarType = ArrowGetScalarType<T>;
           using CType = GetArrowCType<T>;
           // TODO: Write a separate if constexpr branch to
           //  make sure scalar type is default constructable.

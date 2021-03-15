@@ -40,7 +40,7 @@ template <typename DataType>
 using ArrowGetArrayType = typename arrow::TypeTraits<DataType>::ArrayType;
 
 template <typename DataType>
-using ArrowScalarGetType = typename arrow::TypeTraits<DataType>::ScalarType;
+using ArrowGetScalarType = typename arrow::TypeTraits<DataType>::ScalarType;
 
 // template <typename DataType>
 // using GetArrowCType = typename arrow::TypeTraits<DataType>::CType;
@@ -100,12 +100,6 @@ template <typename DataType>
 using is_binary_type =
     isOneOf<DataType, arrow::BinaryType, arrow::LargeBinaryType>;
 
-template <typename DataType, typename ReturnType>
-using enable_if_has_c_type =
-    std::enable_if_t<arrow::has_c_type<DataType>::value, ReturnType>;
-template <typename DataType, typename ReturnType>
-using enable_if_has_no_c_type =
-    std::enable_if_t<!arrow::has_c_type<DataType>::value, ReturnType>;
 
 // Create Array Builder
 //    Use CreateBuilder as the central function.
