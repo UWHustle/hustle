@@ -43,7 +43,7 @@ using namespace hustle::resolver;
 #define DATE_PATH ROOT_PATH "date.tbl"
 
 class SQLTest : public Test {
- public:
+public:
   static hustle::catalog::TableSchema part, supplier, customer, ddate,
       lineorder;
   static DBTable::TablePtr lo, d, p, c, s;
@@ -60,8 +60,19 @@ class SQLTest : public Test {
     return fields;
   }
 
-  void SetUp() override {
-    std::filesystem::remove_all("db_directory_sql");
+  FILE* OpenFile(char* file_name) {
+    FILE* stream = fopen(file_name, "r");
+    if (stream == NULL) {
+      std::string error_msg("File not found: test data - ");
+      error_msg.append(LINE_ORDER_PATH);
+      throw std::runtime_error(error_msg);
+    }
+    return stream;
+  }
+
+  SQLTest() {
+    int num_remove = std::filesystem::remove_all("db_directory_sql");
+    std::cout << "Num of removes: " << num_remove << std::endl;
     EXPECT_FALSE(std::filesystem::exists("db_directory_sql"));
 
     SQLTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory_sql");
@@ -207,12 +218,7 @@ class SQLTest : public Test {
     hustle_db->create_table(SQLTest::ddate, SQLTest::d);
 
     std::cerr << "Create Table " << std::endl;
-    std::string error_msg("File not found: test data - ");
-    FILE* stream = fopen(LINE_ORDER_PATH, "r");
-    if (stream == NULL) {
-      error_msg.append(LINE_ORDER_PATH);
-      throw std::runtime_error(error_msg);
-    }
+    FILE* stream = OpenFile(LINE_ORDER_PATH);
     char line[2048];
     std::string query = "BEGIN TRANSACTION;";
     int count = 0;
@@ -246,11 +252,7 @@ class SQLTest : public Test {
 
     std::cerr << "lineorder done" << std::endl;
 
-    stream = fopen(PART_PATH, "r");
-    if (stream == NULL) {
-      error_msg.append(PART_PATH);
-      throw std::runtime_error(error_msg);
-    }
+    stream = OpenFile(PART_PATH);
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -265,11 +267,7 @@ class SQLTest : public Test {
     hustle_db->execute_query_result(query);
     std::cerr << "part done" << std::endl;
 
-    stream = fopen(SUPPLIER_PATH, "r");
-    if (stream == NULL) {
-      error_msg.append(SUPPLIER_PATH);
-      throw std::runtime_error(error_msg);
-    }
+    stream = OpenFile(SUPPLIER_PATH);
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -285,11 +283,7 @@ class SQLTest : public Test {
     hustle_db->execute_query_result(query);
     std::cerr << "supplier done" << std::endl;
 
-    stream = fopen(CUSTOMER_PATH, "r");
-    if (stream == NULL) {
-      error_msg.append(CUSTOMER_PATH);
-      throw std::runtime_error(error_msg);
-    }
+    stream = OpenFile(CUSTOMER_PATH);
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -304,11 +298,7 @@ class SQLTest : public Test {
     hustle_db->execute_query_result(query);
     std::cerr << "customer done" << std::endl;
 
-    stream = fopen(DATE_PATH, "r");
-    if (stream == NULL) {
-      error_msg.append(DATE_PATH);
-      throw std::runtime_error(error_msg);
-    }
+    stream = OpenFile(DATE_PATH);
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -329,10 +319,7 @@ class SQLTest : public Test {
     hustle::HustleDB::start_scheduler();
   }
 
-  void TearDown() override {
-    std::filesystem::remove_all("db_directory_sql");
-    hustle::HustleDB::stop_scheduler();
-  }
+  void TearDown() override { hustle::HustleDB::stop_scheduler(); }
 };
 
 hustle::catalog::TableSchema SQLTest::part("part"),
