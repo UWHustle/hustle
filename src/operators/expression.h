@@ -104,7 +104,7 @@ class Expression {
   arrow::Datum Evaluate(hustle::Task* ctx, int chunk_id);
 
   // number of chunks present in the input column on which it operates.
-  [[nodiscard]] inline int32_t num_chunks() const { return exp_num_chunks_; }
+  inline int32_t num_chunks() const { return exp_num_chunks_; }
 };
 }  // namespace operators
 }  // namespace hustle
