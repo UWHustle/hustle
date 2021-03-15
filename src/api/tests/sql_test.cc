@@ -43,7 +43,7 @@ using namespace hustle::resolver;
 #define DATE_PATH ROOT_PATH "date.tbl"
 
 class SQLTest : public Test {
-public:
+ public:
   static hustle::catalog::TableSchema part, supplier, customer, ddate,
       lineorder;
   static DBTable::TablePtr lo, d, p, c, s;
