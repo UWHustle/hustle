@@ -72,7 +72,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
       if constexpr (arrow::is_number_type<T>::value &&
                     has_ctype_member<T>::value) {
         // TODO: Does number type always have CType?
-        using CType = GetArrowCType<T>;
+        using CType = ArrowGetCType<T>;
         columns.push_back(AllocateColumnData<CType>(field->type(), init_rows));
 
       } else if constexpr (std::is_same_v<T, arrow::StringType>) {
@@ -106,8 +106,8 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
             arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
 
       } else {
-        throw std::runtime_error("Block created with unsupported type: " +
-                                 std::string(T::type_name()));
+        throw_type_error<T, __FUNCTION__, __LINE__,
+                         "Block created with unsupported type">();
       }
     };
 
@@ -165,7 +165,7 @@ void Block::ComputeByteSize() {
   for (int i = 0; i < num_cols; i++) {
     auto get_byte_size = [&, this]<typename T>(T *ptr) {
       if constexpr (has_ctype_member<T>::value) {
-        using CType = GetArrowCType<T>;
+        using CType = ArrowGetCType<T>;
         int byte_width = sizeof(CType);
         column_sizes[i] = byte_width * columns[i]->length;
         num_bytes += byte_width * columns[i]->length;
@@ -346,7 +346,7 @@ int Block::InsertRecords(
     // TODO: Verify type support.
     auto insert_record_handler = [&, this]<typename T>(T *) {
       if constexpr (has_ctype_member<T>::value) {
-        using CType = GetArrowCType<T>;
+        using CType = ArrowGetCType<T>;
         InsertValues<CType>(i, offset, column_data[i], n);
       }
 

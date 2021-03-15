@@ -43,10 +43,10 @@ template <typename DataType>
 using ArrowGetScalarType = typename arrow::TypeTraits<DataType>::ScalarType;
 
 // template <typename DataType>
-// using GetArrowCType = typename arrow::TypeTraits<DataType>::CType;
+// using ArrowGetCType = typename arrow::TypeTraits<DataType>::CType;
 
 template <typename DataType>
-using GetArrowCType = typename DataType::c_type;
+using ArrowGetCType = typename DataType::c_type;
 
 template <typename, typename = void>
 struct has_array_type : std::false_type {
@@ -99,7 +99,6 @@ using is_string_type =
 template <typename DataType>
 using is_binary_type =
     isOneOf<DataType, arrow::BinaryType, arrow::LargeBinaryType>;
-
 
 // Create Array Builder
 //    Use CreateBuilder as the central function.
@@ -169,7 +168,7 @@ namespace details {
   };
 
 // The Big switch statement that make arrow type transform to the DataType type
-#define _HUSTLE_SWITCH_ARROW_TYPE(arrow_enum_type_)                         \
+#define HUSTLE_SWITCH_ARROW_TYPE(arrow_enum_type_)                         \
   switch (arrow_enum_type_) {                                               \
     _HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::NA, arrow::NullType);       \
     _HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::BOOL, arrow::BooleanType);  \
@@ -332,7 +331,7 @@ void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
   }
 
   auto enum_type = dataType->id();
-  _HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
 }
 

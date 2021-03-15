@@ -162,7 +162,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
           std::cout << "Detect CType" << std::endl;
           using ArrayType = ArrowGetArrayType<T>;
           using ScalarType = ArrowGetScalarType<T>;
-          using CType = GetArrowCType<T>;
+          using CType = ArrowGetCType<T>;
           // TODO: Write a separate if constexpr branch to
           //  make sure scalar type is default constructable.
           //  Be aware of the ScalarType constructor.

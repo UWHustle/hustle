@@ -402,7 +402,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
       auto get_hash_key = [&]<typename T>(T *ptr_) {
         if constexpr (arrow::is_primitive_ctype<T>::value) {
           using ArrayType = ArrowGetArrayType<T>;
-          using CType = GetArrowCType<T>;
+          using CType = ArrowGetCType<T>;
 
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
           CType val = col->Value(item_index);
