@@ -104,10 +104,9 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         data->ZeroPadding();
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
-
       } else {
-        throw_type_error<T, __FUNCTION__, __LINE__,
-                         "Block created with unsupported type">();
+        throw std::logic_error("Block created with unsupported type: " +
+                               std::string(T::type_name()));
       }
     };
 
