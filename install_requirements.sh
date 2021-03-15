@@ -20,7 +20,6 @@ elif [[ `uname` == "Linux" ]]; then
     else
       cd cmake-3.15.5
     fi
-    sudo make install
     cd ..
     sudo apt-get update
     sudo apt-get install software-properties-common --yes
