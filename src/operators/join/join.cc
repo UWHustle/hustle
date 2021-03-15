@@ -192,16 +192,17 @@ void Join::BuildHashTable(int join_id,
     }
     for (std::uint32_t row = 0; row < chunk->length(); row++) {
       if (filter_data == nullptr || arrow::BitUtil::GetBit(filter_data, row)) {
-          auto key_value_pair =
-                  hash_tables_[join_id]->find(chunk->Value(row));
-          if (key_value_pair != hash_tables_[join_id]->end()) {
-
-              auto record_ids = hash_tables_[join_id]->find(chunk->Value(row))->second;
-              record_ids.push_back({(uint32_t) chunk_row_offsets[i] + row, (uint16_t) i});
-              (*hash_tables_[join_id])[chunk->Value(row)] = record_ids;
-          } else {
-              (*hash_tables_[join_id])[chunk->Value(row)] = {{(uint32_t) chunk_row_offsets[i] + row, (uint16_t) i}};
-          }
+        auto key_value_pair = hash_tables_[join_id]->find(chunk->Value(row));
+        if (key_value_pair != hash_tables_[join_id]->end()) {
+          auto record_ids =
+              hash_tables_[join_id]->find(chunk->Value(row))->second;
+          record_ids.push_back(
+              {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i});
+          (*hash_tables_[join_id])[chunk->Value(row)] = record_ids;
+        } else {
+          (*hash_tables_[join_id])[chunk->Value(row)] = {
+              {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i}};
+        }
       }
     }
   }
@@ -264,24 +265,27 @@ void Join::ProbeHashTableBlock(
     auto indices_length = chunk_length;
     // TODO (suryadev) : As of now, we have two separate cases with
     //  nearly same code with conditionals difference for faster loop execution
-    // as this forms one of the core code block for most of the queries with joins.
+    // as this forms one of the core code block for most of the queries with
+    // joins.
     if (filter_data != nullptr) {
       for (std::size_t row = 0; row < chunk_length; row++) {
         if (arrow::BitUtil::GetBit(filter_data, row)) {
-            auto key_value_pair =
-                    hash_tables_[join_id]->find(left_join_chunk_data[row]);
-            if (key_value_pair != hash_table_end) {
-                for (auto record_id : key_value_pair->second) {
-                    if (indices_length <= num_joined_indices) {
-                        indices_length << 1;
-                        joined_left_indices = (uint32_t *) realloc(joined_left_indices,  sizeof(uint32_t) * indices_length);
-                        joined_right_indices = (uint32_t *) realloc(joined_right_indices, sizeof(uint32_t) * indices_length);
-                    }
-                    joined_left_indices[num_joined_indices] = row + offset;
-                    joined_right_indices[num_joined_indices] = record_id.index;
-                    ++num_joined_indices;
-                }
+          auto key_value_pair =
+              hash_tables_[join_id]->find(left_join_chunk_data[row]);
+          if (key_value_pair != hash_table_end) {
+            for (auto record_id : key_value_pair->second) {
+              if (indices_length <= num_joined_indices) {
+                indices_length << 1;
+                joined_left_indices = (uint32_t *)realloc(
+                    joined_left_indices, sizeof(uint32_t) * indices_length);
+                joined_right_indices = (uint32_t *)realloc(
+                    joined_right_indices, sizeof(uint32_t) * indices_length);
+              }
+              joined_left_indices[num_joined_indices] = row + offset;
+              joined_right_indices[num_joined_indices] = record_id.index;
+              ++num_joined_indices;
             }
+          }
         }
       }
     } else {
@@ -289,16 +293,18 @@ void Join::ProbeHashTableBlock(
         auto key_value_pair =
             hash_tables_[join_id]->find(left_join_chunk_data[row]);
         if (key_value_pair != hash_table_end) {
-            for (auto record_id : key_value_pair->second) {
-                if (indices_length <= num_joined_indices) {
-                    indices_length << 1;
-                    joined_left_indices = (uint32_t *) realloc(joined_left_indices, sizeof(uint32_t) * indices_length);
-                    joined_right_indices = (uint32_t *) realloc(joined_right_indices, sizeof(uint32_t) * indices_length);
-                }
-                joined_left_indices[num_joined_indices] = row + offset;
-                joined_right_indices[num_joined_indices] = record_id.index;
-                ++num_joined_indices;
+          for (auto record_id : key_value_pair->second) {
+            if (indices_length <= num_joined_indices) {
+              indices_length << 1;
+              joined_left_indices = (uint32_t *)realloc(
+                  joined_left_indices, sizeof(uint32_t) * indices_length);
+              joined_right_indices = (uint32_t *)realloc(
+                  joined_right_indices, sizeof(uint32_t) * indices_length);
             }
+            joined_left_indices[num_joined_indices] = row + offset;
+            joined_right_indices[num_joined_indices] = record_id.index;
+            ++num_joined_indices;
+          }
         }
       }
     }

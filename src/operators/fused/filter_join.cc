@@ -108,7 +108,7 @@ void FilterJoin::BuildFilters(Task *ctx) {
           bloom_filter->set_memory(1);
           bloom_filter->set_fact_fk_name(fact_fk_col_names_[table_idx]);
           if (dim_tables_[table_idx].hash_table() == nullptr) {
-             throw "hash table for the dimension relation not constructed";
+            throw "hash table for the dimension relation not constructed";
           }
           dim_filters_[table_idx] = {bloom_filter,
                                      dim_tables_[table_idx].hash_table()};
@@ -149,8 +149,8 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_j,
               // Remember the matched index in the dimension table
               // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
-                  // FilterJoin supports only join on unique key columns
-                  assert(key_value_pair->second.size() == 1);
+                // FilterJoin supports only join on unique key columns
+                assert(key_value_pair->second.size() == 1);
                 indices[join_row_idx] = row + offset;
                 dim_indices[join_row_idx] = key_value_pair->second.at(0).index;
                 join_row_idx++;
@@ -190,9 +190,10 @@ void FilterJoin::ProbeFilters(int chunk_start, int chunk_end, int filter_j,
               // Remember the matched index in the dimension table
               // i.e doing join on the fly while doing look ahead filtering
               if (key_value_pair != dim_hash_end) {
-                  // FilterJoin supports only join on unique key columns
-                  assert(key_value_pair->second.size() == 1);
-                dim_indices[join_row_idx++] = key_value_pair->second.at(0).index;
+                // FilterJoin supports only join on unique key columns
+                assert(key_value_pair->second.size() == 1);
+                dim_indices[join_row_idx++] =
+                    key_value_pair->second.at(0).index;
               } else {
                 // There's no matched value in the current dimension table
                 // then remove the stored matched indices in the prev dimension
@@ -309,8 +310,8 @@ void FilterJoin::Initialize(Task *ctx) {
   for (size_t table_idx = 0; table_idx < dim_tables_.size(); table_idx++) {
     ctx->spawnLambdaTask([this, table_idx](Task *internal) {
       auto fact_join_col_name = fact_fk_col_names_[table_idx];
-        fact_table_.MaterializeColumn(internal, fact_join_col_name,
-                                      fact_fk_cols_[fact_join_col_name]);
+      fact_table_.MaterializeColumn(internal, fact_join_col_name,
+                                    fact_fk_cols_[fact_join_col_name]);
     });
   }
 }
@@ -431,8 +432,8 @@ void FilterJoin::Finish() {
   for (size_t dim_tbl_idx = 0; dim_tbl_idx < dim_tables_.size();
        dim_tbl_idx++) {
     output_lazy_tables.emplace_back(dim_tables_[dim_tbl_idx].table,
+                                    arrow::Datum(), dim_indices[dim_tbl_idx],
                                     arrow::Datum(),
-                                    dim_indices[dim_tbl_idx], arrow::Datum(),
                                     dim_tables_[dim_tbl_idx].hash_table());
   }
   OperatorResult result({output_lazy_tables});

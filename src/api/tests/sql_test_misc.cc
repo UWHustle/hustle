@@ -212,8 +212,8 @@ class SQLMiscTest : public Test {
     std::string error_msg("File not found: test data - ");
     FILE* stream = fopen(LINE_ORDER_PATH, "r");
     if (stream == NULL) {
-        error_msg.append(LINE_ORDER_PATH);
-        throw std::runtime_error(error_msg);
+      error_msg.append(LINE_ORDER_PATH);
+      throw std::runtime_error(error_msg);
     }
     char line[2048];
     std::string query = "BEGIN TRANSACTION;";
@@ -249,10 +249,10 @@ class SQLMiscTest : public Test {
     std::cerr << "lineorder done" << std::endl;
 
     stream = fopen(PART_PATH, "r");
-      if (stream == NULL) {
-          error_msg.append(PART_PATH);
-          throw std::runtime_error(error_msg);
-      }
+    if (stream == NULL) {
+      error_msg.append(PART_PATH);
+      throw std::runtime_error(error_msg);
+    }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -268,10 +268,10 @@ class SQLMiscTest : public Test {
     std::cerr << "part done" << std::endl;
 
     stream = fopen(SUPPLIER_PATH, "r");
-      if (stream == NULL) {
-          error_msg.append(SUPPLIER_PATH);
-          throw std::runtime_error(error_msg);
-      }
+    if (stream == NULL) {
+      error_msg.append(SUPPLIER_PATH);
+      throw std::runtime_error(error_msg);
+    }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -288,10 +288,10 @@ class SQLMiscTest : public Test {
     std::cerr << "supplier done" << std::endl;
 
     stream = fopen(CUSTOMER_PATH, "r");
-      if (stream == NULL) {
-          error_msg.append(CUSTOMER_PATH);
-          throw std::runtime_error(error_msg);
-      }
+    if (stream == NULL) {
+      error_msg.append(CUSTOMER_PATH);
+      throw std::runtime_error(error_msg);
+    }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -307,10 +307,10 @@ class SQLMiscTest : public Test {
     std::cerr << "customer done" << std::endl;
 
     stream = fopen(DATE_PATH, "r");
-      if (stream == NULL) {
-          error_msg.append(DATE_PATH);
-          throw std::runtime_error(error_msg);
-      }
+    if (stream == NULL) {
+      error_msg.append(DATE_PATH);
+      throw std::runtime_error(error_msg);
+    }
     query = "BEGIN TRANSACTION;";
     while (fgets(line, 2048, stream)) {
       char* tmp = strdup(line);
@@ -391,41 +391,49 @@ TEST_F(SQLMiscTest, q_without_agg_and_join) {
 }
 
 TEST_F(SQLMiscTest, q_without_agg) {
-    std::string query =
-            "select lo_orderkey, lo_revenue, lo_quantity, d_month, d_yearmonth\n"
-            "from ddate, lineorder\n"
-            "where d_datekey = 1992015 and (lo_quantity = 29 and lo_revenue = 946)\n;";
+  std::string query =
+      "select lo_orderkey, lo_revenue, lo_quantity, d_month, d_yearmonth\n"
+      "from ddate, lineorder\n"
+      "where d_datekey = 1992015 and (lo_quantity = 29 and lo_revenue = "
+      "946)\n;";
 
-    std::string output = hustle_db->execute_query_result(query);
-    EXPECT_EQ(output, "12713 | 946 | 29 | 5 | Jan1992\n"
-                      "19527 | 946 | 29 | 5 | Jan1992\n");
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output,
+            "12713 | 946 | 29 | 5 | Jan1992\n"
+            "19527 | 946 | 29 | 5 | Jan1992\n");
 }
 
 TEST_F(SQLMiscTest, q_without_join) {
-    std::string query =
-            "select Count(lo_orderkey)\n"
-            "from  lineorder\n"
-            "where (lo_quantity = 29 and lo_revenue = 946)\n;";
+  std::string query =
+      "select Count(lo_orderkey)\n"
+      "from  lineorder\n"
+      "where (lo_quantity = 29 and lo_revenue = 946)\n;";
 
-    std::string output = hustle_db->execute_query_result(query);
-    EXPECT_EQ(output, "2\n");
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "2\n");
 }
 
 TEST_F(SQLMiscTest, q_joins_non_unique_columns) {
-    std::string query =
-            "select lo_orderkey, d_datekey, d_dayofweek\n"
-            "from  lineorder, ddate\n"
-            "where d_dayofweek = lo_custkey and (lo_quantity = 20 and lo_revenue = 763);\n";
+  std::string query =
+      "select lo_orderkey, d_datekey, d_dayofweek\n"
+      "from  lineorder, ddate\n"
+      "where d_dayofweek = lo_custkey and (lo_quantity = 20 and lo_revenue = "
+      "763);\n";
 
-    std::string output = hustle_db->execute_query_result(query);
-    EXPECT_EQ(output, "6 | 1992011 | 1\n6 | 1993121 | 1\n6 | 1994021 | 1\n6 | 1994031 | 1\n6 | 1992018 | 1\n6 | 1993128 | 1\n6 | 1994028 | 1\n6 | 1994038 | 1\n6 | 19920115 | 1\n6 | 19931215 | 1\n6 | 19940215 | 1\n6 | 19940315 | 1\n6 | 19920122 | 1\n6 | 19931222 | 1\n6 | 19940222 | 1\n6 | 19940322 | 1\n6 | 19920129 | 1\n6 | 19931229 | 1\n6 | 19940229 | 1\n6 | 19940329 | 1\n");
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(
+      output,
+      "6 | 1992011 | 1\n6 | 1993121 | 1\n6 | 1994021 | 1\n6 | 1994031 | 1\n6 | "
+      "1992018 | 1\n6 | 1993128 | 1\n6 | 1994028 | 1\n6 | 1994038 | 1\n6 | "
+      "19920115 | 1\n6 | 19931215 | 1\n6 | 19940215 | 1\n6 | 19940315 | 1\n6 | "
+      "19920122 | 1\n6 | 19931222 | 1\n6 | 19940222 | 1\n6 | 19940322 | 1\n6 | "
+      "19920129 | 1\n6 | 19931229 | 1\n6 | 19940229 | 1\n6 | 19940329 | 1\n");
 
-    query =
-            "select Count(d_dayofweek)\n"
-            "from  ddate\n"
-            "where d_dayofweek = 1;\n";
+  query =
+      "select Count(d_dayofweek)\n"
+      "from  ddate\n"
+      "where d_dayofweek = 1;\n";
 
-    output = hustle_db->execute_query_result(query);
-    EXPECT_EQ(output, "20\n");
+  output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "20\n");
 }
-
