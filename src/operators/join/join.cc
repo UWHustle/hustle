@@ -275,7 +275,7 @@ void Join::ProbeHashTableBlock(
           if (key_value_pair != hash_table_end) {
             for (auto record_id : key_value_pair->second) {
               if (indices_length <= num_joined_indices) {
-                indices_length << 1;
+                indices_length <<= 1;
                 joined_left_indices = (uint32_t *)realloc(
                     joined_left_indices, sizeof(uint32_t) * indices_length);
                 joined_right_indices = (uint32_t *)realloc(
@@ -295,7 +295,7 @@ void Join::ProbeHashTableBlock(
         if (key_value_pair != hash_table_end) {
           for (auto record_id : key_value_pair->second) {
             if (indices_length <= num_joined_indices) {
-              indices_length << 1;
+              indices_length <<= 1;
               joined_left_indices = (uint32_t *)realloc(
                   joined_left_indices, sizeof(uint32_t) * indices_length);
               joined_right_indices = (uint32_t *)realloc(
