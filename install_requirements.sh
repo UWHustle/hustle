@@ -5,7 +5,7 @@ if [[ `uname` == "Darwin" ]]; then
     which -s brew
     if [[ $? != 0 ]] ; then
         echo Homebrew not found. Please first install homebrew through: https://brew.sh/
-		exit 1
+    exit 1
     fi
     brew update && brew bundle --file=Brewfile
 elif [[ `uname` == "Linux" ]]; then

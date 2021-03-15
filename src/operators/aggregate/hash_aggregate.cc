@@ -19,6 +19,8 @@
 
 #include <storage/utils/util.h>
 
+#include "type/type_helper.h"
+
 // TODO: Merge this reference with the one in aggregate.cc.
 //  Maybe put this in aggregate.h?
 #define AGGREGATE_OUTPUT_TABLE "aggregate"
@@ -91,9 +93,9 @@ void HashAggregate::Initialize(Task *ctx) {
   for (std::size_t group_index = 0; group_index < group_by_refs_.size();
        group_index++) {
     ctx->spawnTask(CreateLambdaTask([this, group_index](Task *internal) {
-        group_by_tables_[group_index].MaterializeColumn(
-                internal, group_by_refs_[group_index].col_name,
-                group_by_cols_[group_index]);
+      group_by_tables_[group_index].MaterializeColumn(
+          internal, group_by_refs_[group_index].col_name,
+          group_by_cols_[group_index]);
     }));
   }
 
@@ -111,7 +113,7 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
         auto col_name = aggregate_refs_[0].col_ref.col_name;
         if (aggregate_refs_[0].expr_ref == nullptr) {
           agg_lazy_table_ = prev_result_->get_table(table);
-            agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
+          agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
         } else {
           // For expression case, create expression object and initialize
           expression_ = std::make_shared<Expression>(
@@ -283,26 +285,8 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 HashAggregate::CreateGroupBuilderVector() {
   std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
   for (auto &field : group_type_->fields()) {
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
-        group_builders.push_back(std::make_shared<arrow::StringBuilder>());
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        group_builders.push_back(
-            std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
-        break;
-      }
-      case arrow::Type::INT64: {
-        group_builders.push_back(std::make_shared<arrow::Int64Builder>());
-        break;
-      }
-      default: {
-        std::cerr << "Aggregate does not support group bys of type " +
-                         field->type()->ToString()
-                  << std::endl;
-      }
-    }
+    auto builder = getBuilder(field->type());
+    group_builders.push_back(builder);
   }
   return group_builders;
 }
@@ -369,6 +353,48 @@ void HashAggregate::FirstPhaseAggregateChunks(Task *internal, size_t tid,
   }
 }
 
+//
+// GetHashKeyHandlers
+// - [1] GetHashKeyHandlerPrimitive: Hash primitive C types.
+// - [2] GetHashKeyHandlerStringLike: Hash string-like (binary) types.
+// Otherwise, marked unhashable.
+//
+template <typename T, typename U>
+hash_t GetHashKeyHandlerPrimitive(U &group_by_chunk, int item_index) {
+  using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+  // TODO: What is the difference between CType and the c_type?
+  //  using CType = typename arrow::TypeTraits<T>::CType;
+  using CType = typename T::c_type;
+
+  auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
+  CType val = col->Value(item_index);
+  return std::hash<CType>{}(val);
+}
+template <typename T, typename U>
+hash_t GetHashKeyHandlerStringLike(U &group_by_chunk, int item_index) {
+  using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+  auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
+  auto val = col->GetString(item_index);
+  return std::hash<std::string>{}(val);
+}
+
+template <typename T, typename U>
+hash_t GetHashKeyHandler(U &group_by_chunk, int item_index) {
+  if constexpr (arrow::is_primitive_ctype<T>::value) {
+    return GetHashKeyHandlerPrimitive<T>(group_by_chunk, item_index);
+  }
+  if constexpr (arrow::is_base_binary_type<T>::value ||
+                arrow::is_fixed_size_binary_type<T>::value) {
+    return GetHashKeyHandlerStringLike<T>(group_by_chunk, item_index);
+  }
+  /* TODO: Hash Key throw type list:
+   * null fixed_size_binary date32 date64 time32 time64 timestamp
+   * day_time_interval month_interval duration decimal struct list large_list
+   * fixed_size_list map dense_union sparse_union dictionary extension
+   */
+  throw std::runtime_error(std::string("Unhashable type: ") + T::type_name());
+}
+
 void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
                                               int chunk_index) {
   // if expression not null then evaluate the expression to get the result
@@ -415,37 +441,15 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
       auto group_by_type_id = group_by_type->id();
       hash_t next_key = 0;
       // TODO: Factor this out as template functions.
-      switch (group_by_type_id) {
-        case arrow::Type::STRING: {
-          // TODO: Guard - cannot be sum / mean, but could be count.
-          auto string_col =
-              std::static_pointer_cast<arrow::StringArray>(group_by_chunk);
-          auto string_val = string_col->GetString(item_index);
-          auto hash_string = std::hash<std::string>{}(string_val);
-          next_key = hash_string;
-          break;
-        }
-        case arrow::Type::FIXED_SIZE_BINARY: {
-          // TODO: Not sure what is the FIXED_SIZE_BINARY type.
-          std::cerr << "HashAggregate does not support group bys of type " +
-                           group_by_type->ToString()
-                    << std::endl;
-          break;
-        }
-        case arrow::Type::INT64: {
-          auto int_col =
-              std::static_pointer_cast<arrow::Int64Array>(group_by_chunk);
-          int64_t int_val = int_col->Value(item_index);
-          auto hash_int = std::hash<std::int64_t>{}(int_val);
-          next_key = hash_int;
-          break;
-        }
-        default: {
-          std::cerr << "HashAggregate does not support group bys of type " +
-                           group_by_type->ToString()
-                    << std::endl;
-        }
-      }
+
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_) \
+  { next_key = GetHashKeyHandler<DataType_>(group_by_chunk, item_index); }
+
+      HUSTLE_SWITCH_ARROW_TYPE(group_by_type_id);
+
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+
       key = HashAggregateStrategy::HashCombine(key, next_key);
     }
     agg_item_key = key;

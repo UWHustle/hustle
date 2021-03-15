@@ -50,8 +50,8 @@ void Expression::ConvertPostfix(hustle::Task* ctx,
   // output
   if (expr->op == TK_COLUMN || expr->op == TK_AGG_COLUMN) {
     arrow::Datum col;
-      prev_op_output_->get_table(expr->column_ref->table)
-              .MaterializeColumn(ctx, expr->column_ref->col_name, col);
+    prev_op_output_->get_table(expr->column_ref->table)
+        .MaterializeColumn(ctx, expr->column_ref->col_name, col);
     column = col.chunked_array();
     exp_num_chunks_ = std::max(exp_num_chunks_, column->num_chunks());
   }
@@ -121,6 +121,39 @@ arrow::Datum Expression::ExecuteBlock(bool is_result,
   }
 }
 
+
+template <typename T>
+enable_if_has_c_type<T, arrow::Datum>
+Expression::ExecuteBlockHandler(
+    bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
+    const std::shared_ptr<arrow::Array>& right_col) {
+  using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+  using ScalarType = typename arrow::TypeTraits<T>::ScalarType;
+  using CType = typename T::c_type;
+  return this->ExecuteBlock<ArrayType, CType>(is_result, ScalarType(0), op,
+                                              left_col, right_col);
+};
+
+template <typename T>
+enable_if_has_no_c_type<T, arrow::Datum>
+Expression::ExecuteBlockHandler(
+    bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
+    const std::shared_ptr<arrow::Array>& right_col) {
+  throw std::runtime_error(
+      "Expression Evaluation"
+      "not supported for this type.");
+}
+
+// Execute block handler does not support date time interval.
+template <>
+arrow::Datum Expression::ExecuteBlockHandler<arrow::DayTimeIntervalType>(
+    bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
+    const std::shared_ptr<arrow::Array>& right_col) {
+  throw std::runtime_error(
+      "Expression Evaluation"
+      "not supported for this DateTimeIntervalType.");
+};
+
 arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
   // stack for the expression evaluation on the chunk
   std::stack<OpElem> eval_stack;
@@ -154,20 +187,21 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
             "Implicit type conversion in"
             "expression evaluation currently not supported.");
       }
-      switch (l_chunk->type()->id()) {
-        case arrow::Type::INT64: {
-          result =
-              this->ExecuteBlock<arrow::Int64Array, int64_t>(
-                      is_result, arrow::Int64Scalar(0), op, l_chunk, r_chunk)
-                  .make_array();
-          break;
-        }
-        default: {
-          throw std::runtime_error(
-              "Expression Evaluation"
-              "not supported for this type.");
-        }
-      }
+      auto enum_type = l_chunk->type()->id();
+
+
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                      \
+  {                                                                        \
+    result = this->ExecuteBlockHandler<arrow_data_type_>(is_result, op,    \
+                                                         l_chunk, r_chunk) \
+                 .make_array();                                            \
+    break;                                                                 \
+  }
+
+      HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+
       eval_stack.push({TK_AGG_COLUMN, true, arrow::Datum(result)});
     }
   }
@@ -175,6 +209,6 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
     return arrow::Datum(eval_stack.top().chunk);
   }
   throw std::runtime_error("Invalid expression");
-}
+}  // namespace hustle::operators
 
 }  // namespace hustle::operators
