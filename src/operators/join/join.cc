@@ -262,6 +262,9 @@ void Join::ProbeHashTableBlock(
     auto *joined_right_indices =
         (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
     auto indices_length = chunk_length;
+    // TODO (suryadev) : As of now, we have two separate cases with
+    //  nearly same code with conditionals difference for faster loop execution
+    // as this forms one of the core code block for most of the queries with joins.
     if (filter_data != nullptr) {
       for (std::size_t row = 0; row < chunk_length; row++) {
         if (arrow::BitUtil::GetBit(filter_data, row)) {
@@ -270,9 +273,9 @@ void Join::ProbeHashTableBlock(
             if (key_value_pair != hash_table_end) {
                 for (auto record_id : key_value_pair->second) {
                     if (indices_length <= num_joined_indices) {
-                        joined_left_indices = (uint32_t *) realloc(joined_left_indices, 2 * sizeof(uint32_t) * indices_length);
-                        joined_right_indices = (uint32_t *) realloc(joined_right_indices, 2 * sizeof(uint32_t) * indices_length);
-                        indices_length = 2 * indices_length;
+                        indices_length << 1;
+                        joined_left_indices = (uint32_t *) realloc(joined_left_indices,  sizeof(uint32_t) * indices_length);
+                        joined_right_indices = (uint32_t *) realloc(joined_right_indices, sizeof(uint32_t) * indices_length);
                     }
                     joined_left_indices[num_joined_indices] = row + offset;
                     joined_right_indices[num_joined_indices] = record_id.index;
@@ -288,9 +291,9 @@ void Join::ProbeHashTableBlock(
         if (key_value_pair != hash_table_end) {
             for (auto record_id : key_value_pair->second) {
                 if (indices_length <= num_joined_indices) {
-                    joined_left_indices = (uint32_t *) realloc(joined_left_indices, 2 * sizeof(uint32_t) * indices_length);
-                    joined_right_indices = (uint32_t *) realloc(joined_right_indices, 2 * sizeof(uint32_t) * indices_length);
-                    indices_length = 2 * indices_length;
+                    indices_length << 1;
+                    joined_left_indices = (uint32_t *) realloc(joined_left_indices, sizeof(uint32_t) * indices_length);
+                    joined_right_indices = (uint32_t *) realloc(joined_right_indices, sizeof(uint32_t) * indices_length);
                 }
                 joined_left_indices[num_joined_indices] = row + offset;
                 joined_right_indices[num_joined_indices] = record_id.index;
