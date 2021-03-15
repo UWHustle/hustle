@@ -85,11 +85,11 @@ class Expression {
   // Execute an arithmetic operator for two column of the chunk in the table
   template <typename ArrayType, typename ArrayPrimitiveType>
   arrow::Datum ExecuteBlock(int op, std::shared_ptr<arrow::Array> result,
-                            std::shared_ptr<arrow::Array> left_col,
-                            std::shared_ptr<arrow::Array> right_col);
+                            const std::shared_ptr<arrow::Array>& left_col,
+                            const std::shared_ptr<arrow::Array>& right_col);
 
   template <typename ArrayType, typename ArrayPrimitiveType>
-  arrow::Datum ExecuteBlock(bool is_result, const arrow::Scalar& scalar, int op,
+  arrow::Datum ExecuteBlockAPI(bool is_result, const arrow::Scalar& scalar, int op,
                             std::shared_ptr<arrow::Array> left_col,
                             std::shared_ptr<arrow::Array> right_col);
 
@@ -104,7 +104,7 @@ class Expression {
   arrow::Datum Evaluate(hustle::Task* ctx, int chunk_id);
 
   // number of chunks present in the input column on which it operates.
-  inline int32_t num_chunks() { return exp_num_chunks_; }
+  [[nodiscard]] inline int32_t num_chunks() const { return exp_num_chunks_; }
 };
 }  // namespace operators
 }  // namespace hustle

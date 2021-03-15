@@ -59,10 +59,10 @@ void Expression::ConvertPostfix(hustle::Task* ctx,
 }
 
 template <typename ArrayType, typename ArrayPrimitiveType>
-arrow::Datum Expression::ExecuteBlock(int op,
-                                      std::shared_ptr<arrow::Array> result,
-                                      std::shared_ptr<arrow::Array> left_col,
-                                      std::shared_ptr<arrow::Array> right_col) {
+arrow::Datum Expression::ExecuteBlock(
+    int op, std::shared_ptr<arrow::Array> result,
+    const std::shared_ptr<arrow::Array>& left_col,
+    const std::shared_ptr<arrow::Array>& right_col) {
   int chunk_length = std::max(left_col->length(), right_col->length());
   auto left_col_data =
       left_col->data()->template GetValues<ArrayPrimitiveType>(1, 0);
@@ -99,17 +99,17 @@ arrow::Datum Expression::ExecuteBlock(int op,
       }
       break;
     }
+    default:
+      throw std::runtime_error("Unrecognized operator.");
   }
   return result;
 }
 
 template <typename ArrayType, typename ArrayPrimitiveType>
-arrow::Datum Expression::ExecuteBlock(bool is_result,
-                                      const arrow::Scalar& scalar, int op,
-                                      std::shared_ptr<arrow::Array> left_col,
-                                      std::shared_ptr<arrow::Array> right_col) {
-  // std::shared_ptr<ArrayType> left_col,
-  // std::shared_ptr<ArrayType> right_col) {
+arrow::Datum Expression::ExecuteBlockAPI(
+    bool is_result, const arrow::Scalar& scalar, int op,
+    std::shared_ptr<arrow::Array> left_col,
+    std::shared_ptr<arrow::Array> right_col) {
   if (is_result) {
     std::shared_ptr<ArrayType> result = std::static_pointer_cast<ArrayType>(
         arrow::MakeArrayFromScalar(scalar, left_col->length()).ValueOrDie());
@@ -155,12 +155,10 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
             "expression evaluation currently not supported.");
       }
       auto enum_type = l_chunk->type()->id();
-      auto data_type_raw_ptr = l_chunk->type().get();
+      auto rawptr = l_chunk->type().get();
 
-      auto foo =
-          [&,
-           this ]<typename U, typename T = typename std::remove_pointer_t<U>>(
-              U ptr_) {
+      auto execute_block_handler = [&, this]<typename U>(U ptr_) {
+        using T = typename std::remove_pointer_t<U>;
         // Naturally handles block calculation
         if constexpr (arrow::has_c_type<T>::value &&
                       !std::is_same_v<T, arrow::DayTimeIntervalType>) {
@@ -168,19 +166,23 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
           using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
           using ScalarType = typename arrow::TypeTraits<T>::ScalarType;
           using CType = typename T::c_type;
-          result = this->ExecuteBlock<ArrayType, CType>(
+          // TODO: Write a separate if constexpr branch to
+          //  make sure scalar type is default constructable.
+          //  Be aware of the ScalarType constructor.
+          //  It may not be default constructable.
+          result = this->ExecuteBlockAPI<ArrayType, CType>(
               is_result, ScalarType(0), op, l_chunk, r_chunk);
-          return ;
+          return;
         }
         throw std::runtime_error("No CType: " + std::string(T::type_name()));
       };
 
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)              \
-  {                                                                \
-    auto ptr = dynamic_cast<arrow_data_type_*>(data_type_raw_ptr); \
-    foo(ptr);                                                      \
-    break;                                                         \
+#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)   \
+  {                                              \
+    auto ptr = dynamic_cast<DataType_*>(rawptr); \
+    execute_block_handler(ptr);                  \
+    break;                                       \
   }
       HUSTLE_SWITCH_ARROW_TYPE(enum_type);
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
