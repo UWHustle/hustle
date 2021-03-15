@@ -113,7 +113,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
   }
 }
 
-Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
+Block::Block(int id, const std::shared_ptr<arrow::RecordBatch> &record_batch,
              int capacity, bool enable_metadata)
     : capacity(capacity),
       id(id),
@@ -161,55 +161,29 @@ std::shared_ptr<arrow::ArrayData> Block::AllocateColumnData(
 void Block::ComputeByteSize() {
   // Start at i=1 to skip valid column
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
+    auto get_byte_size = [&, this]<typename T>(T *ptr) {
+      if constexpr (has_ctype_member<T>::value) {
+        using CType = typename arrow::TypeTraits<T>::CType;
+        int byte_width = sizeof(CType);
+        column_sizes[i] = byte_width * columns[i]->length;
+        num_bytes += byte_width * columns[i]->length;
+        return;
+      } else if constexpr (std::is_same_v<T, arrow::StringType>) {
         auto *offsets = columns[i]->GetValues<int32_t>(1, 0);
         column_sizes[i] = offsets[num_rows];
         num_bytes += offsets[num_rows];
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+        return;
+      } else if constexpr (std::is_same_v<T, arrow::FixedSizeBinaryType>) {
         int byte_width =
             schema->field(i)->type()->layout().FixedWidth(1).byte_width;
         column_sizes[i] = byte_width * columns[i]->length;
         num_bytes += byte_width * columns[i]->length;
-        break;
       }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(int64_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      case arrow::Type::UINT32: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(uint32_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      case arrow::Type::UINT16: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(uint16_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      case arrow::Type::UINT8: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(uint8_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      default: {
-        throw std::logic_error(
-            std::string("Cannot compute record width. Unsupported type: ") +
-            schema->field(i)->type()->ToString());
-      }
-    }
+      throw std::logic_error(
+          std::string("Cannot compute record width. Unsupported type: ") +
+          schema->field(i)->type()->ToString());
+    };
+    type_switcher(schema->field(i)->type(), get_byte_size);
   }
 }
 
