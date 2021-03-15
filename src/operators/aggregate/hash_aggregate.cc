@@ -396,33 +396,29 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
       auto group_by_chunk = group_by.chunked_array()->chunk(chunk_index);
 
       auto group_by_type = group_by.type();
-      auto enum_type = group_by_type->id();
-      auto rawptr = group_by.type().get();
-      hash_t next_key = 0;
-      // TODO: Factor this out as template functions.
 
-      auto get_hash_key = [&, this]<typename U>(U ptr_) -> hash_t {
+      // Assign next_key.
+      hash_t next_key = 0;
+      auto get_hash_key = [&, this]<typename U>(U ptr_) {
         using T = typename std::remove_pointer_t<U>;
         if constexpr (arrow::is_primitive_ctype<T>::value) {
-          {
-            using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
-            // TODO: What is the difference between CType and the c_type?
-            //  using CType = typename arrow::TypeTraits<T>::CType;
-            using CType = typename T::c_type;
+          using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+          // TODO: What is the difference between CType and the c_type?
+          //  using CType = typename arrow::TypeTraits<T>::CType;
+          using CType = typename T::c_type;
 
-            auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
-            CType val = col->Value(item_index);
-            return std::hash<CType>{}(val);
-          }
+          auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
+          CType val = col->Value(item_index);
+          next_key = std::hash<CType>{}(val);
+          return;
         }
         if constexpr (arrow::is_base_binary_type<T>::value ||
                       arrow::is_fixed_size_binary_type<T>::value) {
-          {
-            using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
-            auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
-            auto val = col->GetString(item_index);
-            return std::hash<std::string>{}(val);
-          }
+          using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
+          auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
+          auto val = col->GetString(item_index);
+          next_key = std::hash<std::string>{}(val);
+          return;
         }
         /* TODO: Hash Key throw type list:
          * null fixed_size_binary date32 date64 time32 time64 timestamp
@@ -432,18 +428,8 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
          */
         throw std::runtime_error(std::string("Unhashable type: ") +
                                  T::type_name());
-        return 0;  // Disable compiler error on return type.
       };
-
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)    \
-  {                                               \
-    auto ptr = dynamic_cast<DataType_ *>(rawptr); \
-    next_key = get_hash_key(ptr);                 \
-    break;                                        \
-  }
-      HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
+      type_switcher(group_by_type, get_hash_key);
 
       key = HashAggregateStrategy::HashCombine(key, next_key);
     }

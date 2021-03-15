@@ -154,8 +154,6 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
             "Implicit type conversion in"
             "expression evaluation currently not supported.");
       }
-      auto enum_type = l_chunk->type()->id();
-      auto rawptr = l_chunk->type().get();
 
       auto execute_block_handler = [&, this]<typename U>(U ptr_) {
         using T = typename std::remove_pointer_t<U>;
@@ -176,16 +174,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
         }
         throw std::runtime_error("No CType: " + std::string(T::type_name()));
       };
-
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)   \
-  {                                              \
-    auto ptr = reinterpret_cast<DataType_*>(rawptr); \
-    execute_block_handler(ptr);                  \
-    break;                                       \
-  }
-      HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
+      type_switcher(l_chunk->type(), execute_block_handler);
 
       eval_stack.push({TK_AGG_COLUMN, true, arrow::Datum(result)});
     }
