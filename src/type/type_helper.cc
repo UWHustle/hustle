@@ -66,21 +66,6 @@ std::shared_ptr<arrow::DataType> TestFields(arrow::Type::type type_enum) {
 }
 }  // namespace details
 
-template <typename Functor>
-void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
-                   Functor func) {
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)        \
-  {                                                   \
-    auto rawptr = dataType.get();                     \
-    auto ptr = reinterpret_cast<DataType_ *>(rawptr); \
-    func(ptr);                                        \
-  }
-
-  auto enum_type = dataType->id();
-  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-}
 
 std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     const std::shared_ptr<arrow::DataType> &dataType) {

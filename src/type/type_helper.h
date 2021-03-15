@@ -140,9 +140,6 @@ namespace hustle {
 //  that accepts a (const T * ptr_) and will never use it.
 //  This is the current constraint that lambda templates can't be initialized
 //  with non-type parameter.
-template <typename Functor>
-void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
-                   Functor func);
 
 //
 // Type Traits
@@ -303,6 +300,33 @@ std::shared_ptr<arrow::DataType> TestFields(arrow::Type::type type_enum);
 
 std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     const std::shared_ptr<arrow::DataType> &dataType);
+
+template <typename T>
+concept ArrowSwitchFunctor = requires(T func) {
+  // Can pass in an arrow::DataType pointer.
+  func((arrow::DataType *)nullptr);
+  // Return value is void
+  //  std::is_void_v<T>;
+
+};
+
+// Big arrow switch function.
+// Must put the definition in header until g++ resolve the error.
+// See: https://bit.ly/3bMbPG2
+void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
+                   ArrowSwitchFunctor auto func) {
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)        \
+  {                                                   \
+    auto rawptr = dataType.get();                     \
+    auto ptr = reinterpret_cast<DataType_ *>(rawptr); \
+    func(ptr);                                        \
+  }
+
+  auto enum_type = dataType->id();
+  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+#undef HUSTLE_ARROW_TYPE_CASE_STMT
+}
 
 template <typename DataTypeT>
 class BuilderFactory {
