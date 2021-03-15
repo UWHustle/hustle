@@ -59,10 +59,10 @@ void Expression::ConvertPostfix(hustle::Task* ctx,
 }
 
 template <typename ArrayType, typename ArrayPrimitiveType>
-arrow::Datum Expression::ExecuteBlock(int op,
-                                      std::shared_ptr<arrow::Array> result,
-                                      std::shared_ptr<arrow::Array> left_col,
-                                      std::shared_ptr<arrow::Array> right_col) {
+arrow::Datum Expression::ExecuteBlock(
+    int op, std::shared_ptr<arrow::Array> result,
+    const std::shared_ptr<arrow::Array>& left_col,
+    const std::shared_ptr<arrow::Array>& right_col) {
   int chunk_length = std::max(left_col->length(), right_col->length());
   auto left_col_data =
       left_col->data()->template GetValues<ArrayPrimitiveType>(1, 0);
@@ -99,17 +99,17 @@ arrow::Datum Expression::ExecuteBlock(int op,
       }
       break;
     }
+    default:
+      throw std::runtime_error("Unrecognized operator.");
   }
   return result;
 }
 
 template <typename ArrayType, typename ArrayPrimitiveType>
-arrow::Datum Expression::ExecuteBlock(bool is_result,
-                                      const arrow::Scalar& scalar, int op,
-                                      std::shared_ptr<arrow::Array> left_col,
-                                      std::shared_ptr<arrow::Array> right_col) {
-  // std::shared_ptr<ArrayType> left_col,
-  // std::shared_ptr<ArrayType> right_col) {
+arrow::Datum Expression::ExecuteBlock(
+    bool is_result, const arrow::Scalar& scalar, int op,
+    std::shared_ptr<arrow::Array> left_col,
+    std::shared_ptr<arrow::Array> right_col) {
   if (is_result) {
     std::shared_ptr<ArrayType> result = std::static_pointer_cast<ArrayType>(
         arrow::MakeArrayFromScalar(scalar, left_col->length()).ValueOrDie());
@@ -120,39 +120,6 @@ arrow::Datum Expression::ExecuteBlock(bool is_result,
         op, left_col, left_col, right_col);
   }
 }
-
-
-template <typename T>
-enable_if_has_c_type<T, arrow::Datum>
-Expression::ExecuteBlockHandler(
-    bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
-    const std::shared_ptr<arrow::Array>& right_col) {
-  using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
-  using ScalarType = typename arrow::TypeTraits<T>::ScalarType;
-  using CType = typename T::c_type;
-  return this->ExecuteBlock<ArrayType, CType>(is_result, ScalarType(0), op,
-                                              left_col, right_col);
-};
-
-template <typename T>
-enable_if_has_no_c_type<T, arrow::Datum>
-Expression::ExecuteBlockHandler(
-    bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
-    const std::shared_ptr<arrow::Array>& right_col) {
-  throw std::runtime_error(
-      "Expression Evaluation"
-      "not supported for this type.");
-}
-
-// Execute block handler does not support date time interval.
-template <>
-arrow::Datum Expression::ExecuteBlockHandler<arrow::DayTimeIntervalType>(
-    bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
-    const std::shared_ptr<arrow::Array>& right_col) {
-  throw std::runtime_error(
-      "Expression Evaluation"
-      "not supported for this DateTimeIntervalType.");
-};
 
 arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
   // stack for the expression evaluation on the chunk
@@ -175,7 +142,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
       eval_stack.pop();
 
       bool is_result = false;
-      if (!right_op.is_result && !right_op.is_result) {
+      if (!left_op.is_result && !right_op.is_result) {
         is_result = true;
       }
       int op = expr_item.op;
@@ -187,20 +154,26 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
             "Implicit type conversion in"
             "expression evaluation currently not supported.");
       }
-      auto enum_type = l_chunk->type()->id();
 
-
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                      \
-  {                                                                        \
-    result = this->ExecuteBlockHandler<arrow_data_type_>(is_result, op,    \
-                                                         l_chunk, r_chunk) \
-                 .make_array();                                            \
-    break;                                                                 \
-  }
-
-      HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
+      auto execute_block_handler = [&, this]<typename T>(T * ptr_) {
+        // Naturally handles block calculation
+        if constexpr (arrow::has_c_type<T>::value &&
+                      !std::is_same_v<T, arrow::DayTimeIntervalType>) {
+          std::cout << "Detect CType" << std::endl;
+          using ArrayType = ArrowGetArrayType<T>;
+          using ScalarType = ArrowScalarGetType<T>;
+          using CType = GetArrowCType<T>;
+          // TODO: Write a separate if constexpr branch to
+          //  make sure scalar type is default constructable.
+          //  Be aware of the ScalarType constructor.
+          //  It may not be default constructable.
+          result = this->ExecuteBlock<ArrayType, CType>(
+              is_result, ScalarType(0), op, l_chunk, r_chunk);
+          return;
+        }
+        throw std::runtime_error("No CType: " + std::string(T::type_name()));
+      };
+      type_switcher(l_chunk->type(), execute_block_handler);
 
       eval_stack.push({TK_AGG_COLUMN, true, arrow::Datum(result)});
     }

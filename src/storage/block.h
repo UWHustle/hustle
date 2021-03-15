@@ -351,7 +351,7 @@ class Block {
    * @param record_batch RecordBatch read from a file
    * @param capacity Maximum number of date bytes to be stored in the Block
    */
-  Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch, int capacity,
+  Block(int id, const std::shared_ptr<arrow::RecordBatch>& record_batch, int capacity,
         bool metadata_enabled);
 
  private:
@@ -394,7 +394,7 @@ class Block {
    * Total number of data bytes stored in the block, excluding the valid column
    * data.
    */
-  int num_bytes;
+  int num_bytes; // TODO: Should this be size_t?
 
   /**
    * Capacity of the block, initialized to BLOCK_SIZE.

@@ -85,30 +85,13 @@ class Expression {
   // Execute an arithmetic operator for two column of the chunk in the table
   template <typename ArrayType, typename ArrayPrimitiveType>
   arrow::Datum ExecuteBlock(int op, std::shared_ptr<arrow::Array> result,
-                            std::shared_ptr<arrow::Array> left_col,
-                            std::shared_ptr<arrow::Array> right_col);
+                            const std::shared_ptr<arrow::Array>& left_col,
+                            const std::shared_ptr<arrow::Array>& right_col);
 
   template <typename ArrayType, typename ArrayPrimitiveType>
   arrow::Datum ExecuteBlock(bool is_result, const arrow::Scalar& scalar, int op,
                             std::shared_ptr<arrow::Array> left_col,
                             std::shared_ptr<arrow::Array> right_col);
-
-  // Arrow type handler for ExecuteBlock.
-  // Only enables type with ctype into the ExecuteBlock.
-  // Otherwise, throw a runtime error.
-  // In addition, DateTimeInterval types are disabled because
-  // no arithmetic binary operator are supported.
-  template <typename DataType>
-  enable_if_has_c_type<DataType, arrow::Datum>
-  ExecuteBlockHandler(
-      bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
-      const std::shared_ptr<arrow::Array>& right_col);
-
-  template <typename DataType>
-  enable_if_has_no_c_type<DataType, arrow::Datum>
-  ExecuteBlockHandler(
-      bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
-      const std::shared_ptr<arrow::Array>& right_col);
 
  public:
   Expression(OperatorResult::OpResultPtr prev_op_output,
@@ -121,7 +104,7 @@ class Expression {
   arrow::Datum Evaluate(hustle::Task* ctx, int chunk_id);
 
   // number of chunks present in the input column on which it operates.
-  inline int32_t num_chunks() { return exp_num_chunks_; }
+  inline int32_t num_chunks() const { return exp_num_chunks_; }
 };
 }  // namespace operators
 }  // namespace hustle

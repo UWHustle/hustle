@@ -190,79 +190,12 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
   });
 }
 
-//
-// CreateGroupBuilderVectorHandler
-// TODO: Refactor this using the waterflow. Put this under type_helper.h.
-// Predicates handle three classes
-//  - [1] default constructable
-//  - [2] non default constructable
-//  - [3] no builder
-//
-// There are 2 specialized templates
-//  - (a) FixedWidthBinaryType: use the field type to init the builder.
-//  - (b) DictionaryType (unimplemented)
-
-template <typename T>
-enable_if_builder_default_constructable<T> CreateGroupBuilderVectorHandler(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
-  group_builders.push_back(std::make_shared<BuilderType>());
-}
-
-template <typename T>
-enable_if_builder_non_default_constructable<T> CreateGroupBuilderVectorHandler(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  std::cerr << "Aggregate does not support group bys of type " +
-                   field->type()->ToString()
-            << std::endl;
-}
-
-template <typename T>
-enable_if_no_builder<T> CreateGroupBuilderVectorHandler(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  std::cerr << "Aggregate does not support group bys of type " +
-                   field->type()->ToString()
-            << std::endl;
-}
-
-// CreateGroupBuilderVectorHandler specialized template for FixedSizeBinaryType
-template <>
-void CreateGroupBuilderVectorHandler<arrow::FixedSizeBinaryType>(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  group_builders.push_back(
-      std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
-}
-
-// CreateGroupBuilderVectorHandler specialized template for ExtensionType
-template <>
-void CreateGroupBuilderVectorHandler<arrow::ExtensionType>(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  std::cerr << "Aggregate does not support group bys of type " +
-                   field->type()->ToString()
-            << std::endl;
-}
-
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 Aggregate::CreateGroupBuilderVector() {
   std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
   for (auto& field : group_type_->fields()) {
-    auto enum_type = field->type()->id();
-
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-
-#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                         \
-  {                                                                           \
-    CreateGroupBuilderVectorHandler<arrow_data_type_>(field, group_builders); \
-    break;                                                                    \
-  }
-
-    HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
+    auto builder = getBuilder(field->type());
+    group_builders.push_back(builder);
   }
   return group_builders;
 }
@@ -353,40 +286,48 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
   // Loop over columns in group builder, and append one of its unique values to
   // its builder.
   for (std::size_t i = 0; i < group_type_->num_fields(); ++i) {
-    switch (group_type_->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        // Downcast the column's builder
-        auto col_group_builder =
-            (arrow::StringBuilder*)(group_builder_->child(i));
-        // Downcast the column's unique_values
-        auto col_unique_values =
-            std::static_pointer_cast<arrow::StringArray>(unique_values_[i]);
+    // Handle the insertion of record.
+    auto insert_handler = [&, this]<typename T>(T * ptr_) {
+      // TODO: Add support for other types.
+      //  Right now we only support types that have builder and array
+      //  in the type trait. It should be obvious that we can:
+      //  - [1] Get builder from field spec
+      //  - [2] Get array for most cases (except for Dict and Extension).
+      constexpr bool is_supported_type = std::conjunction_v<
+          has_builder_type<T>, has_array_type<T>,
+          isNotOneOf<T, arrow::ExtensionType, arrow::DictionaryType>>;
 
-        // Append one of the unique values to the column's builder.
-        status = col_group_builder->Append(
-            col_unique_values->GetString(group_id[i]));
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        break;
-      }
-      case arrow::Type::INT64: {
-        // Downcast the column's builder
-        auto col_group_builder =
-            (arrow::Int64Builder*)(group_builder_->child(i));
-        // Downcast the column's unique_values
-        auto col_unique_values =
-            std::static_pointer_cast<arrow::Int64Array>(unique_values_[i]);
+      if constexpr (is_supported_type) {
+        using BuilderType = ArrowGetBuilderType<T>;
+        using ArrayType = ArrowGetArrayType<T>;
 
-        // Append one of the unique values to the column's builder.
-        status =
-            col_group_builder->Append(col_unique_values->Value(group_id[i]));
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        break;
+        if constexpr (arrow::is_number_type<T>::value) {
+          // Downcast the column's builder
+          auto col_group_builder = (BuilderType*)(group_builder_->child(i));
+          // Downcast the column's unique_values
+          auto col_unique_values =
+              std::static_pointer_cast<ArrayType>(unique_values_[i]);
+          status =
+              col_group_builder->Append(col_unique_values->Value(group_id[i]));
+          evaluate_status(status, __FUNCTION__, __LINE__);
+          return;
+
+        } else if constexpr (arrow::is_string_type<T>::value) {
+          // Downcast the column's builder
+          auto col_group_builder = (BuilderType*)(group_builder_->child(i));
+          // Downcast the column's unique_values
+          auto col_unique_values =
+              std::static_pointer_cast<ArrayType>(unique_values_[i]);
+          status = col_group_builder->Append(
+              col_unique_values->GetString(group_id[i]));
+          evaluate_status(status, __FUNCTION__, __LINE__);
+          return;
+        }
       }
-      default: {
-        throw std::runtime_error("Cannot insert unsupported aggregate type: " +
-                                 group_type_->field(i)->type()->ToString());
-      }
-    }
+      throw std::runtime_error("Cannot insert unsupported aggregate type:" +
+                               group_type_->field(i)->type()->ToString());
+    };
+    type_switcher(group_type_->field(i)->type(), insert_handler);
   }
   // StructBuilder does not automatically update its length when we append to
   // its children. We must do this manually.
@@ -400,7 +341,6 @@ void Aggregate::InsertGroupAggregate(int agg_index) {
   arrow::Status status =
       aggregate_builder_casted->Append(aggregate_data_[agg_index]);
   evaluate_status(status, __FUNCTION__, __LINE__);
-  return;
 }
 
 arrow::Datum Aggregate::ComputeUniqueValues(const ColumnReference& group_ref) {
@@ -594,17 +534,18 @@ void Aggregate::SortResult(std::vector<arrow::Datum>& groups,
 
   // If we are sorting after computing all aggregates, we evaluate the ORDER BY
   // clause in reverse order.
+  // TODO: Use a reversed iterator here instead of the index approach.
   for (int i = order_by_refs_.size() - 1; i >= 0; i--) {
     auto order_ref = order_by_refs_[i];
     // A nullptr indicates that we are sorting by the aggregate column
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
     if (order_ref.table == nullptr) {
-      status = arrow::compute::SortToIndices(*aggregates.make_array())
+      status = arrow::compute::SortIndices(*aggregates.make_array())
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
       auto group = groups[order_to_group[i]];
-      status = arrow::compute::SortToIndices(*group.make_array())
+      status = arrow::compute::SortIndices(*group.make_array())
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     }

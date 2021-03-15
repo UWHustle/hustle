@@ -25,6 +25,7 @@
 
 #include "absl/strings/numbers.h"
 #include "storage/utils/util.h"
+#include "type/type_helper.h"
 
 #define ESTIMATED_STR_LEN 30
 
@@ -67,8 +68,15 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
     std::shared_ptr<arrow::ArrayData> array_data;
     std::shared_ptr<arrow::ResizableBuffer> data;
 
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
+    auto get_allocate_buffer = [&, this]<typename T>(T *ptr) {
+      if constexpr (arrow::is_number_type<T>::value &&
+                    has_ctype_member<T>::value) {
+        // TODO: Does number type always have CType?
+        using CType = GetArrowCType<T>;
+        columns.push_back(AllocateColumnData<CType>(field->type(), init_rows));
+        return;
+      } else if constexpr (std::is_same_v<T, arrow::StringType>) {
+        // TODO: The condition could be string-like.
         // Although the data buffer is empty, the offsets buffer should
         // still contain the offset of the first element.
         result = arrow::AllocateResizableBuffer(sizeof(int32_t) * init_rows);
@@ -87,9 +95,8 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         // use it.
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, offsets, data}));
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+        return;
+      } else if constexpr (std::is_same_v<T, arrow::FixedSizeBinaryType>) {
         auto field_size = field->type()->layout().FixedWidth(1).byte_width;
         result = arrow::AllocateResizableBuffer(field_size * init_rows);
         evaluate_status(result.status(), __FUNCTION__, __LINE__);
@@ -97,39 +104,16 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         data->ZeroPadding();
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
-        break;
       }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        columns.push_back(
-            AllocateColumnData<int64_t>(field->type(), init_rows));
-        break;
-      }
-      case arrow::Type::UINT32: {
-        columns.push_back(
-            AllocateColumnData<uint32_t>(field->type(), init_rows));
-        break;
-      }
-      case arrow::Type::UINT16: {
-        columns.push_back(
-            AllocateColumnData<uint16_t>(field->type(), init_rows));
-        break;
-      }
-      case arrow::Type::UINT8: {
-        columns.push_back(
-            AllocateColumnData<uint8_t>(field->type(), init_rows));
-        break;
-      }
-      default: {
-        throw std::logic_error(
-            std::string("Block created with unsupported type: ") +
-            field->type()->ToString());
-      }
-    }
+      throw std::runtime_error("Block created with unsupported type: " +
+                               std::string(T::type_name()));
+    };
+
+    type_switcher(field->type(), get_allocate_buffer);
   }
 }
 
-Block::Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
+Block::Block(int id, const std::shared_ptr<arrow::RecordBatch> &record_batch,
              int capacity, bool enable_metadata)
     : capacity(capacity),
       id(id),
@@ -177,55 +161,29 @@ std::shared_ptr<arrow::ArrayData> Block::AllocateColumnData(
 void Block::ComputeByteSize() {
   // Start at i=1 to skip valid column
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
+    auto get_byte_size = [&, this]<typename T>(T *ptr) {
+      if constexpr (has_ctype_member<T>::value) {
+        using CType = GetArrowCType<T>;
+        int byte_width = sizeof(CType);
+        column_sizes[i] = byte_width * columns[i]->length;
+        num_bytes += byte_width * columns[i]->length;
+        return;
+      } else if constexpr (std::is_same_v<T, arrow::StringType>) {
         auto *offsets = columns[i]->GetValues<int32_t>(1, 0);
         column_sizes[i] = offsets[num_rows];
         num_bytes += offsets[num_rows];
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+        return;
+      } else if constexpr (std::is_same_v<T, arrow::FixedSizeBinaryType>) {
         int byte_width =
             schema->field(i)->type()->layout().FixedWidth(1).byte_width;
         column_sizes[i] = byte_width * columns[i]->length;
         num_bytes += byte_width * columns[i]->length;
-        break;
       }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(int64_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      case arrow::Type::UINT32: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(uint32_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      case arrow::Type::UINT16: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(uint16_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      case arrow::Type::UINT8: {
-        // buffer at index 1 is the data buffer.
-        int byte_width = sizeof(uint8_t);
-        column_sizes[i] = byte_width * columns[i]->length;
-        num_bytes += byte_width * columns[i]->length;
-        break;
-      }
-      default: {
-        throw std::logic_error(
-            std::string("Cannot compute record width. Unsupported type: ") +
-            schema->field(i)->type()->ToString());
-      }
-    }
+      throw std::logic_error(
+          std::string("Cannot compute record width. Unsupported type: ") +
+          schema->field(i)->type()->ToString());
+    };
+    type_switcher(schema->field(i)->type(), get_byte_size);
   }
 }
 
