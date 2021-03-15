@@ -437,3 +437,61 @@ TEST_F(SQLMiscTest, q_joins_non_unique_columns) {
   output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "20\n");
 }
+
+TEST_F(SQLMiscTest, q_agg_non_supported) {
+  std::string query =
+      "select Max(lo_orderkey)\n"
+      "from  lineorder\n"
+      "where (lo_quantity = 29 or lo_revenue = 946)\n;";
+
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "19998\n");
+}
+
+TEST_F(SQLMiscTest, q_nested_subquery_predicate) {
+  std::string query =
+      "SELECT lo_orderkey\n"
+      "FROM  lineorder\n"
+      "WHERE lo_orderkey < (\n"
+      "SELECT lo_orderkey FROM lineorder WHERE lo_orderkey=3);\n";
+
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "0\n1\n2\n");
+
+  query =
+      "SELECT lo_orderkey\n"
+      "FROM  lineorder\n"
+      "WHERE lo_orderkey IN (\n"
+      "SELECT lo_orderkey FROM lineorder WHERE lo_orderkey=3);\n";
+
+  output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "3\n");
+
+  query =
+      "SELECT lo_orderkey\n"
+      "FROM  lineorder\n"
+      "WHERE EXISTS (\n"
+      "SELECT lo_orderkey FROM lineorder WHERE lo_orderkey=-1);\n";
+
+  output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "");
+}
+
+TEST_F(SQLMiscTest, q_nested_query_from) {
+  std::string query =
+      "select Avg(lineorder_stat.t_revenue)\n"
+      "from ( select SUM(lo_revenue) as t_revenue from lineorder group by "
+      "lo_quantity ) as lineorder_stat;\n;";
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "323972.225806452\n");
+}
+
+TEST_F(SQLMiscTest, q_unsupported_having) {
+  std::string query =
+      "select lo_quantity, Count(lo_revenue)\n"
+      "from  lineorder\n"
+      "group by lo_quantity\n"
+      "having Count(lo_revenue) > 2200\n;";
+  std::string output = hustle_db->execute_query_result(query);
+  EXPECT_EQ(output, "25 | 2247\n26 | 2271\n27 | 2264\n28 | 2215\n29 | 2291\n");
+}
