@@ -286,9 +286,6 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
   // Loop over columns in group builder, and append one of its unique values to
   // its builder.
   for (std::size_t i = 0; i < group_type_->num_fields(); ++i) {
-    auto enum_type = group_type_->field(i)->type()->id();
-    auto rawptr = group_type_->field(i)->type().get();
-
     // Handle the insertion of record.
     auto insert_handler = [&, this]<typename U>(U ptr_) {
       using T = typename std::remove_pointer_t<U>;
@@ -332,16 +329,7 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
       throw std::runtime_error("Cannot insert unsupported aggregate type:" +
                                group_type_->field(i)->type()->ToString());
     };
-
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-#define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)   \
-  {                                              \
-    auto ptr = dynamic_cast<DataType_*>(rawptr); \
-    insert_handler(ptr);                         \
-    break;                                       \
-  }
-    HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
+    type_switcher(group_type_->field(i)->type(), insert_handler);
   }
   // StructBuilder does not automatically update its length when we append to
   // its children. We must do this manually.
