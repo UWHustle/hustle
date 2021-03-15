@@ -180,7 +180,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
 #define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)   \
   {                                              \
-    auto ptr = dynamic_cast<DataType_*>(rawptr); \
+    auto ptr = reinterpret_cast<DataType_*>(rawptr); \
     execute_block_handler(ptr);                  \
     break;                                       \
   }
