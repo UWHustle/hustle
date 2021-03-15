@@ -16,10 +16,11 @@
 // under the License.
 
 #include "resolver/select_resolver.h"
-#include <cstring>
+
 #include <algorithm>
-#include <memory>
 #include <cctype>
+#include <cstring>
+#include <memory>
 
 namespace hustle {
 namespace resolver {
@@ -184,42 +185,47 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         predicate_tree->table_id_ = leftExpr->iTable;
         predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
         select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
+      } else {
+        return nullptr;
       }
       break;
     }
     case TK_BETWEEN: {
-        ColumnReference colRef;
-        arrow::Datum ldatum, rdatum;
-        Expr* leftExpr = pExpr->pLeft;
-        if (leftExpr != NULL && leftExpr->op == TK_COLUMN){
-            colRef = {catalog_->GetTable(leftExpr->y.pTab->zName),
-                      leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
-            Expr* firstExpr = pExpr->x.pList->a[0].pExpr;
-            Expr* secondExpr = pExpr->x.pList->a[1].pExpr;
-            if (firstExpr->op == TK_INTEGER && secondExpr->op == TK_INTEGER) {
-                ldatum = arrow::Datum((int64_t)firstExpr->u.iValue);
-                rdatum = arrow::Datum((int64_t)secondExpr->u.iValue);
-                Predicate left_predicate = {colRef, arrow::compute::CompareOperator::GREATER_EQUAL, ldatum};
-                Predicate right_predicate = {colRef, arrow::compute::CompareOperator::LESS_EQUAL, rdatum};
-                auto left_predicate_node = std::make_shared<PredicateNode>(
-                        std::make_shared<Predicate>(left_predicate));
-                auto right_predicate_node = std::make_shared<PredicateNode>(
-                        std::make_shared<Predicate>(right_predicate));
-                std::shared_ptr<ConnectiveNode> connective_node =
-                        std::make_shared<ConnectiveNode>(left_predicate_node,
-                                                         right_predicate_node,
-                                                         FilterOperator::AND);
-                predicate_tree = std::make_shared<PredicateTree>(connective_node);
-                predicate_tree->table_id_ = leftExpr->iTable;
-                predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
-                select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
-            } else {
-                return nullptr;
-            }
+      ColumnReference colRef;
+      arrow::Datum ldatum, rdatum;
+      Expr* leftExpr = pExpr->pLeft;
+      if (leftExpr != NULL && leftExpr->op == TK_COLUMN) {
+        colRef = {catalog_->GetTable(leftExpr->y.pTab->zName),
+                  leftExpr->y.pTab->aCol[leftExpr->iColumn].zName};
+        Expr* firstExpr = pExpr->x.pList->a[0].pExpr;
+        Expr* secondExpr = pExpr->x.pList->a[1].pExpr;
+        if (firstExpr->op == TK_INTEGER && secondExpr->op == TK_INTEGER) {
+          ldatum = arrow::Datum((int64_t)firstExpr->u.iValue);
+          rdatum = arrow::Datum((int64_t)secondExpr->u.iValue);
+          Predicate left_predicate = {
+              colRef, arrow::compute::CompareOperator::GREATER_EQUAL, ldatum};
+          Predicate right_predicate = {
+              colRef, arrow::compute::CompareOperator::LESS_EQUAL, rdatum};
+          auto left_predicate_node = std::make_shared<PredicateNode>(
+              std::make_shared<Predicate>(left_predicate));
+          auto right_predicate_node = std::make_shared<PredicateNode>(
+              std::make_shared<Predicate>(right_predicate));
+          std::shared_ptr<ConnectiveNode> connective_node =
+              std::make_shared<ConnectiveNode>(left_predicate_node,
+                                               right_predicate_node,
+                                               FilterOperator::AND);
+          predicate_tree = std::make_shared<PredicateTree>(connective_node);
+          predicate_tree->table_id_ = leftExpr->iTable;
+          predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
+          select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
+        } else {
+          return nullptr;
         }
-        break;
+      }
+      break;
     }
   }
+  // predicate_tree is NULL it it contains operator not supported
   return predicate_tree;
 }
 
@@ -229,7 +235,17 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   if (pTabList == NULL) {
     return false;
   }
+
+  // Currently having construct is not handled in Hustle
+  if (queryTree->pHaving != NULL) {
+    return false;
+  }
+
   for (int i = 0; i < pTabList->nSrc; i++) {
+    // Select as table source is not supported
+    if (pTabList->a[i].pSelect != NULL) {
+      return false;
+    }
     select_predicates_.insert({pTabList->a[i].zName, nullptr});
   }
 
@@ -247,13 +263,17 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       }
 
       std::string agg_func_name(pEList->a[k].pExpr->u.zToken);
-      std::transform(agg_func_name.begin(), agg_func_name.end(), agg_func_name.begin(), ::toupper);
+      std::transform(agg_func_name.begin(), agg_func_name.end(),
+                     agg_func_name.begin(), ::toupper);
       if (expr->iColumn > 0) {
         ColumnReference colRef = {catalog_->GetTable(expr->y.pTab->zName),
                                   expr->y.pTab->aCol[expr->iColumn].zName};
-        AggregateReference aggRef = {
-               aggregate_kernels_[agg_func_name],
-            pEList->a[k].zEName, colRef};
+        if (aggregate_kernels_.find(agg_func_name) ==
+            aggregate_kernels_.end()) {
+          return false;
+        }
+        AggregateReference aggRef = {aggregate_kernels_[agg_func_name],
+                                     pEList->a[k].zEName, colRef};
         agg_references_->emplace_back(aggRef);
         std::shared_ptr<ProjectReference> projRef =
             std::make_shared<ProjectReference>(ProjectReference{colRef, zName});
@@ -263,10 +283,13 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
         if (expr_ref == nullptr) {
           return false;
         }
+        if (aggregate_kernels_.find(agg_func_name) ==
+            aggregate_kernels_.end()) {
+          return false;
+        }
         ColumnReference colRef = {};
-        AggregateReference aggRef = {
-            aggregate_kernels_[agg_func_name],
-            pEList->a[k].zEName, colRef, expr_ref};
+        AggregateReference aggRef = {aggregate_kernels_[agg_func_name],
+                                     pEList->a[k].zEName, colRef, expr_ref};
         agg_references_->emplace_back(aggRef);
         std::shared_ptr<ProjectReference> projRef =
             std::make_shared<ProjectReference>(ProjectReference{colRef, zName});
@@ -299,7 +322,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       if (pGroupBy->a[i].pExpr->iColumn >= 0) {
         std::shared_ptr<ColumnReference> colRef =
             std::make_shared<ColumnReference>(ColumnReference{
-                    catalog_->GetTable(pGroupBy->a[i].pExpr->y.pTab->zName),
+                catalog_->GetTable(pGroupBy->a[i].pExpr->y.pTab->zName),
                 pGroupBy->a[i]
                     .pExpr->y.pTab->aCol[pGroupBy->a[i].pExpr->iColumn]
                     .zName});
@@ -322,7 +345,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
                     ->alias});
           } else {
             colRef = std::make_shared<ColumnReference>(ColumnReference{
-                    catalog_->GetTable(pOrderBy->a[i].pExpr->y.pTab->zName),
+                catalog_->GetTable(pOrderBy->a[i].pExpr->y.pTab->zName),
                 pOrderBy->a[i]
                     .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
                     .zName});
