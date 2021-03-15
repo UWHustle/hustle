@@ -190,79 +190,12 @@ void Aggregate::InitializeGroupFilters(Task* ctx) {
   });
 }
 
-//
-// CreateGroupBuilderVectorHandler
-// TODO: Refactor this using the waterflow. Put this under type_helper.h.
-// Predicates handle three classes
-//  - [1] default constructable
-//  - [2] non default constructable
-//  - [3] no builder
-//
-// There are 2 specialized templates
-//  - (a) FixedWidthBinaryType: use the field type to init the builder.
-//  - (b) DictionaryType (unimplemented)
-
-template <typename T>
-enable_if_builder_default_constructable<T> CreateGroupBuilderVectorHandler(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  using BuilderType = typename arrow::TypeTraits<T>::BuilderType;
-  group_builders.push_back(std::make_shared<BuilderType>());
-}
-
-template <typename T>
-enable_if_builder_non_default_constructable<T> CreateGroupBuilderVectorHandler(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  std::cerr << "Aggregate does not support group bys of type " +
-                   field->type()->ToString()
-            << std::endl;
-}
-
-template <typename T>
-enable_if_no_builder<T> CreateGroupBuilderVectorHandler(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  std::cerr << "Aggregate does not support group bys of type " +
-                   field->type()->ToString()
-            << std::endl;
-}
-
-// CreateGroupBuilderVectorHandler specialized template for FixedSizeBinaryType
-template <>
-void CreateGroupBuilderVectorHandler<arrow::FixedSizeBinaryType>(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  group_builders.push_back(
-      std::make_shared<arrow::FixedSizeBinaryBuilder>(field->type()));
-}
-
-// CreateGroupBuilderVectorHandler specialized template for ExtensionType
-template <>
-void CreateGroupBuilderVectorHandler<arrow::ExtensionType>(
-    const std::shared_ptr<arrow::Field>& field,
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>>& group_builders) {
-  std::cerr << "Aggregate does not support group bys of type " +
-                   field->type()->ToString()
-            << std::endl;
-}
-
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 Aggregate::CreateGroupBuilderVector() {
   std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
   for (auto& field : group_type_->fields()) {
-    auto enum_type = field->type()->id();
-
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
-
-#define HUSTLE_ARROW_TYPE_CASE_STMT(arrow_data_type_)                         \
-  {                                                                           \
-    CreateGroupBuilderVectorHandler<arrow_data_type_>(field, group_builders); \
-    break;                                                                    \
-  }
-
-    HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef HUSTLE_ARROW_TYPE_CASE_STMT
+    auto builder = getBuilder(field->type());
+    group_builders.push_back(builder);
   }
   return group_builders;
 }
@@ -594,17 +527,18 @@ void Aggregate::SortResult(std::vector<arrow::Datum>& groups,
 
   // If we are sorting after computing all aggregates, we evaluate the ORDER BY
   // clause in reverse order.
+  // TODO: Use a reversed iterator here instead of the index approach.
   for (int i = order_by_refs_.size() - 1; i >= 0; i--) {
     auto order_ref = order_by_refs_[i];
     // A nullptr indicates that we are sorting by the aggregate column
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
     if (order_ref.table == nullptr) {
-      status = arrow::compute::SortToIndices(*aggregates.make_array())
+      status = arrow::compute::SortIndices(*aggregates.make_array())
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
       auto group = groups[order_to_group[i]];
-      status = arrow::compute::SortToIndices(*group.make_array())
+      status = arrow::compute::SortIndices(*group.make_array())
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     }
