@@ -301,21 +301,22 @@ std::shared_ptr<arrow::DataType> TestFields(arrow::Type::type type_enum);
 std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     const std::shared_ptr<arrow::DataType> &dataType);
 
-template <typename T>
-concept ArrowSwitchFunctor = requires(T func) {
-  // TODO: May lead to trouble when lambda function is declared as [&]
-  // Can pass in an arrow::DataType pointer.
-  //  func((arrow::DataType *)nullptr);
-  // Return value is void
-  //  std::is_void_v<T>;
-    true;
-};
+//template <typename T>
+//concept ArrowSwitchFunctor = requires(T func) {
+//  // TODO: May lead to trouble when lambda function is declared as [&]
+//  // Can pass in an arrow::DataType pointer.
+//  //  func((arrow::DataType *)nullptr);
+//  // Return value is void
+//  //  std::is_void_v<T>;
+//    true;
+//};
 
 // Big arrow switch function.
 // Must put the definition in header until g++ resolve the error.
 // See: https://bit.ly/3bMbPG2
+template<typename ArrowSwitchFunctor>
 void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
-                   ArrowSwitchFunctor auto func) {
+                   ArrowSwitchFunctor func) {
 #undef HUSTLE_ARROW_TYPE_CASE_STMT
 #define HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)        \
   {                                                   \
