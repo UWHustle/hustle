@@ -193,7 +193,6 @@ using is_binary_type =
 template <typename DataType, typename ReturnType>
 using enable_if_has_c_type =
     std::enable_if_t<arrow::has_c_type<DataType>::value, ReturnType>;
-
 template <typename DataType, typename ReturnType>
 using enable_if_has_no_c_type =
     std::enable_if_t<!arrow::has_c_type<DataType>::value, ReturnType>;

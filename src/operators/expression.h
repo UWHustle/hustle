@@ -93,23 +93,6 @@ class Expression {
                             std::shared_ptr<arrow::Array> left_col,
                             std::shared_ptr<arrow::Array> right_col);
 
-  // Arrow type handler for ExecuteBlock.
-  // Only enables type with ctype into the ExecuteBlock.
-  // Otherwise, throw a runtime error.
-  // In addition, DateTimeInterval types are disabled because
-  // no arithmetic binary operator are supported.
-  template <typename DataType>
-  enable_if_has_c_type<DataType, arrow::Datum>
-  ExecuteBlockHandler(
-      bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
-      const std::shared_ptr<arrow::Array>& right_col);
-
-  template <typename DataType>
-  enable_if_has_no_c_type<DataType, arrow::Datum>
-  ExecuteBlockHandler(
-      bool is_result, int op, const std::shared_ptr<arrow::Array>& left_col,
-      const std::shared_ptr<arrow::Array>& right_col);
-
  public:
   Expression(OperatorResult::OpResultPtr prev_op_output,
              std::shared_ptr<ExprReference> expr);
