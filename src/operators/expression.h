@@ -89,7 +89,7 @@ class Expression {
                             const std::shared_ptr<arrow::Array>& right_col);
 
   template <typename ArrayType, typename ArrayPrimitiveType>
-  arrow::Datum ExecuteBlockAPI(bool is_result, const arrow::Scalar& scalar, int op,
+  arrow::Datum ExecuteBlock(bool is_result, const arrow::Scalar& scalar, int op,
                             std::shared_ptr<arrow::Array> left_col,
                             std::shared_ptr<arrow::Array> right_col);
 

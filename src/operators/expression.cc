@@ -106,7 +106,7 @@ arrow::Datum Expression::ExecuteBlock(
 }
 
 template <typename ArrayType, typename ArrayPrimitiveType>
-arrow::Datum Expression::ExecuteBlockAPI(
+arrow::Datum Expression::ExecuteBlock(
     bool is_result, const arrow::Scalar& scalar, int op,
     std::shared_ptr<arrow::Array> left_col,
     std::shared_ptr<arrow::Array> right_col) {
@@ -167,7 +167,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
           //  make sure scalar type is default constructable.
           //  Be aware of the ScalarType constructor.
           //  It may not be default constructable.
-          result = this->ExecuteBlockAPI<ArrayType, CType>(
+          result = this->ExecuteBlock<ArrayType, CType>(
               is_result, ScalarType(0), op, l_chunk, r_chunk);
           return;
         }
