@@ -399,8 +399,7 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
 
       // Assign next_key.
       hash_t next_key = 0;
-      auto get_hash_key = [&, this]<typename U>(U ptr_) {
-        using T = typename std::remove_pointer_t<U>;
+      auto get_hash_key = [&]<typename T>(T *ptr_) {
         if constexpr (arrow::is_primitive_ctype<T>::value) {
           using ArrayType = typename arrow::TypeTraits<T>::ArrayType;
           // TODO: What is the difference between CType and the c_type?

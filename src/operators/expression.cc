@@ -155,8 +155,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
             "expression evaluation currently not supported.");
       }
 
-      auto execute_block_handler = [&, this]<typename U>(U ptr_) {
-        using T = typename std::remove_pointer_t<U>;
+      auto execute_block_handler = [&, this]<typename T>(T * ptr_) {
         // Naturally handles block calculation
         if constexpr (arrow::has_c_type<T>::value &&
                       !std::is_same_v<T, arrow::DayTimeIntervalType>) {

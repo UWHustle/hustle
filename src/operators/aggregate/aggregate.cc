@@ -287,9 +287,7 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
   // its builder.
   for (std::size_t i = 0; i < group_type_->num_fields(); ++i) {
     // Handle the insertion of record.
-    auto insert_handler = [&, this]<typename U>(U ptr_) {
-      using T = typename std::remove_pointer_t<U>;
-
+    auto insert_handler = [&, this]<typename T>(T * ptr_) {
       // TODO: Add support for other types.
       //  Right now we only support types that have builder and array
       //  in the type trait. It should be obvious that we can:
