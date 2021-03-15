@@ -19,13 +19,13 @@ To install the required packages for Hustle use the following scripts:
 ./install_requirements.sh
 ./install_arrow.sh
 ```
-The scripts will install g++9, cmake 3.15 and Apache Arrow.
+The scripts will install g++9, cmake 3.15 and Apache Arrow. 
 
 Then use cmake to build Hustle:
 ```
 mkdir build
 cd build
-cmake -D CMAKE_BUILD_TYPE=RELEASE .. 
+cmake -DCMAKE_BUILD_TYPE=RELEASE .. 
 make -j all  
 ```
 
@@ -33,6 +33,51 @@ To run the test go into the build directory and use:
 ```
 ./run_test.sh 
 ```
+
+
+
+## (Pilot) Build Hustle with C++20
+
+**Tested systems**:
+
+- **Ubuntu**: 16.04, 18.04, 20.04. 
+- **macOS**: Catalina (10.15), Big Sur (11.2.3).
+
+User on MacOS shall install [homebrew](https://brew.sh/) before running the following scripts.
+
+To install the required packages for Hustle use the following scripts:
+
+```
+./install_requirements_cpp20.sh
+./install_arrow.sh
+```
+
+The scripts will install g++10, cmake 3.15 and Apache Arrow 3.0. 
+
+To verify the toolchain accessibility, verify the version of `g++`:
+
+```bash
+g++-10 -v # or g++ -v
+```
+
+
+Then use cmake to build Hustle:
+
+```bash
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=gcc-10 \
+ -DCMAKE_CXX_COMPILER=g++-10 -DCMAKE_CXX_STANDARD=20 \
+ -DCMAKE_CXX_STANDARD_REQUIRED=True .. 
+make -j all  
+```
+
+To run the test go into the build directory and use:
+
+```
+./run_test.sh 
+```
+
 
 ## Run Benchmark
 
