@@ -170,7 +170,7 @@ namespace details {
   };
 
 // The Big switch statement that make arrow type transform to the DataType type
-#define HUSTLE_SWITCH_ARROW_TYPE(arrow_enum_type_)                         \
+#define HUSTLE_SWITCH_ARROW_TYPE(arrow_enum_type_)                          \
   switch (arrow_enum_type_) {                                               \
     _HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::NA, arrow::NullType);       \
     _HUSTLE_ARROW_TYPE_SWITCH_CASE(arrow::Type::BOOL, arrow::BooleanType);  \
@@ -325,17 +325,12 @@ template <typename ArrowSwitchFunctor>
 void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
                    ArrowSwitchFunctor func) {
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
-#define _HUSTLE_ARROW_TYPE_CASE_STMT(DataType_)       \
-  {                                                   \
-    auto rawptr = dataType.get();                     \
-    auto ptr = reinterpret_cast<DataType_ *>(rawptr); \
-    func(ptr);                                        \
-  }
-
-  auto enum_type = dataType->id();
-  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+#define _HUSTLE_ARROW_TYPE_CASE_STMT(T) \
+  { func((T *)nullptr); }
+  HUSTLE_SWITCH_ARROW_TYPE(dataType->id());
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
 }
+
 
 // TODO: Possibly refactor this to use type_switcher.
 template <typename DataTypeT>
