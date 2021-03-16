@@ -26,11 +26,6 @@
 
 namespace hustle {
 
-void throw_type_error(const char* function_name, const int line_no,
-                      const std::string message) {
-  const auto r = std::string(function_name) + std::to_string(line_no) + message;
-  throw std::logic_error(r);
-}
 
 Context::Context() { slice_length_ = 30000; }
 

@@ -26,22 +26,6 @@
 
 namespace hustle {
 
-/**
- * Throw a type error.
- *
- * The function_name and line_no parameters allow us to find exactly where
- * the error occured, since the same error can be thrown from different places.
- *
- * @param function_name name of the function that called evaluate_status
- * @param line_no Line number of the call to evaluate_status
- * @param message Message to show apart from the other info.
- *
- * TODO: Do we want to throw an expection on error?
- * TODO: Move this out of the storage scope. This can be made globa.
- */
-void throw_type_error(const char *function_name, int line_no,
-                      std::string message);
-
 class Context {
  public:
   Context();
