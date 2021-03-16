@@ -759,49 +759,45 @@ void Block::InsertCsvValue(int col_num, int &head, std::string_view record) {
 void Block::TruncateBuffers() {
   arrow::Status status;
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
+    auto data_type = schema->field(i)->type();
+
+    auto truncate_handler = [&]<typename T>(T *) {
+      if constexpr (has_ctype_member<T>::value) {
+        using CType = ArrowGetCType<T>;
+        TruncateColumnBuffer<CType>(i);
+        return;
+      }
+      // TODO: Handles any type with offset
+      else if constexpr (isOneOf<T, arrow::StringType>::value) {
         auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[1]);
         auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[2]);
         status = data_buffer->Resize(column_sizes[i], true);
         evaluate_status(status, __FUNCTION__, __LINE__);
+        // TODO: Why do we use sizeof(int32_t) here to resize?
         status = offsets_buffer->Resize((num_rows + 1) * sizeof(int32_t), true);
         evaluate_status(status, __FUNCTION__, __LINE__);
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+        return;
+
+      } else if constexpr (isOneOf<T, arrow::FixedSizeBinaryType>::value) {
+        // TODO: Why do we assume the fixed width == 1?
         auto field_size =
-            schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+            data_type->layout().FixedWidth(1).byte_width;
         auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[1]);
         status = data_buffer->Resize(num_rows * field_size, true);
         evaluate_status(status, __FUNCTION__, __LINE__);
-      }
-        // This works with any fixed-width type, but for now, I specify INT64
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        TruncateColumnBuffer<int64_t>(i);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        TruncateColumnBuffer<uint32_t>(i);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        TruncateColumnBuffer<uint16_t>(i);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        TruncateColumnBuffer<uint8_t>(i);
-        break;
-      }
-      default:
+        return;
+
+      } else {
         throw std::logic_error(
-            std::string("Cannot insert tuple with unsupported type: ") +
-            schema->field(i)->type()->ToString());
-    }
+            std::string("In Block::TruncateBuffers(): "
+                        "Cannot insert tuple with unsupported type: ") +
+            data_type->ToString());
+      }
+    };
+    type_switcher(data_type, truncate_handler);
   }
 }
 
