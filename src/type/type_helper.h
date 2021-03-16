@@ -318,13 +318,12 @@ std::shared_ptr<arrow::ArrayBuilder> getBuilder(
 //    true;
 //};
 
-// Big arrow switch function.
-// Usage: in Aggregate::InsertGroupColumns().
+// Switcher: arrow enum types -> arrow DataType child classes.
 // Must put the definition in header until g++ resolve the error.
 // See: https://bit.ly/3bMbPG2
 template <typename ArrowDataTypeSwitchFunctor>
 void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
-                   ArrowDataTypeSwitchFunctor func) {
+                   const ArrowDataTypeSwitchFunctor &func) {
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
 #define _HUSTLE_ARROW_TYPE_CASE_STMT(T) \
   { func((T *)nullptr); }
@@ -332,10 +331,10 @@ void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
 };
 
-// Arrow switch function for predicate comparator.
+// Switcher: arrow comparator enum -> std comparator
 template <typename ArrowComputeOperatorSwitchFunctor>
 auto comparator_switcher(arrow::compute::CompareOperator c,
-                         ArrowComputeOperatorSwitchFunctor func)
+                         const ArrowComputeOperatorSwitchFunctor &func)
     // Take the return type of the functor.
     -> decltype(func(std::equal_to())) {
   switch (c) {
