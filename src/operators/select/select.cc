@@ -157,59 +157,40 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
         std::static_pointer_cast<ScalarType>(predicate->value_.scalar())->value;
     auto datum_val = predicate->value_;
 
-    switch (predicate->comparator_) {
-      case arrow::compute::CompareOperator::LESS: {
-        return Filter<CType>(block, predicate->col_ref_, datum_val, val,
-                             predicate->comparator_, std::less());
-      }
-      case arrow::compute::CompareOperator::LESS_EQUAL: {
-        return Filter<CType>(block, predicate->col_ref_, datum_val, val,
-                             predicate->comparator_, std::less_equal());
-      }
-      case arrow::compute::CompareOperator::GREATER: {
-        return Filter<CType>(block, predicate->col_ref_, datum_val, val,
-                             predicate->comparator_, std::greater());
-      }
-      case arrow::compute::CompareOperator::GREATER_EQUAL: {
-        return Filter<CType>(block, predicate->col_ref_, datum_val, val,
-                             predicate->comparator_, std::greater_equal());
-      }
-      case arrow::compute::CompareOperator::EQUAL: {
-        return Filter<CType>(block, predicate->col_ref_, datum_val, val,
-                             predicate->comparator_, std::equal_to());
-      }
-        // TODO(nicholas): placeholder for BETWEEN
-      case arrow::compute::CompareOperator::NOT_EQUAL: {
-        auto num_rows = block->get_num_rows();
-        auto col_data = block->get_column_by_name(predicate->col_ref_.col_name)
-                            ->data()
-                            ->GetValues<CType>(1);
+    auto enum_comp = predicate->comparator_;
+    if (enum_comp == arrow::compute::CompareOperator::NOT_EQUAL) {
+      auto num_rows = block->get_num_rows();
+      auto col_data = block->get_column_by_name(predicate->col_ref_.col_name)
+                          ->data()
+                          ->GetValues<CType>(1);
 
-        auto lo = std::static_pointer_cast<arrow::UInt8Scalar>(
-                      predicate->value_.scalar())
-                      ->value;
-        auto hi = std::static_pointer_cast<arrow::UInt8Scalar>(
-                      predicate->value2_.scalar())
-                      ->value;
-        auto diff = hi - lo;
+      auto lo = std::static_pointer_cast<arrow::UInt8Scalar>(
+                    predicate->value_.scalar())
+                    ->value;
+      auto hi = std::static_pointer_cast<arrow::UInt8Scalar>(
+                    predicate->value2_.scalar())
+                    ->value;
+      auto diff = hi - lo;
 
-        std::shared_ptr<arrow::Buffer> buffer;
-        auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        auto bytemap = buffer->mutable_data();
+      std::shared_ptr<arrow::Buffer> buffer;
+      auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+      auto bytemap = buffer->mutable_data();
 
-        auto f = [](uint8_t val, uint8_t diff) -> bool { return val <= diff; };
-        for (uint32_t i = 0; i < num_rows; ++i) {
-          bytemap[i] = f(col_data[i] - lo, diff);
-        }
-
-        std::shared_ptr<arrow::BooleanArray> out_filter;
-        utils::pack(num_rows, bytemap, &out_filter);
-        return out_filter;
+      auto f = [](uint8_t val, uint8_t diff) -> bool { return val <= diff; };
+      for (uint32_t i = 0; i < num_rows; ++i) {
+        bytemap[i] = f(col_data[i] - lo, diff);
       }
-      default: {
-        std::cerr << "No support for comparator" << std::endl;
-      }
+
+      std::shared_ptr<arrow::BooleanArray> out_filter;
+      utils::pack(num_rows, bytemap, &out_filter);
+      return out_filter;
+
+    } else {
+      return comparator_switcher(enum_comp, [&](auto op) {
+        return Filter<CType>(block, predicate->col_ref_, datum_val, val,
+                             predicate->comparator_, op);
+      });
     }
   };
 

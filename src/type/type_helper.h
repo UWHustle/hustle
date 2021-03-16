@@ -19,6 +19,7 @@
 #define HUSTLE_TYPE_HELPER_H
 
 #include <arrow/api.h>
+#include <arrow/compute/api.h>
 
 #include <iostream>
 
@@ -321,16 +322,37 @@ std::shared_ptr<arrow::ArrayBuilder> getBuilder(
 // Usage: in Aggregate::InsertGroupColumns().
 // Must put the definition in header until g++ resolve the error.
 // See: https://bit.ly/3bMbPG2
-template <typename ArrowSwitchFunctor>
+template <typename ArrowDataTypeSwitchFunctor>
 void type_switcher(const std::shared_ptr<arrow::DataType> &dataType,
-                   ArrowSwitchFunctor func) {
+                   ArrowDataTypeSwitchFunctor func) {
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
 #define _HUSTLE_ARROW_TYPE_CASE_STMT(T) \
   { func((T *)nullptr); }
   HUSTLE_SWITCH_ARROW_TYPE(dataType->id());
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
-}
+};
 
+// Arrow switch function for predicate comparator.
+template <typename ArrowComputeOperatorSwitchFunctor>
+auto comparator_switcher(arrow::compute::CompareOperator c,
+                         ArrowComputeOperatorSwitchFunctor func)
+    // Take the return type of the functor.
+    -> decltype(func(std::equal_to())) {
+  switch (c) {
+    case arrow::compute::EQUAL:
+      return func(std::equal_to());
+    case arrow::compute::NOT_EQUAL:
+      return func(std::not_equal_to());
+    case arrow::compute::GREATER:
+      return func(std::greater());
+    case arrow::compute::GREATER_EQUAL:
+      return func(std::greater_equal());
+    case arrow::compute::LESS:
+      return func(std::less());
+    case arrow::compute::LESS_EQUAL:
+      return func(std::less_equal());
+  };
+};
 
 // TODO: Possibly refactor this to use type_switcher.
 template <typename DataTypeT>
