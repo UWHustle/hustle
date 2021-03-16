@@ -631,105 +631,99 @@ int Block::InsertRecord(std::vector<std::string_view> record,
   int head = 0;
 
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[2]);
+    auto data_type = schema->field(i)->type();
+    // TODO: Simplify these two handlers.
+    auto insert_record_string_handler = [&]<typename T>(T *) {
+      auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[1]);
+      auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[2]);
 
-        // Extended the underlying data and offsets buffer. This may
-        // result in copying the data.
+      // Extended the underlying data and offsets buffer. This may
+      // result in copying the data.
 
-        // IMPORTANT: DO NOT GRAB A POINTER TO THE UNDERLYING DATA
-        // BEFORE YOU RESIZE IT. THE DATA WILL BE COPIED TO A NEW
-        // LOCATION, AND YOUR POINTER WILL BE GARBAGE.
-        auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
+      // IMPORTANT: DO NOT GRAB A POINTER TO THE UNDERLYING DATA
+      // BEFORE YOU RESIZE IT. THE DATA WILL BE COPIED TO A NEW
+      // LOCATION, AND YOUR POINTER WILL BE GARBAGE.
+      auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
 
-        if (offsets_data[num_rows] + record[i].length() >
-            data_buffer->capacity()) {
-          status = data_buffer->Resize(
-              data_buffer->capacity() + record[i].length(), false);
-          evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-
-        // There are length+1 offsets, and we are going ot add
-        // another offsets, so +2
-        if ((columns[i]->length + 2) * sizeof(int32_t) >
-            offsets_buffer->capacity()) {
-          // Resize will not resize the buffer if the inputted size
-          // equals the current size of the buffer. To force
-          // resizing in this case, we add +1.
-          status = offsets_buffer->Resize((num_rows + 2) * sizeof(int32_t) + 1,
-                                          false);
-          evaluate_status(status, __FUNCTION__, __LINE__);
-          // optimize? is this necessary?
-          offsets_buffer->ZeroPadding();
-        }
-        // We must fetch the offsets data again, since resizing might
-        // have moved its location in memory.
-        offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
-
-        // Insert new offset
-        // you must zero the padding or else you might get bogus
-        // offset data!
-
-        int32_t new_offset = offsets_data[num_rows] + record[i].length();
-        std::memcpy(&offsets_data[num_rows + 1], &new_offset,
-                    sizeof(new_offset));
-
-        auto *values_data =
-            columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
-        std::memcpy(values_data, &record[i].front(), record[i].length());
-
-        columns[i]->length++;
-        head += record[i].length();
-        column_sizes[i] += record[i].length();
-        break;
+      if (offsets_data[num_rows] + record[i].length() >
+          data_buffer->capacity()) {
+        status = data_buffer->Resize(
+            data_buffer->capacity() + record[i].length(), false);
+        evaluate_status(status, __FUNCTION__, __LINE__);
       }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        auto field_size = record[i].length();
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
 
-        if (column_sizes[i] + field_size > data_buffer->capacity()) {
-          // Resize will not resize the buffer if the inputted size
-          // equals the current size of the buffer. To force
-          // resizing in this case, we add +1.
-          auto status = data_buffer->Resize(
-              data_buffer->capacity() + field_size + 1, false);
-          evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-
-        auto *dest = columns[i]->GetMutableValues<uint8_t>(1, num_rows);
-        std::memcpy(dest, &record[i].front(), field_size);
-
-        head += field_size;
-        column_sizes[i] += field_size;
-        columns[i]->length++;
-        break;
+      // There are length+1 offsets, and we are going ot add
+      // another offsets, so +2
+      if ((columns[i]->length + 2) * sizeof(int32_t) >
+          offsets_buffer->capacity()) {
+        // Resize will not resize the buffer if the inputted size
+        // equals the current size of the buffer. To force
+        // resizing in this case, we add +1.
+        status =
+            offsets_buffer->Resize((num_rows + 2) * sizeof(int32_t) + 1, false);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        // optimize? is this necessary?
+        offsets_buffer->ZeroPadding();
       }
-      case arrow::Type::INT64: {
+      // We must fetch the offsets data again, since resizing might
+      // have moved its location in memory.
+      offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
+
+      // Insert new offset
+      // you must zero the padding or else you might get bogus
+      // offset data!
+
+      int32_t new_offset = offsets_data[num_rows] + record[i].length();
+      std::memcpy(&offsets_data[num_rows + 1], &new_offset, sizeof(new_offset));
+
+      auto *values_data =
+          columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
+      std::memcpy(values_data, &record[i].front(), record[i].length());
+
+      columns[i]->length++;
+      head += record[i].length();
+      column_sizes[i] += record[i].length();
+    };
+
+    auto insert_record_fixed_byte_handler = [&]<typename T>(T *) {
+      auto field_size = record[i].length();
+      auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[1]);
+
+      if (column_sizes[i] + field_size > data_buffer->capacity()) {
+        // Resize will not resize the buffer if the inputted size
+        // equals the current size of the buffer. To force
+        // resizing in this case, we add +1.
+        auto status = data_buffer->Resize(
+            data_buffer->capacity() + field_size + 1, false);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+      };
+
+      auto *dest = columns[i]->GetMutableValues<uint8_t>(1, num_rows);
+      std::memcpy(dest, &record[i].front(), field_size);
+
+      head += field_size;
+      column_sizes[i] += field_size;
+      columns[i]->length++;
+    };
+
+    auto insert_record_handler = [&]<typename T>(T *ptr) {
+      if constexpr (arrow::is_string_type<T>::value) {
+        return insert_record_string_handler(ptr);
+      } else if constexpr (arrow::is_fixed_size_binary_type<T>::value) {
+        return insert_record_fixed_byte_handler(ptr);
+      } else if constexpr (has_ctype_member<T>::value) {
         InsertCsvValue<int64_t>(i, head, record[i]);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        InsertCsvValue<uint32_t>(i, head, record[i]);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        InsertCsvValue<uint16_t>(i, head, record[i]);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        InsertCsvValue<uint8_t>(i, head, record[i]);
-        break;
-      }
-      default:
+      } else {
         throw std::logic_error(
-            std::string("Cannot insert tuple with unsupported type: ") +
-            schema->field(i)->type()->ToString());
-    }
+            std::string("Block::InsertRecord(): "
+                        "Cannot insert tuple with unsupported type: ") +
+            data_type->ToString());
+      }
+    };
+    type_switcher(data_type, insert_record_handler);
   }
   num_bytes += head;
   return num_rows++;
@@ -768,7 +762,8 @@ void Block::TruncateBuffers() {
         return;
       }
       // TODO: Handles any type with offset
-      else if constexpr (isOneOf<T, arrow::StringType>::value) {
+      // TODO: Handles other string type
+      else if constexpr (arrow::is_string_type<T>::value) {
         auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[1]);
         auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
@@ -782,8 +777,7 @@ void Block::TruncateBuffers() {
 
       } else if constexpr (isOneOf<T, arrow::FixedSizeBinaryType>::value) {
         // TODO: Why do we assume the fixed width == 1?
-        auto field_size =
-            data_type->layout().FixedWidth(1).byte_width;
+        auto field_size = data_type->layout().FixedWidth(1).byte_width;
         auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[1]);
         status = data_buffer->Resize(num_rows * field_size, true);
