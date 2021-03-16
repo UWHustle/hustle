@@ -38,6 +38,7 @@ std::vector<MetadataUnit *> MetadataAttachedBlock::GenerateMetadataForColumn(
     int column_id) {
   std::vector<MetadataUnit *> out;
   std::vector<MetadataUnit *> verify_buffer;
+  // TODO: (Type Handle) Handle SMA for different data type.
   switch (get_column(column_id)->type()->id()) {
     case arrow::Type::UINT8:
     case arrow::Type::INT8:
