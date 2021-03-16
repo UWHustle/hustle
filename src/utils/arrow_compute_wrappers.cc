@@ -17,7 +17,7 @@
 
 #include "arrow_compute_wrappers.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include <thread>
 
