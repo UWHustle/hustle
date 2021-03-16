@@ -569,80 +569,66 @@ void HashAggregate::Finish(Task *ctx) {
   for (int i = 0; i < group_by_cols_.size(); i++) {
     auto group_by = group_by_cols_.at(i);
     auto group_by_type = group_by.type();
-    auto group_by_type_id = group_by_type->id();
 
-    // The following step assume the iteration of tuple map
-    //    is not going to mutate.
-    // TODO: This is a very very tedious construction of the group_by builder.
-    //  Try to optimize it by using the good features within the arrow.
+    // TODO: The following step assume the iteration of tuple map
+    //        is not going to mutate.
 
     auto data_type = group_by_type;
 
-    // TODO: (Optimize) Can we indicate the accessor and collapse the code?
-    auto lambda_fn = [&]<typename T>(T *) {
-      if constexpr (arrow::is_string_type<T>::value) {
-        arrow::StringBuilder builder;
+    auto normal_value_accessor = [](const auto &chunk, const auto item_index) {
+      return chunk->Value(item_index);
+    };
+    auto string_value_accessor = [](const auto &chunk, const auto item_index) {
+      return chunk->GetString(item_index);
+    };
 
-        for (auto const it : *global_tuple_map) {
-          int chunk_id, item_index;
-          auto hash_key = it.first;
-          std::tie(chunk_id, item_index) = it.second;
-          auto raw_chunk = group_by.chunks().at(chunk_id);
-          auto chunk = std::static_pointer_cast<arrow::StringArray>(raw_chunk);
-          // TODO: Optimize this to make it std::move()?
-          // TODO: (C++20) Perfect forward this to the builder.
-          std::string value = chunk->GetString(item_index);
-          // TODO: Try to use the UnsafeAppend here,
-          //  but encounter an error.
-          //  builder.UnsafeAppend(value);
-          builder.Append(value);
-        }
-        std::shared_ptr<arrow::Array> array;
-        arrow::Status st = builder.Finish(&array);
-        // TODO: Use the throw function.
-        if (!st.ok()) {
-          throw std::runtime_error("Building the array for " +
-                                   std::to_string(i) +
-                                   "th groupby column failed.");
-        }
-        group_by_arrays.push_back(array);
+    auto core_fn = [&]<typename T>(T *, auto value_accessor) {
+      using ArrayType = ArrowGetArrayType<T>;
+      using BuilderType = ArrowGetBuilderType<T>;
+
+      auto builder =
+          std::reinterpret_pointer_cast<BuilderType>(getBuilder(data_type));
+
+      for (auto const it : *global_tuple_map) {
+        int chunk_id, item_index;
+        auto hash_key = it.first;
+        std::tie(chunk_id, item_index) = it.second;
+        auto raw_chunk = group_by.chunks().at(chunk_id);
+        auto chunk = std::static_pointer_cast<ArrayType>(raw_chunk);
+        // TODO: Optimize this to make it std::move()?
+        // TODO: (C++20) Perfect forward this to the builder.
+        // TODO: Try to use the UnsafeAppend here,
+        //  but encounter an error.
+        //  builder.UnsafeAppend(value);
+        builder->Append(value_accessor(chunk, item_index));
+      }
+      std::shared_ptr<arrow::Array> array;
+      arrow::Status st = builder->Finish(&array);
+      // TODO: Use the throw function.
+      if (!st.ok()) {
+        throw std::runtime_error("Building the array for " + std::to_string(i) +
+                                 "th groupby column failed.");
+      }
+      group_by_arrays.push_back(array);
+    };
+
+    // TODO: (Optimize) Can we indicate the accessor and collapse the code?
+    // TODO: Test on other value type arrays.
+    auto finish_handler = [&]<typename T>(T *ptr_) {
+      if constexpr (arrow::is_string_type<T>::value) {
+        return core_fn(ptr_, string_value_accessor);
 
       } else if constexpr (arrow::is_number_type<T>::value) {
-        // TODO: Need to verify what are the types that can use the ->Value
-        // accessor.
-        using ArrayType = ArrowGetArrayType<T>;
-        using BuilderType = ArrowGetBuilderType<T>;
-        using CType = ArrowGetCType<T>;
+        return core_fn(ptr_, normal_value_accessor);
 
-        auto builder =
-            std::reinterpret_pointer_cast<BuilderType>(getBuilder(data_type));
-        for (auto const it : *global_tuple_map) {
-          int chunk_id, item_index;
-          auto hash_key = it.first;
-          std::tie(chunk_id, item_index) = it.second;
-          auto raw_chunk = group_by.chunks().at(chunk_id);
-          auto chunk = std::static_pointer_cast<ArrayType>(raw_chunk);
-          CType value = chunk->Value(item_index);
-          //          builder.UnsafeAppend(value);
-          builder->Append(value);
-        }
-        std::shared_ptr<arrow::Array> array;
-        arrow::Status st = builder->Finish(&array);
-        if (!st.ok()) {
-          throw std::runtime_error("Building the array for " +
-                                   std::to_string(i) +
-                                   "th groupby column failed.");
-        }
-        group_by_arrays.push_back(array);
-      }
-      else{
+      } else {
         throw std::logic_error(
             "HashAggregate::Finish(). Not supported aggregate group by column "
             "type: " +
             data_type->ToString());
       }
     };
-    type_switcher(data_type, lambda_fn);
+    type_switcher(data_type, finish_handler);
   }
 
   // 2. Construct the resulting aggregate table
