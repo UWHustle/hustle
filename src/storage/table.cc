@@ -227,42 +227,30 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
   int curr_offset_col = 0;
   for (int i = 0; i < num_UpdateMetaInfo; i++) {
     int col_num = updateMetaInfo[i].colNum;
+
     while (col_num > curr_offset_col) {
       offset += byte_widths[curr_offset_col];
       curr_offset_col++;
     }
-    switch (schema->field(col_num)->type()->id()) {
-      case arrow::Type::STRING: {
+
+    auto data_type = schema->field(col_num)->type();
+
+    auto handler = [&]<typename T>(T *) {
+      if constexpr (has_ctype_member<T>::value) {
+        using CType = ArrowGetCType<T>;
+        block->UpdateColumnValue<CType>(col_num, row_num, record + offset,
+                                        byte_widths[col_num]);
+      } else if constexpr (isOneOf<T, arrow::StringType>::value) {
         this->DeleteRecordTable(row_id);
         this->InsertRecordTable(row_id, record, byte_widths);
-        return;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        block->UpdateColumnValue<int64_t>(col_num, row_num, record + offset,
-                                          byte_widths[col_num]);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
-                                           byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
-                                           byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        block->UpdateColumnValue<uint8_t>(col_num, row_num, record + offset,
-                                          byte_widths[i]);
-        break;
-      }
-      default:
+      } else {
         throw std::logic_error(
             std::string("Cannot insert tuple with unsupported type: ") +
             schema->field(i)->type()->ToString());
-    }
+      }
+    };
+
+    type_switcher(data_type, handler);
   }
 }
 
