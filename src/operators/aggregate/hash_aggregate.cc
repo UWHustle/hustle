@@ -575,6 +575,8 @@ void HashAggregate::Finish(Task *ctx) {
 
     auto data_type = group_by_type;
 
+    // TODO: Possibly abstract this?
+    // Accessor for different types of chunks
     auto normal_value_accessor = [](const auto &chunk, const auto item_index) {
       return chunk->Value(item_index);
     };
@@ -582,7 +584,7 @@ void HashAggregate::Finish(Task *ctx) {
       return chunk->GetString(item_index);
     };
 
-    auto core_fn = [&]<typename T>(T *, auto value_accessor) {
+    auto construct_group_by_cols = [&]<typename T>(T *, auto value_accessor) {
       using ArrayType = ArrowGetArrayType<T>;
       using BuilderType = ArrowGetBuilderType<T>;
 
@@ -595,10 +597,12 @@ void HashAggregate::Finish(Task *ctx) {
         std::tie(chunk_id, item_index) = it.second;
         auto raw_chunk = group_by.chunks().at(chunk_id);
         auto chunk = std::static_pointer_cast<ArrayType>(raw_chunk);
-        // TODO: Optimize this to make it std::move()?
+        // TODO: (Optimize) Optimize this to make it std::move()?
+        // TODO: (Optimize) Is the value_accessor inline?
+        // TODO: (Parallelize) How to parallelize this?
         // TODO: (C++20) Perfect forward this to the builder.
-        // TODO: Try to use the UnsafeAppend here,
-        //  but encounter an error.
+
+        // TODO: (Optimize) Try to use the UnsafeAppend here, but had an error.
         //  builder.UnsafeAppend(value);
         builder->Append(value_accessor(chunk, item_index));
       }
@@ -616,10 +620,10 @@ void HashAggregate::Finish(Task *ctx) {
     // TODO: Test on other value type arrays.
     auto finish_handler = [&]<typename T>(T *ptr_) {
       if constexpr (arrow::is_string_type<T>::value) {
-        return core_fn(ptr_, string_value_accessor);
+        return construct_group_by_cols(ptr_, string_value_accessor);
 
       } else if constexpr (arrow::is_number_type<T>::value) {
-        return core_fn(ptr_, normal_value_accessor);
+        return construct_group_by_cols(ptr_, normal_value_accessor);
 
       } else {
         throw std::logic_error(
@@ -634,41 +638,35 @@ void HashAggregate::Finish(Task *ctx) {
   // 2. Construct the resulting aggregate table
   auto kernel = aggregate_refs_[0].kernel;
   std::shared_ptr<arrow::Array> agg_array;
-  // TODO: Make a function that generalize the casting
-  //  of builder for sum, count and mean.
+  // TODO: Make a function that generalize the casting of builder
+  //       for sum, count and mean.
+  // TODO: (Parallelism) Can multi-thread build an array?
+  auto create_agg_table = [&]<typename T>(T *, auto map) {
+    using BuilderType = ArrowGetBuilderType<T>;
+    BuilderType builder;
+    for (auto const it : *global_tuple_map) {
+      auto hash_key = it.first;
+      auto value = map->find(hash_key)->second;
+      builder.Append(value);  // UnsafeAppend
+    }
+    arrow::Status st = builder.Finish(&agg_array);
+    if (!st.ok()) {
+      std::cerr << "Building the array for aggregate column failed."
+                << std::endl;
+      exit(1);
+    }
+  };
+
   switch (kernel) {
     case SUM:
     case COUNT: {
       auto map = static_cast<HashMap *>(global_map);
-      arrow::Int64Builder builder;
-      for (auto const it : *global_tuple_map) {
-        auto hash_key = it.first;
-        auto value = map->find(hash_key)->second;
-        builder.Append(value);
-        // UnsafeAppend
-      }
-      arrow::Status st = builder.Finish(&agg_array);
-      if (!st.ok()) {
-        std::cerr << "Building the array for aggregate column failed."
-                  << std::endl;
-        exit(1);
-      }
+      create_agg_table((arrow::Int64Type *)nullptr, map);
       break;
     }
     case MEAN: {
       auto map = static_cast<MeanHashMap *>(global_map);
-      arrow::DoubleBuilder builder;
-      for (auto const it : *global_tuple_map) {
-        auto hash_key = it.first;
-        auto value = map->find(hash_key)->second;
-        builder.Append(value);
-      }
-      arrow::Status st = builder.Finish(&agg_array);
-      if (!st.ok()) {
-        std::cerr << "Building the array for aggregate column failed."
-                  << std::endl;
-        exit(1);
-      }
+      create_agg_table((arrow::DoubleType *)nullptr, map);
       break;
     }
     default: {
