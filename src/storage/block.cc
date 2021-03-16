@@ -501,60 +501,53 @@ int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   int head = 0;
 
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[2]);
-        // Extended the underlying data and offsets buffer. This may
-        // result in copying the data.
-        // Use index i-1 because byte_widths does not include the byte
-        // width of the valid column.
-        status =
-            data_buffer->Resize(data_buffer->size() + byte_widths[i], false);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        status = offsets_buffer->Resize(
-            offsets_buffer->size() + sizeof(int32_t), false);
-        evaluate_status(status, __FUNCTION__, __LINE__);
+    auto data_type = schema->field(i)->type();
 
-        // Insert new offset
-        auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
-        int32_t new_offset = offsets_data[num_rows] + byte_widths[i];
-        std::memcpy(&offsets_data[num_rows + 1], &new_offset,
-                    sizeof(new_offset));
-        auto *values_data =
-            columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
-        std::memcpy(values_data, &record[head], byte_widths[i]);
-        columns[i]->length++;
-        column_sizes[i] += byte_widths[i];
-        head += byte_widths[i];
-        num_bytes += byte_widths[i];
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        InsertValue<int64_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        InsertValue<uint32_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        InsertValue<uint32_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        InsertValue<uint8_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      default:
+    auto string_handler = [&]<typename T>(T *) {
+      auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[1]);
+      auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[2]);
+      // Extended the underlying data and offsets buffer. This may
+      // result in copying the data.
+      // Use index i-1 because byte_widths does not include the byte
+      // width of the valid column.
+      status = data_buffer->Resize(data_buffer->size() + byte_widths[i], false);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+      status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t),
+                                      false);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+
+      // Insert new offset
+      auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
+      int32_t new_offset = offsets_data[num_rows] + byte_widths[i];
+      std::memcpy(&offsets_data[num_rows + 1], &new_offset, sizeof(new_offset));
+      auto *values_data =
+          columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
+      std::memcpy(values_data, &record[head], byte_widths[i]);
+      columns[i]->length++;
+      column_sizes[i] += byte_widths[i];
+      head += byte_widths[i];
+      num_bytes += byte_widths[i];
+    };
+
+    auto handler = [&]<typename T>(T *ptr) {
+      if constexpr (arrow::is_string_type<T>::value) {
+        return string_handler(ptr);
+
+      } else if constexpr (has_ctype_member<T>::value) {
+        using CType = ArrowGetCType<T>;
+        InsertValue<CType>(i, head, &record[head], byte_widths[i]);
+
+      } else {
         throw std::logic_error(
             std::string("Cannot insert tuple with unsupported type: ") +
             schema->field(i)->type()->ToString());
-    }
+      }
+    };
+    type_switcher(data_type, handler);
   }
+
   return num_rows++;
 }
 
