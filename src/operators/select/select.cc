@@ -213,6 +213,7 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
     }
   };
 
+  // Set `result` to return value through the filter_handler().
   arrow::Datum result;
   auto filter_handler = [&]<typename T>(T *ptr) {
     if constexpr (has_ctype_member<T>::value) {
