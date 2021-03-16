@@ -287,7 +287,8 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
   // its builder.
   for (std::size_t i = 0; i < group_type_->num_fields(); ++i) {
     // Handle the insertion of record.
-    auto insert_handler = [&, this]<typename T>(T * ptr_) {
+    auto data_type = group_type_->field(i)->type();
+    auto insert_handler = [&, this]<typename T>(T* ptr_) {
       // TODO: Add support for other types.
       //  Right now we only support types that have builder and array
       //  in the type trait. It should be obvious that we can:
@@ -323,11 +324,12 @@ void Aggregate::InsertGroupColumns(std::vector<int> group_id, int agg_index) {
           evaluate_status(status, __FUNCTION__, __LINE__);
           return;
         }
+      } else {
+        throw std::runtime_error("Cannot insert unsupported aggregate type:" +
+                                 data_type->ToString());
       }
-      throw std::runtime_error("Cannot insert unsupported aggregate type:" +
-                               group_type_->field(i)->type()->ToString());
     };
-    type_switcher(group_type_->field(i)->type(), insert_handler);
+    type_switcher(data_type, insert_handler);
   }
   // StructBuilder does not automatically update its length when we append to
   // its children. We must do this manually.

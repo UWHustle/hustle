@@ -26,6 +26,7 @@
 #include "storage/block.h"
 #include "storage/ma_block.h"
 #include "storage/utils/util.h"
+#include "type/type_helper.h"
 
 namespace hustle::storage {
 
@@ -62,7 +63,7 @@ DBTable::DBTable(
   for (const auto &batch : record_batches) {
     if (enable_metadata) {
       block = std::make_shared<MetadataAttachedBlock>(block_counter, batch,
-                                                     BLOCK_SIZE);
+                                                      BLOCK_SIZE);
     } else {
       block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
     }
@@ -114,55 +115,33 @@ void DBTable::InsertRecords(
   int data_size = 0;
   auto block = GetBlockForInsert();
   int offset = 0;
-  int length = l;
-  // optimize?
-  int column_types[num_cols];
-  for (int i = 0; i < num_cols; i++) {
-    column_types[i] = schema->field(i)->type()->id();
-  }
+
+  // TODO: (Optimize) Why don't we switch column type then loop over rows?
   for (int row = 0; row < l; row++) {
     int record_size = 0;
     for (int i = 0; i < num_cols; i++) {
-      switch (column_types[i]) {
-        case arrow::Type::STRING: {
-          // optimize with offsets per schema?
+      auto data_type = schema->field(i)->type();
+      // TODO: (Optimize) Make this function inline.
+      auto handler = [&]<typename T>(T *) {
+        if constexpr (has_ctype_member<T>::value) {
+          using CType = ArrowGetCType<T>;
+          int byte_width = sizeof(CType);
+          record_size += byte_width;
+        } else if constexpr (isOneOf<T, arrow::StringType>::value) {
           auto *offsets = column_data[i]->GetValues<int32_t>(1, 0);
           record_size += offsets[row + 1] - offsets[row];
-          break;
-        }
-        case arrow::Type::FIXED_SIZE_BINARY: {
+        } else if constexpr (isOneOf<T, arrow::FixedSizeBinaryType>::value) {
           int byte_width =
               schema->field(i)->type()->layout().FixedWidth(1).byte_width;
           record_size += byte_width;
-          break;
-        }
-        case arrow::Type::DOUBLE:
-        case arrow::Type::INT64: {
-          int byte_width = sizeof(int64_t);
-          record_size += byte_width;
-          break;
-        }
-        case arrow::Type::UINT32: {
-          int byte_width = sizeof(uint32_t);
-          record_size += byte_width;
-          break;
-        }
-        case arrow::Type::UINT16: {
-          int byte_width = sizeof(uint16_t);
-          record_size += byte_width;
-          break;
-        }
-        case arrow::Type::UINT8: {
-          int byte_width = sizeof(uint8_t);
-          record_size += byte_width;
-          break;
-        }
-        default: {
+        } else {
           throw std::logic_error(
               std::string("Cannot compute record width. Unsupported type: ") +
               schema->field(i)->type()->ToString());
         }
-      }
+      };
+
+      type_switcher(data_type, handler);
     }
     std::vector<std::shared_ptr<arrow::ArrayData>> sliced_column_data;
     if (data_size + record_size > block->get_bytes_left()) {
@@ -201,33 +180,20 @@ void DBTable::InsertRecords(
 int DBTable::get_record_size(int32_t *byte_widths) {
   int record_size = 0;
   int num_cols = get_num_cols();
+
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        record_size += byte_widths[i];
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
+    auto data_type = schema->field(i)->type();
+    auto handler = [&]<typename T>(T *) {
+      if constexpr (has_ctype_member<T>::value) {
         record_size += sizeof(int64_t);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        record_size += sizeof(uint32_t);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        record_size += sizeof(uint16_t);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        record_size += sizeof(uint8_t);
-        break;
-      }
-      default:
+      } else if constexpr (isOneOf<T, arrow::StringType>::value) {
+        record_size += byte_widths[i];
+      } else {
         throw std::logic_error(std::string("unsupported type: ") +
-                               schema->field(i)->type()->ToString());
-    }
+                               data_type->ToString());
+      }
+    };
+    type_switcher(data_type, handler);
   }
   return record_size;
 }
@@ -261,42 +227,30 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
   int curr_offset_col = 0;
   for (int i = 0; i < num_UpdateMetaInfo; i++) {
     int col_num = updateMetaInfo[i].colNum;
+
     while (col_num > curr_offset_col) {
       offset += byte_widths[curr_offset_col];
       curr_offset_col++;
     }
-    switch (schema->field(col_num)->type()->id()) {
-      case arrow::Type::STRING: {
+
+    auto data_type = schema->field(col_num)->type();
+
+    auto handler = [&]<typename T>(T *) {
+      if constexpr (has_ctype_member<T>::value) {
+        using CType = ArrowGetCType<T>;
+        block->UpdateColumnValue<CType>(col_num, row_num, record + offset,
+                                        byte_widths[col_num]);
+      } else if constexpr (isOneOf<T, arrow::StringType>::value) {
         this->DeleteRecordTable(row_id);
         this->InsertRecordTable(row_id, record, byte_widths);
-        return;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        block->UpdateColumnValue<int64_t>(col_num, row_num, record + offset,
-                                          byte_widths[col_num]);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
-                                           byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        block->UpdateColumnValue<uint32_t>(col_num, row_num, record + offset,
-                                           byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        block->UpdateColumnValue<uint8_t>(col_num, row_num, record + offset,
-                                          byte_widths[i]);
-        break;
-      }
-      default:
+      } else {
         throw std::logic_error(
             std::string("Cannot insert tuple with unsupported type: ") +
             schema->field(i)->type()->ToString());
-    }
+      }
+    };
+
+    type_switcher(data_type, handler);
   }
 }
 

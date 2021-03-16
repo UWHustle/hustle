@@ -28,6 +28,7 @@
 #include "storage/ma_block.h"
 #include "storage/table.h"
 #include "storage/utils/util.h"
+#include "type/type_helper.h"
 #include "utils/bit_utils.h"
 
 namespace hustle {
@@ -126,159 +127,86 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
 
 arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
                             const std::shared_ptr<Predicate> &predicate) {
-  switch (predicate->value_.type()->id()) {
-    case arrow::Type::UINT8: {
-      uint8_t val = std::static_pointer_cast<arrow::UInt8Scalar>(
-                        predicate->value_.scalar())
-                        ->value;
-      auto datum_val = predicate->value_;
+  auto data_type = predicate->value_.type();
 
-      switch (predicate->comparator_) {
-        case arrow::compute::CompareOperator::LESS: {
-          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::less());
-        }
-        case arrow::compute::CompareOperator::LESS_EQUAL: {
-          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::less_equal());
-        }
-        case arrow::compute::CompareOperator::GREATER: {
-          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::greater());
-        }
-        case arrow::compute::CompareOperator::GREATER_EQUAL: {
-          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::greater_equal());
-        }
-        case arrow::compute::CompareOperator::EQUAL: {
-          return Filter<uint8_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::equal_to());
-        }
-        // TODO(nicholas): placeholder for BETWEEN
-        case arrow::compute::CompareOperator::NOT_EQUAL: {
-          auto num_rows = block->get_num_rows();
-          auto col_data =
-              block->get_column_by_name(predicate->col_ref_.col_name)
-                  ->data()
-                  ->GetValues<uint8_t>(1);
+  // [1] Handle default types.
+  // TODO: (Type Coverage) Any concerns over the default types?
+  auto default_filter = [&]<typename T>(T *) -> arrow::Datum {
+    arrow::Status status;
+    arrow::compute::CompareOptions compare_options(predicate->comparator_);
+    arrow::Datum block_filter;
 
-          auto lo = std::static_pointer_cast<arrow::UInt8Scalar>(
-                        predicate->value_.scalar())
-                        ->value;
-          auto hi = std::static_pointer_cast<arrow::UInt8Scalar>(
-                        predicate->value2_.scalar())
-                        ->value;
-          auto diff = hi - lo;
+    auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
+    auto value = predicate->value_;
 
-          std::shared_ptr<arrow::Buffer> buffer;
-          auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
-          evaluate_status(status, __FUNCTION__, __LINE__);
-          auto bytemap = buffer->mutable_data();
+    status = arrow::compute::Compare(select_col, value, compare_options)
+                 .Value(&block_filter);
+    evaluate_status(status, __FUNCTION__, __LINE__);
 
-          auto f = [](uint8_t val, uint8_t diff) -> bool {
-            return val <= diff;
-          };
-          for (uint32_t i = 0; i < num_rows; ++i) {
-            bytemap[i] = f(col_data[i] - lo, diff);
-          }
+    filters_[block->get_id()] = block_filter.make_array();
+    return block_filter;
+  };
 
-          std::shared_ptr<arrow::BooleanArray> out_filter;
-          utils::pack(num_rows, bytemap, &out_filter);
-          return out_filter;
-        }
-        default: {
-          std::cerr << "No support for comparator" << std::endl;
-        }
-      }
-      break;
-    }
-    case arrow::Type::INT64: {
-      int64_t val = std::static_pointer_cast<arrow::Int64Scalar>(
-                        predicate->value_.scalar())
-                        ->value;
-      auto datum_val = predicate->value_;
+  // [2] Handle numeric types.
+  // TODO: There are a lot of assumptions over the type T.
+  auto numeric_filter = [&]<typename T>(T *) -> arrow::Datum {
+    using CType = ArrowGetCType<T>;
+    using ScalarType = ArrowGetScalarType<T>;
 
-      switch (predicate->comparator_) {
-        case arrow::compute::CompareOperator::LESS: {
-          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::less());
-          break;
-        }
-        case arrow::compute::CompareOperator::LESS_EQUAL: {
-          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::less_equal());
-          break;
-        }
-        case arrow::compute::CompareOperator::GREATER: {
-          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::greater());
-          break;
-        }
-        case arrow::compute::CompareOperator::GREATER_EQUAL: {
-          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::greater_equal());
-          break;
-        }
-        case arrow::compute::CompareOperator::EQUAL: {
-          return Filter<int64_t>(block, predicate->col_ref_, datum_val, val,
-                                 predicate->comparator_, std::equal_to());
-          break;
-        }
-        case arrow::compute::CompareOperator::NOT_EQUAL: {
-          auto num_rows = block->get_num_rows();
-          auto col_data =
-              block->get_column_by_name(predicate->col_ref_.col_name)
-                  ->data()
-                  ->GetValues<int64_t>(1);
+    CType val =
+        std::static_pointer_cast<ScalarType>(predicate->value_.scalar())->value;
+    auto datum_val = predicate->value_;
 
-          auto lo = std::static_pointer_cast<arrow::Int64Scalar>(
-                        predicate->value_.scalar())
-                        ->value;
-          auto hi = std::static_pointer_cast<arrow::Int64Scalar>(
-                        predicate->value2_.scalar())
-                        ->value;
-          auto diff = hi - lo;
+    auto enum_comp = predicate->comparator_;
+    if (enum_comp == arrow::compute::CompareOperator::NOT_EQUAL) {
+      auto num_rows = block->get_num_rows();
+      auto col_data = block->get_column_by_name(predicate->col_ref_.col_name)
+                          ->data()
+                          ->GetValues<CType>(1);
 
-          std::shared_ptr<arrow::Buffer> buffer;
-          auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
-          evaluate_status(status, __FUNCTION__, __LINE__);
+      auto lo = std::static_pointer_cast<arrow::UInt8Scalar>(
+                    predicate->value_.scalar())
+                    ->value;
+      auto hi = std::static_pointer_cast<arrow::UInt8Scalar>(
+                    predicate->value2_.scalar())
+                    ->value;
+      auto diff = hi - lo;
 
-          auto f = [](int64_t val, int64_t diff) -> bool {
-            return val <= diff;
-          };
-
-          auto bytemap = buffer->mutable_data();
-          for (uint32_t i = 0; i < num_rows; ++i) {
-            bytemap[i] = f(col_data[i] - lo, diff);
-          }
-
-          std::shared_ptr<arrow::BooleanArray> out_filter;
-          utils::pack(num_rows, bytemap, &out_filter);
-          return out_filter;
-        }
-        default: {
-          std::cerr << "No supprt for comparator" << std::endl;
-        }
-      }
-      break;
-    }
-
-    default: {
-      arrow::Status status;
-      arrow::compute::CompareOptions compare_options(predicate->comparator_);
-      arrow::Datum block_filter;
-
-      auto select_col = block->get_column_by_name(predicate->col_ref_.col_name);
-      auto value = predicate->value_;
-
-      status = arrow::compute::Compare(select_col, value, compare_options)
-                   .Value(&block_filter);
+      std::shared_ptr<arrow::Buffer> buffer;
+      auto status = arrow::AllocateBuffer(num_rows).Value(&buffer);
       evaluate_status(status, __FUNCTION__, __LINE__);
+      auto bytemap = buffer->mutable_data();
 
-      filters_[block->get_id()] = block_filter.make_array();
-      return block_filter;
+      auto f = [](uint8_t val, uint8_t diff) -> bool { return val <= diff; };
+      for (uint32_t i = 0; i < num_rows; ++i) {
+        bytemap[i] = f(col_data[i] - lo, diff);
+      }
+
+      std::shared_ptr<arrow::BooleanArray> out_filter;
+      utils::pack(num_rows, bytemap, &out_filter);
+      return out_filter;
+
+    } else {
+      return comparator_switcher(enum_comp, [&](auto op) {
+        return Filter<CType>(block, predicate->col_ref_, datum_val, val,
+                             predicate->comparator_, op);
+      });
     }
-  }
+  };
+
+  // Set `result` to return value through the filter_handler().
+  arrow::Datum result;
+  auto filter_handler = [&]<typename T>(T *ptr) {
+    if constexpr (has_ctype_member<T>::value) {
+      result = numeric_filter(ptr);
+    } else {
+      result = default_filter(ptr);
+    }
+  };
+
+  type_switcher(data_type, filter_handler);
+
+  return result;
 }
 
 void Select::Clear() { filters_.clear(); }

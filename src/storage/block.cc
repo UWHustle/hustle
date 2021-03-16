@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "absl/strings/numbers.h"
+#include "arrow_compute_wrappers.h"
 #include "storage/utils/util.h"
 #include "type/type_helper.h"
 
@@ -72,9 +73,9 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
       if constexpr (arrow::is_number_type<T>::value &&
                     has_ctype_member<T>::value) {
         // TODO: Does number type always have CType?
-        using CType = GetArrowCType<T>;
+        using CType = ArrowGetCType<T>;
         columns.push_back(AllocateColumnData<CType>(field->type(), init_rows));
-        return;
+
       } else if constexpr (std::is_same_v<T, arrow::StringType>) {
         // TODO: The condition could be string-like.
         // Although the data buffer is empty, the offsets buffer should
@@ -95,7 +96,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         // use it.
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, offsets, data}));
-        return;
+
       } else if constexpr (std::is_same_v<T, arrow::FixedSizeBinaryType>) {
         auto field_size = field->type()->layout().FixedWidth(1).byte_width;
         result = arrow::AllocateResizableBuffer(field_size * init_rows);
@@ -104,9 +105,11 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         data->ZeroPadding();
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
-      }
-      throw std::runtime_error("Block created with unsupported type: " +
+
+      } else {
+        throw std::logic_error("Block created with unsupported type: " +
                                std::string(T::type_name()));
+      }
     };
 
     type_switcher(field->type(), get_allocate_buffer);
@@ -163,7 +166,7 @@ void Block::ComputeByteSize() {
   for (int i = 0; i < num_cols; i++) {
     auto get_byte_size = [&, this]<typename T>(T *ptr) {
       if constexpr (has_ctype_member<T>::value) {
-        using CType = GetArrowCType<T>;
+        using CType = ArrowGetCType<T>;
         int byte_width = sizeof(CType);
         column_sizes[i] = byte_width * columns[i]->length;
         num_bytes += byte_width * columns[i]->length;
@@ -204,58 +207,38 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
     char **azVals = &azCols[num_cols];
     int i = 0;
     for (i = 0; i < num_cols; i++) {
-      char *col_txt = NULL;
+      char *col_txt = nullptr;
       size_t txt_length = 0;
-      switch (schema->field(i)->type()->id()) {
-        case arrow::Type::STRING: {
-          auto col = std::static_pointer_cast<arrow::StringArray>(arrays[i]);
+
+      auto data_type = schema->field(i)->type();
+
+      auto lambda_func = [&, this]<typename T>(T *) {
+        if constexpr (arrow::is_number_type<T>::value) {
+          using ArrayType = ArrowGetArrayType<T>;
+          auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
+          col_txt = (char *)std::to_string(col->Value(row)).c_str();
+          txt_length = std::to_string(col->Value(row)).length();
+          return;
+        } else if constexpr (isOneOf<T, arrow::StringArray,
+                                     arrow::FixedSizeBinaryArray>::value) {
+          using ArrayType = ArrowGetArrayType<T>;
+          auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           col_txt = (char *)col->GetString(row).c_str();
           txt_length = col->GetString(row).length();
-          break;
-        }
-        case arrow::Type::type::FIXED_SIZE_BINARY: {
-          auto col =
-              std::static_pointer_cast<arrow::FixedSizeBinaryArray>(arrays[i]);
-          col_txt = (char *)col->GetString(row).c_str();
-          txt_length = col->GetString(row).length();
-          break;
-        }
-        case arrow::Type::type::INT64: {
-          auto col = std::static_pointer_cast<arrow::Int64Array>(arrays[i]);
-          col_txt = (char *)std::to_string(col->Value(row)).c_str();
-          txt_length = std::to_string(col->Value(row)).length();
-          break;
-        }
-        case arrow::Type::type::UINT32: {
-          auto col = std::static_pointer_cast<arrow::UInt32Array>(arrays[i]);
-          col_txt = (char *)std::to_string(col->Value(row)).c_str();
-          txt_length = std::to_string(col->Value(row)).length();
-          break;
-        }
-        case arrow::Type::type::UINT16: {
-          auto col = std::static_pointer_cast<arrow::UInt16Array>(arrays[i]);
-          col_txt = (char *)std::to_string(col->Value(row)).c_str();
-          txt_length = std::to_string(col->Value(row)).length();
-          break;
-        }
-        case arrow::Type::type::UINT8: {
-          auto col = std::static_pointer_cast<arrow::UInt8Array>(arrays[i]);
-          col_txt = (char *)std::to_string(col->Value(row)).c_str();
-          txt_length = std::to_string(col->Value(row)).length();
-          break;
-        }
-        case arrow::Type::type::DOUBLE: {
-          auto col = std::static_pointer_cast<arrow::DoubleArray>(arrays[i]);
-          col_txt = (char *)std::to_string(col->Value(row)).c_str();
-          txt_length = std::to_string(col->Value(row)).length();
-          break;
-        }
-        default: {
+          return;
+        } else {
+          const auto func_name = __FUNCTION__;
+          const auto lino = __LINE__;
+          const std::string func =
+              std::string(func_name) + " " + std::to_string(lino);
           throw std::logic_error(
-              std::string("Block created with unsupported type: ") +
+              func + std::string("Block created with unsupported type: ") +
               schema->field(i)->type()->ToString());
         }
-      }
+      };
+
+      type_switcher(data_type, lambda_func);
+
       azVals[i] = (char *)malloc(txt_length + 1);
       memcpy(azVals[i], (char *)col_txt, txt_length);
       azVals[i][txt_length] = 0;
@@ -283,50 +266,27 @@ void Block::print() {
     std::cout << valid_col->Value(row) << "\t";
 
     for (int i = 0; i < num_cols; i++) {
-      switch (schema->field(i)->type()->id()) {
-        case arrow::Type::STRING: {
-          auto col = std::static_pointer_cast<arrow::StringArray>(arrays[i]);
+      auto data_type = schema->field(i)->type();
 
+      auto lambda_func = [&, this]<typename T>(T *) {
+        if constexpr (arrow::is_number_type<T>::value) {
+          using ArrayType = ArrowGetArrayType<T>;
+          auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
+          std::cout << col->Value(row) << "\t";
+
+        } else if constexpr (isOneOf<T, arrow::StringType,
+                                     arrow::FixedSizeBinaryType>::value) {
+          using ArrayType = ArrowGetArrayType<T>;
+          auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           std::cout << col->GetString(row) << "\t";
-          break;
-        }
-        case arrow::Type::type::FIXED_SIZE_BINARY: {
-          auto col =
-              std::static_pointer_cast<arrow::FixedSizeBinaryArray>(arrays[i]);
-          std::cout << col->GetString(row) << "\t";
-          break;
-        }
-        case arrow::Type::type::INT64: {
-          auto col = std::static_pointer_cast<arrow::Int64Array>(arrays[i]);
-          std::cout << col->Value(row) << "\t";
-          break;
-        }
-        case arrow::Type::type::UINT32: {
-          auto col = std::static_pointer_cast<arrow::UInt32Array>(arrays[i]);
-          std::cout << col->Value(row) << "\t";
-          break;
-        }
-        case arrow::Type::type::UINT16: {
-          auto col = std::static_pointer_cast<arrow::UInt16Array>(arrays[i]);
-          std::cout << col->Value(row) << "\t";
-          break;
-        }
-        case arrow::Type::type::UINT8: {
-          auto col = std::static_pointer_cast<arrow::UInt8Array>(arrays[i]);
-          std::cout << col->Value(row) << "\t";
-          break;
-        }
-        case arrow::Type::type::DOUBLE: {
-          auto col = std::static_pointer_cast<arrow::DoubleArray>(arrays[i]);
-          std::cout << col->Value(row) << "\t";
-          break;
-        }
-        default: {
+        } else {
           throw std::logic_error(
               std::string("Block created with unsupported type: ") +
               schema->field(i)->type()->ToString());
         }
-      }
+      };
+
+      type_switcher(data_type, lambda_func);
     }
     std::cout << std::endl;
   }
@@ -384,16 +344,25 @@ int Block::InsertRecords(
   // NOTE: buffers do NOT account for Slice offsets!!!
   int offset = column_data[0]->offset;
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
+    auto data_type = schema->field(i)->type();
+
+    // TODO: Simplify this handler.
+    //  The string handler is unnecessarrily complicated.
+    // TODO: Verify type support.
+    auto insert_record_handler = [&, this]<typename T>(T *) {
+      if constexpr (has_ctype_member<T>::value) {
+        using CType = ArrowGetCType<T>;
+        InsertValues<CType>(i, offset, column_data[i], n);
+      }
+
+      else if constexpr (isOneOf<T, arrow::StringType>::value) {
         auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[1]);
         auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[2]);
-        // Extended the underlying data and offsets buffer. This may
-        // result in copying the data.
-        // n+1 because we also need to specify the endpoint of the
-        // last string.
+        // Extended the underlying data and offsets buffer.
+        // This may result in copying the data.
+        // n+1 because we also need to specify the endpoint of the last string.
         if ((num_rows + n + 2) * sizeof(int64_t) > offsets_buffer->capacity()) {
           status = offsets_buffer->Resize(
               offsets_buffer->capacity() + sizeof(int32_t) * (n + 1), false);
@@ -454,9 +423,9 @@ int Block::InsertRecords(
         columns[i]->length += n;
         column_sizes[i] += string_size;
         num_bytes += string_size;
-        break;
       }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+
+      else if constexpr (isOneOf<T, arrow::FixedSizeBinaryType>::value) {
         auto field_size =
             schema->field(i)->type()->layout().FixedWidth(1).byte_width;
         int data_size = field_size * n;
@@ -478,33 +447,13 @@ int Block::InsertRecords(
         columns[i]->length += n;
         column_sizes[i] += data_size;
         num_bytes += data_size;
-        break;
-      }
-      case arrow::Type::INT64: {
-        InsertValues<int64_t>(i, offset, column_data[i], n);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        InsertValues<uint32_t>(i, offset, column_data[i], n);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        InsertValues<uint32_t>(i, offset, column_data[i], n);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        InsertValues<uint8_t>(i, offset, column_data[i], n);
-        break;
-      }
-      case arrow::Type::DOUBLE: {
-        InsertValues<double_t>(i, offset, column_data[i], n);
-        break;
-      }
-      default:
+      } else {
         throw std::logic_error(
             std::string("Cannot insert tuple with unsupported type: ") +
             schema->field(i)->type()->ToString());
-    }
+      }
+    };
+    type_switcher(data_type, insert_record_handler);
   }
   num_rows += n;
   return num_rows - 1;
@@ -552,60 +501,53 @@ int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   int head = 0;
 
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[2]);
-        // Extended the underlying data and offsets buffer. This may
-        // result in copying the data.
-        // Use index i-1 because byte_widths does not include the byte
-        // width of the valid column.
-        status =
-            data_buffer->Resize(data_buffer->size() + byte_widths[i], false);
-        evaluate_status(status, __FUNCTION__, __LINE__);
-        status = offsets_buffer->Resize(
-            offsets_buffer->size() + sizeof(int32_t), false);
-        evaluate_status(status, __FUNCTION__, __LINE__);
+    auto data_type = schema->field(i)->type();
 
-        // Insert new offset
-        auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
-        int32_t new_offset = offsets_data[num_rows] + byte_widths[i];
-        std::memcpy(&offsets_data[num_rows + 1], &new_offset,
-                    sizeof(new_offset));
-        auto *values_data =
-            columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
-        std::memcpy(values_data, &record[head], byte_widths[i]);
-        columns[i]->length++;
-        column_sizes[i] += byte_widths[i];
-        head += byte_widths[i];
-        num_bytes += byte_widths[i];
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        InsertValue<int64_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        InsertValue<uint32_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        InsertValue<uint32_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        InsertValue<uint8_t>(i, head, &record[head], byte_widths[i]);
-        break;
-      }
-      default:
+    auto string_handler = [&]<typename T>(T *) {
+      auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[1]);
+      auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[2]);
+      // Extended the underlying data and offsets buffer. This may
+      // result in copying the data.
+      // Use index i-1 because byte_widths does not include the byte
+      // width of the valid column.
+      status = data_buffer->Resize(data_buffer->size() + byte_widths[i], false);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+      status = offsets_buffer->Resize(offsets_buffer->size() + sizeof(int32_t),
+                                      false);
+      evaluate_status(status, __FUNCTION__, __LINE__);
+
+      // Insert new offset
+      auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
+      int32_t new_offset = offsets_data[num_rows] + byte_widths[i];
+      std::memcpy(&offsets_data[num_rows + 1], &new_offset, sizeof(new_offset));
+      auto *values_data =
+          columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
+      std::memcpy(values_data, &record[head], byte_widths[i]);
+      columns[i]->length++;
+      column_sizes[i] += byte_widths[i];
+      head += byte_widths[i];
+      num_bytes += byte_widths[i];
+    };
+
+    auto handler = [&]<typename T>(T *ptr) {
+      if constexpr (arrow::is_string_type<T>::value) {
+        return string_handler(ptr);
+
+      } else if constexpr (has_ctype_member<T>::value) {
+        using CType = ArrowGetCType<T>;
+        InsertValue<CType>(i, head, &record[head], byte_widths[i]);
+
+      } else {
         throw std::logic_error(
             std::string("Cannot insert tuple with unsupported type: ") +
             schema->field(i)->type()->ToString());
-    }
+      }
+    };
+    type_switcher(data_type, handler);
   }
+
   return num_rows++;
 }
 
@@ -682,105 +624,99 @@ int Block::InsertRecord(std::vector<std::string_view> record,
   int head = 0;
 
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[2]);
+    auto data_type = schema->field(i)->type();
+    // TODO: Simplify these two handlers.
+    auto insert_record_string_handler = [&]<typename T>(T *) {
+      auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[1]);
+      auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[2]);
 
-        // Extended the underlying data and offsets buffer. This may
-        // result in copying the data.
+      // Extended the underlying data and offsets buffer. This may
+      // result in copying the data.
 
-        // IMPORTANT: DO NOT GRAB A POINTER TO THE UNDERLYING DATA
-        // BEFORE YOU RESIZE IT. THE DATA WILL BE COPIED TO A NEW
-        // LOCATION, AND YOUR POINTER WILL BE GARBAGE.
-        auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
+      // IMPORTANT: DO NOT GRAB A POINTER TO THE UNDERLYING DATA
+      // BEFORE YOU RESIZE IT. THE DATA WILL BE COPIED TO A NEW
+      // LOCATION, AND YOUR POINTER WILL BE GARBAGE.
+      auto *offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
 
-        if (offsets_data[num_rows] + record[i].length() >
-            data_buffer->capacity()) {
-          status = data_buffer->Resize(
-              data_buffer->capacity() + record[i].length(), false);
-          evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-
-        // There are length+1 offsets, and we are going ot add
-        // another offsets, so +2
-        if ((columns[i]->length + 2) * sizeof(int32_t) >
-            offsets_buffer->capacity()) {
-          // Resize will not resize the buffer if the inputted size
-          // equals the current size of the buffer. To force
-          // resizing in this case, we add +1.
-          status = offsets_buffer->Resize((num_rows + 2) * sizeof(int32_t) + 1,
-                                          false);
-          evaluate_status(status, __FUNCTION__, __LINE__);
-          // optimize? is this necessary?
-          offsets_buffer->ZeroPadding();
-        }
-        // We must fetch the offsets data again, since resizing might
-        // have moved its location in memory.
-        offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
-
-        // Insert new offset
-        // you must zero the padding or else you might get bogus
-        // offset data!
-
-        int32_t new_offset = offsets_data[num_rows] + record[i].length();
-        std::memcpy(&offsets_data[num_rows + 1], &new_offset,
-                    sizeof(new_offset));
-
-        auto *values_data =
-            columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
-        std::memcpy(values_data, &record[i].front(), record[i].length());
-
-        columns[i]->length++;
-        head += record[i].length();
-        column_sizes[i] += record[i].length();
-        break;
+      if (offsets_data[num_rows] + record[i].length() >
+          data_buffer->capacity()) {
+        status = data_buffer->Resize(
+            data_buffer->capacity() + record[i].length(), false);
+        evaluate_status(status, __FUNCTION__, __LINE__);
       }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        auto field_size = record[i].length();
-        auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
-            columns[i]->buffers[1]);
 
-        if (column_sizes[i] + field_size > data_buffer->capacity()) {
-          // Resize will not resize the buffer if the inputted size
-          // equals the current size of the buffer. To force
-          // resizing in this case, we add +1.
-          auto status = data_buffer->Resize(
-              data_buffer->capacity() + field_size + 1, false);
-          evaluate_status(status, __FUNCTION__, __LINE__);
-        }
-
-        auto *dest = columns[i]->GetMutableValues<uint8_t>(1, num_rows);
-        std::memcpy(dest, &record[i].front(), field_size);
-
-        head += field_size;
-        column_sizes[i] += field_size;
-        columns[i]->length++;
-        break;
+      // There are length+1 offsets, and we are going ot add
+      // another offsets, so +2
+      if ((columns[i]->length + 2) * sizeof(int32_t) >
+          offsets_buffer->capacity()) {
+        // Resize will not resize the buffer if the inputted size
+        // equals the current size of the buffer. To force
+        // resizing in this case, we add +1.
+        status =
+            offsets_buffer->Resize((num_rows + 2) * sizeof(int32_t) + 1, false);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+        // optimize? is this necessary?
+        offsets_buffer->ZeroPadding();
       }
-      case arrow::Type::INT64: {
+      // We must fetch the offsets data again, since resizing might
+      // have moved its location in memory.
+      offsets_data = columns[i]->GetMutableValues<int32_t>(1, 0);
+
+      // Insert new offset
+      // you must zero the padding or else you might get bogus
+      // offset data!
+
+      int32_t new_offset = offsets_data[num_rows] + record[i].length();
+      std::memcpy(&offsets_data[num_rows + 1], &new_offset, sizeof(new_offset));
+
+      auto *values_data =
+          columns[i]->GetMutableValues<uint8_t>(2, offsets_data[num_rows]);
+      std::memcpy(values_data, &record[i].front(), record[i].length());
+
+      columns[i]->length++;
+      head += record[i].length();
+      column_sizes[i] += record[i].length();
+    };
+
+    auto insert_record_fixed_byte_handler = [&]<typename T>(T *) {
+      auto field_size = record[i].length();
+      auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
+          columns[i]->buffers[1]);
+
+      if (column_sizes[i] + field_size > data_buffer->capacity()) {
+        // Resize will not resize the buffer if the inputted size
+        // equals the current size of the buffer. To force
+        // resizing in this case, we add +1.
+        auto status = data_buffer->Resize(
+            data_buffer->capacity() + field_size + 1, false);
+        evaluate_status(status, __FUNCTION__, __LINE__);
+      };
+
+      auto *dest = columns[i]->GetMutableValues<uint8_t>(1, num_rows);
+      std::memcpy(dest, &record[i].front(), field_size);
+
+      head += field_size;
+      column_sizes[i] += field_size;
+      columns[i]->length++;
+    };
+
+    auto insert_record_handler = [&]<typename T>(T *ptr) {
+      if constexpr (arrow::is_string_type<T>::value) {
+        return insert_record_string_handler(ptr);
+      } else if constexpr (arrow::is_fixed_size_binary_type<T>::value) {
+        return insert_record_fixed_byte_handler(ptr);
+      } else if constexpr (has_ctype_member<T>::value) {
         InsertCsvValue<int64_t>(i, head, record[i]);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        InsertCsvValue<uint32_t>(i, head, record[i]);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        InsertCsvValue<uint16_t>(i, head, record[i]);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        InsertCsvValue<uint8_t>(i, head, record[i]);
-        break;
-      }
-      default:
+      } else {
         throw std::logic_error(
-            std::string("Cannot insert tuple with unsupported type: ") +
-            schema->field(i)->type()->ToString());
-    }
+            std::string("Block::InsertRecord(): "
+                        "Cannot insert tuple with unsupported type: ") +
+            data_type->ToString());
+      }
+    };
+    type_switcher(data_type, insert_record_handler);
   }
   num_bytes += head;
   return num_rows++;
@@ -810,49 +746,45 @@ void Block::InsertCsvValue(int col_num, int &head, std::string_view record) {
 void Block::TruncateBuffers() {
   arrow::Status status;
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
+    auto data_type = schema->field(i)->type();
+
+    auto truncate_handler = [&]<typename T>(T *) {
+      if constexpr (has_ctype_member<T>::value) {
+        using CType = ArrowGetCType<T>;
+        TruncateColumnBuffer<CType>(i);
+        return;
+      }
+      // TODO: Handles any type with offset
+      // TODO: Handles other string type
+      else if constexpr (arrow::is_string_type<T>::value) {
         auto offsets_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[1]);
         auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[2]);
         status = data_buffer->Resize(column_sizes[i], true);
         evaluate_status(status, __FUNCTION__, __LINE__);
+        // TODO: Why do we use sizeof(int32_t) here to resize?
         status = offsets_buffer->Resize((num_rows + 1) * sizeof(int32_t), true);
         evaluate_status(status, __FUNCTION__, __LINE__);
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        auto field_size =
-            schema->field(i)->type()->layout().FixedWidth(1).byte_width;
+        return;
+
+      } else if constexpr (isOneOf<T, arrow::FixedSizeBinaryType>::value) {
+        // TODO: Why do we assume the fixed width == 1?
+        auto field_size = data_type->layout().FixedWidth(1).byte_width;
         auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
             columns[i]->buffers[1]);
         status = data_buffer->Resize(num_rows * field_size, true);
         evaluate_status(status, __FUNCTION__, __LINE__);
-      }
-        // This works with any fixed-width type, but for now, I specify INT64
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        TruncateColumnBuffer<int64_t>(i);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        TruncateColumnBuffer<uint32_t>(i);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        TruncateColumnBuffer<uint16_t>(i);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        TruncateColumnBuffer<uint8_t>(i);
-        break;
-      }
-      default:
+        return;
+
+      } else {
         throw std::logic_error(
-            std::string("Cannot insert tuple with unsupported type: ") +
-            schema->field(i)->type()->ToString());
-    }
+            std::string("In Block::TruncateBuffers(): "
+                        "Cannot insert tuple with unsupported type: ") +
+            data_type->ToString());
+      }
+    };
+    type_switcher(data_type, truncate_handler);
   }
 }
 

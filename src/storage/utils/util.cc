@@ -30,6 +30,7 @@
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
 #include "storage/table.h"
+#include "type/type_helper.h"
 
 void evaluate_status(const arrow::Status& status, const char* function_name,
                      int line_no) {
@@ -40,6 +41,8 @@ void evaluate_status(const arrow::Status& status, const char* function_name,
   }
 }
 
+// TODO: Refactor this function.
+//  I don't think we need to do this.
 std::shared_ptr<arrow::RecordBatch> copy_record_batch(
     const std::shared_ptr<arrow::RecordBatch>& batch) {
   arrow::Status status;
@@ -48,8 +51,11 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
   for (int i = 0; i < batch->num_columns(); i++) {
     auto column = batch->column(i);
     auto buffers = column->data()->buffers;
-    switch (column->type_id()) {
-      case arrow::Type::STRING: {
+
+    auto data_type = column->type();
+    auto lambda_func = [&]<typename T>(T*) {
+      // TODO: This case should capture all the type with OFFSET?
+      if constexpr (hustle::isOneOf<T, arrow::StringType>::value) {
         std::shared_ptr<arrow::Buffer> offsets;
         std::shared_ptr<arrow::Buffer> data;
         auto result = buffers[1]->CopySlice(0, buffers[1]->size());
@@ -62,64 +68,25 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 
         arraydatas.push_back(arrow::ArrayData::Make(
             arrow::utf8(), column->length(), {nullptr, offsets, data}));
-        break;
-      }
+      } else if constexpr (hustle::has_builder_type<
+                               T>::is_defalut_constructable_v) {
+        auto type_singleton = arrow::TypeTraits<T>::type_singleton();
 
-      case arrow::Type::BOOL: {
         std::shared_ptr<arrow::Buffer> data;
         auto result = buffers[1]->CopySlice(0, buffers[1]->size());
         evaluate_status(result.status(), __FUNCTION__, __LINE__);
         data = result.ValueOrDie();
 
         arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::boolean(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::INT64: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
+            type_singleton, column->length(), {nullptr, data}));
 
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::int64(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::UINT32: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
-
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::uint32(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::UINT16: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
-
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::uint16(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::UINT8: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
-
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::uint8(), column->length(), {nullptr, data}));
-        break;
-      }
-      default: {
+      } else {
         throw std::logic_error(std::string("Cannot copy data of type ") +
                                column->type()->ToString());
       }
-    }
+    };
+
+    hustle::type_switcher(data_type, lambda_func);
   }
 
   return arrow::RecordBatch::Make(batch->schema(), batch->num_rows(),
@@ -145,9 +112,8 @@ void read_record_batch(
 }
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
-std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
-                                                       bool read_only,
-                                                       const char* table_name) {
+std::shared_ptr<hustle::storage::DBTable> read_from_file(
+    const char* path, bool read_only, const char* table_name) {
   auto& scheduler = hustle::Scheduler::GlobalInstance();
 
   arrow::Status status;
@@ -176,7 +142,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
   scheduler.join();
 
   return std::make_shared<hustle::storage::DBTable>(table_name, record_batches,
-                                                  BLOCK_SIZE);
+                                                    BLOCK_SIZE);
 }
 
 std::vector<std::shared_ptr<arrow::Array>> get_columns_from_record_batch(
@@ -223,40 +189,32 @@ void write_to_file(const char* path, hustle::storage::DBTable& table) {
 
 int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema) {
   int fixed_width = 0;
-
   for (auto& field : schema->fields()) {
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
-        break;
-      }
-      case arrow::Type::BOOL: {
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+    auto data_type = field->type();
+    // TODO: (Refactor) Review the function design.
+    // TODO: (Type Coverage) What is the benaviour of other types?
+
+    auto handler = [&]<typename T>(T*) {
+      if constexpr (hustle::has_ctype_member<T>::value) {
+        using CType = typename hustle::ArrowGetCType<T>;
+        fixed_width += sizeof(CType);
+      } else if constexpr (hustle::isOneOf<T,
+                                           arrow::FixedSizeBinaryType>::value) {
         fixed_width += field->type()->layout().FixedWidth(1).byte_width;
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        fixed_width += sizeof(int64_t);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        fixed_width += sizeof(uint32_t);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        fixed_width += sizeof(uint8_t);
-        break;
-      }
-      default: {
+      } else if constexpr (hustle::isOneOf<T, arrow::BooleanType,
+                                           arrow::StringType>::value) {
+        // Do nothing for these types
+        return;
+      } else {
         throw std::logic_error(
             std::string(
                 "Cannot compute fixed record width. Unsupported type: ") +
             field->type()->ToString());
       }
-    }
+    };
+    hustle::type_switcher(data_type, handler);
   }
+
   return fixed_width;
 }
 
@@ -265,42 +223,30 @@ std::vector<int32_t> get_field_sizes(
   std::vector<int32_t> field_sizes;
 
   for (auto& field : schema->fields()) {
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
-        field_sizes.push_back(-1);
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+    auto data_type = field->type();
+
+    auto handler = [&]<typename T>(T*) {
+      if constexpr (hustle::has_ctype_member<T>::value) {
+        using CType = typename hustle::ArrowGetCType<T>;
+        field_sizes.push_back(sizeof(CType));
+
+      } else if constexpr (hustle::isOneOf<T,
+                                           arrow::FixedSizeBinaryType>::value) {
         field_sizes.push_back(field->type()->layout().FixedWidth(1).byte_width);
-        break;
-      }
-      case arrow::Type::BOOL: {
+
+      } else if constexpr (hustle::isOneOf<T, arrow::BooleanType,
+                                           arrow::StringType>::value) {
         field_sizes.push_back(-1);
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        field_sizes.push_back(sizeof(int64_t));
-        break;
-      }
-      case arrow::Type::UINT32: {
-        field_sizes.push_back(sizeof(uint32_t));
-        break;
-      }
-      case arrow::Type::UINT16: {
-        field_sizes.push_back(sizeof(uint16_t));
-        break;
-      }
-      case arrow::Type::UINT8: {
-        field_sizes.push_back(sizeof(uint8_t));
-        break;
-      }
-      default: {
+
+      } else {
         throw std::logic_error(
-            std::string("Cannot get field size. Unsupported type: ") +
+            std::string(
+                "Cannot compute fixed record width. Unsupported type: ") +
             field->type()->ToString());
       }
-    }
+    };
+
+    hustle::type_switcher(data_type, handler);
   }
   return field_sizes;
 }
@@ -328,6 +274,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
   char buf[1024];
 
+  // TODO: (Refactor) Remove these unused vars?
   int num_bytes = 0;
   int variable_record_width;
   int fixed_record_width = compute_fixed_record_width(schema);
@@ -335,42 +282,36 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
   std::vector<int> string_column_indices;
 
   int32_t byte_widths[schema->num_fields()];
+  // TODO: (Refactor) Remove these unused vars?
   int32_t byte_offsets[schema->num_fields()];
 
   for (int i = 0; i < schema->num_fields(); i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
+    auto data_type = schema->field(i)->type();
+
+    // TODO: (Refactor) If specify [&] only, the lambda will get deleted and
+    //  throw error.
+    auto handler = [&byte_widths, &i, &string_column_indices,
+                    &data_type]<typename T>(T*) {
+      if constexpr (hustle::has_ctype_member<T>::value) {
+        using CType = typename hustle::ArrowGetCType<T>;
+        byte_widths[i] = sizeof(CType);
+
+      } else if constexpr (hustle::isOneOf<T,
+                                           arrow::FixedSizeBinaryType>::value) {
+        byte_widths[i] = data_type->layout().FixedWidth(1).byte_width;
+
+      } else if constexpr (hustle::isOneOf<T, arrow::StringType>::value) {
         string_column_indices.push_back(i);
         byte_widths[i] = -1;
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        byte_widths[i] =
-            schema->field(i)->type()->layout().FixedWidth(1).byte_width;
-        break;
-      }
-      case arrow::Type::INT64: {
-        byte_widths[i] = sizeof(int64_t);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        byte_widths[i] = sizeof(uint32_t);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        byte_widths[i] = sizeof(uint16_t);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        byte_widths[i] = sizeof(uint8_t);
-        break;
-      }
-      default: {
+
+      } else {
         throw std::logic_error(
             std::string("Cannot get byte width. Unsupported type: ") +
-            schema->field(i)->type()->ToString());
+            data_type->ToString());
       }
-    }
+    };
+
+    hustle::type_switcher(data_type, handler);
   }
 
   std::string line;
@@ -389,7 +330,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
     out_table->InsertRecord(values, byte_widths);
   }
-  if(metadata_enabled) {
+  if (metadata_enabled) {
     out_table->BuildMetadata();
   }
   return out_table;

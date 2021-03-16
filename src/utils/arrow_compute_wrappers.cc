@@ -17,13 +17,15 @@
 
 #include "arrow_compute_wrappers.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include <thread>
 
 #include "storage/utils/util.h"
+#include "type/type_helper.h"
 
 namespace hustle {
+
 
 Context::Context() { slice_length_ = 30000; }
 
@@ -302,49 +304,39 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
           internal->spawnLambdaTask([this, indices_array, chunked_values,
                                      has_index_chunks, offsets, index_chunks,
                                      i] {
-            switch (chunked_values->type()->id()) {
-              case arrow::Type::INT64: {
-                std::vector<const int64_t*> values_data_vec(
-                    chunked_values->num_chunks());
-                for (int i = 0; i < chunked_values->num_chunks(); ++i) {
-                  values_data_vec[i] =
-                      chunked_values->chunk(i)->data()->GetValues<int64_t>(1);
-                }
-                if (has_index_chunks) {
-                  apply_indices_internal2<int64_t>(
-                      chunked_values, values_data_vec.data(), indices_array,
-                      index_chunks.make_array(), offsets, i);
-                } else {
-                  apply_indices_internal<int64_t>(chunked_values,
-                                                  values_data_vec.data(),
-                                                  indices_array, offsets, i);
-                }
-                break;
-              }
-              case arrow::Type::UINT32: {
-                std::vector<const uint32_t*> values_data_vec(
-                    chunked_values->num_chunks());
-                for (int i = 0; i < chunked_values->num_chunks(); ++i) {
-                  values_data_vec[i] =
-                      chunked_values->chunk(i)->data()->GetValues<uint32_t>(1);
-                }
-                if (has_index_chunks) {
-                  apply_indices_internal2<uint32_t>(
-                      chunked_values, values_data_vec.data(), indices_array,
-                      index_chunks.make_array(), offsets, i);
-                } else {
-                  apply_indices_internal<uint32_t>(chunked_values,
-                                                   values_data_vec.data(),
-                                                   indices_array, offsets, i);
-                }
-                break;
-              }
-              case arrow::Type::STRING: {
+            auto data_type = chunked_values->type();
+
+            auto apply_index_handler = [&, this]<typename T>(T*) {
+              if constexpr (arrow::is_string_type<T>::value) {
                 apply_indices_internal_str(chunked_values, indices_array,
                                            offsets, i);
-                break;
+                return;
               }
-            }
+              if constexpr (has_ctype_member<T>::value) {
+                using CType = ArrowGetCType<T>;
+                std::vector<const CType*> values_data_vec(
+                    chunked_values->num_chunks());
+                for (int j = 0; j < chunked_values->num_chunks(); ++j) {
+                  values_data_vec[j] =
+                      chunked_values->chunk(i)->data()->GetValues<CType>(1);
+                }
+                if (has_index_chunks) {
+                  apply_indices_internal2<CType>(
+                      chunked_values, values_data_vec.data(), indices_array,
+                      index_chunks.make_array(), offsets, i);
+                } else {
+                  apply_indices_internal<CType>(chunked_values,
+                                                values_data_vec.data(),
+                                                indices_array, offsets, i);
+                }
+                return;
+              }
+
+              throw std::logic_error("Apply indices to unsupported type:" +
+                                     std::string(T::type_name()));
+            };
+
+            type_switcher(data_type, apply_index_handler);
           });
         }
       }),
