@@ -86,7 +86,6 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
       }
     };
 
-    // Perform Type switch
     hustle::type_switcher(data_type, lambda_func);
   }
 
@@ -190,40 +189,32 @@ void write_to_file(const char* path, hustle::storage::DBTable& table) {
 
 int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema) {
   int fixed_width = 0;
-
   for (auto& field : schema->fields()) {
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
-        break;
-      }
-      case arrow::Type::BOOL: {
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+    auto data_type = field->type();
+    // TODO: (Refactor) Review the function design.
+    // TODO: (Type Coverage) What is the benaviour of other types?
+
+    auto handler = [&]<typename T>(T*) {
+      if constexpr (hustle::has_ctype_member<T>::value) {
+        using CType = typename hustle::ArrowGetCType<T>;
+        fixed_width += sizeof(CType);
+      } else if constexpr (hustle::isOneOf<T,
+                                           arrow::FixedSizeBinaryType>::value) {
         fixed_width += field->type()->layout().FixedWidth(1).byte_width;
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        fixed_width += sizeof(int64_t);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        fixed_width += sizeof(uint32_t);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        fixed_width += sizeof(uint8_t);
-        break;
-      }
-      default: {
+      } else if constexpr (hustle::isOneOf<T, arrow::BooleanType,
+                                           arrow::StringType>::value) {
+        // Do nothing for these types
+        return;
+      } else {
         throw std::logic_error(
             std::string(
                 "Cannot compute fixed record width. Unsupported type: ") +
             field->type()->ToString());
       }
-    }
+    };
+    hustle::type_switcher(data_type, handler);
   }
+
   return fixed_width;
 }
 
