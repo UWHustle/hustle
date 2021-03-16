@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "absl/strings/numbers.h"
+#include "arrow_compute_wrappers.h"
 #include "storage/utils/util.h"
 #include "type/type_helper.h"
 
@@ -104,6 +105,7 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
         data->ZeroPadding();
         columns.push_back(
             arrow::ArrayData::Make(field->type(), 0, {nullptr, data}));
+
       } else {
         throw std::logic_error("Block created with unsupported type: " +
                                std::string(T::type_name()));
@@ -225,8 +227,12 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
           txt_length = col->GetString(row).length();
           return;
         } else {
+          const auto func_name = __FUNCTION__;
+          const auto lino = __LINE__;
+          const std::string func =
+              std::string(func_name) + " " + std::to_string(lino);
           throw std::logic_error(
-              std::string("Block created with unsupported type: ") +
+              func + std::string("Block created with unsupported type: ") +
               schema->field(i)->type()->ToString());
         }
       };
@@ -268,8 +274,8 @@ void Block::print() {
           auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           std::cout << col->Value(row) << "\t";
 
-        } else if constexpr (isOneOf<T, arrow::StringArray,
-                                     arrow::FixedSizeBinaryArray>::value) {
+        } else if constexpr (isOneOf<T, arrow::StringType,
+                                     arrow::FixedSizeBinaryType>::value) {
           using ArrayType = ArrowGetArrayType<T>;
           auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           std::cout << col->GetString(row) << "\t";

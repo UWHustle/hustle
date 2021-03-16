@@ -15,6 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// TODO: Refactor this whole file using the C++17 constexpr.
+
 #ifndef HUSTLE_RECORD_UTILS_H
 #define HUSTLE_RECORD_UTILS_H
 

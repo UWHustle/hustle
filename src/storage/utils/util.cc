@@ -30,6 +30,7 @@
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
 #include "storage/table.h"
+#include "type/type_helper.h"
 
 void evaluate_status(const arrow::Status& status, const char* function_name,
                      int line_no) {
@@ -40,6 +41,8 @@ void evaluate_status(const arrow::Status& status, const char* function_name,
   }
 }
 
+// TODO: Refactor this function.
+//  I don't think we need to do this.
 std::shared_ptr<arrow::RecordBatch> copy_record_batch(
     const std::shared_ptr<arrow::RecordBatch>& batch) {
   arrow::Status status;
@@ -48,8 +51,11 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
   for (int i = 0; i < batch->num_columns(); i++) {
     auto column = batch->column(i);
     auto buffers = column->data()->buffers;
-    switch (column->type_id()) {
-      case arrow::Type::STRING: {
+
+    auto data_type = column->type();
+    auto lambda_func = [&]<typename T>(T*) {
+      // TODO: This case should capture all the type with OFFSET?
+      if constexpr (hustle::isOneOf<T, arrow::StringType>::value) {
         std::shared_ptr<arrow::Buffer> offsets;
         std::shared_ptr<arrow::Buffer> data;
         auto result = buffers[1]->CopySlice(0, buffers[1]->size());
@@ -62,64 +68,26 @@ std::shared_ptr<arrow::RecordBatch> copy_record_batch(
 
         arraydatas.push_back(arrow::ArrayData::Make(
             arrow::utf8(), column->length(), {nullptr, offsets, data}));
-        break;
-      }
+      } else if constexpr (hustle::has_builder_type<
+                               T>::is_defalut_constructable_v) {
+        auto type_singleton = arrow::TypeTraits<T>::type_singleton();
 
-      case arrow::Type::BOOL: {
         std::shared_ptr<arrow::Buffer> data;
         auto result = buffers[1]->CopySlice(0, buffers[1]->size());
         evaluate_status(result.status(), __FUNCTION__, __LINE__);
         data = result.ValueOrDie();
 
         arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::boolean(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::INT64: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
+            type_singleton, column->length(), {nullptr, data}));
 
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::int64(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::UINT32: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
-
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::uint32(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::UINT16: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
-
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::uint16(), column->length(), {nullptr, data}));
-        break;
-      }
-      case arrow::Type::UINT8: {
-        std::shared_ptr<arrow::Buffer> data;
-        auto result = buffers[1]->CopySlice(0, buffers[1]->size());
-        evaluate_status(result.status(), __FUNCTION__, __LINE__);
-        data = result.ValueOrDie();
-
-        arraydatas.push_back(arrow::ArrayData::Make(
-            arrow::uint8(), column->length(), {nullptr, data}));
-        break;
-      }
-      default: {
+      } else {
         throw std::logic_error(std::string("Cannot copy data of type ") +
                                column->type()->ToString());
       }
-    }
+    };
+
+    // Perform Type switch
+    hustle::type_switcher(data_type, lambda_func);
   }
 
   return arrow::RecordBatch::Make(batch->schema(), batch->num_rows(),
@@ -145,9 +113,8 @@ void read_record_batch(
 }
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
-std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
-                                                       bool read_only,
-                                                       const char* table_name) {
+std::shared_ptr<hustle::storage::DBTable> read_from_file(
+    const char* path, bool read_only, const char* table_name) {
   auto& scheduler = hustle::Scheduler::GlobalInstance();
 
   arrow::Status status;
@@ -176,7 +143,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
   scheduler.join();
 
   return std::make_shared<hustle::storage::DBTable>(table_name, record_batches,
-                                                  BLOCK_SIZE);
+                                                    BLOCK_SIZE);
 }
 
 std::vector<std::shared_ptr<arrow::Array>> get_columns_from_record_batch(
@@ -389,7 +356,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
     out_table->InsertRecord(values, byte_widths);
   }
-  if(metadata_enabled) {
+  if (metadata_enabled) {
     out_table->BuildMetadata();
   }
   return out_table;

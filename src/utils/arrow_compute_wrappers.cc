@@ -26,6 +26,12 @@
 
 namespace hustle {
 
+void throw_type_error(const char* function_name, const int line_no,
+                      const std::string message) {
+  const auto r = std::string(function_name) + std::to_string(line_no) + message;
+  throw std::logic_error(r);
+}
+
 Context::Context() { slice_length_ = 30000; }
 
 template <typename T>
@@ -332,7 +338,7 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
               }
 
               throw std::logic_error("Apply indices to unsupported type:" +
-                                       std::string(T::type_name()));
+                                     std::string(T::type_name()));
             };
 
             type_switcher(data_type, apply_index_handler);
