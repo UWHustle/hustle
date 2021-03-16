@@ -223,42 +223,31 @@ std::vector<int32_t> get_field_sizes(
   std::vector<int32_t> field_sizes;
 
   for (auto& field : schema->fields()) {
-    switch (field->type()->id()) {
-      case arrow::Type::STRING: {
-        field_sizes.push_back(-1);
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
+    auto data_type = field->type();
+
+    auto handler = [&]<typename T>(T*) {
+      if constexpr (hustle::has_ctype_member<T>::value) {
+        using CType = typename hustle::ArrowGetCType<T>;
+        field_sizes.push_back(sizeof(CType));
+
+      } else if constexpr (hustle::isOneOf<T,
+                                           arrow::FixedSizeBinaryType>::value) {
         field_sizes.push_back(field->type()->layout().FixedWidth(1).byte_width);
-        break;
-      }
-      case arrow::Type::BOOL: {
+
+      } else if constexpr (hustle::isOneOf<T, arrow::BooleanType,
+                                           arrow::StringType>::value) {
         field_sizes.push_back(-1);
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
-        field_sizes.push_back(sizeof(int64_t));
-        break;
-      }
-      case arrow::Type::UINT32: {
-        field_sizes.push_back(sizeof(uint32_t));
-        break;
-      }
-      case arrow::Type::UINT16: {
-        field_sizes.push_back(sizeof(uint16_t));
-        break;
-      }
-      case arrow::Type::UINT8: {
-        field_sizes.push_back(sizeof(uint8_t));
-        break;
-      }
-      default: {
+
+      } else {
         throw std::logic_error(
-            std::string("Cannot get field size. Unsupported type: ") +
+            std::string(
+                "Cannot compute fixed record width. Unsupported type: ") +
             field->type()->ToString());
       }
-    }
+    };
+
+    hustle::type_switcher(data_type, handler);
+
   }
   return field_sizes;
 }
