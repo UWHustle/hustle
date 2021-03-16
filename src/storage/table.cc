@@ -180,33 +180,20 @@ void DBTable::InsertRecords(
 int DBTable::get_record_size(int32_t *byte_widths) {
   int record_size = 0;
   int num_cols = get_num_cols();
+
   for (int i = 0; i < num_cols; i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
-        record_size += byte_widths[i];
-        break;
-      }
-      case arrow::Type::DOUBLE:
-      case arrow::Type::INT64: {
+    auto data_type = schema->field(i)->type();
+    auto handler = [&]<typename T>(T *) {
+      if constexpr (has_ctype_member<T>::value) {
         record_size += sizeof(int64_t);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        record_size += sizeof(uint32_t);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        record_size += sizeof(uint16_t);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        record_size += sizeof(uint8_t);
-        break;
-      }
-      default:
+      } else if constexpr (isOneOf<T, arrow::StringType>::value) {
+        record_size += byte_widths[i];
+      } else {
         throw std::logic_error(std::string("unsupported type: ") +
-                               schema->field(i)->type()->ToString());
-    }
+                               data_type->ToString());
+      }
+    };
+    type_switcher(data_type, handler);
   }
   return record_size;
 }
