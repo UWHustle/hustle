@@ -247,7 +247,6 @@ std::vector<int32_t> get_field_sizes(
     };
 
     hustle::type_switcher(data_type, handler);
-
   }
   return field_sizes;
 }
@@ -275,6 +274,7 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
   char buf[1024];
 
+  // TODO: (Refactor) Remove these unused vars?
   int num_bytes = 0;
   int variable_record_width;
   int fixed_record_width = compute_fixed_record_width(schema);
@@ -282,42 +282,36 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
   std::vector<int> string_column_indices;
 
   int32_t byte_widths[schema->num_fields()];
+  // TODO: (Refactor) Remove these unused vars?
   int32_t byte_offsets[schema->num_fields()];
 
   for (int i = 0; i < schema->num_fields(); i++) {
-    switch (schema->field(i)->type()->id()) {
-      case arrow::Type::STRING: {
+    auto data_type = schema->field(i)->type();
+
+    // TODO: (Refactor) If specify [&] only, the lambda will get deleted and
+    //  throw error.
+    auto handler = [&byte_widths, &i, &string_column_indices,
+                    &data_type]<typename T>(T*) {
+      if constexpr (hustle::has_ctype_member<T>::value) {
+        using CType = typename hustle::ArrowGetCType<T>;
+        byte_widths[i] = sizeof(CType);
+
+      } else if constexpr (hustle::isOneOf<T,
+                                           arrow::FixedSizeBinaryType>::value) {
+        byte_widths[i] = data_type->layout().FixedWidth(1).byte_width;
+
+      } else if constexpr (hustle::isOneOf<T, arrow::StringType>::value) {
         string_column_indices.push_back(i);
         byte_widths[i] = -1;
-        break;
-      }
-      case arrow::Type::FIXED_SIZE_BINARY: {
-        byte_widths[i] =
-            schema->field(i)->type()->layout().FixedWidth(1).byte_width;
-        break;
-      }
-      case arrow::Type::INT64: {
-        byte_widths[i] = sizeof(int64_t);
-        break;
-      }
-      case arrow::Type::UINT32: {
-        byte_widths[i] = sizeof(uint32_t);
-        break;
-      }
-      case arrow::Type::UINT16: {
-        byte_widths[i] = sizeof(uint16_t);
-        break;
-      }
-      case arrow::Type::UINT8: {
-        byte_widths[i] = sizeof(uint8_t);
-        break;
-      }
-      default: {
+
+      } else {
         throw std::logic_error(
             std::string("Cannot get byte width. Unsupported type: ") +
-            schema->field(i)->type()->ToString());
+            data_type->ToString());
       }
-    }
+    };
+
+    hustle::type_switcher(data_type, handler);
   }
 
   std::string line;
