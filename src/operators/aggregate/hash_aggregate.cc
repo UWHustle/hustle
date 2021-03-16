@@ -575,9 +575,14 @@ void HashAggregate::Finish(Task *ctx) {
     //    is not going to mutate.
     // TODO: This is a very very tedious construction of the group_by builder.
     //  Try to optimize it by using the good features within the arrow.
-    switch (group_by_type_id) {
-      case arrow::Type::STRING: {
+
+    auto data_type = group_by_type;
+
+    // TODO: (Optimize) Can we indicate the accessor and collapse the code?
+    auto lambda_fn = [&]<typename T>(T *) {
+      if constexpr (arrow::is_string_type<T>::value) {
         arrow::StringBuilder builder;
+
         for (auto const it : *global_tuple_map) {
           int chunk_id, item_index;
           auto hash_key = it.first;
@@ -585,55 +590,66 @@ void HashAggregate::Finish(Task *ctx) {
           auto raw_chunk = group_by.chunks().at(chunk_id);
           auto chunk = std::static_pointer_cast<arrow::StringArray>(raw_chunk);
           // TODO: Optimize this to make it std::move()?
+          // TODO: (C++20) Perfect forward this to the builder.
           std::string value = chunk->GetString(item_index);
           // TODO: Try to use the UnsafeAppend here,
           //  but encounter an error.
-          //            builder.UnsafeAppend(value);
+          //  builder.UnsafeAppend(value);
           builder.Append(value);
         }
         std::shared_ptr<arrow::Array> array;
         arrow::Status st = builder.Finish(&array);
+        // TODO: Use the throw function.
         if (!st.ok()) {
-          std::cerr << "Building the array for " << i
-                    << "th groupby column failed." << std::endl;
-          exit(1);
+          throw std::runtime_error("Building the array for " +
+                                   std::to_string(i) +
+                                   "th groupby column failed.");
         }
         group_by_arrays.push_back(array);
-        break;
-      }
-      case arrow::Type::INT64: {
-        arrow::Int64Builder builder;
+
+      } else if constexpr (arrow::is_number_type<T>::value) {
+        // TODO: Need to verify what are the types that can use the ->Value
+        // accessor.
+        using ArrayType = ArrowGetArrayType<T>;
+        using BuilderType = ArrowGetBuilderType<T>;
+        using CType = ArrowGetCType<T>;
+
+        auto builder =
+            std::reinterpret_pointer_cast<BuilderType>(getBuilder(data_type));
         for (auto const it : *global_tuple_map) {
           int chunk_id, item_index;
           auto hash_key = it.first;
           std::tie(chunk_id, item_index) = it.second;
           auto raw_chunk = group_by.chunks().at(chunk_id);
-          auto chunk = std::static_pointer_cast<arrow::Int64Array>(raw_chunk);
-          int64_t value = chunk->Value(item_index);
+          auto chunk = std::static_pointer_cast<ArrayType>(raw_chunk);
+          CType value = chunk->Value(item_index);
           //          builder.UnsafeAppend(value);
-          builder.Append(value);
+          builder->Append(value);
         }
         std::shared_ptr<arrow::Array> array;
-        arrow::Status st = builder.Finish(&array);
+        arrow::Status st = builder->Finish(&array);
         if (!st.ok()) {
-          std::cerr << "Building the array for " << i
-                    << "th groupby column failed." << std::endl;
-          exit(1);
+          throw std::runtime_error("Building the array for " +
+                                   std::to_string(i) +
+                                   "th groupby column failed.");
         }
         group_by_arrays.push_back(array);
-        break;
       }
-      default: {
-        std::cerr << "Not supported aggregate group by column type: "
-                  << group_by_type_id << std::endl;
-        exit(1);
+      else{
+        throw std::logic_error(
+            "HashAggregate::Finish(). Not supported aggregate group by column "
+            "type: " +
+            data_type->ToString());
       }
-    }
+    };
+    type_switcher(data_type, lambda_fn);
   }
 
   // 2. Construct the resulting aggregate table
   auto kernel = aggregate_refs_[0].kernel;
   std::shared_ptr<arrow::Array> agg_array;
+  // TODO: Make a function that generalize the casting
+  //  of builder for sum, count and mean.
   switch (kernel) {
     case SUM:
     case COUNT: {
@@ -657,7 +673,6 @@ void HashAggregate::Finish(Task *ctx) {
       auto map = static_cast<MeanHashMap *>(global_map);
       arrow::DoubleBuilder builder;
       for (auto const it : *global_tuple_map) {
-        int chunk_id, item_index;
         auto hash_key = it.first;
         auto value = map->find(hash_key)->second;
         builder.Append(value);
