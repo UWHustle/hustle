@@ -18,7 +18,6 @@
 #ifndef HUSTLE_OPERATOR_H
 #define HUSTLE_OPERATOR_H
 
-
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 
@@ -85,29 +84,6 @@ class Operator {
 
   DISALLOW_COPY_AND_ASSIGN(Operator);
 };
-
-// Switcher: arrow comparator enum -> std comparator
-template <typename ArrowComputeOperatorSwitchFunctor>
-auto comparator_switcher(arrow::compute::CompareOperator c,
-                         const ArrowComputeOperatorSwitchFunctor &func)
-// Take the return type of the functor.
--> decltype(func(std::equal_to())) {
-  switch (c) {
-    case arrow::compute::EQUAL:
-      return func(std::equal_to());
-    case arrow::compute::NOT_EQUAL:
-      return func(std::not_equal_to());
-    case arrow::compute::GREATER:
-      return func(std::greater());
-    case arrow::compute::GREATER_EQUAL:
-      return func(std::greater_equal());
-    case arrow::compute::LESS:
-      return func(std::less());
-    case arrow::compute::LESS_EQUAL:
-      return func(std::less_equal());
-  };
-}
-
 
 };  // namespace hustle::operators
 

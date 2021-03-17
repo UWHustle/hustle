@@ -21,7 +21,15 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 
+#include <cstdlib>
+#include <iostream>
+
+#include "operators/select/predicate.h"
+#include "operators/utils/operator_options.h"
 #include "operators/utils/operator_result.h"
+#include "scheduler/task.h"
+#include "utils/config.h"
+#include "utils/event_profiler.h"
 
 namespace hustle::operators {
 
@@ -34,6 +42,49 @@ enum CompareOperator {
   GREATER_EQUAL,
   BETWEEN
 };
+
+// TODO: (Refactor) Consider move it to comparator.h
+// Switcher: arrow comparator enum -> std comparator
+template <typename ArrowComputeOperatorSwitchFunctor>
+auto comparator_switcher(arrow::compute::CompareOperator c,
+                         const ArrowComputeOperatorSwitchFunctor &func)
+    // Take the return type of the functor.
+    -> decltype(func(std::equal_to())) {
+  switch (c) {
+    case arrow::compute::EQUAL:
+      return func(std::equal_to());
+    case arrow::compute::NOT_EQUAL:
+      return func(std::not_equal_to());
+    case arrow::compute::GREATER:
+      return func(std::greater());
+    case arrow::compute::GREATER_EQUAL:
+      return func(std::greater_equal());
+    case arrow::compute::LESS:
+      return func(std::less());
+    case arrow::compute::LESS_EQUAL:
+      return func(std::less_equal());
+  };
+}
+
+// template <typename ArrowComputeOperatorSwitchFunctor>
+// void comparator_switcher_(CompareOperator c,
+//                         const ArrowComputeOperatorSwitchFunctor &func){
+//  switch (c) {
+//    case EQUAL:
+//      return func(std::equal_to());
+//    case NOT_EQUAL:
+//      return func(std::not_equal_to());
+//    case GREATER:
+//      return func(std::greater());
+//    case GREATER_EQUAL:
+//      return func(std::greater_equal());
+//    case LESS:
+//      return func(std::less());
+//    case LESS_EQUAL:
+//      return func(std::less_equal());
+//    case BETWEEN:
+//  }
+//}
 
 struct Predicate {
   ColumnReference col_ref_;
@@ -72,10 +123,12 @@ class Node {
 
   void print() {
     if (is_leaf()) {
-      std::cout << predicate_->col_ref_.col_name << " comp:" <<  predicate_->comparator_ <<  " " << 
-      "val " << predicate_->value_.ToString() << " " << predicate_->value2_.ToString() << std::endl;
+      std::cout << predicate_->col_ref_.col_name
+                << " comp:" << predicate_->comparator_ << " "
+                << "val " << predicate_->value_.ToString() << " "
+                << predicate_->value2_.ToString() << std::endl;
       return;
-    } 
+    }
     left_child_->print();
     std::cout << "CONNECTIVE: " << connective_ << std::endl;
     right_child_->print();
@@ -114,7 +167,6 @@ class PredicateTree {
   std::shared_ptr<Node> root_;
   int table_id_;
   std::string table_name_;
-
 };
 
 }  // namespace hustle::operators

@@ -16,7 +16,6 @@
 // under the License.
 
 #include "operators/select/select.h"
-#include "operators/operator.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -26,6 +25,8 @@
 #include <cmath>
 #include <utility>
 
+#include "operators/operator.h"
+#include "predicate.h"
 #include "storage/ma_block.h"
 #include "storage/table.h"
 #include "storage/utils/util.h"
