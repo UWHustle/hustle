@@ -16,6 +16,7 @@
 // under the License.
 
 #include "operators/select/select.h"
+#include "operators/operator.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
