@@ -77,7 +77,7 @@ std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     return result.ValueOrDie();                 \
   }
   auto enum_type = dataType->id();
-  _HUSTLE_SWITCH_ARROW_TYPE(enum_type);
+  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
 #undef _HUSTLE_ARROW_TYPE_CASE_STMT
   return nullptr;
 };
