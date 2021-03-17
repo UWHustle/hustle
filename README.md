@@ -72,7 +72,7 @@ To install the required packages for Hustle use the following scripts:
 
 ```
 ./install_requirements_cpp20.sh
-./install_arrow.sh
+./install_arrow_cpp20.sh
 ```
 
 The scripts will install g++10, cmake 3.15 and Apache Arrow 3.0. 
