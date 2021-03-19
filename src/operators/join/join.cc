@@ -192,10 +192,9 @@ void Join::BuildHashTable(int join_id,
     }
     for (std::uint32_t row = 0; row < chunk->length(); row++) {
       if (filter_data == nullptr || arrow::BitUtil::GetBit(filter_data, row)) {
-        auto key_value_pair = hash_tables_[join_id]->find(chunk->Value(row));
-        if (key_value_pair != hash_tables_[join_id]->end()) {
-          auto record_ids =
-              hash_tables_[join_id]->find(chunk->Value(row))->second;
+        auto record_id_itr = hash_tables_[join_id]->find(chunk->Value(row));
+        if (record_id_itr != hash_tables_[join_id]->end()) {
+          auto record_ids = record_id_itr->second;
           record_ids.push_back(
               {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i});
           (*hash_tables_[join_id])[chunk->Value(row)] = record_ids;
