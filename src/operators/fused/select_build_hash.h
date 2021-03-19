@@ -23,7 +23,6 @@
 
 #include <string>
 
-#include "operators/join/multiway_join.h"
 #include "operators/operator.h"
 #include "operators/select/predicate.h"
 #include "operators/select/select.h"
