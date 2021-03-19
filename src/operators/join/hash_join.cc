@@ -30,12 +30,10 @@
 #include "utils/parallel_utils.h"
 
 
-
-namespace hustle::operators {
-
 #define LEFT_JOIN_REF_IDX 0
 #define RIGHT_JOIN_REF_IDX 1
 
+namespace hustle::operators {
 
 HashJoin::HashJoin(const std::size_t query_id,
                    std::vector<OperatorResult::OpResultPtr> prev_result,
@@ -53,6 +51,7 @@ HashJoin::HashJoin(const std::size_t query_id,
       prev_result_(prev_result),
       output_result_(output_result),
       predicate_(predicate) {
+    // prev result has two operator result - 0 - left, 1 - right
   assert(prev_result.size() == 2);
   joined_indices_.resize(2);
 }
@@ -130,9 +129,9 @@ void HashJoin::BuildHashTable(
     }
     for (std::uint32_t row = 0; row < chunk->length(); row++) {
       if (filter_data == nullptr || arrow::BitUtil::GetBit(filter_data, row)) {
-        auto key_value_pair = hash_table_->find(chunk->Value(row));
-        if (key_value_pair != hash_table_->end()) {
-          auto record_ids = hash_table_->find(chunk->Value(row))->second;
+        auto record_id_itr = hash_table_->find(chunk->Value(row));
+        if (record_id_itr != hash_table_->end()) {
+          auto record_ids = record_id_itr->second;
           record_ids.push_back({(uint32_t)chunk_offsets[i] + row, (uint16_t)i});
           (*hash_table_)[chunk->Value(row)] = record_ids;
         } else {
@@ -170,10 +169,12 @@ void HashJoin::ProbeHashTableBlock(
     auto idx_len = chunk_len;
     auto offset = chunk_row_offsets[i];
     for (auto row = 0; row < chunk_len; row++) {
+
       if (filter == nullptr || arrow::BitUtil::GetBit(filter, row)) {
-        auto key_value_pair = hash_table_->find(left_data[row]);
-        if (key_value_pair != hash_table_end) {
-          for (auto record_id : key_value_pair->second) {
+        auto record_itr = hash_table_->find(left_data[row]);
+
+        if (record_itr != hash_table_end) {
+          for (auto record_id : record_itr->second) {
             if (idx_len <= num_indices) {
               idx_len <<= 1;
               l_idxs = (uint32_t *)realloc(l_idxs, sizeof(uint32_t) * idx_len);
