@@ -24,13 +24,13 @@ JoinGraph::JoinGraph() = default;
 JoinGraph::JoinGraph(std::vector<std::vector<JoinPredicate>> join_predicates) {
   for (auto& join_predicate : join_predicates) {
     adj_.push_back(join_predicate);
-    tables_.push_back(join_predicate[0].left_col_ref_.table);
+    tables_.push_back(join_predicate[0].left_col_.table);
     num_predicates_ += join_predicates[0].size();
   }
 }
 
 void JoinGraph::insert(std::vector<JoinPredicate> predicate_group) {
-  auto table = predicate_group[0].left_col_ref_.table;
+  auto table = predicate_group[0].left_col_.table;
   // If table is already in the graph
   auto it = std::find(tables_.begin(), tables_.end(), table);
   if (it != tables_.end()) {

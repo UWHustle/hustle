@@ -72,7 +72,7 @@ std::optional<bool> build_select(
       input_result->append(table_ptr);
       select = std::make_unique<hustle::operators::SelectBuildHash>(
           0, table_ptr, input_result, output_result, predicate_tree,
-          join_predicate_map[table_name].right_col_ref_);
+          join_predicate_map[table_name].right_col_);
       select_operators.emplace_back(std::move(select));
     } else if (predicate_tree == nullptr) {
       output_result->append(table_ptr);
@@ -89,7 +89,7 @@ std::optional<bool> build_select(
       } else {
         select = std::make_unique<hustle::operators::SelectBuildHash>(
             0, table_ptr, input_result, output_result, predicate_tree,
-            join_predicate_map[table_name].right_col_ref_);
+            join_predicate_map[table_name].right_col_);
       }
       select_operators.emplace_back(std::move(select));
     }

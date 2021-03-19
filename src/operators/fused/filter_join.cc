@@ -325,8 +325,8 @@ void FilterJoin::execute(Task *ctx) {
   // Loop over the join predicates and store the left/right LazyTables and the
   // left/right join column names
   for (auto &jpred : predicates) {
-    auto left_ref = jpred.left_col_ref_;
-    auto right_ref = jpred.right_col_ref_;
+    auto left_ref = jpred.left_col_;
+    auto right_ref = jpred.right_col_;
 
     fact_fk_col_names_.push_back(left_ref.col_name);
     dim_pk_col_names_.push_back(right_ref.col_name);

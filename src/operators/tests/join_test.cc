@@ -19,11 +19,12 @@
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
-
+#include <memory>
 #include <fstream>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "execution/execution_plan.h"
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
@@ -248,37 +249,48 @@ TEST_F(JoinTestFixture, EquiJoin3) {
   JoinPredicate join_pred_RS = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
 
   JoinGraph graph({{join_pred_RS}});
-  Join join_op(0, {result}, out_result, graph);
+    std::vector<std::shared_ptr<OperatorResult>> out_result_vec1;
+    out_result_vec1.push_back(result);
+  std::unique_ptr<Join> join_op = std::make_unique<Join>(0, out_result_vec1, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
-  scheduler.addTask(join_op.createTask());
+ // scheduler.addTask(join_op.createTask());
 
-  scheduler.start();
-  scheduler.join();
+ // scheduler.start();
+ // scheduler.join();
 
-  auto out_table =
-      out_result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
+  //auto out_table =
+  //    out_result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
 
-  result = std::make_shared<OperatorResult>();
-  out_result = std::make_shared<OperatorResult>();
-  result->append(out_table);
-  // result->append(S);
-  result->append(T);
-  ColumnReference out_r_ref_1 = {out_table, "rkey"};
-  ColumnReference out_s_ref_1 = {out_table, "skey"};
+  //result = std::make_shared<OperatorResult>();
+  auto next_out_result = std::make_shared<OperatorResult>();
 
-  ColumnReference out_t_ref_2 = {out_table, "rdata"};
-  JoinPredicate join_pred_OS = {out_s_ref_1, arrow::compute::EQUAL, T_ref_1};
+  out_result->append(T);
+  ColumnReference out_r_ref_1 = {R, "rkey"};
+  ColumnReference out_s_ref_1 = {S, "skey"};
+
+  ColumnReference out_t_ref_2 = {R, "rdata"};
+  JoinPredicate join_pred_OS = {S_ref_1, arrow::compute::EQUAL, T_ref_1};
 
   JoinGraph rs_graph({{join_pred_OS}});
-  Join rs_join_op(0, {result}, out_result, rs_graph);
+  std::vector<std::shared_ptr<OperatorResult>> out_result_vec;
+  out_result_vec.push_back(out_result);
+  std::unique_ptr<Join> rs_join_op = std::make_unique<Join>(0, out_result_vec, next_out_result, rs_graph);
 
-  scheduler.addTask(rs_join_op.createTask());
+  std::shared_ptr<hustle::ExecutionPlan> plan =
+            std::make_shared<hustle::ExecutionPlan>(0);
+  auto join_id_1 = plan->addOperator(join_op.get());
+  auto join_id_2 = plan->addOperator(rs_join_op.get());
+
+  plan->createLink(join_id_1, join_id_2);
+
+  scheduler.addTask(plan.get());
 
   scheduler.start();
   scheduler.join();
 
-  out_table = out_result->materialize({out_r_ref_1, T_ref_2});
+  auto out_table = out_result->materialize({R_ref_1, S_ref_1});
+    out_table->print();
   // Construct expected results
   arrow::Status status;
   status = int_builder.AppendValues({0, 1, 2});
