@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_JOIN_H
-#define HUSTLE_JOIN_H
+#ifndef HUSTLE_MULTIWAY_JOIN_H
+#define HUSTLE_MULTIWAY_JOIN_H
 
 #include <arrow/compute/api.h>
 #include <utils/parallel_hashmap/phmap.h>
@@ -40,7 +40,7 @@ namespace hustle::operators {
  * See slides 18-27 for an in-depth example:
  * https://docs.google.com/presentation/d/1KlNdwwTy5k-cwlRwY_hRg-AQ9dt3mh_k_MVuIsmyQbQ/edit#slide=id.p
  */
-class Join : public Operator {
+class MultiwayJoin : public Operator {
  public:
   /**
    * Construct an Join operator to perform joins on two or more tables.
@@ -48,14 +48,14 @@ class Join : public Operator {
    * @param prev_result OperatorResult form an upstream operator.
    * @param graph A graph specifying all join predicates
    */
-  Join(const std::size_t query_id,
-       std::vector<std::shared_ptr<OperatorResult>> prev_result,
-       OperatorResult::OpResultPtr output_result, JoinGraph graph);
+  MultiwayJoin(const std::size_t query_id,
+               std::vector<std::shared_ptr<OperatorResult>> prev_result,
+               OperatorResult::OpResultPtr output_result, JoinGraph graph);
 
-  Join(const std::size_t query_id,
-       std::vector<std::shared_ptr<OperatorResult>> prev_result,
-       OperatorResult::OpResultPtr output_result, JoinGraph graph,
-       std::shared_ptr<OperatorOptions> options);
+  MultiwayJoin(const std::size_t query_id,
+               std::vector<std::shared_ptr<OperatorResult>> prev_result,
+               OperatorResult::OpResultPtr output_result, JoinGraph graph,
+               std::shared_ptr<OperatorOptions> options);
 
   /**
    * Perform a natural join on two tables using hash join.
@@ -197,4 +197,4 @@ class Join : public Operator {
 
 }  // namespace hustle::operators
 
-#endif  // HUSTLE_JOIN_H
+#endif  // HUSTLE_MULTIWAY_JOIN_H

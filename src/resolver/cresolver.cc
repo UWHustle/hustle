@@ -41,7 +41,7 @@ using namespace hustle::resolver;
 
 using SelectPtr = std::unique_ptr<hustle::operators::Select>;
 using AggPtr = std::unique_ptr<HashAggregate>;
-using JoinPtr = std::unique_ptr<Join>;
+using JoinPtr = std::unique_ptr<MultiwayJoin>;
 using FilterJoinPtr = std::unique_ptr<FilterJoin>;
 using ProjectReferencePtr = std::shared_ptr<ProjectReference>;
 
@@ -114,8 +114,8 @@ void build_join(
     filter_join_op = std::make_unique<FilterJoin>(0, select_result,
                                                   join_result_out, join_graph);
   } else {
-    join_op = std::make_unique<Join>(DEFAULT_QUERY_ID, select_result,
-                                     join_result_out, join_graph);
+    join_op = std::make_unique<MultiwayJoin>(DEFAULT_QUERY_ID, select_result,
+                                             join_result_out, join_graph);
   }
 }
 

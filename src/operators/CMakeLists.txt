@@ -6,7 +6,7 @@ add_library(
         aggregate/aggregate_options.h
         select/select.h select/select.cc
         select/predicate.cc select/predicate.h
-        join/join.h join/join.cc
+        join/multiway_join.h join/multiway_join.cc
         join/hash_join.h join/hash_join.cc
         join/lip.cc join/lip.h
         join/join_graph.cc join/join_graph.h

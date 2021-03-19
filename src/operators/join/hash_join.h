@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_JOIN_H
+#ifndef HUSTLE_MULTIWAY_JOIN_H
 #define HUSTLE_JOIN_H
 
 #include <arrow/compute/api.h>
@@ -152,4 +152,4 @@ class HashJoin : public Operator {
 
 }  // namespace hustle::operators
 
-#endif  // HUSTLE_JOIN_H
+#endif  // HUSTLE_MULTIWAY_JOIN_H

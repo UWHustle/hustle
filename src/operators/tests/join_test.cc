@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/join/join.h"
+#include "operators/join/multiway_join.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -113,7 +113,7 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 
   JoinPredicate join_pred = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
   JoinGraph graph({{join_pred}});
-  Join join_op(0, {result}, out_result, graph);
+  MultiwayJoin join_op(0, {result}, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -175,7 +175,7 @@ TEST_F(JoinTestFixture, EquiJoin2) {
   JoinPredicate join_pred_RT = {R_ref_1, arrow::compute::EQUAL, T_ref_1};
 
   JoinGraph graph({{join_pred_RS, join_pred_RT}});
-  Join join_op(0, {result}, out_result, graph);
+  MultiwayJoin join_op(0, {result}, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -234,8 +234,8 @@ TEST_F(JoinTestFixture, EquiJoin3) {
   JoinGraph graph({{join_pred_TS, join_pred_TR}});
   std::vector<std::shared_ptr<OperatorResult>> out_result_vec1;
   out_result_vec1.push_back(result);
-  std::unique_ptr<Join> join_op =
-      std::make_unique<Join>(0, out_result_vec1, out_result, graph);
+  std::unique_ptr<MultiwayJoin> join_op =
+      std::make_unique<MultiwayJoin>(0, out_result_vec1, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
   auto next_out_result = std::make_shared<OperatorResult>();

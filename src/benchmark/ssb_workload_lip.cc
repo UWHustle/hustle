@@ -20,7 +20,7 @@
 #include "operators/aggregate/aggregate.h"
 #include "operators/fused/filter_join.h"
 #include "operators/fused/select_build_hash.h"
-#include "operators/join/join.h"
+#include "operators/join/multiway_join.h"
 #include "operators/join/join_graph.h"
 #include "operators/join/lip.h"
 #include "operators/select/predicate.h"
@@ -81,7 +81,7 @@ void SSB::q11_lip() {
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
@@ -187,7 +187,7 @@ void SSB::q12_lip() {
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
@@ -303,7 +303,7 @@ void SSB::q13_lip() {
   lip_result_in = {lo_select_result_out, d_select_result_out};
 
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},

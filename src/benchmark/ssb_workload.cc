@@ -22,7 +22,7 @@
 #include "operators/aggregate/aggregate_options.h"
 #include "operators/fused/select_build_hash.h"
 #include "operators/aggregate/hash_aggregate.h"
-#include "operators/join/join.h"
+#include "operators/join/multiway_join.h"
 #include "operators/join/join_graph.h"
 #include "operators/join/lip.h"
 #include "operators/select/predicate.h"
@@ -210,7 +210,7 @@ void SSB::q11() {
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
                               d_pred_tree, join_pred.right_col_);
 
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   auto agg_op = get_agg_op(0, aggregate_type, join_result_out, agg_result_out,
@@ -292,7 +292,7 @@ void SSB::q12() {
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   auto agg_op = get_agg_op(0, aggregate_type, join_result_out, agg_result_out,
@@ -384,7 +384,7 @@ void SSB::q13() {
 
   join_result_in = {lo_select_result_out, d_select_result_out};
 
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   auto agg_op = get_agg_op(0, aggregate_type, join_result_out, agg_result_out,
@@ -456,7 +456,7 @@ void SSB::q21() {
                     p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
@@ -544,7 +544,7 @@ void SSB::q22() {
                     p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
@@ -620,7 +620,7 @@ void SSB::q23() {
                     p_select_result_out, s_select_result_out};
 
   JoinGraph graph({{s_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
 
@@ -710,7 +710,7 @@ void SSB::q31() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_nation_ref,
@@ -804,7 +804,7 @@ void SSB::q32() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref,
@@ -922,7 +922,7 @@ void SSB::q33() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref,
@@ -1038,7 +1038,7 @@ void SSB::q34() {
                     s_select_result_out, c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref,
@@ -1141,7 +1141,7 @@ void SSB::q41() {
                     c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_nation_ref};
@@ -1255,7 +1255,7 @@ void SSB::q42() {
                     c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, s_nation_ref,
@@ -1365,7 +1365,7 @@ void SSB::q43() {
                     c_select_result_out};
 
   JoinGraph graph({{s_join_pred, c_join_pred, p_join_pred, d_join_pred}});
-  Join join_op(0, join_result_in, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, join_result_in, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, s_city_ref,
