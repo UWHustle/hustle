@@ -19,12 +19,13 @@
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
-#include <memory>
-#include <fstream>
 
+#include <fstream>
+#include <memory>
+
+#include "execution/execution_plan.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "execution/execution_plan.h"
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"
@@ -123,20 +124,19 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 
   auto out_table =
       out_result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
-  //    out_table->print();
 
   // Construct expected results
   arrow::Status status;
-  status = int_builder.AppendValues({2, 1, 0});
+  status = int_builder.AppendValues({0, 1, 2});
   status = int_builder.Finish(&expected_R_col_1);
 
-  status = int_builder.AppendValues({2, 1, 0});
+  status = int_builder.AppendValues({0, 1, 2});
   status = int_builder.Finish(&expected_S_col_1);
 
-  status = str_builder.AppendValues({"R2", "R1", "R0"});
+  status = str_builder.AppendValues({"R0", "R1", "R2"});
   status = str_builder.Finish(&expected_R_col_2);
 
-  status = str_builder.AppendValues({"S2", "S1", "S0"});
+  status = str_builder.AppendValues({"S0", "S1", "S2"});
   status = str_builder.Finish(&expected_S_col_2);
 
   EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_R_col_1));
@@ -168,13 +168,13 @@ TEST_F(JoinTestFixture, EquiJoin2) {
   auto result = std::make_shared<OperatorResult>();
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
-  // result->append(S);
+  result->append(S);
   result->append(T);
 
   JoinPredicate join_pred_RS = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
   JoinPredicate join_pred_RT = {R_ref_1, arrow::compute::EQUAL, T_ref_1};
 
-  JoinGraph graph({{join_pred_RT}});
+  JoinGraph graph({{join_pred_RS, join_pred_RT}});
   Join join_op(0, {result}, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
@@ -184,48 +184,29 @@ TEST_F(JoinTestFixture, EquiJoin2) {
   scheduler.start();
   scheduler.join();
 
-  auto out_table = out_result->materialize(
-      {R_ref_1, /*R_ref_2,S_ref_1, S_ref_2, T_ref_1,*/ T_ref_2});
-
-  result = std::make_shared<OperatorResult>();
-  out_result = std::make_shared<OperatorResult>();
-  result->append(out_table);
-  // result->append(S);
-  result->append(S);
-  ColumnReference out_r_ref_1 = {out_table, "rkey"};
-  ColumnReference out_t_ref_2 = {out_table, "rdata"};
-
-  JoinPredicate join_pred_OS = {out_r_ref_1, arrow::compute::EQUAL, S_ref_1};
-
-  JoinGraph rs_graph({{join_pred_OS}});
-  Join rs_join_op(0, {result}, out_result, graph);
-
-  scheduler.addTask(rs_join_op.createTask());
-
-  scheduler.start();
-  scheduler.join();
-
-  out_table = out_result->materialize({out_r_ref_1, S_ref_2});
-  out_table->print();
-
+  auto out_table = out_result->materialize({R_ref_1, S_ref_1, T_ref_2});
   // Construct expected results
   arrow::Status status;
 
   status = int_builder.AppendValues({0, 1, 2});
-  status = int_builder.Finish(&expected_T_col_1);
+  status = int_builder.Finish(&expected_R_col_1);
 
-  status = str_builder.AppendValues({"S3", "S2", "S1"});
+  status = int_builder.AppendValues({0, 1, 2});
+  status = int_builder.Finish(&expected_S_col_1);
+
+  status = str_builder.AppendValues({"T0", "T1", "T2"});
   status = str_builder.Finish(&expected_T_col_2);
 
-  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_T_col_1));
-  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_T_col_2));
+  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_R_col_1));
+  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_S_col_1));
+  EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_T_col_2));
 }
 
 /*
  * SELECT R.key, T.data
  * FROM R, S, T
- * WHERE R.key == S.key AND
- *       S.key == T.key
+ * WHERE T.key == S.key AND
+ *       T.key == R.key
  */
 TEST_F(JoinTestFixture, EquiJoin3) {
   R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
@@ -245,52 +226,30 @@ TEST_F(JoinTestFixture, EquiJoin3) {
   auto out_result = std::make_shared<OperatorResult>();
   result->append(R);
   result->append(S);
+  result->append(T);
 
-  JoinPredicate join_pred_RS = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
+  JoinPredicate join_pred_TS = {T_ref_1, arrow::compute::EQUAL, S_ref_1};
+  JoinPredicate join_pred_TR = {T_ref_1, arrow::compute::EQUAL, R_ref_1};
 
-  JoinGraph graph({{join_pred_RS}});
-    std::vector<std::shared_ptr<OperatorResult>> out_result_vec1;
-    out_result_vec1.push_back(result);
-  std::unique_ptr<Join> join_op = std::make_unique<Join>(0, out_result_vec1, out_result, graph);
+  JoinGraph graph({{join_pred_TS, join_pred_TR}});
+  std::vector<std::shared_ptr<OperatorResult>> out_result_vec1;
+  out_result_vec1.push_back(result);
+  std::unique_ptr<Join> join_op =
+      std::make_unique<Join>(0, out_result_vec1, out_result, graph);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
- // scheduler.addTask(join_op.createTask());
-
- // scheduler.start();
- // scheduler.join();
-
-  //auto out_table =
-  //    out_result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
-
-  //result = std::make_shared<OperatorResult>();
   auto next_out_result = std::make_shared<OperatorResult>();
 
-  out_result->append(T);
-  ColumnReference out_r_ref_1 = {R, "rkey"};
-  ColumnReference out_s_ref_1 = {S, "skey"};
-
-  ColumnReference out_t_ref_2 = {R, "rdata"};
-  JoinPredicate join_pred_OS = {S_ref_1, arrow::compute::EQUAL, T_ref_1};
-
-  JoinGraph rs_graph({{join_pred_OS}});
-  std::vector<std::shared_ptr<OperatorResult>> out_result_vec;
-  out_result_vec.push_back(out_result);
-  std::unique_ptr<Join> rs_join_op = std::make_unique<Join>(0, out_result_vec, next_out_result, rs_graph);
-
   std::shared_ptr<hustle::ExecutionPlan> plan =
-            std::make_shared<hustle::ExecutionPlan>(0);
-  auto join_id_1 = plan->addOperator(join_op.get());
-  auto join_id_2 = plan->addOperator(rs_join_op.get());
-
-  plan->createLink(join_id_1, join_id_2);
+      std::make_shared<hustle::ExecutionPlan>(0);
+  plan->addOperator(join_op.get());
 
   scheduler.addTask(plan.get());
 
   scheduler.start();
   scheduler.join();
 
-  auto out_table = out_result->materialize({R_ref_1, S_ref_1});
-    out_table->print();
+  auto out_table = out_result->materialize({R_ref_1, T_ref_2});
   // Construct expected results
   arrow::Status status;
   status = int_builder.AppendValues({0, 1, 2});
