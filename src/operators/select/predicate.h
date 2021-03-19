@@ -43,9 +43,9 @@ struct Predicate {
 };
 
 struct JoinPredicate {
-  ColumnReference left_col_ref_;
+  ColumnReference left_col_;
   arrow::compute::CompareOperator comparator_;
-  ColumnReference right_col_ref_;
+  ColumnReference right_col_;
 };
 
 /**

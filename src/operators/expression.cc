@@ -159,7 +159,6 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
         // Naturally handles block calculation
         if constexpr (arrow::has_c_type<T>::value &&
                       !std::is_same_v<T, arrow::DayTimeIntervalType>) {
-          std::cout << "Detect CType" << std::endl;
           using ArrayType = ArrowGetArrayType<T>;
           using ScalarType = ArrowGetScalarType<T>;
           using CType = ArrowGetCType<T>;
@@ -182,6 +181,6 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
     return arrow::Datum(eval_stack.top().chunk);
   }
   throw std::runtime_error("Invalid expression");
-}  // namespace hustle::operators
+}
 
 }  // namespace hustle::operators

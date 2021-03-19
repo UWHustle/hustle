@@ -59,7 +59,7 @@ To run the tatp benchmark,
 sh ./scripts/tatp/run_benchmark.sh 
 ```
 
-## (Pilot) Build Hustle with C++20
+## Build Hustle with C++20 [Pilot]
 
 **Tested systems**:
 

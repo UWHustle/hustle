@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/join/multiway_join.h"
+#include "operators/join/hash_join.h"
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
@@ -35,7 +35,7 @@ using namespace testing;
 using namespace hustle;
 using namespace hustle::operators;
 
-class JoinTestFixture : public testing::Test {
+class HashJoinTestFixture : public testing::Test {
  protected:
   std::shared_ptr<arrow::Schema> s_schema, r_schema, t_schema;
 
@@ -77,7 +77,7 @@ class JoinTestFixture : public testing::Test {
     }
     R_csv.close();
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       S_csv << std::to_string(3 - i) << "|";
       S_csv << "S" << std::to_string(3 - i) << std::endl;
     }
@@ -96,7 +96,7 @@ class JoinTestFixture : public testing::Test {
  * FROM R, S
  * WHERE R.key == S.key
  */
-TEST_F(JoinTestFixture, EquiJoin1) {
+TEST_F(HashJoinTestFixture, EquiJoin1) {
   R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
   S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
 
@@ -106,14 +106,16 @@ TEST_F(JoinTestFixture, EquiJoin1) {
   ColumnReference S_ref_1 = {S, "skey"};
   ColumnReference S_ref_2 = {S, "sdata"};
 
-  auto result = std::make_shared<OperatorResult>();
-  auto out_result = std::make_shared<OperatorResult>();
-  result->append(R);
-  result->append(S);
+  auto result1 = std::make_shared<OperatorResult>();
+  auto result2 = std::make_shared<OperatorResult>();
 
-  JoinPredicate join_pred = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
-  JoinGraph graph({{join_pred}});
-  MultiwayJoin join_op(0, {result}, out_result, graph);
+  auto out_result = std::make_shared<OperatorResult>();
+  result1->append(R);
+  result2->append(S);
+
+  std::shared_ptr<JoinPredicate> join_pred = std::make_shared<JoinPredicate>(
+      JoinPredicate{R_ref_1, arrow::compute::EQUAL, S_ref_1});
+  HashJoin join_op(0, {result1, result2}, out_result, join_pred);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -121,7 +123,7 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 
   scheduler.start();
   scheduler.join();
-
+  std::cout << "size: " << out_result->lazy_tables_.size() << std::endl;
   auto out_table =
       out_result->materialize({R_ref_1, R_ref_2, S_ref_1, S_ref_2});
 
@@ -146,69 +148,12 @@ TEST_F(JoinTestFixture, EquiJoin1) {
 }
 
 /*
- * SELECT R.key, S.data
- * FROM R, S, T
- * WHERE R.key == S.key AND
- *       R.key == T.key
- */
-TEST_F(JoinTestFixture, EquiJoin2) {
-  R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
-  S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
-  T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
-
-  ColumnReference R_ref_1 = {R, "rkey"};
-  ColumnReference R_ref_2 = {R, "rdata"};
-
-  ColumnReference S_ref_1 = {S, "skey"};
-  ColumnReference S_ref_2 = {S, "sdata"};
-
-  ColumnReference T_ref_1 = {T, "tkey"};
-  ColumnReference T_ref_2 = {T, "tdata"};
-
-  auto result = std::make_shared<OperatorResult>();
-  auto out_result = std::make_shared<OperatorResult>();
-  result->append(R);
-  result->append(S);
-  result->append(T);
-
-  JoinPredicate join_pred_RS = {R_ref_1, arrow::compute::EQUAL, S_ref_1};
-  JoinPredicate join_pred_RT = {R_ref_1, arrow::compute::EQUAL, T_ref_1};
-
-  JoinGraph graph({{join_pred_RS, join_pred_RT}});
-  MultiwayJoin join_op(0, {result}, out_result, graph);
-
-  Scheduler &scheduler = Scheduler::GlobalInstance();
-
-  scheduler.addTask(join_op.createTask());
-
-  scheduler.start();
-  scheduler.join();
-
-  auto out_table = out_result->materialize({R_ref_1, S_ref_1, T_ref_2});
-  // Construct expected results
-  arrow::Status status;
-
-  status = int_builder.AppendValues({0, 1, 2});
-  status = int_builder.Finish(&expected_R_col_1);
-
-  status = int_builder.AppendValues({0, 1, 2});
-  status = int_builder.Finish(&expected_S_col_1);
-
-  status = str_builder.AppendValues({"T0", "T1", "T2"});
-  status = str_builder.Finish(&expected_T_col_2);
-
-  EXPECT_TRUE(out_table->get_column(0)->chunk(0)->Equals(expected_R_col_1));
-  EXPECT_TRUE(out_table->get_column(1)->chunk(0)->Equals(expected_S_col_1));
-  EXPECT_TRUE(out_table->get_column(2)->chunk(0)->Equals(expected_T_col_2));
-}
-
-/*
  * SELECT R.key, T.data
  * FROM R, S, T
- * WHERE T.key == S.key AND
- *       T.key == R.key
+ * WHERE R.key == S.key AND
+ *       S.key == T.key
  */
-TEST_F(JoinTestFixture, EquiJoin3) {
+TEST_F(HashJoinTestFixture, EquiJoin2) {
   R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
   S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
   T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
@@ -222,34 +167,52 @@ TEST_F(JoinTestFixture, EquiJoin3) {
   ColumnReference T_ref_1 = {T, "tkey"};
   ColumnReference T_ref_2 = {T, "tdata"};
 
-  auto result = std::make_shared<OperatorResult>();
   auto out_result = std::make_shared<OperatorResult>();
-  result->append(R);
-  result->append(S);
-  result->append(T);
+  auto prev_out_result1 = std::make_shared<OperatorResult>();
+  auto prev_out_result2 = std::make_shared<OperatorResult>();
 
-  JoinPredicate join_pred_TS = {T_ref_1, arrow::compute::EQUAL, S_ref_1};
-  JoinPredicate join_pred_TR = {T_ref_1, arrow::compute::EQUAL, R_ref_1};
+  prev_out_result1->append(R);
+  prev_out_result2->append(S);
 
-  JoinGraph graph({{join_pred_TS, join_pred_TR}});
+  std::shared_ptr<JoinPredicate> join_pred_RS = std::make_shared<JoinPredicate>(
+      JoinPredicate{R_ref_1, arrow::compute::EQUAL, S_ref_1});
+
   std::vector<std::shared_ptr<OperatorResult>> out_result_vec1;
-  out_result_vec1.push_back(result);
-  std::unique_ptr<MultiwayJoin> join_op =
-      std::make_unique<MultiwayJoin>(0, out_result_vec1, out_result, graph);
+  out_result_vec1.push_back(prev_out_result1);
+  out_result_vec1.push_back(prev_out_result2);
+
+  std::unique_ptr<HashJoin> join_op =
+      std::make_unique<HashJoin>(0, out_result_vec1, out_result, join_pred_RS);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
+
   auto next_out_result = std::make_shared<OperatorResult>();
+  auto sec_output_result = std::make_shared<OperatorResult>();
+  sec_output_result->append(T);
+
+  std::shared_ptr<JoinPredicate> join_pred_OS = std::make_shared<JoinPredicate>(
+      JoinPredicate{T_ref_1, arrow::compute::EQUAL, S_ref_1});
+
+  std::vector<std::shared_ptr<OperatorResult>> out_result_vec;
+  out_result_vec.push_back(sec_output_result);
+  out_result_vec.push_back(out_result);
+
+  std::unique_ptr<HashJoin> rs_join_op = std::make_unique<HashJoin>(
+      0, out_result_vec, next_out_result, join_pred_OS);
 
   std::shared_ptr<hustle::ExecutionPlan> plan =
       std::make_shared<hustle::ExecutionPlan>(0);
-  plan->addOperator(join_op.get());
+  auto join_id_1 = plan->addOperator(join_op.get());
+  auto join_id_2 = plan->addOperator(rs_join_op.get());
+
+  plan->createLink(join_id_1, join_id_2);
 
   scheduler.addTask(plan.get());
 
   scheduler.start();
   scheduler.join();
 
-  auto out_table = out_result->materialize({R_ref_1, T_ref_2});
+  auto out_table = next_out_result->materialize({R_ref_1, T_ref_2});
   // Construct expected results
   arrow::Status status;
   status = int_builder.AppendValues({0, 1, 2});

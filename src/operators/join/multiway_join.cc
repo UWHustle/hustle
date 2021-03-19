@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "operators/join/join.h"
+#include "operators/join/multiway_join.h"
 
 #include <arrow/compute/api.h>
 #include <arrow/scalar.h>
@@ -31,16 +31,16 @@ namespace hustle::operators {
 static const uint32_t kLeftJoinIndex = 0;
 static const uint32_t kRightJoinIndex = 1;
 
-Join::Join(const std::size_t query_id,
-           std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-           OperatorResult::OpResultPtr output_result, JoinGraph graph)
-    : Join(query_id, prev_result_vec, output_result, graph,
-           std::make_shared<OperatorOptions>()) {}
+MultiwayJoin::MultiwayJoin(const std::size_t query_id,
+                           std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
+                           OperatorResult::OpResultPtr output_result, JoinGraph graph)
+    : MultiwayJoin(query_id, prev_result_vec, output_result, graph,
+                   std::make_shared<OperatorOptions>()) {}
 
-Join::Join(const std::size_t query_id,
-           std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-           OperatorResult::OpResultPtr output_result, JoinGraph graph,
-           std::shared_ptr<OperatorOptions> options)
+MultiwayJoin::MultiwayJoin(const std::size_t query_id,
+                           std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
+                           OperatorResult::OpResultPtr output_result, JoinGraph graph,
+                           std::shared_ptr<OperatorOptions> options)
     : Operator(query_id, options),
       prev_result_vec_(prev_result_vec),
       output_result_(output_result),
@@ -50,7 +50,7 @@ Join::Join(const std::size_t query_id,
   joined_index_chunks_.resize(2);
 }
 
-void Join::execute(Task *ctx) {
+void MultiwayJoin::execute(Task *ctx) {
   for (auto &result : prev_result_vec_) {
     prev_result_->append(result);
   }
@@ -65,12 +65,8 @@ void Join::execute(Task *ctx) {
   // Loop over the join predicates and store the left/right LazyTables and the
   // left/right join column names
   for (auto &jpred : predicates) {
-    auto left_ref = jpred.left_col_ref_;
-    auto right_ref = jpred.right_col_ref_;
-    if (left_ref.table->get_num_rows() < right_ref.table->get_num_rows()) {
-      left_ref = jpred.right_col_ref_;
-      right_ref = jpred.left_col_ref_;
-    }
+    auto left_ref = jpred.left_col_;
+    auto right_ref = jpred.right_col_;
 
     left_col_names_.push_back(left_ref.col_name);
     right_col_names_.push_back(right_ref.col_name);
@@ -101,7 +97,7 @@ void Join::execute(Task *ctx) {
   ctx->spawnTask(CreateTaskChain(tasks));
 }
 
-void Join::HashJoin(int join_id, Task *ctx) {
+void MultiwayJoin::HashJoin(int join_id, Task *ctx) {
   // Join lefts[join_id] with rights[join_id].
   // Why pass in an index i instead of the actual left and right tables?
   // If we pass the tables to the lambda expression by value, then updates
@@ -152,10 +148,10 @@ void Join::HashJoin(int join_id, Task *ctx) {
       })));
 }  // namespace hustle::operators
 
-void Join::BuildHashTable(int join_id,
-                          const std::shared_ptr<arrow::ChunkedArray> &col,
-                          const std::shared_ptr<arrow::ChunkedArray> &filter,
-                          Task *ctx) {
+void MultiwayJoin::BuildHashTable(int join_id,
+                                  const std::shared_ptr<arrow::ChunkedArray> &col,
+                                  const std::shared_ptr<arrow::ChunkedArray> &filter,
+                                  Task *ctx) {
   // NOTE: Do not forget to clear the hash table
   hash_tables_[join_id] =
       std::make_shared<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>();
@@ -192,10 +188,9 @@ void Join::BuildHashTable(int join_id,
     }
     for (std::uint32_t row = 0; row < chunk->length(); row++) {
       if (filter_data == nullptr || arrow::BitUtil::GetBit(filter_data, row)) {
-        auto key_value_pair = hash_tables_[join_id]->find(chunk->Value(row));
-        if (key_value_pair != hash_tables_[join_id]->end()) {
-          auto record_ids =
-              hash_tables_[join_id]->find(chunk->Value(row))->second;
+        auto record_id_itr = hash_tables_[join_id]->find(chunk->Value(row));
+        if (record_id_itr != hash_tables_[join_id]->end()) {
+          auto record_ids = record_id_itr->second;
           record_ids.push_back(
               {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i});
           (*hash_tables_[join_id])[chunk->Value(row)] = record_ids;
@@ -208,7 +203,7 @@ void Join::BuildHashTable(int join_id,
   }
 }
 
-void Join::Clear() {
+void MultiwayJoin::Clear() {
   prev_result_.reset();
   output_result_.reset();
 
@@ -230,7 +225,7 @@ void Join::Clear() {
   finished_.clear();
 }
 
-void Join::ProbeHashTableBlock(
+void MultiwayJoin::ProbeHashTableBlock(
     int join_id, const std::shared_ptr<arrow::ChunkedArray> &probe_col,
     const std::shared_ptr<arrow::ChunkedArray> &probe_filter, int batch_i,
     int batch_size, std::vector<uint64_t> chunk_row_offsets) {
@@ -319,10 +314,10 @@ void Join::ProbeHashTableBlock(
   }
 }
 
-void Join::ProbeHashTable(int join_id,
-                          const std::shared_ptr<arrow::ChunkedArray> &probe_col,
-                          const arrow::Datum &probe_filter,
-                          const arrow::Datum &probe_indices, Task *ctx) {
+void MultiwayJoin::ProbeHashTable(int join_id,
+                                  const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+                                  const arrow::Datum &probe_filter,
+                                  const arrow::Datum &probe_indices, Task *ctx) {
   new_left_indices_vector_.resize(probe_col->num_chunks());
   new_right_indices_vector_.resize(probe_col->num_chunks());
 
@@ -360,7 +355,7 @@ void Join::ProbeHashTable(int join_id,
   }
 }  // namespace hustle::operators
 
-void Join::FinishProbe(Task *ctx) {
+void MultiwayJoin::FinishProbe(Task *ctx) {
   int num_indices = 0;
   for (auto &vec : new_left_indices_vector_) {
     num_indices += vec.size();
@@ -410,7 +405,7 @@ void Join::FinishProbe(Task *ctx) {
   });
 }
 
-OperatorResult::OpResultPtr Join::BackPropogateResult(
+OperatorResult::OpResultPtr MultiwayJoin::BackPropogateResult(
     LazyTable &left, LazyTable right,
     const std::vector<arrow::Datum> &joined_indices) {
   arrow::Status status;
@@ -495,7 +490,7 @@ OperatorResult::OpResultPtr Join::BackPropogateResult(
   return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
-void Join::Finish() {
+void MultiwayJoin::Finish() {
   // Must append to output_result_ first
   output_result_->append(prev_result_);
 }

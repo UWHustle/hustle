@@ -26,7 +26,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "operators/fused/select_build_hash.h"
-#include "operators/join/join.h"
+#include "operators/join/multiway_join.h"
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
 #include "storage/block.h"

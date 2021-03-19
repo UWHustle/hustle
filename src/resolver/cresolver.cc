@@ -41,7 +41,7 @@ using namespace hustle::resolver;
 
 using SelectPtr = std::unique_ptr<hustle::operators::Select>;
 using AggPtr = std::unique_ptr<HashAggregate>;
-using JoinPtr = std::unique_ptr<Join>;
+using JoinPtr = std::unique_ptr<MultiwayJoin>;
 using FilterJoinPtr = std::unique_ptr<FilterJoin>;
 using ProjectReferencePtr = std::shared_ptr<ProjectReference>;
 
@@ -72,7 +72,7 @@ std::optional<bool> build_select(
       input_result->append(table_ptr);
       select = std::make_unique<hustle::operators::SelectBuildHash>(
           0, table_ptr, input_result, output_result, predicate_tree,
-          join_predicate_map[table_name].right_col_ref_);
+          join_predicate_map[table_name].right_col_);
       select_operators.emplace_back(std::move(select));
     } else if (predicate_tree == nullptr) {
       output_result->append(table_ptr);
@@ -89,7 +89,7 @@ std::optional<bool> build_select(
       } else {
         select = std::make_unique<hustle::operators::SelectBuildHash>(
             0, table_ptr, input_result, output_result, predicate_tree,
-            join_predicate_map[table_name].right_col_ref_);
+            join_predicate_map[table_name].right_col_);
       }
       select_operators.emplace_back(std::move(select));
     }
@@ -114,8 +114,8 @@ void build_join(
     filter_join_op = std::make_unique<FilterJoin>(0, select_result,
                                                   join_result_out, join_graph);
   } else {
-    join_op = std::make_unique<Join>(DEFAULT_QUERY_ID, select_result,
-                                     join_result_out, join_graph);
+    join_op = std::make_unique<MultiwayJoin>(DEFAULT_QUERY_ID, select_result,
+                                             join_result_out, join_graph);
   }
 }
 

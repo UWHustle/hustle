@@ -20,7 +20,7 @@
 #include "operators/aggregate/aggregate.h"
 #include "operators/fused/filter_join.h"
 #include "operators/fused/select_build_hash.h"
-#include "operators/join/join.h"
+#include "operators/join/multiway_join.h"
 #include "operators/join/join_graph.h"
 #include "operators/join/lip.h"
 #include "operators/select/predicate.h"
@@ -81,7 +81,7 @@ void SSB::q11_lip() {
   JoinPredicate join_pred = {lo_d_ref, arrow::compute::EQUAL, d_ref};
   JoinGraph graph({{join_pred}});
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
@@ -187,7 +187,7 @@ void SSB::q12_lip() {
   join_result_in = {lo_select_result_out, d_select_result_out};
 
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
@@ -303,7 +303,7 @@ void SSB::q13_lip() {
   lip_result_in = {lo_select_result_out, d_select_result_out};
 
   LIP lip_op(0, lip_result_in, lip_result_out, graph);
-  Join join_op(0, {lip_result_out}, join_result_out, graph, join_options);
+  MultiwayJoin join_op(0, {lip_result_out}, join_result_out, graph, join_options);
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, join_result_out, agg_result_out, {agg_ref}, {}, {},
@@ -369,11 +369,11 @@ void SSB::q21_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
-                              d_join_pred.right_col_ref_);
+                              d_join_pred.right_col_);
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
-                              p_pred_tree, p_join_pred.right_col_ref_);
+                              p_pred_tree, p_join_pred.right_col_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out};
@@ -458,11 +458,11 @@ void SSB::q22_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
-                              d_join_pred.right_col_ref_);
+                              d_join_pred.right_col_);
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
-                              p_pred_tree, p_join_pred.right_col_ref_);
+                              p_pred_tree, p_join_pred.right_col_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out};
@@ -536,11 +536,11 @@ void SSB::q23_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
-                              d_join_pred.right_col_ref_);
+                              d_join_pred.right_col_);
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
-                              p_pred_tree, p_join_pred.right_col_ref_);
+                              p_pred_tree, p_join_pred.right_col_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out};
@@ -633,11 +633,11 @@ void SSB::q31_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
   SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
-                              c_pred_tree, c_join_pred.right_col_ref_);
+                              c_pred_tree, c_join_pred.right_col_);
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
-                              d_pred_tree, d_join_pred.right_col_ref_);
+                              d_pred_tree, d_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};
@@ -733,11 +733,11 @@ void SSB::q32_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
   SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
-                              c_pred_tree, c_join_pred.right_col_ref_);
+                              c_pred_tree, c_join_pred.right_col_);
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
-                              d_pred_tree, d_join_pred.right_col_ref_);
+                              d_pred_tree, d_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};
@@ -857,11 +857,11 @@ void SSB::q33_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
   SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
-                              c_pred_tree, c_join_pred.right_col_ref_);
+                              c_pred_tree, c_join_pred.right_col_);
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
-                              d_pred_tree, d_join_pred.right_col_ref_);
+                              d_pred_tree, d_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};
@@ -972,11 +972,11 @@ void SSB::q34_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
   SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
-                              c_pred_tree, c_join_pred.right_col_ref_);
+                              c_pred_tree, c_join_pred.right_col_);
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
-                              d_pred_tree, d_join_pred.right_col_ref_);
+                              d_pred_tree, d_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    s_select_result_out, c_select_result_out};
@@ -1070,13 +1070,13 @@ void SSB::q41_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
-                              p_pred_tree, p_join_pred.right_col_ref_);
+                              p_pred_tree, p_join_pred.right_col_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
   SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
-                              c_pred_tree, c_join_pred.right_col_ref_);
+                              c_pred_tree, c_join_pred.right_col_);
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out, nullptr,
-                              d_join_pred.right_col_ref_);
+                              d_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out,
@@ -1194,13 +1194,13 @@ void SSB::q42_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
-                              p_pred_tree, p_join_pred.right_col_ref_);
+                              p_pred_tree, p_join_pred.right_col_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
   SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
-                              c_pred_tree, c_join_pred.right_col_ref_);
+                              c_pred_tree, c_join_pred.right_col_);
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
-                              d_pred_tree, d_join_pred.right_col_ref_);
+                              d_pred_tree, d_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out,
@@ -1309,13 +1309,13 @@ void SSB::q43_lip() {
   lo_select_result_out->append(lo);
 
   SelectBuildHash p_select_op(0, p, p_result_in, p_select_result_out,
-                              p_pred_tree, p_join_pred.right_col_ref_);
+                              p_pred_tree, p_join_pred.right_col_);
   SelectBuildHash s_select_op(0, s, s_result_in, s_select_result_out,
-                              s_pred_tree, s_join_pred.right_col_ref_);
+                              s_pred_tree, s_join_pred.right_col_);
   SelectBuildHash c_select_op(0, c, c_result_in, c_select_result_out,
-                              c_pred_tree, c_join_pred.right_col_ref_);
+                              c_pred_tree, c_join_pred.right_col_);
   SelectBuildHash d_select_op(0, d, d_result_in, d_select_result_out,
-                              d_pred_tree, d_join_pred.right_col_ref_);
+                              d_pred_tree, d_join_pred.right_col_);
 
   lip_result_in = {lo_select_result_out, d_select_result_out,
                    p_select_result_out, s_select_result_out,
