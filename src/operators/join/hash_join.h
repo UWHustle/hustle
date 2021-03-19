@@ -101,7 +101,7 @@ class HashJoin : public Operator {
    * probe_hash_table() populates new_left_indices_vector
    * and new_right_indices_vector. This function converts these into Arrow
    * Arrays.
-  */
+   */
   void ProbeHashTable(const std::shared_ptr<arrow::ChunkedArray> &probe_col,
                       const arrow::Datum &probe_filter,
                       const arrow::Datum &probe_indices, Task *ctx);
@@ -133,7 +133,6 @@ class HashJoin : public Operator {
   OperatorResult::OpResultPtr BackPropogateResult(
       const std::vector<arrow::Datum> &joined_indices);
 
-
   void FinishProbe(Task *ctx);
   /**
    * Create the output result from the raw data
@@ -141,12 +140,13 @@ class HashJoin : public Operator {
    */
   void Finish();
 
-  inline void ComputeChunkOffsets(std::vector<uint64_t> &chunk_offsets, const std::shared_ptr<arrow::ChunkedArray> &col) {
-      chunk_offsets[0] = 0;
-      for (std::size_t i = 1; i < col->num_chunks(); i++) {
-          chunk_offsets[i] =
-                  chunk_offsets[i - 1] + col->chunk(i - 1)->length();
-      }
+  inline void ComputeChunkOffsets(
+      std::vector<uint64_t> &chunk_offsets,
+      const std::shared_ptr<arrow::ChunkedArray> &col) {
+    chunk_offsets[0] = 0;
+    for (std::size_t i = 1; i < col->num_chunks(); i++) {
+      chunk_offsets[i] = chunk_offsets[i - 1] + col->chunk(i - 1)->length();
+    }
   }
 };
 
