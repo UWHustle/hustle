@@ -67,10 +67,6 @@ void Join::execute(Task *ctx) {
   for (auto &jpred : predicates) {
     auto left_ref = jpred.left_col_;
     auto right_ref = jpred.right_col_;
-    if (left_ref.table->get_num_rows() < right_ref.table->get_num_rows()) {
-      left_ref = jpred.right_col_;
-      right_ref = jpred.left_col_;
-    }
 
     left_col_names_.push_back(left_ref.col_name);
     right_col_names_.push_back(right_ref.col_name);
