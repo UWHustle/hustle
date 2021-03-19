@@ -7,6 +7,7 @@ add_library(
         select/select.h select/select.cc
         select/predicate.cc select/predicate.h
         join/join.h join/join.cc
+        join/hash_join.h join/hash_join.cc
         join/lip.cc join/lip.h
         join/join_graph.cc join/join_graph.h
         operator.h
@@ -29,11 +30,10 @@ target_link_libraries(hustle_src_operators PUBLIC
         hustle_src_utils_ArrowComputeWrappers
         hustle_src_utils_Config
         hustle_src_utils_ParallelHashmap
+        hustle_src_utils_parallel_utils
         hustle_src_type
         ${ARROW_SHARED_LIB}
         )
-
-
 
 add_executable(hustle_join_test "tests/join_test.cc")
 target_link_libraries(hustle_join_test
@@ -49,12 +49,24 @@ target_link_libraries(hustle_join_test
         )
 add_test(HustleJoin_test hustle_join_test)
 
+add_executable(hustle_hash_join_test "tests/hash_join_test.cc")
+target_link_libraries(hustle_hash_join_test
+        gtest
+        gtest_main
+        gmock
+        ${GFLAGS_LIB_NAME}
+        hustle_src_storage
+        hustle_src_operators
+        hustle_src_optimizer_ExecutionPlan
+        hustle_src_scheduler_Scheduler
+        )
+add_test(HustleHashJoin_test hustle_hash_join_test)
+
 add_executable(hustle_aggregate_test "tests/aggregate_test.cc")
 target_link_libraries(hustle_aggregate_test
         gtest
         gtest_main
         gmock
-        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_storage
         hustle_src_operators
@@ -68,7 +80,6 @@ target_link_libraries(hustle_hash_aggregate_test
         gtest
         gtest_main
         gmock
-        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_storage
         hustle_src_operators
@@ -82,7 +93,6 @@ target_link_libraries(hustle_select_test
         gtest
         gtest_main
         gmock
-        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_storage
         hustle_src_operators
@@ -96,7 +106,6 @@ target_link_libraries(hustle_select_build_hash_test
         gtest
         gtest_main
         gmock
-        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_storage
         hustle_src_operators
@@ -110,7 +119,6 @@ target_link_libraries(hustle_filter_join_test
         gtest
         gtest_main
         gmock
-        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_storage
         hustle_src_operators
@@ -124,7 +132,6 @@ target_link_libraries(hustle_expression_test
         gtest
         gtest_main
         gmock
-        #        glog
         ${GFLAGS_LIB_NAME}
         hustle_src_storage
         hustle_src_operators
