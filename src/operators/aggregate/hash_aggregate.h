@@ -18,12 +18,13 @@
 #ifndef HUSTLE_HASH_AGGREGATE_H
 #define HUSTLE_HASH_AGGREGATE_H
 
+#include <utility>
+
 #include "operators/aggregate/aggregate_const.h"
 #include "operators/expression.h"
 #include "operators/operator.h"
 
-namespace hustle {
-namespace operators {
+namespace hustle::operators {
 
 typedef size_t hash_t;
 typedef int64_t value_t;
@@ -115,14 +116,14 @@ class HashAggregate : public BaseAggregate {
   //      on the aggregate column. Hopefully this mapping won't change.
 
  public:
-  HashAggregate(const std::size_t query_id,
+  HashAggregate(std::size_t query_id,
                 OperatorResult::OpResultPtr prev_result,
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
                 std::vector<ColumnReference> group_by_refs,
                 std::vector<ColumnReference> order_by_refs);
 
-  HashAggregate(const std::size_t query_id,
+  HashAggregate(std::size_t query_id,
                 OperatorResult::OpResultPtr prev_result,
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
@@ -133,24 +134,24 @@ class HashAggregate : public BaseAggregate {
   void execute(Task* ctx) override;
 
   inline void set_prev_result(OperatorResult::OpResultPtr prev_result) {
-    prev_result_ = prev_result;
+    prev_result_ = std::move(prev_result);
   }
 
   inline void set_output_result(OperatorResult::OpResultPtr output_result) {
-    output_result_ = output_result;
+    output_result_ = std::move(output_result);
   }
 
   inline void set_aggregate_refs(
       std::vector<AggregateReference> aggregate_refs) {
-    aggregate_refs_ = aggregate_refs;
+    aggregate_refs_ = std::move(aggregate_refs);
   }
 
   inline void set_groupby_refs(std::vector<ColumnReference> group_by_refs) {
-    group_by_refs_ = group_by_refs;
+    group_by_refs_ = std::move(group_by_refs);
   }
 
   inline void set_orderby_refs(std::vector<ColumnReference> order_by_refs) {
-    order_by_refs_ = order_by_refs;
+    order_by_refs_ = std::move(order_by_refs);
   }
 
   void Clear() override {}
@@ -284,12 +285,9 @@ class HashAggregate : public BaseAggregate {
    */
   void SecondPhaseAggregate(Task* internal);
 
-  hash_t HashCombine(hash_t seed, hash_t val);
-
   void SortResult(std::vector<arrow::Datum>& groups, arrow::Datum& aggregates);
 };
 
-}  // namespace operators
-}  // namespace hustle
+}  // namespace hustle::operator
 
 #endif  // HUSTLE_HASH_AGGREGATE_H
