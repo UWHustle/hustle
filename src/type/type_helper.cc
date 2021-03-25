@@ -18,68 +18,16 @@
 #include "type_helper.h"
 namespace hustle {
 
-namespace details {
-std::shared_ptr<arrow::DataType> TestFields(arrow::Type::type type_enum) {
-  static std::shared_ptr<arrow::DataType> dataTypes[] = {
-      arrow::null(),
-      arrow::boolean(),
-      arrow::uint8(),
-      arrow::int8(),
-      arrow::uint16(),
-      arrow::int16(),
-      arrow::uint32(),
-      arrow::int32(),
-      arrow::uint64(),
-      arrow::int64(),
-      arrow::float16(),
-      arrow::float32(),
-      arrow::float64(),
-      arrow::utf8(),
-      arrow::binary(),
-      arrow::fixed_size_binary(32),
-      arrow::date32(),
-      arrow::date64(),
-      arrow::timestamp(arrow::TimeUnit::MICRO),
-      arrow::time32(arrow::TimeUnit::SECOND),
-      arrow::time64(arrow::TimeUnit::MICRO),  // micro / nano
-      arrow::month_interval(),
-      arrow::day_time_interval(),
-      arrow::decimal(9, 10),
-      arrow::list(arrow::int8()),
-      arrow::struct_({arrow::field("a", arrow::int8()),
-                      arrow::field("b", arrow::int32())}),
-      arrow::sparse_union({arrow::field("a", arrow::int8()),
-                           arrow::field("b", arrow::int32())}),
-      arrow::dense_union({arrow::field("a", arrow::int8()),
-                          arrow::field("b", arrow::int32())}),
-      arrow::dictionary(arrow::int32(), arrow::utf8()),
-      arrow::map(arrow::binary(), arrow::int64()),
-      nullptr,
-      arrow::fixed_size_list(arrow::int64(), 10),
-      arrow::duration(arrow::TimeUnit::MICRO),
-      arrow::large_utf8(),
-      arrow::large_binary(),
-      arrow::large_list(arrow::int8()),
-      nullptr};
-  int item_index = int(type_enum);
-  return dataTypes[item_index];
-}
-}  // namespace details
-
-
-std::shared_ptr<arrow::ArrayBuilder> getBuilder(
+std::unique_ptr<arrow::ArrayBuilder> getBuilder(
     const std::shared_ptr<arrow::DataType> &dataType) {
-#undef _HUSTLE_ARROW_TYPE_CASE_STMT
-#define _HUSTLE_ARROW_TYPE_CASE_STMT(T)          \
-  {                                             \
-    auto factory = BuilderFactory<T>(dataType); \
-    auto result = factory.GetBuilder();         \
-    return result.ValueOrDie();                 \
+  std::unique_ptr<arrow::ArrayBuilder> out;
+  auto status =
+      arrow::MakeBuilder(arrow::default_memory_pool(), dataType, &out);
+  if (!status.ok()) {
+    throw std::runtime_error(std::string("Make builder failed: ") +
+                             dataType->ToString());
   }
-  auto enum_type = dataType->id();
-  HUSTLE_SWITCH_ARROW_TYPE(enum_type);
-#undef _HUSTLE_ARROW_TYPE_CASE_STMT
-  return nullptr;
+  return out;
 };
 
 }  // namespace hustle
