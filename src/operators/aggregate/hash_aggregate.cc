@@ -285,7 +285,7 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 HashAggregate::CreateGroupBuilderVector() {
   std::vector<std::shared_ptr<arrow::ArrayBuilder>> group_builders;
   for (auto &field : group_type_->fields()) {
-    auto builder = getBuilder(field->type());
+    std::shared_ptr<arrow::ArrayBuilder> builder = getBuilder(field->type());
     group_builders.push_back(builder);
   }
   return group_builders;
