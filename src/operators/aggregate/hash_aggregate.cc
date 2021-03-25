@@ -295,14 +295,11 @@ std::shared_ptr<arrow::ArrayBuilder> HashAggregate::CreateAggregateBuilder(
     AggregateKernel kernel) {
   std::shared_ptr<arrow::ArrayBuilder> aggregate_builder;
   switch (kernel) {
-    case SUM: {
-      aggregate_builder = std::make_shared<arrow::Int64Builder>();
-      break;
-    }
     case MEAN: {
       aggregate_builder = std::make_shared<arrow::DoubleBuilder>();
       break;
     }
+    case SUM:
     case COUNT: {
       aggregate_builder = std::make_shared<arrow::Int64Builder>();
       break;
