@@ -30,4 +30,17 @@ std::unique_ptr<arrow::ArrayBuilder> getBuilder(
   return out;
 };
 
+std::unique_ptr<arrow::ArrayBuilder> getBuilder(
+    arrow::MemoryPool* memory_pool,
+    const std::shared_ptr<arrow::DataType> &dataType) {
+  std::unique_ptr<arrow::ArrayBuilder> out;
+  auto status =
+      arrow::MakeBuilder(memory_pool, dataType, &out);
+  if (!status.ok()) {
+    throw std::runtime_error(std::string("Make builder failed: ") +
+                             dataType->ToString());
+  }
+  return out;
+};
+
 }  // namespace hustle
