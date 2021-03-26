@@ -65,66 +65,62 @@ class ReorderingTestFixture : public testing::Test {
     u_schema = arrow::schema({u_field_1, u_field_2});
     v_schema = arrow::schema({v_field_1, v_field_2});
 
-      std::ofstream R_csv;
-      std::ofstream S_csv;
-      std::ofstream T_csv;
-      std::ofstream Q_csv;
-      std::ofstream U_csv;
-      std::ofstream V_csv;
+    std::ofstream R_csv;
+    std::ofstream S_csv;
+    std::ofstream T_csv;
+    std::ofstream Q_csv;
+    std::ofstream U_csv;
+    std::ofstream V_csv;
 
-      Q_csv.open("Q.csv");
-      R_csv.open("R.csv");
-      S_csv.open("S.csv");
-      T_csv.open("T.csv");
-      U_csv.open("V.csv");
-      V_csv.open("U.csv");
+    Q_csv.open("Q.csv");
+    R_csv.open("R.csv");
+    S_csv.open("S.csv");
+    T_csv.open("T.csv");
+    U_csv.open("V.csv");
+    V_csv.open("U.csv");
 
+    for (int i = 0; i < 3; i++) {
+      R_csv << std::to_string(i) << "|";
+      R_csv << "R" << std::to_string(i) << std::endl;
+    }
+    R_csv.close();
 
-      for (int i = 0; i < 3; i++) {
-          R_csv << std::to_string(i) << "|";
-          R_csv << "R" << std::to_string(i) << std::endl;
-      }
-      R_csv.close();
+    for (int i = 0; i < 4; i++) {
+      S_csv << std::to_string(3 - i) << "|";
+      S_csv << "S" << std::to_string(3 - i) << std::endl;
+    }
+    S_csv.close();
 
-      for (int i = 0; i < 4; i++) {
-          S_csv << std::to_string(3 - i) << "|";
-          S_csv << "S" << std::to_string(3 - i) << std::endl;
-      }
-      S_csv.close();
+    for (int i = 0; i < 5; i++) {
+      T_csv << std::to_string(i) << "|";
+      T_csv << "T" << std::to_string(i) << std::endl;
+    }
+    T_csv.close();
 
-      for (int i = 0; i < 5; i++) {
-          T_csv << std::to_string(i) << "|";
-          T_csv << "T" << std::to_string(i) << std::endl;
-      }
-      T_csv.close();
+    for (int i = 0; i < 2; i++) {
+      Q_csv << std::to_string(i) << "|";
+      Q_csv << "Q" << std::to_string(i) << std::endl;
+    }
+    Q_csv.close();
 
-      for (int i = 0; i < 2; i++) {
-          Q_csv << std::to_string(i) << "|";
-          Q_csv << "Q" << std::to_string(i) << std::endl;
-      }
-      Q_csv.close();
+    for (int i = 0; i < 2; i++) {
+      U_csv << std::to_string(i) << "|";
+      U_csv << "U" << std::to_string(i) << std::endl;
+    }
+    U_csv.close();
 
-      for (int i = 0; i < 2; i++) {
-          U_csv << std::to_string(i) << "|";
-          U_csv << "U" << std::to_string(i) << std::endl;
-      }
-      U_csv.close();
-
-      for (int i = 0; i < 2; i++) {
-          V_csv << std::to_string(i) << "|";
-          V_csv << "V" << std::to_string(i) << std::endl;
-      }
-      V_csv.close();
-
-
+    for (int i = 0; i < 2; i++) {
+      V_csv << std::to_string(i) << "|";
+      V_csv << "V" << std::to_string(i) << std::endl;
+    }
+    V_csv.close();
   }
 };
 
-
 TEST_F(ReorderingTestFixture, NumJoin2) {
-    R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
-    S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
-    T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
+  R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
+  S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
+  T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
 
   ColumnReference R_ref_1 = {R, "rkey"};
   ColumnReference R_ref_2 = {R, "rdata"};
@@ -156,23 +152,25 @@ TEST_F(ReorderingTestFixture, NumJoin2) {
       ReorderJoin::ApplyJoinReordering(0, {*join_pred_TS, *join_pred_RS},
                                        input_results);
   EXPECT_EQ(plan->size(), 2);
-    HashJoin& join1 = *(static_cast<HashJoin*>(plan->getAllOperators().at(0).get()));
-    HashJoin& join2 = *(static_cast<HashJoin*>(plan->getAllOperators().at(1).get()));
+  HashJoin& join1 =
+      *(static_cast<HashJoin*>(plan->getAllOperators().at(0).get()));
+  HashJoin& join2 =
+      *(static_cast<HashJoin*>(plan->getAllOperators().at(1).get()));
 
-    EXPECT_EQ(join1.predicate()->right_col_.col_name, S_ref_1.col_name);
-    EXPECT_EQ(join2.predicate()->right_col_.col_name, S_ref_1.col_name);
+  EXPECT_EQ(join1.predicate()->right_col_.col_name, S_ref_1.col_name);
+  EXPECT_EQ(join2.predicate()->right_col_.col_name, S_ref_1.col_name);
 
-    EXPECT_EQ(join1.predicate()->left_col_.col_name, R_ref_1.col_name);
-    EXPECT_EQ(join2.predicate()->left_col_.col_name, T_ref_1.col_name);
+  EXPECT_EQ(join1.predicate()->left_col_.col_name, R_ref_1.col_name);
+  EXPECT_EQ(join2.predicate()->left_col_.col_name, T_ref_1.col_name);
 }
 
 TEST_F(ReorderingTestFixture, NumJoin4) {
-    R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
-    S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
-    T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
-    Q = read_from_csv_file("Q.csv", q_schema, BLOCK_SIZE);
-    U = read_from_csv_file("U.csv", u_schema, BLOCK_SIZE);
-    V = read_from_csv_file("V.csv", v_schema, BLOCK_SIZE);
+  R = read_from_csv_file("R.csv", r_schema, BLOCK_SIZE);
+  S = read_from_csv_file("S.csv", s_schema, BLOCK_SIZE);
+  T = read_from_csv_file("T.csv", t_schema, BLOCK_SIZE);
+  Q = read_from_csv_file("Q.csv", q_schema, BLOCK_SIZE);
+  U = read_from_csv_file("U.csv", u_schema, BLOCK_SIZE);
+  V = read_from_csv_file("V.csv", v_schema, BLOCK_SIZE);
 
   ColumnReference R_ref_1 = {R, "rkey"};
   ColumnReference R_ref_2 = {R, "rdata"};
@@ -202,7 +200,9 @@ TEST_F(ReorderingTestFixture, NumJoin4) {
   prev_out_result4->append(U);
   prev_out_result5->append(V);
 
-  std::vector<OperatorResult::OpResultPtr> input_results ({prev_out_result1, prev_out_result2, prev_out_result3, prev_out_result4, prev_out_result5});
+  std::vector<OperatorResult::OpResultPtr> input_results(
+      {prev_out_result1, prev_out_result2, prev_out_result3, prev_out_result4,
+       prev_out_result5});
 
   std::shared_ptr<JoinPredicate> join_pred_RS = std::make_shared<JoinPredicate>(
       JoinPredicate{V_ref_1, arrow::compute::EQUAL, S_ref_1});
@@ -220,20 +220,24 @@ TEST_F(ReorderingTestFixture, NumJoin4) {
       ReorderJoin::ApplyJoinReordering(
           0, {*join_pred_RS, *join_pred_TS, *join_pred_RV, *join_pred_US},
           input_results);
-    EXPECT_EQ(plan->size(), 4);
+  EXPECT_EQ(plan->size(), 4);
 
-    HashJoin& join1 = *(static_cast<HashJoin*>(plan->getAllOperators().at(0).get()));
-    HashJoin& join2 = *(static_cast<HashJoin*>(plan->getAllOperators().at(1).get()));
-    HashJoin& join3 = *(static_cast<HashJoin*>(plan->getAllOperators().at(2).get()));
-    HashJoin& join4 = *(static_cast<HashJoin*>(plan->getAllOperators().at(3).get()));
+  HashJoin& join1 =
+      *(static_cast<HashJoin*>(plan->getAllOperators().at(0).get()));
+  HashJoin& join2 =
+      *(static_cast<HashJoin*>(plan->getAllOperators().at(1).get()));
+  HashJoin& join3 =
+      *(static_cast<HashJoin*>(plan->getAllOperators().at(2).get()));
+  HashJoin& join4 =
+      *(static_cast<HashJoin*>(plan->getAllOperators().at(3).get()));
 
-    EXPECT_EQ(join1.predicate()->right_col_.col_name, S_ref_1.col_name);
-    EXPECT_EQ(join2.predicate()->right_col_.col_name, V_ref_1.col_name);
-    EXPECT_EQ(join3.predicate()->right_col_.col_name, S_ref_1.col_name);
-    EXPECT_EQ(join4.predicate()->right_col_.col_name, S_ref_1.col_name);
+  EXPECT_EQ(join1.predicate()->right_col_.col_name, V_ref_1.col_name);
+  EXPECT_EQ(join2.predicate()->right_col_.col_name, S_ref_1.col_name);
+  EXPECT_EQ(join3.predicate()->right_col_.col_name, S_ref_1.col_name);
+  EXPECT_EQ(join4.predicate()->right_col_.col_name, S_ref_1.col_name);
 
-    EXPECT_EQ(join1.predicate()->left_col_.col_name, V_ref_1.col_name);
-    EXPECT_EQ(join2.predicate()->left_col_.col_name, R_ref_1.col_name);
-    EXPECT_EQ(join3.predicate()->left_col_.col_name, U_ref_1.col_name);
-    EXPECT_EQ(join4.predicate()->left_col_.col_name, T_ref_1.col_name);
+  EXPECT_EQ(join1.predicate()->left_col_.col_name, R_ref_1.col_name);
+  EXPECT_EQ(join2.predicate()->left_col_.col_name, V_ref_1.col_name);
+  EXPECT_EQ(join3.predicate()->left_col_.col_name, U_ref_1.col_name);
+  EXPECT_EQ(join4.predicate()->left_col_.col_name, T_ref_1.col_name);
 }

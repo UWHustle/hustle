@@ -26,33 +26,34 @@ namespace hustle {
 namespace optimizer {
 using namespace hustle::operators;
 
-    typedef std::size_t GroupId;
-    typedef std::size_t TableId;
+typedef std::size_t GroupId;
+typedef std::size_t TableId;
 
-    struct JoinInfo {
-        TableId left_id;
-        TableId right_id;
-        std::size_t est_size;
-        JoinInfo(TableId left_tbl, TableId right_tbl, std::size_t est_size)
-                : left_id(left_tbl), right_id(right_tbl), est_size(est_size)
-        {
-        }
-    };
+struct JoinInfo {
+  TableId left_id;
+  TableId right_id;
+  JoinPredicatePtr pred;
+  std::size_t est_size;
+  explicit JoinInfo(TableId left_tbl, TableId right_tbl, JoinPredicatePtr pred,
+                    std::size_t est_size)
+      : left_id(left_tbl),
+        right_id(right_tbl),
+        pred(pred),
+        est_size(est_size) {}
+};
 
 class ReorderJoin {
  public:
-
-    /**
-     * Join ordering using GOO (Greedy Operator Ordering algorithm)
-     * @param query_id
-     * @param predicates Join predicates
-     * @param input_result Input tables/prev result to the join operators
-     * @return execution plan
-     */
+  /**
+   * Join ordering using GOO (Greedy Operator Ordering algorithm)
+   * @param query_id
+   * @param tbl_id Join tbl_id
+   * @param grp_id Input tables/prev result to the join operators
+   * @return execution plan
+   */
   static ExecutionPlan::PlanPtr ApplyJoinReordering(
-          std::size_t query_id,
-      std::vector<JoinPredicate> predicates,
-      std::vector<OperatorResult::OpResultPtr> input_result);
+      const std::size_t query_id, const std::vector<JoinPredicate> predicates,
+      const std::vector<OperatorResult::OpResultPtr> input_result);
 };
 }  // namespace optimizer
 

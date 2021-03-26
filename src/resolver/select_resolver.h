@@ -102,9 +102,7 @@ class SelectResolver {
     return join_predicates_;
   }
 
-  inline std::vector<JoinPredicate> predicates() {
-      return predicates_;
-  }
+  inline std::vector<JoinPredicate> predicates() { return predicates_; }
 
   inline std::shared_ptr<std::vector<AggregateReference>> agg_references() {
     return agg_references_;
@@ -125,7 +123,7 @@ class SelectResolver {
     return project_references_;
   }
 
-  std::shared_ptr<ExprReference> ResolveAggExpr(Expr *expr);
+  std::shared_ptr<ExprReference> ResolveAggExpr(Expr* expr);
 
   bool ResolveSelectTree(Sqlite3Select* queryTree);
   bool ResolveSelectTree() { return true; }

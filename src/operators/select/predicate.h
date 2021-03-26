@@ -48,6 +48,8 @@ struct JoinPredicate {
   ColumnReference right_col_;
 };
 
+using JoinPredicatePtr = std::shared_ptr<JoinPredicate>;
+
 /**
  * The base class for nodes of a PredicateTree. Internal nodes contain a
  * connective operator (AND, OR, NOT) and leaf nodes contain a Predicate.
