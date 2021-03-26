@@ -61,6 +61,7 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
         JoinPredicate join_pred = {lRef, arrow::compute::EQUAL, rRef};
         if (rRef.table != nullptr) {
           join_predicates_[rRef.table->get_name()] = join_pred;
+          predicates_.emplace_back(join_pred);
         }
       }
       break;
