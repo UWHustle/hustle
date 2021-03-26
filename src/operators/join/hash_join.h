@@ -66,6 +66,8 @@ class HashJoin : public Operator {
    */
   void execute(Task *ctx) override;
 
+  std::shared_ptr<JoinPredicate> predicate() { return predicate_; }
+
   void Clear() override {}
 
  private:
