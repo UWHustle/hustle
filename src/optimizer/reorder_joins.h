@@ -57,6 +57,7 @@ class ReorderJoin {
 };
 }  // namespace optimizer
 
+
 }  // namespace hustle
 
 #endif  // HUSTLE_OPTIMIZER_REORDER_JOIN_H
