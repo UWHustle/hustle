@@ -49,6 +49,7 @@ add_library(hustle_src_utils_skew ../empty_src.cc skew.h)
 add_library(hustle_src_utils_bit_utils ../empty_src.cc bit_utils.h)
 add_library(hustle_src_utils_string_utils ../empty_src.cc string_utils.h)
 add_library(hustle_src_utils_parallel_utils ../empty_src.cc parallel_utils.h)
+add_library(hustle_src_utils_disjoin_set_forest ../empty_src.cc disjoint_set_forest.h)
 
 add_library(hustle_src_utils_BloomFilter ../empty_src.cc bloom_filter.h histogram.h)
 

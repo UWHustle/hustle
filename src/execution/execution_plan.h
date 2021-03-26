@@ -34,7 +34,10 @@ using hustle::operators::Operator;
 namespace hustle {
 
 class ExecutionPlan : public Task {
+
  public:
+
+    using PlanPtr = std::shared_ptr<ExecutionPlan>;
   explicit ExecutionPlan(const std::size_t query_id) : query_id_(query_id) {}
 
   void execute() override;
@@ -58,9 +61,16 @@ class ExecutionPlan : public Task {
     result_out_ = operator_result;
   }
 
+    void setInputOperatorResult(
+            std::shared_ptr<operators::OperatorResult> operator_result) {
+        input_result_ = operator_result;
+    }
+
   void setResultColumns(std::vector<operators::ColumnReference> result_cols) {
     result_cols_ = result_cols;
   }
+
+ std::vector<std::unique_ptr<Operator>>& getAllOperators() { return operators_;}
 
   const Operator& getOperator(const std::size_t op_index) const {
     return *operators_[op_index];
@@ -71,14 +81,39 @@ class ExecutionPlan : public Task {
     dependents_[producer_operator_index].emplace(consumer_operator_index);
   }
 
-  const std::unordered_set<std::size_t>& getDependents(
-      const std::size_t producer_operator_index) const {
-    const auto it = dependents_.find(producer_operator_index);
-    return it == dependents_.end() ? kEmptySet : it->second;
+  void merge(ExecutionPlan &plan) {
+      std::size_t initial_op_size = operators_.size();
+      for (auto &op : plan.getAllOperators()) {
+          operators_.emplace_back(std::move(op));
+      }
+    for (std::size_t i = 0; i < plan.size(); i++) {
+        auto dependents = plan.getDependents();
+        for (auto const&[producer_id, consumer_set] : dependents) {
+            for (auto consumer_id : consumer_set) {
+                this->dependents_[producer_id + initial_op_size].emplace(consumer_id + initial_op_size);
+            }
+        }
+    }
+    this->setOperatorResult(plan.getOperatorResult());
+    this->setResultColumns(plan.getResultColumns());
+  }
+
+    const std::unordered_set<std::size_t>& getDependents(
+            const std::size_t producer_operator_index) const {
+        const auto it = dependents_.find(producer_operator_index);
+        return it == dependents_.end() ? kEmptySet : it->second;
+    }
+
+  const std::unordered_map<std::size_t, std::unordered_set<std::size_t>>& getDependents() const {
+    return dependents_;
   }
 
   std::shared_ptr<operators::OperatorResult> getOperatorResult() const {
     return result_out_;
+  }
+
+  std::shared_ptr<operators::OperatorResult> getInputOperatorResult() const {
+        return input_result_;
   }
 
   std::vector<operators::ColumnReference>& getResultColumns() {
@@ -94,6 +129,8 @@ class ExecutionPlan : public Task {
 
   std::vector<std::unique_ptr<Operator>> operators_;
   std::unordered_map<std::size_t, std::unordered_set<std::size_t>> dependents_;
+
+  std::shared_ptr<operators::OperatorResult> input_result_;
   std::shared_ptr<operators::OperatorResult> result_out_;
   std::vector<operators::ColumnReference> result_cols_;
   static const std::unordered_set<std::size_t> kEmptySet;

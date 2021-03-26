@@ -1,4 +1,3 @@
-
 // Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -51,6 +50,8 @@ class SelectResolver {
       select_predicates_;
 
   std::unordered_map<std::string, JoinPredicate> join_predicates_;
+  std::vector<JoinPredicate> predicates_;
+
   std::shared_ptr<std::vector<AggregateReference>> agg_references_;
   std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
       group_by_references_;
@@ -99,6 +100,10 @@ class SelectResolver {
 
   inline std::unordered_map<std::string, JoinPredicate> join_predicates() {
     return join_predicates_;
+  }
+
+  inline std::vector<JoinPredicate> predicates() {
+      return predicates_;
   }
 
   inline std::shared_ptr<std::vector<AggregateReference>> agg_references() {
