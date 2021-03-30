@@ -18,8 +18,6 @@
 #ifndef HUSTLE_HASH_AGGREGATE_H
 #define HUSTLE_HASH_AGGREGATE_H
 
-#include <utility>
-
 #include "operators/aggregate/aggregate_const.h"
 #include "operators/expression.h"
 #include "operators/operator.h"
