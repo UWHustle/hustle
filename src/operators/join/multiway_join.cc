@@ -182,7 +182,6 @@ void MultiwayJoin::BuildHashTable(
 
   for (std::size_t i = 0; i < col->num_chunks(); i++) {
     // Each task inserts one chunk into the hash table
-    // TODO(nicholas): for now, we assume the join column is INT64 type.
 
     const uint8_t *filter_data = nullptr;
     if (filter != nullptr) {
@@ -227,12 +226,10 @@ void MultiwayJoin::BuildHashTable(
         build_hash_table(chunk, chunk_val_array);
         return;
       } else {
-        const auto func_name = __FUNCTION__;
-        const auto lino = __LINE__;
         const std::string func =
-            std::string(func_name) + " " + std::to_string(lino);
-        throw std::logic_error(func + std::string("Join with unsupported type"
-                                                  ""));
+            std::string(__FUNCTION__) + " " + std::to_string(__LINE__);
+        throw std::logic_error(func +
+                               std::string("Join with unsupported type"));
       }
     };
 
@@ -295,6 +292,7 @@ void MultiwayJoin::ProbeHashTableBlock(
         (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
     auto indices_length = chunk_length;
 
+    // Do hash join for the row id in the left column
     auto join = [&](auto &left_chunk, std::size_t row_id, auto val_getter) {
       auto key_value_pair =
           hash_tables_[join_id]->find(val_getter(left_chunk, row_id));
@@ -318,6 +316,7 @@ void MultiwayJoin::ProbeHashTableBlock(
       return chunk->Value(row);
     };
 
+    // Get hash code for the string to compare and do the join
     auto chunk_val_array = [](auto &chunk, std::size_t row) {
       return std::hash<std::string>{}(chunk->GetString(row));
     };
@@ -335,6 +334,8 @@ void MultiwayJoin::ProbeHashTableBlock(
         }
       }
     };
+
+    // Handle join for different col type
     auto typed_join = [&, this]<typename T>(T *) {
       if constexpr (arrow::is_number_type<T>::value) {
         using ArrayType = ArrowGetArrayType<T>;
@@ -348,12 +349,10 @@ void MultiwayJoin::ProbeHashTableBlock(
         chunk_join(typed_chunk, chunk_val_array);
         return;
       } else {
-        const auto func_name = __FUNCTION__;
-        const auto lino = __LINE__;
         const std::string func =
-            std::string(func_name) + " " + std::to_string(lino);
-        throw std::logic_error(func + std::string("Join with unsupported type"
-                                                  ""));
+            std::string(__FUNCTION__) + " " + std::to_string(__LINE__);
+        throw std::logic_error(func +
+                               std::string("Join with unsupported type"));
       }
     };
 
