@@ -24,6 +24,7 @@
 #include <utility>
 
 #include "storage/utils/util.h"
+#include "type/type_helper.h"
 #include "utils/bloom_filter.h"
 
 namespace hustle::operators {
@@ -31,16 +32,18 @@ namespace hustle::operators {
 static const uint32_t kLeftJoinIndex = 0;
 static const uint32_t kRightJoinIndex = 1;
 
-MultiwayJoin::MultiwayJoin(const std::size_t query_id,
-                           std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-                           OperatorResult::OpResultPtr output_result, JoinGraph graph)
+MultiwayJoin::MultiwayJoin(
+    const std::size_t query_id,
+    std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
+    OperatorResult::OpResultPtr output_result, JoinGraph graph)
     : MultiwayJoin(query_id, prev_result_vec, output_result, graph,
                    std::make_shared<OperatorOptions>()) {}
 
-MultiwayJoin::MultiwayJoin(const std::size_t query_id,
-                           std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
-                           OperatorResult::OpResultPtr output_result, JoinGraph graph,
-                           std::shared_ptr<OperatorOptions> options)
+MultiwayJoin::MultiwayJoin(
+    const std::size_t query_id,
+    std::vector<std::shared_ptr<OperatorResult>> prev_result_vec,
+    OperatorResult::OpResultPtr output_result, JoinGraph graph,
+    std::shared_ptr<OperatorOptions> options)
     : Operator(query_id, options),
       prev_result_vec_(prev_result_vec),
       output_result_(output_result),
@@ -148,10 +151,9 @@ void MultiwayJoin::HashJoin(int join_id, Task *ctx) {
       })));
 }  // namespace hustle::operators
 
-void MultiwayJoin::BuildHashTable(int join_id,
-                                  const std::shared_ptr<arrow::ChunkedArray> &col,
-                                  const std::shared_ptr<arrow::ChunkedArray> &filter,
-                                  Task *ctx) {
+void MultiwayJoin::BuildHashTable(
+    int join_id, const std::shared_ptr<arrow::ChunkedArray> &col,
+    const std::shared_ptr<arrow::ChunkedArray> &filter, Task *ctx) {
   // NOTE: Do not forget to clear the hash table
   hash_tables_[join_id] =
       std::make_shared<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>();
@@ -181,25 +183,60 @@ void MultiwayJoin::BuildHashTable(int join_id,
   for (std::size_t i = 0; i < col->num_chunks(); i++) {
     // Each task inserts one chunk into the hash table
     // TODO(nicholas): for now, we assume the join column is INT64 type.
-    auto chunk = std::static_pointer_cast<arrow::Int64Array>(col->chunk(i));
+
     const uint8_t *filter_data = nullptr;
     if (filter != nullptr) {
       filter_data = filter->chunk(i)->data()->GetValues<uint8_t>(1, 0);
     }
-    for (std::uint32_t row = 0; row < chunk->length(); row++) {
-      if (filter_data == nullptr || arrow::BitUtil::GetBit(filter_data, row)) {
-        auto record_id_itr = hash_tables_[join_id]->find(chunk->Value(row));
-        if (record_id_itr != hash_tables_[join_id]->end()) {
-          auto record_ids = record_id_itr->second;
-          record_ids.push_back(
-              {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i});
-          (*hash_tables_[join_id])[chunk->Value(row)] = record_ids;
-        } else {
-          (*hash_tables_[join_id])[chunk->Value(row)] = {
-              {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i}};
+
+    auto build_hash_table = [&](auto &chunk, auto val_getter) {
+      for (std::uint32_t row = 0; row < chunk->length(); row++) {
+        if (filter_data == nullptr ||
+            arrow::BitUtil::GetBit(filter_data, row)) {
+          auto record_id_itr =
+              hash_tables_[join_id]->find(val_getter(chunk, row));
+          if (record_id_itr != hash_tables_[join_id]->end()) {
+            auto record_ids = record_id_itr->second;
+            record_ids.push_back(
+                {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i});
+            (*hash_tables_[join_id])[val_getter(chunk, row)] = record_ids;
+          } else {
+            (*hash_tables_[join_id])[val_getter(chunk, row)] = {
+                {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i}};
+          }
         }
       }
-    }
+    };
+
+    auto chunk_val = [](auto &chunk, auto row) { return chunk->Value(row); };
+
+    auto chunk_val_array = [](auto &chunk, auto row) {
+      return std::hash<std::string>{}(chunk->GetString(row));
+    };
+
+    auto typed_build_hash_table = [&, this]<typename T>(T *) {
+      if constexpr (arrow::is_number_type<T>::value) {
+        using ArrayType = ArrowGetArrayType<T>;
+        auto chunk = std::static_pointer_cast<ArrayType>(col->chunk(i));
+        build_hash_table(chunk, chunk_val);
+        return;
+      } else if constexpr (isOneOf<T, arrow::StringArray,
+                                   arrow::FixedSizeBinaryArray>::value) {
+        using ArrayType = ArrowGetArrayType<T>;
+        auto chunk = std::static_pointer_cast<ArrayType>(col->chunk(i));
+        build_hash_table(chunk, chunk_val_array);
+        return;
+      } else {
+        const auto func_name = __FUNCTION__;
+        const auto lino = __LINE__;
+        const std::string func =
+            std::string(func_name) + " " + std::to_string(lino);
+        throw std::logic_error(func + std::string("Join with unsupported type"
+                                                  ""));
+      }
+    };
+
+    type_switcher(col->type(), typed_build_hash_table);
   }
 }
 
@@ -243,7 +280,6 @@ void MultiwayJoin::ProbeHashTableBlock(
     auto offset = chunk_row_offsets[i];
     auto chunk = probe_col->chunk(i);
     auto chunk_length = chunk->length();
-    auto left_join_chunk_data = chunk->data()->GetValues<uint64_t>(1, 0);
     const uint8_t *filter_data = nullptr;
 
     if (probe_filter != nullptr) {
@@ -258,52 +294,70 @@ void MultiwayJoin::ProbeHashTableBlock(
     auto *joined_right_indices =
         (uint32_t *)malloc(sizeof(uint32_t) * chunk_length);
     auto indices_length = chunk_length;
-    // TODO (suryadev) : As of now, we have two separate cases with
-    //  nearly same code with conditionals difference for faster loop execution
-    // as this forms one of the core code block for most of the queries with
-    // joins.
-    if (filter_data != nullptr) {
-      for (std::size_t row = 0; row < chunk_length; row++) {
-        if (arrow::BitUtil::GetBit(filter_data, row)) {
-          auto key_value_pair =
-              hash_tables_[join_id]->find(left_join_chunk_data[row]);
-          if (key_value_pair != hash_table_end) {
-            for (auto record_id : key_value_pair->second) {
-              if (indices_length <= num_joined_indices) {
-                indices_length <<= 1;
-                joined_left_indices = (uint32_t *)realloc(
-                    joined_left_indices, sizeof(uint32_t) * indices_length);
-                joined_right_indices = (uint32_t *)realloc(
-                    joined_right_indices, sizeof(uint32_t) * indices_length);
-              }
-              joined_left_indices[num_joined_indices] = row + offset;
-              joined_right_indices[num_joined_indices] = record_id.index;
-              ++num_joined_indices;
-            }
-          }
-        }
-      }
-    } else {
-      for (std::size_t row = 0; row < chunk_length; row++) {
-        auto key_value_pair =
-            hash_tables_[join_id]->find(left_join_chunk_data[row]);
-        if (key_value_pair != hash_table_end) {
-          for (auto record_id : key_value_pair->second) {
-            if (indices_length <= num_joined_indices) {
-              indices_length <<= 1;
-              joined_left_indices = (uint32_t *)realloc(
-                  joined_left_indices, sizeof(uint32_t) * indices_length);
-              joined_right_indices = (uint32_t *)realloc(
-                  joined_right_indices, sizeof(uint32_t) * indices_length);
-            }
-            joined_left_indices[num_joined_indices] = row + offset;
-            joined_right_indices[num_joined_indices] = record_id.index;
-            ++num_joined_indices;
-          }
-        }
-      }
-    }
 
+    auto join = [&](auto &left_chunk, std::size_t row_id, auto val_getter) {
+      auto key_value_pair =
+          hash_tables_[join_id]->find(val_getter(left_chunk, row_id));
+      if (key_value_pair != hash_table_end) {
+        for (auto record_id : key_value_pair->second) {
+          if (indices_length <= num_joined_indices) {
+            indices_length <<= 1;
+            joined_left_indices = (uint32_t *)realloc(
+                joined_left_indices, sizeof(uint32_t) * indices_length);
+            joined_right_indices = (uint32_t *)realloc(
+                joined_right_indices, sizeof(uint32_t) * indices_length);
+          }
+          joined_left_indices[num_joined_indices] = row_id + offset;
+          joined_right_indices[num_joined_indices] = record_id.index;
+          ++num_joined_indices;
+        }
+      }
+    };
+
+    auto chunk_val = [](auto &chunk, std::size_t row) {
+      return chunk->Value(row);
+    };
+
+    auto chunk_val_array = [](auto &chunk, std::size_t row) {
+      return std::hash<std::string>{}(chunk->GetString(row));
+    };
+
+    auto chunk_join = [&](auto chunk, auto val_getter) {
+      if (filter_data != nullptr) {
+        for (std::size_t row = 0; row < chunk_length; row++) {
+          if (arrow::BitUtil::GetBit(filter_data, row)) {
+            join(chunk, row, val_getter);
+          }
+        }
+      } else {
+        for (std::size_t row = 0; row < chunk_length; row++) {
+          join(chunk, row, val_getter);
+        }
+      }
+    };
+    auto typed_join = [&, this]<typename T>(T *) {
+      if constexpr (arrow::is_number_type<T>::value) {
+        using ArrayType = ArrowGetArrayType<T>;
+        auto typed_chunk = std::static_pointer_cast<ArrayType>(chunk);
+        chunk_join(typed_chunk, chunk_val);
+        return;
+      } else if constexpr (isOneOf<T, arrow::StringArray,
+                                   arrow::FixedSizeBinaryArray>::value) {
+        using ArrayType = ArrowGetArrayType<T>;
+        auto typed_chunk = std::static_pointer_cast<ArrayType>(chunk);
+        chunk_join(typed_chunk, chunk_val_array);
+        return;
+      } else {
+        const auto func_name = __FUNCTION__;
+        const auto lino = __LINE__;
+        const std::string func =
+            std::string(func_name) + " " + std::to_string(lino);
+        throw std::logic_error(func + std::string("Join with unsupported type"
+                                                  ""));
+      }
+    };
+
+    type_switcher(chunk->type(), typed_join);
     new_left_indices_vector_[i] = std::vector<uint32_t>(
         joined_left_indices, joined_left_indices + num_joined_indices);
     new_right_indices_vector_[i] = std::vector<uint32_t>(
@@ -314,10 +368,10 @@ void MultiwayJoin::ProbeHashTableBlock(
   }
 }
 
-void MultiwayJoin::ProbeHashTable(int join_id,
-                                  const std::shared_ptr<arrow::ChunkedArray> &probe_col,
-                                  const arrow::Datum &probe_filter,
-                                  const arrow::Datum &probe_indices, Task *ctx) {
+void MultiwayJoin::ProbeHashTable(
+    int join_id, const std::shared_ptr<arrow::ChunkedArray> &probe_col,
+    const arrow::Datum &probe_filter, const arrow::Datum &probe_indices,
+    Task *ctx) {
   new_left_indices_vector_.resize(probe_col->num_chunks());
   new_right_indices_vector_.resize(probe_col->num_chunks());
 
@@ -353,7 +407,7 @@ void MultiwayJoin::ProbeHashTable(int join_id,
       }
     });
   }
-}  // namespace hustle::operators
+}
 
 void MultiwayJoin::FinishProbe(Task *ctx) {
   int num_indices = 0;
