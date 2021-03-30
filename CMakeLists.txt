@@ -22,6 +22,8 @@ endif ()
 
 # Import Subdirectories.
 find_package(Threads REQUIRED)
+execute_process(COMMAND python ${CMAKE_CURRENT_LIST_DIR}/test/data/test_generate_data.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/test/data/)
 
 include_directories(third_party)
 include_directories(src)
