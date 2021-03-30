@@ -18,7 +18,7 @@
 #include "type_helper.h"
 namespace hustle {
 
-std::unique_ptr<arrow::ArrayBuilder> getBuilder(
+std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     const std::shared_ptr<arrow::DataType> &dataType) {
   std::unique_ptr<arrow::ArrayBuilder> out;
   auto status =
@@ -30,7 +30,7 @@ std::unique_ptr<arrow::ArrayBuilder> getBuilder(
   return out;
 };
 
-std::unique_ptr<arrow::ArrayBuilder> getBuilder(
+std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     arrow::MemoryPool* memory_pool,
     const std::shared_ptr<arrow::DataType> &dataType) {
   std::unique_ptr<arrow::ArrayBuilder> out;

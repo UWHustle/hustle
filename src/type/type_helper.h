@@ -140,14 +140,15 @@ auto comparator_switcher(arrow::compute::CompareOperator c,
     case arrow::compute::LESS_EQUAL:
       return func(std::less_equal());
   };
+  throw std::runtime_error("Unrecognized comparator type.");
 };
 
 // Methods to get arrow builder.
-std::unique_ptr<arrow::ArrayBuilder> getBuilder(
+std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     arrow::MemoryPool *memory_pool,
     const std::shared_ptr<arrow::DataType> &dataType);
 
-std::unique_ptr<arrow::ArrayBuilder> getBuilder(
+std::shared_ptr<arrow::ArrayBuilder> getBuilder(
     const std::shared_ptr<arrow::DataType> &dataType);
 
 };  // namespace hustle
