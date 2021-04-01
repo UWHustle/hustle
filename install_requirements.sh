@@ -9,6 +9,15 @@ if [[ `uname` == "Darwin" ]]; then
     fi
     brew update && brew bundle --file=Brewfile
 elif [[ `uname` == "Linux" ]]; then
+
+    sudo apt-get update
+    sudo apt-get install software-properties-common build-essential --yes
+    sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
+    sudo add-apt-repository "deb http://security.ubuntu.com/ubuntu bionic-security main"
+    sudo apt-get update
+    sudo apt-get install gcc-10 g++-10 libssl-dev libconfig++-dev --yes
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+
     if [ ! -d "cmake-3.15.5" ]
     then
       wget https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz
@@ -22,15 +31,6 @@ elif [[ `uname` == "Linux" ]]; then
       sudo make install -j4
     fi
     cd ..
-    sudo apt-get update
-    sudo apt-get install software-properties-common --yes
-    sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
-    sudo apt-get update
-    sudo apt-get install gcc-10 g++-10 --yes
-    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
-    
-    sudo apt-get update -y
-    sudo apt-get install -y libconfig++-dev
 
     if [ ! -d "benchmark" ]
     then
