@@ -162,7 +162,6 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
  * table_id - root page id of the table
  * */
 DBRecordList *hustle_memlog_get_records(HustleMemLog *mem_log, int table_id) {
-    std::cerr << table_id << " " << mem_log->total_size << std::endl;
   if (mem_log == NULL || table_id >= mem_log->total_size) {
     return NULL;
   }
