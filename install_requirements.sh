@@ -26,8 +26,8 @@ elif [[ `uname` == "Linux" ]]; then
     sudo apt-get install software-properties-common --yes
     sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
     sudo apt-get update
-    sudo apt-get install gcc-9 g++-9 --yes
-    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+    sudo apt-get install gcc-10 g++-10 --yes
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
     
     sudo apt-get update -y
     sudo apt-get install -y libconfig++-dev
