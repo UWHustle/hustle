@@ -15,7 +15,9 @@ elif [[ `uname` == "Linux" ]]; then
     sudo add-apt-repository ppa:ubuntu-toolchain-r/test --yes
     sudo add-apt-repository "deb http://security.ubuntu.com/ubuntu bionic-security main"
     sudo apt-get update
-    sudo apt-get install gcc-10 g++-10 libssl1.0-dev libssl-dev libconfig++-dev --yes
+    sudo apt-get install gcc-10 g++-10 libconfig++-dev --yes
+    sudo apt-get install libssl1.0-dev --yes
+    #  TODO: Use libssl1.0-dev when upgrade to CMake3.20
     sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
 
     if [ ! -d "cmake-3.15.5" ]
