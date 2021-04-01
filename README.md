@@ -15,22 +15,31 @@ User on MacOS shall install [homebrew](https://brew.sh/) before running the foll
 
 To install the required packages for Hustle use the following scripts:
 
-```
+```shell
 ./install_requirements.sh
 ./install_arrow.sh
 ```
-The scripts will install g++9, cmake 3.15 and Apache Arrow. 
+The scripts will install g++10, cmake 3.15 and Apache Arrow. 
+
+*(macOS) Note: the default `g++` will be still mapped to `clang`. To avoid such a case, we recommend using the following alias at startup script:*
+
+```bash
+export CC=$(which gcc-10)
+export CXX=$(which g++-10)
+```
+
+
 
 Then use cmake to build Hustle:
-```
+```shell
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=RELEASE .. 
+cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10 .. 
 make -j all  
 ```
 
 To run the test go into the build directory and use:
-```
+```shell
 ./run_test.sh 
 ```
 
@@ -70,7 +79,7 @@ User on MacOS shall install [homebrew](https://brew.sh/) before running the foll
 
 To install the required packages for Hustle use the following scripts:
 
-```
+```shell
 ./install_requirements_cpp20.sh
 ./install_arrow_cpp20.sh
 ```
@@ -80,7 +89,7 @@ The scripts will install g++10, cmake 3.15 and Apache Arrow 3.0.
 To verify the toolchain accessibility, verify the version of `g++`:
 
 ```bash
-g++-10 -v # or g++ -v
+g++-10 -v
 ```
 
 
