@@ -304,7 +304,7 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
           internal->spawnLambdaTask([this, indices_array, chunked_values,
                                      has_index_chunks, offsets, index_chunks,
                                      i] {
-            // TODO: This somehow causes an unkown segfault error.
+            // TODO: This somehow causes an unknown segfault error.
 //            auto data_type = chunked_values->type();
 //
 //            auto apply_index_handler = [&, this]<typename T>(T*) {
@@ -380,6 +380,10 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
                 apply_indices_internal_str(chunked_values, indices_array,
                                            offsets, i);
                 break;
+              }
+              default: {
+                throw std::logic_error(std::string("Unsupported type: ") +
+                                       chunked_values->type()->ToString());
               }
             }
           });
