@@ -219,8 +219,8 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
           col_txt = (char *)std::to_string(col->Value(row)).c_str();
           txt_length = std::to_string(col->Value(row)).length();
           return;
-        } else if constexpr (isOneOf<T, arrow::StringArray,
-                                     arrow::FixedSizeBinaryArray>::value) {
+        } else if constexpr (arrow::is_string_type<T>::value ||
+                             arrow::is_fixed_size_binary_type<T>::value) {
           using ArrayType = ArrowGetArrayType<T>;
           auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           col_txt = (char *)col->GetString(row).c_str();
