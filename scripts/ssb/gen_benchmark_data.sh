@@ -11,7 +11,7 @@ cd ${src_dir}/ssb/data
 # clone and build ssb-dbgen repo
 if [ ! -d "ssb-dbgen" ]
 then
-    git clone https://github.com/eyalroz/ssb-dbgen.git
+    git clone https://github.com/UWHustle/ssb-dbgen.git
 fi
 cd ssb-dbgen
 cmake . && cmake --build .
