@@ -18,7 +18,7 @@ void txbench::TATPHustleLoader::load() {
   std::mt19937 mt(rd());
 
   RandomGenerator rg;
-    hustle::HustleDB::start_scheduler();
+    hustle::HustleDB::init();
   std::shared_ptr<arrow::Schema> s_schema, ai_schema, sf_schema, cf_schema;
   std::shared_ptr<hustle::HustleDB> hustle_db =
       txbench::TATPHustleBenchmark::getHustleDB();
@@ -295,6 +295,6 @@ void txbench::TATPHustleLoader::load() {
     hustle_db->execute_query_result(sf_query);
     hustle_db->execute_query_result(cf_query);
 
-  //hustle::HustleDB::stop_scheduler();
+  //hustle::HustleDB::destroy();
   std::cout << "loaded the values" << std::endl;
 }

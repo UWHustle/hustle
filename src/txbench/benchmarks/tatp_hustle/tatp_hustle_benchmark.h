@@ -23,7 +23,7 @@ public:
 
 ~TATPHustleBenchmark() {
   std::cout << "Stop scheduler" << std::endl;
-    hustle::HustleDB::stop_scheduler();
+    hustle::HustleDB::destroy();
 }
 private:
   int n_rows_;

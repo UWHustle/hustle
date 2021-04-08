@@ -29,10 +29,10 @@ namespace hustle::operators {
         hustle_db = std::make_shared<HustleDB>("db_directory");
         // it will only start if it is not running.
         CreateTable();
-        hustle::HustleDB::start_scheduler();
+        hustle::HustleDB::init();
     }
 
-    SSBQueries::~SSBQueries() { hustle::HustleDB::stop_scheduler(); }
+    SSBQueries::~SSBQueries() { hustle::HustleDB::destroy(); }
 
     void SSBQueries::CreateTable() {
         // Create table part

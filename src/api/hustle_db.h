@@ -36,11 +36,28 @@ class HustleDB {
 
   static Scheduler &get_scheduler() { return Scheduler::GlobalInstance(); }
 
-  static void add_catalog(std::string db_name, std::shared_ptr<Catalog> catalog);
+  static void add_catalog(std::string db_name,
+                          std::shared_ptr<Catalog> catalog);
 
   static std::shared_ptr<Catalog> get_catalog(std::string db_name);
 
+  static void init() {
+    if (!Scheduler::GlobalInstance().isActive()) {
+      Scheduler::GlobalInstance().start();
+    }
+    utils::init_sqlite3();
+  }
+
+  static void destroy() {
+    if (Scheduler::GlobalInstance().isActive()) {
+      Scheduler::GlobalInstance().join();
+    }
+    utils::destroy_sqlite3();
+  }
+
   HustleDB(std::string path);
+
+  void reinitialize_sqlite_db();
 
   bool create_table(const TableSchema ts);
 
@@ -58,29 +75,16 @@ class HustleDB {
 
   std::string get_plan(const std::string &sql);
 
-  static bool start_scheduler() {
-    if (!Scheduler::GlobalInstance().isActive()) {
-      Scheduler::GlobalInstance().start();
-      return true;
-    }
-    return false;
-  }
+  inline sqlite3 *sqlite3_db() { return db; }
 
-  static bool stop_scheduler() {
-    if (Scheduler::GlobalInstance().isActive()) {
-      Scheduler::GlobalInstance().join();
-      return true;
-    }
-    return false;
-  }
-
-  const std::string get_sqlite_path() { return SqliteDBPath_; }
+  inline const std::string get_sqlite_path() { return SqliteDBPath_; }
 
   Catalog *get_catalog() { return catalog_.get(); }
 
-   ~HustleDB() {}
+  ~HustleDB() { utils::close_sqlite3(db); }
 
  private:
+  sqlite3 *db;
   const std::string DBPath_;
   const std::string CatalogPath_;
   const std::string SqliteDBPath_;

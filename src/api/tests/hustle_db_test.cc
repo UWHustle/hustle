@@ -44,7 +44,7 @@ TEST(HustleDB, createTable) {
   std::filesystem::remove_all("db_directory");
 
   hustle::HustleDB hustleDB("db_directory/db_dir_nested");
-    hustle::HustleDB::start_scheduler();
+    hustle::HustleDB::init();
 
   TableSchema ts("Subscriber");
   ColumnSchema c1("c1", {HustleType::INTEGER, 0}, true, false);
@@ -66,7 +66,7 @@ TEST(HustleDB, createTable) {
   EXPECT_TRUE(hustleDB.get_catalog()->TableExists(ts.getName()));
 
   std::filesystem::remove_all("db_directory");
-    hustle::HustleDB::stop_scheduler();
+    hustle::HustleDB::destroy();
 }
 
 TEST(HustleDB, DropTable) {

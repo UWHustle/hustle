@@ -13,10 +13,10 @@ target_link_libraries(
         absl::strings
         absl::flat_hash_map
         map_utils
+        sqlite3
         sqlite_utils
         ${ARROW_SHARED_LIB}
 )
-
 
 add_executable(hustle_catalog_test "tests/catalog_test.cc")
 target_link_libraries(hustle_catalog_test

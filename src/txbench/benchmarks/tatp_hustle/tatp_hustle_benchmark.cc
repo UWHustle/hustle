@@ -11,7 +11,7 @@ txbench::TATPHustleBenchmark::TATPHustleBenchmark(int n_workers,
     : Benchmark(n_workers, warmup_duration, measurement_duration),
       n_rows_(n_rows) {
          std::cout << "Start scheduler" << std::endl;
-    hustle::HustleDB::start_scheduler();
+    hustle::HustleDB::init();
       }
 
 

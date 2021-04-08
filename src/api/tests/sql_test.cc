@@ -316,10 +316,13 @@ class SQLTest : public Test {
     hustle_db->execute_query_result(query);
     std::cerr << "date done" << std::endl;
 
-    hustle::HustleDB::start_scheduler();
+    hustle::HustleDB::init();
   }
 
-  void TearDown() override { hustle::HustleDB::stop_scheduler(); }
+  void TearDown() override {
+    hustle::HustleDB::destroy();
+    hustle_db.reset();
+  }
 };
 
 hustle::catalog::TableSchema SQLTest::part("part"),

@@ -21,23 +21,30 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include "sqlite3/sqlite3.h"
 
 namespace hustle {
 namespace utils {
 
-void initialize_sqlite3();
+void init_sqlite3();
 
-void load_tables(const std::string &sqlitePath, std::vector<std::string> tables);
+void open_sqlite3_db(const std::string &sqlitePath, sqlite3 **db);
+
+void load_tables(sqlite3* db, std::vector<std::string> tables);
 
 // Executes the sql query specified in sql on the database at sqlitePath,
 // no output is returned.
-bool execute_sqlite_query(const std::string &sqlitePath,
+bool execute_sqlite_query(sqlite3* db,
                           const std::string &sql);
 
 // Executes the sql query specified in sql on the database at sqlitePath,
 // the output is returned as a string.
-std::string execute_sqlite_result(const std::string &sqlitePath,
+std::string execute_sqlite_result(sqlite3* db,
                                   const std::string &sql);
+
+void close_sqlite3(sqlite3* db);
+
+void destroy_sqlite3();
 
 }  // namespace utils
 }  // namespace hustle

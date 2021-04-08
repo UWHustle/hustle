@@ -25,11 +25,11 @@ TATP::TATP() {
   std::filesystem::remove_all("db_directory");
   hustle_db = std::make_shared<HustleDB>("db_directory2");
   // it will only start if it is not running.
-    hustle::HustleDB::start_scheduler();
+    hustle::HustleDB::init();
   CreateTable();
 }
 
-TATP::~TATP() { hustle::HustleDB::stop_scheduler(); }
+TATP::~TATP() { hustle::HustleDB::destroy(); }
 
 void TATP::CreateTable() {
   std::shared_ptr<arrow::Schema> s_schema, ai_schema, sf_schema, cf_schema;
