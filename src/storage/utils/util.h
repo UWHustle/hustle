@@ -24,6 +24,7 @@
 
 #include <string>
 
+#include "storage/utils/util.h"
 #include "catalog/table_schema.h"
 #include "storage/table.h"
 
