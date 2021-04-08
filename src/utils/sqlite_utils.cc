@@ -31,6 +31,9 @@ namespace {
 // The callback function used by sqlite
 static int callback_print_plan(void *result, int argc, char **argv,
                                char **azColName) {
+  if (result == NULL) {
+    return -1;
+  }
   for (int i = 0; i < argc; i++) {
     if (i != 0) {
       absl::StrAppend((std::string *)result, " | ");
@@ -46,7 +49,7 @@ static int callback_print_plan(void *result, int argc, char **argv,
 void init_sqlite3() {
   int rc = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
   if (rc != SQLITE_OK) {
-     std::runtime_error("SQL config already in use and initialized.\n");
+    std::runtime_error("SQL config already in use and initialized.\n");
   }
   sqlite3_initialize();
 }
@@ -110,13 +113,9 @@ bool execute_sqlite_query(sqlite3 *db, const std::string &sql) {
   return true;
 }
 
-void destroy_sqlite3() {
-  sqlite3_shutdown();
-}
+void destroy_sqlite3() { sqlite3_shutdown(); }
 
-void close_sqlite3(sqlite3 *db) {
-   sqlite3_close(db);
-}
+void close_sqlite3(sqlite3 *db) { sqlite3_close(db); }
 
 }  // namespace utils
 }  // namespace hustle
