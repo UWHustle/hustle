@@ -27,6 +27,7 @@ target_link_libraries(hustle_table_test
         gtest_main
         gmock
         ${ARROW_SHARED_LIB}
+        sqlite3
         hustle_src_storage
         )
 add_test(HustleTableTest hustle_table_test)
