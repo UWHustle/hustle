@@ -16,11 +16,13 @@
 // under the License.
 
 #include "ssb_queries.h"
+
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <string.h>
 
+#include "utils/config.h"
 
 namespace hustle::operators {
     SSBQueries::SSBQueries(bool is_output_enabled) {
@@ -244,16 +246,18 @@ namespace hustle::operators {
 
         std::cout << "read the table files..." << std::endl;
         DBTable::TablePtr lo, c, s, p, d;
-
-        lo = std::make_shared<hustle::storage::DBTable>("lineorder", lo_schema, BLOCK_SIZE);
+        const auto block_size =
+            Config::GetInstance().GetDoubleValue("block-size");
+        lo = std::make_shared<hustle::storage::DBTable>("lineorder", lo_schema,
+                                                        block_size);
         d = std::make_shared<hustle::storage::DBTable>("ddate", d_schema,
-                                                        BLOCK_SIZE);
+                                                       block_size);
         p = std::make_shared<hustle::storage::DBTable>("part", p_schema,
-                                                        BLOCK_SIZE);
+                                                       block_size);
         c = std::make_shared<hustle::storage::DBTable>("customer", c_schema,
-                                                        BLOCK_SIZE);
+                                                       block_size);
         s = std::make_shared<hustle::storage::DBTable>("supplier", s_schema,
-                                                       BLOCK_SIZE);
+                                                       block_size);
         hustle_db->create_table(supplier, s);
         hustle_db->create_table(customer, c);
         hustle_db->create_table(ddate, d);
