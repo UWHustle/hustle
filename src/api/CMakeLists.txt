@@ -4,7 +4,8 @@ add_library(
 )
 
 target_link_libraries(hustleDB PUBLIC
-                        sqlite_utils 
+                        sqlite_utils
+                        sqlite3
                         hustle_src_catalog  
                         hustle_src_scheduler_Scheduler)
 

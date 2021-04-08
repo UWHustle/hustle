@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
 
   hustle::HustleDB hustleDB("db_directory");
   // it will only start if it is not running.
-    hustle::HustleDB::start_scheduler();
+    hustle::HustleDB::init();
 
     hustleDB.create_table(supplier, s);
 
@@ -432,6 +432,6 @@ int main(int argc, char *argv[]) {
    deleteQuery((void *)&hustleDB);
    readQuery2((void *)&hustleDB);*/
 
-    hustle::HustleDB::stop_scheduler();
+    hustle::HustleDB::destroy();
   return 0;
 }

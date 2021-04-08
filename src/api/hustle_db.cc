@@ -49,37 +49,45 @@ HustleDB::HustleDB(std::string DBpath)
   if (!std::filesystem::exists(DBpath)) {
     std::filesystem::create_directories(DBpath);
   }
-  utils::initialize_sqlite3();
-    this->add_catalog(SqliteDBPath_, catalog_);
+  this->add_catalog(SqliteDBPath_, catalog_);
+  utils::open_sqlite3_db(SqliteDBPath_, &db);
 };
 
 std::string HustleDB::get_plan(const std::string &sql) {
-  return utils::execute_sqlite_result(SqliteDBPath_, sql);
+  return utils::execute_sqlite_result(db, sql);
 }
 
 bool HustleDB::create_table(const TableSchema ts) {
-  return catalog_->AddTable(ts);
+  return catalog_->AddTable(db, ts);
 }
 
-bool HustleDB::create_table(const TableSchema ts,
-                            DBTable::TablePtr table_ref) {
-  return catalog_->AddTable(ts, table_ref);
+bool HustleDB::create_table(const TableSchema ts, DBTable::TablePtr table_ref) {
+  return catalog_->AddTable(db, ts, table_ref);
+}
+
+void HustleDB::reinitialize_sqlite_db() {
+    if (db != NULL) {
+        utils::close_sqlite3(db);
+    }
+    utils::open_sqlite3_db(SqliteDBPath_, &db);
 }
 
 void HustleDB::load_tables() {
-    utils::load_tables(SqliteDBPath_, hustle::HustleDB::catalogs[SqliteDBPath_]->GetTableNames());
+  this->reinitialize_sqlite_db();
+  utils::load_tables(
+      db, hustle::HustleDB::catalogs[SqliteDBPath_]->GetTableNames());
 }
 
 std::string HustleDB::execute_query_result(const std::string &sql) {
-  return utils::execute_sqlite_result(SqliteDBPath_, sql);
+  return utils::execute_sqlite_result(db, sql);
 }
 
 bool HustleDB::execute_query(const std::string &sql) {
-  return utils::execute_sqlite_query(SqliteDBPath_, sql);
+  return utils::execute_sqlite_query(db, sql);
 }
 
 bool HustleDB::drop_table(const std::string &name) {
-  return catalog_->DropTable(name);
+  return catalog_->DropTable(db, name);
 }
 
 bool HustleDB::drop_mem_table(const std::string &name) {

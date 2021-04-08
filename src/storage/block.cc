@@ -569,18 +569,15 @@ void Block::InsertValue(int col_num, int &head, uint8_t *record_value,
   } else {
     // TODO(suryadev): Study the scope for optimization
     auto *dest = columns[col_num]->GetMutableValues<field_type>(1, num_rows);
-    uint8_t *value = NULL;
+    uint8_t *value = (uint8_t *)calloc(sizeof(field_type), sizeof(uint8_t));
     // Handle 0 or 1 storage encoding optimization from sqlite3 record
     bool isZeroOneOpt = byte_width < 0;
     if (isZeroOneOpt) {
       // Get zero or one from encoding in negative byte width
       uint8_t val = -(byte_width)-ZERO_TYPE_ENCODING;  // 0 or 1
-      value = &val;
-      value = (uint8_t *)calloc(sizeof(field_type), sizeof(uint8_t));
       std::memcpy(value, &val, 1);
       byte_width = 0;
     } else {
-      value = (uint8_t *)calloc(sizeof(field_type), sizeof(uint8_t));
       std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
                   byte_width);
     }
@@ -588,9 +585,7 @@ void Block::InsertValue(int col_num, int &head, uint8_t *record_value,
     head += byte_width;
     column_sizes[col_num] += sizeof(field_type);
     num_bytes += sizeof(field_type);
-    if (!isZeroOneOpt) {
-      free(value);
-    }
+    free(value);
   }
 
   columns[col_num]->length++;

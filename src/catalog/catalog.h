@@ -62,12 +62,12 @@ class Catalog {
   static std::shared_ptr<Catalog> CreateCatalogObject(std::string CatalogPath,
                                                       std::string SqlitePath);
 
-  bool AddTable(TableSchema t);
-  bool AddTable(TableSchema t, DBTable::TablePtr table_ref);
+  bool AddTable(sqlite3* db, TableSchema t);
+  bool AddTable(sqlite3* db, TableSchema t, DBTable::TablePtr table_ref);
 
   bool DropMemTable(std::string name);
 
-  bool DropTable(std::string name);
+  bool DropTable(sqlite3* db, std::string name);
 
   std::optional<TableSchema*> TableExists(std::string name);
 

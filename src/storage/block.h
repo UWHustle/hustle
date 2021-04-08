@@ -23,6 +23,7 @@
 #include <iostream>
 #include <map>
 
+#include "storage/cmemlog.h"
 #include "utils/bit_utils.h"
 
 #define BLOCK_SIZE (1 << 20)
@@ -48,7 +49,7 @@
  * However, support for any fixed-width type can be added by introducing
  * additional case statements in each switch block.
  */
-typedef int (*sqlite3_callback)(void*,int,char**, char**);
+typedef int (*sqlite3_callback)(void *, int, char **, char **);
 
 namespace hustle::storage {
 
@@ -246,7 +247,7 @@ class Block {
    */
   void out_block(void *pArg, sqlite3_callback callback);
 
-    /**
+  /**
    * Insert a record into the Block.
    *
    * @param record Values to be inserted into each column. Values should be
@@ -314,8 +315,15 @@ class Block {
                                 int byte_width) {
     auto *dest = columns[col_num]->GetMutableValues<field_size>(1, row_num);
     uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
-    std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
-                byte_width);
+    // Handle 0 or 1 storage encoding optimization from sqlite3 record
+    if (byte_width < 0) {
+      // Get zero or one from encoding in negative byte width
+      uint8_t val = -(byte_width)-ZERO_TYPE_ENCODING;  // 0 or 1
+      std::memcpy(value, &val, 1);
+    } else {
+      std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
+                  byte_width);
+    }
     std::memcpy(dest, value, sizeof(field_size));
     free(value);
   }
@@ -329,7 +337,6 @@ class Block {
   inline bool IsMetadataCompatible() { return metadata_enabled; }
 
  protected:
-
   /**
    * Initialize an empty block.
    *
@@ -351,8 +358,8 @@ class Block {
    * @param record_batch RecordBatch read from a file
    * @param capacity Maximum number of date bytes to be stored in the Block
    */
-  Block(int id, const std::shared_ptr<arrow::RecordBatch>& record_batch, int capacity,
-        bool metadata_enabled);
+  Block(int id, const std::shared_ptr<arrow::RecordBatch> &record_batch,
+        int capacity, bool metadata_enabled);
 
  private:
   /**
@@ -394,7 +401,7 @@ class Block {
    * Total number of data bytes stored in the block, excluding the valid column
    * data.
    */
-  int num_bytes; // TODO: Should this be size_t?
+  int num_bytes;  // TODO: Should this be size_t?
 
   /**
    * Capacity of the block, initialized to BLOCK_SIZE.
