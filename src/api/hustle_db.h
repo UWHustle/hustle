@@ -52,6 +52,7 @@ class HustleDB {
     if (Scheduler::GlobalInstance().isActive()) {
       Scheduler::GlobalInstance().join();
     }
+    catalogs.clear();
     utils::destroy_sqlite3();
   }
 
