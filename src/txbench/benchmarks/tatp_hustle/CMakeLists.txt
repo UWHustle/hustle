@@ -18,19 +18,23 @@ target_include_directories(
         hustle_src_utils_EventProfiler
         hustle_src_utils_skew
         hustle_src_utils_Config
+		sqlite3
+		sqlite_utils
 )
 
 target_link_libraries(
         tatp_hustle
         txbench
         tatp
-	hustleDB
+		hustleDB
         hustle_src_catalog
         hustle_src_storage
         hustle_src_resolver
         hustle_src_operators
         hustle_src_scheduler_Scheduler
         hustle_src_optimizer_ExecutionPlan
+		sqlite3
+		sqlite_utils
         ${ARROW_SHARED_LIB}
         ${GFLAGS_LIB_NAME}
         glog

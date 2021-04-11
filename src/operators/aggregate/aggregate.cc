@@ -35,7 +35,7 @@ Aggregate::Aggregate(const std::size_t query_id,
                      OperatorResult::OpResultPtr output_result,
                      std::vector<AggregateReference> aggregate_refs,
                      std::vector<ColumnReference> group_by_refs,
-                     std::vector<ColumnReference> order_by_refs)
+                     std::vector<OrderByReference> order_by_refs)
     : Aggregate(query_id, prev_result, output_result, aggregate_refs,
                 group_by_refs, order_by_refs,
                 std::make_shared<OperatorOptions>()) {}
@@ -45,7 +45,7 @@ Aggregate::Aggregate(const std::size_t query_id,
                      OperatorResult::OpResultPtr output_result,
                      std::vector<AggregateReference> aggregate_refs,
                      std::vector<ColumnReference> group_by_refs,
-                     std::vector<ColumnReference> order_by_refs,
+                     std::vector<OrderByReference> order_by_refs,
                      std::shared_ptr<OperatorOptions> options)
     : BaseAggregate(query_id, options),
       prev_result_(prev_result),
@@ -514,7 +514,7 @@ void Aggregate::SortResult(std::vector<arrow::Datum>& groups,
 
   for (auto& order_by_ref : order_by_refs_) {
     for (std::size_t j = 0; j < group_by_refs_.size(); ++j) {
-      if (order_by_ref.table == group_by_refs_[j].table) {
+      if (order_by_ref.col_ref_.table == group_by_refs_[j].table) {
         order_to_group.push_back(j);
       }
     }
@@ -534,7 +534,7 @@ void Aggregate::SortResult(std::vector<arrow::Datum>& groups,
     auto order_ref = order_by_refs_[i];
     // A nullptr indicates that we are sorting by the aggregate column
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
-    if (order_ref.table == nullptr) {
+    if (order_ref.col_ref_.table == nullptr) {
       status = arrow::compute::SortIndices(*aggregates.make_array())
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);

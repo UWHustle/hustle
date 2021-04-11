@@ -21,6 +21,7 @@
 #include "operators/aggregate/aggregate_const.h"
 #include "operators/expression.h"
 #include "operators/operator.h"
+#include "operators/select/predicate.h"
 
 namespace hustle::operators {
 
@@ -119,14 +120,14 @@ class HashAggregate : public BaseAggregate {
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
                 std::vector<ColumnReference> group_by_refs,
-                std::vector<ColumnReference> order_by_refs);
+                std::vector<OrderByReference> order_by_refs);
 
   HashAggregate(std::size_t query_id,
                 OperatorResult::OpResultPtr prev_result,
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
                 std::vector<ColumnReference> group_by_refs,
-                std::vector<ColumnReference> order_by_refs,
+                std::vector<OrderByReference> order_by_refs,
                 std::shared_ptr<OperatorOptions> options);
 
   void execute(Task* ctx) override;
@@ -148,7 +149,7 @@ class HashAggregate : public BaseAggregate {
     group_by_refs_ = std::move(group_by_refs);
   }
 
-  inline void set_orderby_refs(std::vector<ColumnReference> order_by_refs) {
+  inline void set_orderby_refs(std::vector<OrderByReference> order_by_refs) {
     order_by_refs_ = std::move(order_by_refs);
   }
 
@@ -168,7 +169,8 @@ class HashAggregate : public BaseAggregate {
   // and which aggregate to perform.
   std::vector<AggregateReference> aggregate_refs_;
   // References denoting which columns we want to group by and order by
-  std::vector<ColumnReference> group_by_refs_, order_by_refs_;
+  std::vector<ColumnReference> group_by_refs_;
+  std::vector<OrderByReference> order_by_refs_;
 
   // Map group by column names to the actual group column
   std::vector<arrow::Datum> group_by_cols_;

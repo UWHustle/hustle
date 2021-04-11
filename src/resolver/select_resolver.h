@@ -55,7 +55,7 @@ class SelectResolver {
   std::shared_ptr<std::vector<AggregateReference>> agg_references_;
   std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
       group_by_references_;
-  std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  std::shared_ptr<std::vector<std::shared_ptr<OrderByReference>>>
       order_by_references_;
   std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
       project_references_;
@@ -78,7 +78,7 @@ class SelectResolver {
     group_by_references_ =
         std::make_shared<std::vector<std::shared_ptr<ColumnReference>>>();
     order_by_references_ =
-        std::make_shared<std::vector<std::shared_ptr<ColumnReference>>>();
+        std::make_shared<std::vector<std::shared_ptr<OrderByReference>>>();
     project_references_ =
         std::make_shared<std::vector<std::shared_ptr<ProjectReference>>>();
 
@@ -113,7 +113,7 @@ class SelectResolver {
     return group_by_references_;
   }
 
-  inline std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
+  inline std::shared_ptr<std::vector<std::shared_ptr<OrderByReference>>>
   orderby_references() {
     return order_by_references_;
   }

@@ -64,6 +64,8 @@ typedef struct sqlite3_context sqlite3_context;
 
 struct sqlite3;
 
+#define KEYINFO_ORDER_DESC    0x01
+
 #define TK_SEMI                             1
 #define TK_EXPLAIN                          2
 #define TK_QUERY                            3

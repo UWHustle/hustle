@@ -34,7 +34,7 @@ HashAggregate::HashAggregate(const std::size_t query_id,
                              OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
-                             std::vector<ColumnReference> order_by_refs)
+                             std::vector<OrderByReference> order_by_refs)
     : HashAggregate(query_id, prev_result, output_result, aggregate_refs,
                     group_by_refs, order_by_refs,
                     std::make_shared<OperatorOptions>()) {}
@@ -44,7 +44,7 @@ HashAggregate::HashAggregate(const std::size_t query_id,
                              OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
-                             std::vector<ColumnReference> order_by_refs,
+                             std::vector<OrderByReference> order_by_refs,
                              std::shared_ptr<OperatorOptions> options)
     : BaseAggregate(query_id, options),
       prev_result_(prev_result),
@@ -393,14 +393,12 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
       auto group_by_chunk = group_by.chunked_array()->chunk(chunk_index);
 
       auto group_by_type = group_by.type();
-
       // Assign next_key.
       hash_t next_key = 0;
       auto get_hash_key = [&]<typename T>(T *ptr_) {
         if constexpr (arrow::is_primitive_ctype<T>::value) {
           using ArrayType = ArrowGetArrayType<T>;
           using CType = ArrowGetCType<T>;
-
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
           CType val = col->Value(item_index);
           next_key = std::hash<CType>{}(val);
@@ -410,6 +408,8 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
                       arrow::is_fixed_size_binary_type<T>::value) {
           using ArrayType = ArrowGetArrayType<T>;
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
+
+          std::cout << col << " " << item_index << " " << col->length() << std::endl;
           auto val = col->GetString(item_index);
           next_key = std::hash<std::string>{}(val);
           return;
@@ -709,7 +709,7 @@ void HashAggregate::SortResult(std::vector<arrow::Datum> &groups,
 
   for (auto &order_by_ref : order_by_refs_) {
     for (std::size_t j = 0; j < group_by_refs_.size(); ++j) {
-      if (order_by_ref.table == group_by_refs_[j].table) {
+      if (order_by_ref.col_ref_.table == group_by_refs_[j].table) {
         order_to_group.push_back(j);
       }
     }
@@ -729,13 +729,20 @@ void HashAggregate::SortResult(std::vector<arrow::Datum> &groups,
     auto order_ref = order_by_refs_[i];
     // A nullptr indicates that we are sorting by the aggregate column
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
-    if (order_ref.table == nullptr) {
-      status = arrow::compute::SortIndices(*aggregates.make_array())
+    auto order = arrow::compute::SortOrder::Ascending;
+    if (order_ref.is_desc) {
+        order = arrow::compute::SortOrder::Descending;
+    }
+    if (order_ref.col_ref_.table == nullptr) {
+        std::cout << "Order by ref (table null): " << order_ref.col_ref_.col_name << std::endl;
+      status = arrow::compute::SortIndices(*aggregates.make_array(), order)
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
-      auto group = groups[order_to_group[i]];
-      status = arrow::compute::SortIndices(*group.make_array())
+        std::cout << "Order by ref: " << order_ref.col_ref_.col_name << std::endl;
+
+        auto group = groups[order_to_group[i]];
+      status = arrow::compute::SortIndices(*group.make_array(), order)
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     }

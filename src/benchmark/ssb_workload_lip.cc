@@ -649,7 +649,7 @@ void SSB::q31_lip() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_nation_ref, s_nation_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+                   {{d_year_ref, false}, {nullptr, "revenue", false}}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -749,7 +749,7 @@ void SSB::q32_lip() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+                   {{d_year_ref, false}, {nullptr, "revenue", false}}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -873,7 +873,7 @@ void SSB::q33_lip() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+                   {{d_year_ref, false}, {nullptr, "revenue", false}}, aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -988,7 +988,7 @@ void SSB::q34_lip() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, c_city_ref, s_city_ref},
-                   {d_year_ref, {nullptr, "revenue"}}, aggregate_options);
+                   {{d_year_ref, false}, {nullptr, "revenue", false}}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto s_select_id = plan.addOperator(&s_select_op);
@@ -1088,7 +1088,7 @@ void SSB::q41_lip() {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
-                   {d_year_ref, c_nation_ref}, {d_year_ref, c_nation_ref},
+                   {d_year_ref, c_nation_ref}, {{d_year_ref, false}, {c_nation_ref, false}},
                    aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -1213,7 +1213,7 @@ void SSB::q42_lip() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, {lip_result_out}, agg_result_out, {agg_ref},
                    {d_year_ref, s_nation_ref, p_category_ref},
-                   {d_year_ref, s_nation_ref, p_category_ref},
+                   {{d_year_ref, false}, {s_nation_ref, false}, {p_category_ref, false}},
                    aggregate_options);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -1328,7 +1328,7 @@ void SSB::q43_lip() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   HashAggregate agg_op(0, lip_result_out, agg_result_out, {agg_ref},
                    {d_year_ref, s_city_ref, p_brand1_ref},
-                   {d_year_ref, s_city_ref, p_brand1_ref}, aggregate_options);
+                   {{d_year_ref, false}, {s_city_ref, false}, {p_brand1_ref, false}}, aggregate_options);
 
   ExecutionPlan plan(0);
   auto p_select_id = plan.addOperator(&p_select_op);

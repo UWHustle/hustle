@@ -338,20 +338,20 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     for (int i = 0; i < pOrderBy->nExpr; i++) {
       if (pOrderBy->a[i].u.x.iOrderByCol > 0) {
         if (pOrderBy->a[i].pExpr->iColumn >= 0) {
-          std::shared_ptr<ColumnReference> colRef;
+          std::shared_ptr<OrderByReference> order_ref;
           if (pOrderBy->a[i].pExpr->op == TK_AGG_FUNCTION) {
-            colRef = std::make_shared<ColumnReference>(ColumnReference{
+              order_ref = std::make_shared<OrderByReference>(OrderByReference{
                 nullptr,
                 (*project_references_)[pOrderBy->a[i].u.x.iOrderByCol - 1]
-                    ->alias});
+                    ->alias, (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
           } else {
-            colRef = std::make_shared<ColumnReference>(ColumnReference{
+              order_ref = std::make_shared<OrderByReference>(OrderByReference{
                 catalog_->GetTable(pOrderBy->a[i].pExpr->y.pTab->zName),
                 pOrderBy->a[i]
                     .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
-                    .zName});
+                    .zName, (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
           }
-          order_by_references_->emplace_back(colRef);
+          order_by_references_->emplace_back(order_ref);
         }
       }
     }
