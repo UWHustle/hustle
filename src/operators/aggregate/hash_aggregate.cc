@@ -409,7 +409,8 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
           using ArrayType = ArrowGetArrayType<T>;
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
 
-          std::cout << col << " " << item_index << " " << col->length() << std::endl;
+          std::cout << col << " " << item_index << " " << col->length()
+                    << std::endl;
           auto val = col->GetString(item_index);
           next_key = std::hash<std::string>{}(val);
           return;
@@ -731,17 +732,14 @@ void HashAggregate::SortResult(std::vector<arrow::Datum> &groups,
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
     auto order = arrow::compute::SortOrder::Ascending;
     if (order_ref.is_desc) {
-        order = arrow::compute::SortOrder::Descending;
+      order = arrow::compute::SortOrder::Descending;
     }
     if (order_ref.col_ref_.table == nullptr) {
-        std::cout << "Order by ref (table null): " << order_ref.col_ref_.col_name << std::endl;
       status = arrow::compute::SortIndices(*aggregates.make_array(), order)
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
-        std::cout << "Order by ref: " << order_ref.col_ref_.col_name << std::endl;
-
-        auto group = groups[order_to_group[i]];
+      auto group = groups[order_to_group[i]];
       status = arrow::compute::SortIndices(*group.make_array(), order)
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
