@@ -176,6 +176,7 @@ class HashAggregate : public BaseAggregate {
   std::vector<arrow::Datum> group_by_cols_;
 
   arrow::Datum agg_col_;
+  std::shared_ptr<arrow::ChunkedArray> filter_;
   // A StructType containing the types of all group by columns
   std::shared_ptr<arrow::DataType> group_type_;
   // We append each aggregate to this after it is computed.

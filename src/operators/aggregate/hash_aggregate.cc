@@ -114,6 +114,9 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
         if (aggregate_refs_[0].expr_ref == nullptr) {
           agg_lazy_table_ = prev_result_->get_table(table);
           agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
+          filter_ = (agg_lazy_table_.filter.kind() != arrow::Datum::NONE)
+                        ? agg_lazy_table_.filter.chunked_array()
+                        : nullptr;
         } else {
           // For expression case, create expression object and initialize
           expression_ = std::make_shared<Expression>(
@@ -377,7 +380,16 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
   }
   tuple_map = tuple_maps.at(tid);
 
+  const uint8_t *filter_data = nullptr;
+  if (filter_ != nullptr) {
+    filter_data = filter_->chunk(chunk_index)->data()->GetValues<uint8_t>(1, 0);
+  }
+
   for (int item_index = 0; item_index < chunk_size; ++item_index) {
+    if (filter_data != nullptr &&
+        !arrow::BitUtil::GetBit(filter_data, item_index)) {
+      continue;
+    }
     // TODO: Redefine item value as hash_t
     // 1. Build agg_item_key
     // 2. Build agg_item_value
