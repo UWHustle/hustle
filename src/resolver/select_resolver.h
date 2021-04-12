@@ -90,7 +90,9 @@ class SelectResolver {
     resolve_status_ = true;
   }
 
-  SelectResolver() : SelectResolver(nullptr) {}
+  SelectResolver() : SelectResolver(nullptr) {
+      resolve_status_ = true;
+  }
 
   inline std::unordered_map<std::string,
                             std::shared_ptr<hustle::operators::PredicateTree>>&

@@ -178,7 +178,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
           comparatorOperator = arrow::compute::CompareOperator::GREATER;
         if (pExpr->op == TK_GE)
           comparatorOperator = arrow::compute::CompareOperator::GREATER_EQUAL;
-
         Predicate predicate = {colRef, comparatorOperator, datum};
         auto predicate_node = std::make_shared<PredicateNode>(
             std::make_shared<Predicate>(predicate));
@@ -187,6 +186,10 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
         select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
       } else {
+          if (!((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
+          (rightExpr != NULL && rightExpr->op == TK_COLUMN))) {
+              resolve_status_ = false;
+          }
         return nullptr;
       }
       break;
@@ -224,6 +227,14 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         }
       }
       break;
+    }
+    case TK_AGG_COLUMN:
+    case TK_AGG_FUNCTION:
+    case TK_COLUMN: {
+        break;
+    }
+    default: {
+        resolve_status_ = false;
     }
   }
   // predicate_tree is NULL it it contains operator not supported
@@ -311,6 +322,9 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   Expr* pWhere = queryTree->pWhere;
   if (pWhere != NULL) {
     ResolvePredExpr(pWhere);
+    if (!resolve_status_) {
+        return false;
+    }
   }
   if (pWhere != NULL) {
     ResolveJoinPredExpr(pWhere);
