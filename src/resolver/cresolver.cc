@@ -146,15 +146,17 @@ void build_aggregate(hustle::resolver::SelectResolver *select_resolver,
                                            group_by_refs, order_by_refs);
 }
 
-void build_output_cols(std::vector<ProjectReferencePtr> &project_references,
+void build_output_cols(bool is_agg_out,
+                       std::vector<ProjectReferencePtr> &project_references,
                        std::vector<ColumnReference> &agg_project_cols) {
   for (auto project_ref : project_references) {
+    auto table_ptr = is_agg_out ? nullptr : project_ref->colRef.table;
     if (!project_ref->alias.empty()) {
       agg_project_cols.emplace_back(
-          ColumnReference{nullptr, project_ref->alias});
+          ColumnReference{table_ptr, project_ref->alias});
     } else {
       agg_project_cols.emplace_back(
-          ColumnReference{nullptr, project_ref->colRef.col_name});
+          ColumnReference{table_ptr, project_ref->colRef.col_name});
     }
   }
 }
@@ -206,7 +208,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   std::vector<ProjectReferencePtr> project_references =
       *(select_resolver->project_references());
   std::vector<ColumnReference> agg_project_cols;
-  build_output_cols(project_references, agg_project_cols);
+  build_output_cols(agg_op != nullptr, project_references, agg_project_cols);
 
   std::shared_ptr<hustle::ExecutionPlan> plan =
       std::make_shared<hustle::ExecutionPlan>(0);
