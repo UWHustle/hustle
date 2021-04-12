@@ -408,9 +408,6 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
                       arrow::is_fixed_size_binary_type<T>::value) {
           using ArrayType = ArrowGetArrayType<T>;
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
-
-          std::cout << col << " " << item_index << " " << col->length()
-                    << std::endl;
           auto val = col->GetString(item_index);
           next_key = std::hash<std::string>{}(val);
           return;

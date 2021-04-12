@@ -70,8 +70,7 @@ class SQLTest : public Test {
     return stream;
   }
 
-  void SetUp()  override{
-      std::cout << "In setup" << std::endl;
+  void SetUp() override {
     int num_remove = std::filesystem::remove_all("db_directory_sql");
     EXPECT_FALSE(std::filesystem::exists("db_directory_sql"));
 
@@ -205,7 +204,6 @@ class SQLTest : public Test {
     SQLTest::d = std::make_shared<hustle::storage::DBTable>(
         "ddate", SQLTest::ddate.getArrowSchema(), BLOCK_SIZE);
 
-
     hustle_db->create_table(SQLTest::lineorder, SQLTest::lo);
     hustle_db->create_table(SQLTest::customer, SQLTest::c);
     hustle_db->create_table(SQLTest::supplier, SQLTest::s);
@@ -316,11 +314,11 @@ class SQLTest : public Test {
 
   void TearDown() override {
     hustle::HustleDB::destroy();
-      SQLTest::lo.reset();
-      SQLTest::c.reset();
-      SQLTest::s.reset();
-      SQLTest::p.reset();
-      SQLTest::d.reset();
+    SQLTest::lo.reset();
+    SQLTest::c.reset();
+    SQLTest::s.reset();
+    SQLTest::p.reset();
+    SQLTest::d.reset();
     hustle_db.reset();
   }
 };
