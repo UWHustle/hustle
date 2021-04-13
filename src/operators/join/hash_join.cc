@@ -99,7 +99,7 @@ void HashJoin::BuildHashTable(
     const std::shared_ptr<arrow::ChunkedArray> &col,
     const std::shared_ptr<arrow::ChunkedArray> &filter, Task *ctx) {
   hash_table_ =
-      std::make_shared<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>();
+      std::make_shared<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
 
   // Precompute the row offsets of each chunk. A multithreaded build phase
   // requires that we know all offsets beforehand.
@@ -132,11 +132,11 @@ void HashJoin::BuildHashTable(
         auto record_id_itr = hash_table_->find(chunk->Value(row));
         if (record_id_itr != hash_table_->end()) {
           auto record_ids = record_id_itr->second;
-          record_ids.push_back({(uint32_t)chunk_offsets[i] + row, (uint16_t)i});
+          record_ids->push_back({(uint32_t)chunk_offsets[i] + row, (uint16_t)i});
           (*hash_table_)[chunk->Value(row)] = record_ids;
         } else {
-          (*hash_table_)[chunk->Value(row)] = {
-              {(uint32_t)chunk_offsets[i] + row, (uint16_t)i}};
+          (*hash_table_)[chunk->Value(row)] = std::make_shared<std::vector<RecordID>>(std::vector<RecordID>({
+              {(uint32_t)chunk_offsets[i] + row, (uint16_t)i}}));
         }
       }
     }
@@ -174,7 +174,7 @@ void HashJoin::ProbeHashTableBlock(
         auto record_itr = hash_table_->find(left_data[row]);
 
         if (record_itr != hash_table_end) {
-          for (auto record_id : record_itr->second) {
+          for (auto record_id : *(record_itr->second)) {
             if (idx_len <= num_indices) {
               idx_len <<= 1;
               l_idxs = (uint32_t *)realloc(l_idxs, sizeof(uint32_t) * idx_len);

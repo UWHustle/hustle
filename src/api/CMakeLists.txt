@@ -47,5 +47,3 @@ target_link_libraries(hustle_SQL_MISC_test
         hustleDB
         )
 add_test(SQL_MISC_test hustle_SQL_MISC_test)
-
-

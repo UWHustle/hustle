@@ -74,26 +74,38 @@ TEST_F(SQLMiscTest, q_without_agg_and_join) {
 
 TEST_F(SQLMiscTest, q_without_agg) {
   std::string query =
-      "select lo_orderkey, lo_revenue, lo_quantity, d_month, d_yearmonth\n"
+      "select  lo_revenue, lo_quantity, d_month, d_yearmonth\n"
       "from ddate, lineorder\n"
-      "where d_datekey = 1992015 and (lo_quantity = 29 and lo_revenue = "
+      "where d_datekey = lo_orderdate  and (lo_quantity = 29 and lo_revenue = "
       "946)\n;";
 
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output,
-            "12713 | 946 | 29 | 5 | Jan1992\n"
-            "19527 | 946 | 29 | 5 | Jan1992\n");
+            "946 | 29 | 4 | Feb1992\n"
+            "946 | 29 | 4 | Mar1992\n");
 }
 
 TEST_F(SQLMiscTest, q_without_join) {
   std::string query =
-      "select Count(lo_orderkey)\n"
+      "select Count(lo_quantity)\n"
       "from  lineorder\n"
       "where (lo_quantity = 29 and lo_revenue = 946)\n;";
 
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "2\n");
 }
+
+TEST_F(SQLMiscTest, q_predicate_assorted) {
+    std::string query =
+            "select Count(lo_quantity)\n"
+            "from  lineorder, ddate\n"
+            "where d_datekey = lo_orderdate and d_year = 1993 and (lo_quantity = 20 and lo_revenue = "
+            "763);\n";
+
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1\n");
+}
+
 
 TEST_F(SQLMiscTest, q_joins_non_unique_columns) {
   std::string query =
@@ -144,10 +156,10 @@ TEST_F(SQLMiscTest, q_nested_subquery_predicate) {
       "SELECT lo_orderkey\n"
       "FROM  lineorder\n"
       "WHERE lo_orderkey IN (\n"
-      "SELECT lo_orderkey FROM lineorder WHERE lo_orderkey=3);\n";
+      "SELECT lo_orderkey FROM lineorder WHERE lo_orderkey < 5);\n";
 
   output = hustle_db->execute_query_result(query);
-  EXPECT_EQ(output, "3\n");
+  EXPECT_EQ(output, "0\n1\n2\n3\n4\n");
 
   query =
       "SELECT lo_orderkey\n"

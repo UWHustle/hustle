@@ -460,7 +460,7 @@ void SSB::q21() {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
-  std::vector<ColumnReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
+  std::vector<OrderByReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -548,7 +548,7 @@ void SSB::q22() {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
-  std::vector<ColumnReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
+  std::vector<OrderByReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -625,7 +625,7 @@ void SSB::q23() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
 
   std::vector<ColumnReference> group_by_refs = {{d, "year"}, {p, "brand1"}};
-  std::vector<ColumnReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
+  std::vector<OrderByReference> order_by_refs = {{d, "year"}, {p, "brand1"}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -715,8 +715,8 @@ void SSB::q31() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_nation_ref,
                                                 s_nation_ref};
-  std::vector<ColumnReference> order_by_refs = {d_year_ref,
-                                                {nullptr, "revenue"}};
+  std::vector<OrderByReference> order_by_refs = {{d_year_ref, false},
+                                                {nullptr, "revenue", false}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -809,8 +809,8 @@ void SSB::q32() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref,
                                                 s_city_ref};
-  std::vector<ColumnReference> order_by_refs = {d_year_ref,
-                                                {nullptr, "revenue"}};
+  std::vector<OrderByReference> order_by_refs = {{d_year_ref, false},
+                                                {nullptr, "revenue", false}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -927,8 +927,8 @@ void SSB::q33() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref,
                                                 s_city_ref};
-  std::vector<ColumnReference> order_by_refs = {d_year_ref,
-                                                {nullptr, "revenue"}};
+  std::vector<OrderByReference> order_by_refs = {{d_year_ref, false},
+                                                {nullptr, "revenue", false}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -1043,8 +1043,8 @@ void SSB::q34() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_city_ref,
                                                 s_city_ref};
-  std::vector<ColumnReference> order_by_refs = {d_year_ref,
-                                                {nullptr, "revenue"}};
+  std::vector<OrderByReference> order_by_refs = {{d_year_ref, false},
+                                                {nullptr, "revenue", false}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -1145,7 +1145,7 @@ void SSB::q41() {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, c_nation_ref};
-  std::vector<ColumnReference> order_by_refs = {d_year_ref, c_nation_ref};
+  std::vector<OrderByReference> order_by_refs = {{d_year_ref, false}, {c_nation_ref, false}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -1260,8 +1260,8 @@ void SSB::q42() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, s_nation_ref,
                                                 p_category_ref};
-  std::vector<ColumnReference> order_by_refs = {d_year_ref, s_nation_ref,
-                                                p_category_ref};
+  std::vector<OrderByReference> order_by_refs = {{d_year_ref, false}, {s_nation_ref, false},
+                                                 {p_category_ref, false}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);
@@ -1370,8 +1370,8 @@ void SSB::q43() {
   AggregateReference agg_ref = {AggregateKernel::SUM, "revenue", lo_rev_ref};
   std::vector<ColumnReference> group_by_refs = {d_year_ref, s_city_ref,
                                                 p_brand1_ref};
-  std::vector<ColumnReference> order_by_refs = {d_year_ref, s_city_ref,
-                                                p_brand1_ref};
+  std::vector<OrderByReference> order_by_refs = {{d_year_ref, false}, {s_city_ref, false},
+                                                 {p_brand1_ref, false}};
   auto agg_op =
       get_agg_op(0, aggregate_type, join_result_out, agg_result_out, {agg_ref},
                  group_by_refs, order_by_refs, aggregate_options);

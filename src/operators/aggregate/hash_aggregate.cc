@@ -34,7 +34,7 @@ HashAggregate::HashAggregate(const std::size_t query_id,
                              OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
-                             std::vector<ColumnReference> order_by_refs)
+                             std::vector<OrderByReference> order_by_refs)
     : HashAggregate(query_id, prev_result, output_result, aggregate_refs,
                     group_by_refs, order_by_refs,
                     std::make_shared<OperatorOptions>()) {}
@@ -44,7 +44,7 @@ HashAggregate::HashAggregate(const std::size_t query_id,
                              OperatorResult::OpResultPtr output_result,
                              std::vector<AggregateReference> aggregate_refs,
                              std::vector<ColumnReference> group_by_refs,
-                             std::vector<ColumnReference> order_by_refs,
+                             std::vector<OrderByReference> order_by_refs,
                              std::shared_ptr<OperatorOptions> options)
     : BaseAggregate(query_id, options),
       prev_result_(prev_result),
@@ -114,6 +114,9 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
         if (aggregate_refs_[0].expr_ref == nullptr) {
           agg_lazy_table_ = prev_result_->get_table(table);
           agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
+          filter_ = (agg_lazy_table_.filter.kind() != arrow::Datum::NONE)
+                        ? agg_lazy_table_.filter.chunked_array()
+                        : nullptr;
         } else {
           // For expression case, create expression object and initialize
           expression_ = std::make_shared<Expression>(
@@ -377,7 +380,16 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
   }
   tuple_map = tuple_maps.at(tid);
 
+  const uint8_t *filter_data = nullptr;
+  if (filter_ != nullptr) {
+    filter_data = filter_->chunk(chunk_index)->data()->GetValues<uint8_t>(1, 0);
+  }
+
   for (int item_index = 0; item_index < chunk_size; ++item_index) {
+    if (filter_data != nullptr &&
+        !arrow::BitUtil::GetBit(filter_data, item_index)) {
+      continue;
+    }
     // TODO: Redefine item value as hash_t
     // 1. Build agg_item_key
     // 2. Build agg_item_value
@@ -393,14 +405,12 @@ void HashAggregate::FirstPhaseAggregateChunk_(Task *internal, size_t tid,
       auto group_by_chunk = group_by.chunked_array()->chunk(chunk_index);
 
       auto group_by_type = group_by.type();
-
       // Assign next_key.
       hash_t next_key = 0;
       auto get_hash_key = [&]<typename T>(T *ptr_) {
         if constexpr (arrow::is_primitive_ctype<T>::value) {
           using ArrayType = ArrowGetArrayType<T>;
           using CType = ArrowGetCType<T>;
-
           auto col = std::static_pointer_cast<ArrayType>(group_by_chunk);
           CType val = col->Value(item_index);
           next_key = std::hash<CType>{}(val);
@@ -709,7 +719,7 @@ void HashAggregate::SortResult(std::vector<arrow::Datum> &groups,
 
   for (auto &order_by_ref : order_by_refs_) {
     for (std::size_t j = 0; j < group_by_refs_.size(); ++j) {
-      if (order_by_ref.table == group_by_refs_[j].table) {
+      if (order_by_ref.col_ref_.table == group_by_refs_[j].table) {
         order_to_group.push_back(j);
       }
     }
@@ -729,13 +739,17 @@ void HashAggregate::SortResult(std::vector<arrow::Datum> &groups,
     auto order_ref = order_by_refs_[i];
     // A nullptr indicates that we are sorting by the aggregate column
     // TODO(nicholas): better way to indicate we want to sort the aggregate?
-    if (order_ref.table == nullptr) {
-      status = arrow::compute::SortIndices(*aggregates.make_array())
+    auto order = arrow::compute::SortOrder::Ascending;
+    if (order_ref.is_desc) {
+      order = arrow::compute::SortOrder::Descending;
+    }
+    if (order_ref.col_ref_.table == nullptr) {
+      status = arrow::compute::SortIndices(*aggregates.make_array(), order)
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     } else {
       auto group = groups[order_to_group[i]];
-      status = arrow::compute::SortIndices(*group.make_array())
+      status = arrow::compute::SortIndices(*group.make_array(), order)
                    .Value(&sorted_indices);
       evaluate_status(status, __FUNCTION__, __LINE__);
     }

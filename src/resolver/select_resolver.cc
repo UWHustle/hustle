@@ -178,7 +178,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
           comparatorOperator = arrow::compute::CompareOperator::GREATER;
         if (pExpr->op == TK_GE)
           comparatorOperator = arrow::compute::CompareOperator::GREATER_EQUAL;
-
         Predicate predicate = {colRef, comparatorOperator, datum};
         auto predicate_node = std::make_shared<PredicateNode>(
             std::make_shared<Predicate>(predicate));
@@ -187,6 +186,10 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
         select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
       } else {
+          if (!((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
+          (rightExpr != NULL && rightExpr->op == TK_COLUMN))) {
+              resolve_status_ = false;
+          }
         return nullptr;
       }
       break;
@@ -224,6 +227,14 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         }
       }
       break;
+    }
+    case TK_AGG_COLUMN:
+    case TK_AGG_FUNCTION:
+    case TK_COLUMN: {
+        break;
+    }
+    default: {
+        resolve_status_ = false;
     }
   }
   // predicate_tree is NULL it it contains operator not supported
@@ -311,6 +322,9 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   Expr* pWhere = queryTree->pWhere;
   if (pWhere != NULL) {
     ResolvePredExpr(pWhere);
+    if (!resolve_status_) {
+        return false;
+    }
   }
   if (pWhere != NULL) {
     ResolveJoinPredExpr(pWhere);
@@ -338,20 +352,20 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     for (int i = 0; i < pOrderBy->nExpr; i++) {
       if (pOrderBy->a[i].u.x.iOrderByCol > 0) {
         if (pOrderBy->a[i].pExpr->iColumn >= 0) {
-          std::shared_ptr<ColumnReference> colRef;
+          std::shared_ptr<OrderByReference> order_ref;
           if (pOrderBy->a[i].pExpr->op == TK_AGG_FUNCTION) {
-            colRef = std::make_shared<ColumnReference>(ColumnReference{
+              order_ref = std::make_shared<OrderByReference>(OrderByReference{
                 nullptr,
                 (*project_references_)[pOrderBy->a[i].u.x.iOrderByCol - 1]
-                    ->alias});
+                    ->alias, (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
           } else {
-            colRef = std::make_shared<ColumnReference>(ColumnReference{
+              order_ref = std::make_shared<OrderByReference>(OrderByReference{
                 catalog_->GetTable(pOrderBy->a[i].pExpr->y.pTab->zName),
                 pOrderBy->a[i]
                     .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
-                    .zName});
+                    .zName, (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
           }
-          order_by_references_->emplace_back(colRef);
+          order_by_references_->emplace_back(order_ref);
         }
       }
     }

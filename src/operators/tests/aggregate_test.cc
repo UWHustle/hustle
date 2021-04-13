@@ -265,7 +265,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByTest) {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
-                   {R_group_ref});
+                   {{R_group_ref, false}});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
 
@@ -320,7 +320,7 @@ TEST_F(AggregateTestFixture, SumWithGroupByOrderByTest) {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   Aggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
-                   {R_group_ref});
+                   {{R_group_ref, false}});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
 

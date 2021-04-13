@@ -27,7 +27,7 @@ BaseAggregate * get_agg_op(
   const OperatorResult::OpResultPtr &output_result,
   const std::vector<AggregateReference> &aggregate_units,
   const std::vector<ColumnReference> &group_by_refs,
-  const std::vector<ColumnReference> &order_by_refs,
+  const std::vector<OrderByReference> &order_by_refs,
   const std::shared_ptr<OperatorOptions> &options) {
 
   if (aggregate_type == AggregateType::ARROW_AGGREGATE) {

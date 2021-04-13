@@ -84,6 +84,7 @@ void AggregateWorkload::q1(AggregateType agg_type) {
   AggregateReference agg_ref = {
     AggregateKernel::MEAN, "agg_col", inputTable, "Col0"};
   std::vector<ColumnReference> group_by_refs;
+  std::vector<OrderByReference> order_by_refs;
   std::vector<ColumnReference> output_refs;
 
   output_refs.push_back({nullptr, "agg_col"});
@@ -96,7 +97,7 @@ void AggregateWorkload::q1(AggregateType agg_type) {
 
   BaseAggregate *agg_op = get_agg_op(
     0, agg_type, input_, out_result,
-    {agg_ref}, group_by_refs, group_by_refs,
+    {agg_ref}, group_by_refs, order_by_refs,
     aggregate_options);
 
   ExecutionPlan plan(0);

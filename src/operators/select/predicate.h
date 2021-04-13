@@ -48,6 +48,11 @@ struct JoinPredicate {
   ColumnReference right_col_;
 };
 
+struct OrderByReference {
+  ColumnReference col_ref_;
+  bool is_desc;
+};
+
 using JoinPredicatePtr = std::shared_ptr<JoinPredicate>;
 
 /**
@@ -74,10 +79,12 @@ class Node {
 
   void print() {
     if (is_leaf()) {
-      std::cout << predicate_->col_ref_.col_name << " comp:" <<  predicate_->comparator_ <<  " " << 
-      "val " << predicate_->value_.ToString() << " " << predicate_->value2_.ToString() << std::endl;
+      std::cout << predicate_->col_ref_.col_name
+                << " comp:" << predicate_->comparator_ << " "
+                << "val " << predicate_->value_.ToString() << " "
+                << predicate_->value2_.ToString() << std::endl;
       return;
-    } 
+    }
     left_child_->print();
     std::cout << "CONNECTIVE: " << connective_ << std::endl;
     right_child_->print();
@@ -116,7 +123,6 @@ class PredicateTree {
   std::shared_ptr<Node> root_;
   int table_id_;
   std::string table_name_;
-
 };
 
 }  // namespace hustle::operators

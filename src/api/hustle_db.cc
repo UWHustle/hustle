@@ -66,10 +66,10 @@ bool HustleDB::create_table(const TableSchema ts, DBTable::TablePtr table_ref) {
 }
 
 void HustleDB::reinitialize_sqlite_db() {
-    if (db != NULL) {
-        utils::close_sqlite3(db);
-    }
-    utils::open_sqlite3_db(SqliteDBPath_, &db);
+  if (db != NULL) {
+    utils::close_sqlite3(db);
+  }
+  utils::open_sqlite3_db(SqliteDBPath_, &db);
 }
 
 void HustleDB::load_tables() {

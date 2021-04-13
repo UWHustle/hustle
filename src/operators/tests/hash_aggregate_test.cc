@@ -264,7 +264,7 @@ TEST_F(HashAggregateTestFixture, SumWithGroupByTest) {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   HashAggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
-                   {R_group_ref});
+                   {{R_group_ref, false}});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
 
@@ -319,7 +319,7 @@ TEST_F(HashAggregateTestFixture, SumWithGroupByOrderByTest) {
 
   AggregateReference agg_ref = {AggregateKernel::SUM, "data_sum", R, "data"};
   HashAggregate agg_op(0, result, out_result, {agg_ref}, {R_group_ref},
-                   {R_group_ref});
+                   {{R_group_ref, false}});
   Scheduler &scheduler = Scheduler::GlobalInstance();
   scheduler.addTask(agg_op.createTask());
 

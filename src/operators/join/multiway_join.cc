@@ -156,7 +156,7 @@ void MultiwayJoin::BuildHashTable(
     const std::shared_ptr<arrow::ChunkedArray> &filter, Task *ctx) {
   // NOTE: Do not forget to clear the hash table
   hash_tables_[join_id] =
-      std::make_shared<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>();
+      std::make_shared<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
 
   // Precompute the row offsets of each chunk. A multithreaded build phase
   // requires that we know all offsets beforehand.
@@ -196,12 +196,12 @@ void MultiwayJoin::BuildHashTable(
               hash_tables_[join_id]->find(val_getter(chunk, row));
           if (record_id_itr != hash_tables_[join_id]->end()) {
             auto record_ids = record_id_itr->second;
-            record_ids.push_back(
+            record_ids->push_back(
                 {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i});
             (*hash_tables_[join_id])[val_getter(chunk, row)] = record_ids;
           } else {
-            (*hash_tables_[join_id])[val_getter(chunk, row)] = {
-                {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i}};
+            (*hash_tables_[join_id])[val_getter(chunk, row)] = std::make_shared<std::vector<RecordID>>(std::vector<RecordID>({
+                {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i}}));
           }
         }
       }
@@ -297,7 +297,7 @@ void MultiwayJoin::ProbeHashTableBlock(
       auto key_value_pair =
           hash_tables_[join_id]->find(val_getter(left_chunk, row_id));
       if (key_value_pair != hash_table_end) {
-        for (auto record_id : key_value_pair->second) {
+        for (auto record_id : (*key_value_pair->second)) {
           if (indices_length <= num_joined_indices) {
             indices_length <<= 1;
             joined_left_indices = (uint32_t *)realloc(

@@ -218,6 +218,8 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
           auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           col_txt = (char *)std::to_string(col->Value(row)).c_str();
           txt_length = std::to_string(col->Value(row)).length();
+          azVals[i] = (char *)malloc(txt_length + 1);
+          memcpy(azVals[i], (char *)col_txt, txt_length + 1);
           return;
         } else if constexpr (arrow::is_string_type<T>::value ||
                              arrow::is_fixed_size_binary_type<T>::value) {
@@ -225,6 +227,8 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
           auto col = std::static_pointer_cast<ArrayType>(arrays[i]);
           col_txt = (char *)col->GetString(row).c_str();
           txt_length = col->GetString(row).length();
+          azVals[i] = (char *)malloc(txt_length + 1);
+          memcpy(azVals[i], (char *)col_txt, txt_length + 1);
           return;
         } else {
           const auto func_name = __FUNCTION__;
@@ -238,10 +242,6 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
       };
 
       type_switcher(data_type, lambda_func);
-
-      azVals[i] = (char *)malloc(txt_length + 1);
-      memcpy(azVals[i], (char *)col_txt, txt_length);
-      azVals[i][txt_length] = 0;
     }
     callback(pArg, num_cols, azVals, azCols);
     i = 0;

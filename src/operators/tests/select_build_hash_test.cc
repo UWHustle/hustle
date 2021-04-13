@@ -135,9 +135,7 @@ TEST_F(SelectTestFixture, SingleSelectTest) {
   status = int_builder.AppendValues({20, 30, 40, 50});
   status = int_builder.Finish(&expected_R_col_3);
 
-  std::shared_ptr<
-      phmap::flat_hash_map<int64_t, std::vector<hustle::operators::RecordID>>>
-      hash_table = out_result->get_table(0).hash_table();
+  auto hash_table = out_result->get_table(0).hash_table();
 
   for (int i = 0; i < values.size(); i++) {
     EXPECT_TRUE(hash_table->contains(values[i]));
@@ -214,9 +212,7 @@ TEST_F(SelectTestFixture, AndSelectTest) {
   status = int_builder.AppendValues({20, 30});
   status = int_builder.Finish(&expected_R_col_3);
 
-  std::shared_ptr<
-      phmap::flat_hash_map<int64_t, std::vector<hustle::operators::RecordID>>>
-      hash_table = out_result->get_table(0).hash_table();
+  auto hash_table = out_result->get_table(0).hash_table();
 
   for (int i = 0; i < values.size(); i++) {
     EXPECT_TRUE(hash_table->contains(values[i]));
@@ -294,9 +290,7 @@ TEST_F(SelectTestFixture, OrSelectTest) {
   status = int_builder.AppendValues({0, 20, 30, 40, 50});
   status = int_builder.Finish(&expected_R_col_3);
 
-  std::shared_ptr<
-      phmap::flat_hash_map<int64_t, std::vector<hustle::operators::RecordID>>>
-      hash_table = out_result->get_table(0).hash_table();
+  auto hash_table = out_result->get_table(0).hash_table();
 
   for (int i = 0; i < values.size(); i++) {
     EXPECT_TRUE(hash_table->contains(values[i]));
@@ -359,9 +353,7 @@ TEST_F(SelectTestFixture, SingleSelectManyBlocksTest) {
   status = int_builder.AppendValues({20, 30, 40, 50});
   status = int_builder.Finish(&expected_R_col_3);
 
-  std::shared_ptr<
-      phmap::flat_hash_map<int64_t, std::vector<hustle::operators::RecordID>>>
-      hash_table = out_result->get_table(0).hash_table();
+  auto hash_table = out_result->get_table(0).hash_table();
 
   for (int i = 0; i < values.size(); i++) {
     EXPECT_TRUE(hash_table->contains(values[i]));
@@ -439,9 +431,7 @@ TEST_F(SelectTestFixture, AndSelectManyBlocksTest) {
   status = int_builder.AppendValues({20, 30});
   status = int_builder.Finish(&expected_R_col_3);
 
-  std::shared_ptr<
-      phmap::flat_hash_map<int64_t, std::vector<hustle::operators::RecordID>>>
-      hash_table = out_result->get_table(0).hash_table();
+  auto hash_table = out_result->get_table(0).hash_table();
 
   for (int i = 0; i < values.size(); i++) {
     EXPECT_TRUE(hash_table->contains(values[i]));

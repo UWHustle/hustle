@@ -70,9 +70,8 @@ class SQLTest : public Test {
     return stream;
   }
 
-  SQLTest() {
+  void SetUp() override {
     int num_remove = std::filesystem::remove_all("db_directory_sql");
-    std::cout << "Num of removes: " << num_remove << std::endl;
     EXPECT_FALSE(std::filesystem::exists("db_directory_sql"));
 
     SQLTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory_sql");
@@ -131,7 +130,7 @@ class SQLTest : public Test {
     hustle::catalog::ColumnSchema d_datekey(
         "d_datekey", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
     hustle::catalog::ColumnSchema d_dayofweek(
-        "d_dayofweek", {hustle::catalog::HustleType::CHAR, 10}, true, false);
+        "d_dayofweek", {hustle::catalog::HustleType::INTEGER, 10}, true, false);
     hustle::catalog::ColumnSchema d_month(
         "d_month", {hustle::catalog::HustleType::CHAR, 10}, true, false);
     hustle::catalog::ColumnSchema d_year(
@@ -204,12 +203,6 @@ class SQLTest : public Test {
         "part", SQLTest::part.getArrowSchema(), BLOCK_SIZE);
     SQLTest::d = std::make_shared<hustle::storage::DBTable>(
         "ddate", SQLTest::ddate.getArrowSchema(), BLOCK_SIZE);
-
-    SQLTest::lo.reset();
-    SQLTest::c.reset();
-    SQLTest::s.reset();
-    SQLTest::p.reset();
-    SQLTest::d.reset();
 
     hustle_db->create_table(SQLTest::lineorder, SQLTest::lo);
     hustle_db->create_table(SQLTest::customer, SQLTest::c);
@@ -321,6 +314,11 @@ class SQLTest : public Test {
 
   void TearDown() override {
     hustle::HustleDB::destroy();
+    SQLTest::lo.reset();
+    SQLTest::c.reset();
+    SQLTest::s.reset();
+    SQLTest::p.reset();
+    SQLTest::d.reset();
     hustle_db.reset();
   }
 };
@@ -479,23 +477,24 @@ TEST_F(SQLTest, q9) {
 }
 
 TEST_F(SQLTest, q10) {
+    // TODO (@suryadev): fix the data to support exact SSB query 10
   std::string query =
-      "select c_city, s_city, d_year, sum(lo_revenue) as "
+      "select c_city, s_city,  d_year, sum(lo_revenue) as "
       "revenue\n"
       "\tfrom customer, lineorder, supplier, ddate\n"
       "\twhere lo_custkey = c_custkey\n"
       "\t\tand lo_suppkey = s_suppkey\n"
       "\t\tand lo_orderdate = d_datekey\n"
-      "\t\tand (c_city='CCITY40' or c_city='CCITY60')\n"
-      "\t\tand (s_city='SCITY40' or s_city='SCITY60')\n"
-      "\t\tand d_yearmonth = 'Dec1993'\n"
-      "\tgroup by c_city, s_city, d_year\n"
+      "\t\tand (c_city='CCITY60')\n"
+      "\t\tand (s_city='SCITY60')\n"
+      "\t\tand d_yearmonth = 'Feb1992'\n"
+      "\tgroup by s_city, c_city, d_year\n"
       "\torder by d_year asc, revenue desc;";
 
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(
       output,
-      "CCITY40 | SCITY40 | 1993 | 39807\nCCITY60 | SCITY60 | 1993 | 37564\n");
+      "CCITY60 | SCITY60 | 1994 | 19753\n");
 }
 
 TEST_F(SQLTest, q11) {
