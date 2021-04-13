@@ -104,7 +104,7 @@ class MultiwayJoin : public Operator {
   JoinGraph graph_;
 
   // Hash table for the right table in each join
-  std::vector<std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>>
+  std::vector<std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>>
       hash_tables_;
 
   // new_left_indices_vector[i] = the indices of rows joined in chunk i in

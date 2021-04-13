@@ -74,7 +74,7 @@ class LazyTable {
   LazyTable(
       DBTable::TablePtr table, arrow::Datum filter, arrow::Datum indices,
       arrow::Datum index_chunks,
-      std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>
+      std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
           hash_table);
 
   /**
@@ -88,7 +88,7 @@ class LazyTable {
    */
   std::shared_ptr<arrow::ChunkedArray> MaterializeColumn(int i);
 
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>
+  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
   hash_table() {
     return hash_table_;
   }
@@ -114,7 +114,7 @@ class LazyTable {
   }
 
   inline void set_hash_table(
-      std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>
+      std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
           hash_table) {
     hash_table_ = hash_table;
   }
@@ -126,7 +126,7 @@ class LazyTable {
 
  private:
   // Hash table for the right table in each join
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>
+  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
       hash_table_;
   std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
   std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;

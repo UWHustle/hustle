@@ -83,7 +83,7 @@ class HashJoin : public Operator {
   std::shared_ptr<JoinPredicate> predicate_;
 
   // Hash table for the join
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>
+  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
       hash_table_;
 
   std::vector<std::vector<uint32_t>> left_indices_, right_indices_;

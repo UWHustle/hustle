@@ -51,12 +51,13 @@ SelectBuildHash::SelectBuildHash(const std::size_t query_id,
     : Select(query_id, table, prev_result, output_result, tree, options),
       join_column_(join_column) {
   filters_.resize(table_->get_num_blocks());
-  hash_table_ = std::make_shared<phmap::flat_hash_map<int64_t, std::vector<RecordID>>>();
+  hash_table_ = std::make_shared<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
 }
 
 void SelectBuildHash::execute(Task *ctx) {
   chunk_row_offsets_.resize(table_->get_num_rows());
   chunk_row_offsets_[0] = 0;
+  std::cout << "Num blocks: " << table_->get_num_blocks() << std::endl;
   for (std::size_t i = 1; i < table_->get_num_blocks(); i++) {
     chunk_row_offsets_[i] =
         chunk_row_offsets_[i - 1] + table_->get_block(i - 1)->get_num_rows();
@@ -114,11 +115,15 @@ void SelectBuildHash::ExecuteBlock(int block_index) {
           auto key_value_pair =
                   hash_table_->find(block_data[row]);
           if (key_value_pair != hash_table_->end()) {
-              auto record_ids = hash_table_->find(block_data[row])->second;
-              record_ids.push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
+              auto record_ids = (*hash_table_)[block_data[row]];
+              std::cout << record_ids << std::endl;
+              record_ids->push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
               (*hash_table_)[block_data[row]] = record_ids;
           } else {
-              (*hash_table_)[block_data[row]] = {{(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index}};
+              std::cout << "row: " << (uint32_t) chunk_row_offsets_[block_index] + row << " block: " <<(uint16_t) block_index << std::endl;
+              (*hash_table_)[block_data[row]] = std::make_shared<std::vector<RecordID>>();
+              (*hash_table_)[block_data[row]]->push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
+              std::cout << "Done" << std::endl;
           }
       }
     }
@@ -128,13 +133,17 @@ void SelectBuildHash::ExecuteBlock(int block_index) {
                 hash_table_->find(block_data[row]);
         if (key_value_pair != hash_table_->end()) {
             auto record_ids = hash_table_->find(block_data[row])->second;
-            record_ids.push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
+            record_ids->push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
             (*hash_table_)[block_data[row]] = record_ids;
         } else {
-            (*hash_table_)[block_data[row]] = {{(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index}};
+            (*hash_table_)[block_data[row]] = std::make_shared<std::vector<RecordID>>(std::vector<RecordID>({{(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index}}));
         }
     }
   }
+
+
+
+
 }
 
 }  // namespace operators
