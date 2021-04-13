@@ -21,6 +21,7 @@
 
 #include <arrow/compute/api.h>
 
+#include <mutex>
 #include <string>
 
 #include "operators/operator.h"
@@ -75,8 +76,11 @@ class SelectBuildHash : public Select {
   ColumnReference join_column_;
 
   std::vector<uint64_t> chunk_row_offsets_;
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>> hash_table_;
+  std::shared_ptr<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
+      hash_table_;
 
+  std::mutex table_lock;
   void ExecuteBlock(int block_index);
 };
 

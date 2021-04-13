@@ -51,13 +51,13 @@ SelectBuildHash::SelectBuildHash(const std::size_t query_id,
     : Select(query_id, table, prev_result, output_result, tree, options),
       join_column_(join_column) {
   filters_.resize(table_->get_num_blocks());
-  hash_table_ = std::make_shared<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
+  hash_table_ = std::make_shared<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
 }
 
 void SelectBuildHash::execute(Task *ctx) {
   chunk_row_offsets_.resize(table_->get_num_rows());
   chunk_row_offsets_[0] = 0;
-  std::cout << "Num blocks: " << table_->get_num_blocks() << std::endl;
   for (std::size_t i = 1; i < table_->get_num_blocks(); i++) {
     chunk_row_offsets_[i] =
         chunk_row_offsets_[i - 1] + table_->get_block(i - 1)->get_num_rows();
@@ -104,46 +104,52 @@ void SelectBuildHash::ExecuteBlock(int block_index) {
                         ->data()
                         ->GetValues<uint64_t>(1, 0);
 
+  std::unordered_map<int64_t, std::vector<RecordID>> local_table;
+
+  auto update_table = [&](uint32_t row_id) {
+    auto key_value_pair = local_table.find(block_data[row_id]);
+    if (key_value_pair != local_table.end()) {
+      local_table[block_data[row_id]].push_back(
+          {(uint32_t)chunk_row_offsets_[block_index] + row_id,
+           (uint16_t)block_index});
+    } else {
+      local_table[block_data[row_id]] = {
+          {(uint32_t)chunk_row_offsets_[block_index] + row_id,
+           (uint16_t)block_index}};
+    }
+  };
   if (tree_ != nullptr) {
     auto block_filter = Select::Filter(block, tree_->root_);
     filters_[block_index] = block_filter.make_array();
 
     auto filter_data = filters_[block_index]->data()->GetValues<uint8_t>(1, 0);
 
-    for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
+    for (uint32_t row = 0; row < block->get_num_rows(); row++) {
       if (arrow::BitUtil::GetBit(filter_data, row)) {
-          auto key_value_pair =
-                  hash_table_->find(block_data[row]);
-          if (key_value_pair != hash_table_->end()) {
-              auto record_ids = (*hash_table_)[block_data[row]];
-              std::cout << record_ids << std::endl;
-              record_ids->push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
-              (*hash_table_)[block_data[row]] = record_ids;
-          } else {
-              std::cout << "row: " << (uint32_t) chunk_row_offsets_[block_index] + row << " block: " <<(uint16_t) block_index << std::endl;
-              (*hash_table_)[block_data[row]] = std::make_shared<std::vector<RecordID>>();
-              (*hash_table_)[block_data[row]]->push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
-              std::cout << "Done" << std::endl;
-          }
+        update_table(row);
       }
     }
   } else {
     for (std::uint32_t row = 0; row < block->get_num_rows(); row++) {
-        auto key_value_pair =
-                hash_table_->find(block_data[row]);
-        if (key_value_pair != hash_table_->end()) {
-            auto record_ids = hash_table_->find(block_data[row])->second;
-            record_ids->push_back({(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index});
-            (*hash_table_)[block_data[row]] = record_ids;
-        } else {
-            (*hash_table_)[block_data[row]] = std::make_shared<std::vector<RecordID>>(std::vector<RecordID>({{(uint32_t) chunk_row_offsets_[block_index] + row, (uint16_t) block_index}}));
-        }
+      update_table(row);
     }
   }
 
-
-
-
+  {
+    // critical section for updating the global map
+    // TODO (@suryadev) : Try to move to better thread-safe map structures,
+    // since we use a list as value
+    std::lock_guard<std::mutex> guard(table_lock);
+    for (auto const &[key, val] : local_table) {
+      auto key_value_pair = hash_table_->find(key);
+      if (key_value_pair != hash_table_->end()) {
+        (*hash_table_)[key]->insert((*hash_table_)[key]->end(), val.begin(),
+                                    val.end());
+      } else {
+        (*hash_table_)[key] = std::make_shared<std::vector<RecordID>>(val);
+      }
+    }
+  }
 }
 
 }  // namespace operators
