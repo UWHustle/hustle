@@ -247,15 +247,15 @@ namespace hustle::operators {
         std::cout << "read the table files..." << std::endl;
         DBTable::TablePtr lo, c, s, p, d;
         lo = std::make_shared<hustle::storage::DBTable>("lineorder", lo_schema,
-                                                        20 * BLOCK_SIZE);
+                                                          BLOCK_SIZE);
         d = std::make_shared<hustle::storage::DBTable>("ddate", d_schema,
-                                                       20 * BLOCK_SIZE);
+                                                          BLOCK_SIZE);
         p = std::make_shared<hustle::storage::DBTable>("part", p_schema,
-                                                       20 * BLOCK_SIZE);
+                                                          BLOCK_SIZE);
         c = std::make_shared<hustle::storage::DBTable>("customer", c_schema,
-                                                       20 * BLOCK_SIZE);
+                                                          BLOCK_SIZE);
         s = std::make_shared<hustle::storage::DBTable>("supplier", s_schema,
-                                                       20 * BLOCK_SIZE);
+                                                          BLOCK_SIZE);
         hustle_db->create_table(supplier, s);
         hustle_db->create_table(customer, c);
         hustle_db->create_table(ddate, d);

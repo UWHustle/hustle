@@ -94,17 +94,17 @@ TEST_F(SQLMiscTest, q_without_join) {
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "2\n");
 }
-/*
+
 TEST_F(SQLMiscTest, q_predicate_assorted) {
     std::string query =
-            "select Count(lo_orderkey)\n"
+            "select Count(lo_quantity)\n"
             "from  lineorder, ddate\n"
-            "where d_datekey = lo_custkey and lo_quantity = 20 and d_year = 1993 and lo_revenue = "
-            "763 and d_dayofweek = 3;\n";
+            "where d_datekey = lo_orderdate and d_year = 1993 and (lo_quantity = 20 and lo_revenue = "
+            "763);\n";
 
     std::string output = hustle_db->execute_query_result(query);
-    EXPECT_EQ(output, "6 | 1992011 | 1\n");
-}*/
+    EXPECT_EQ(output, "1\n");
+}
 
 
 TEST_F(SQLMiscTest, q_joins_non_unique_columns) {
