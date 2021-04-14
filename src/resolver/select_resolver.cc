@@ -122,26 +122,46 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
       std::shared_ptr<PredicateTree> lpred_tree = ResolvePredExpr(leftExpr);
       std::shared_ptr<PredicateTree> rpred_tree = ResolvePredExpr(rightExpr);
 
-      if (lpred_tree == nullptr || rpred_tree == nullptr) break;
-      if (leftExpr->pLeft->iTable == rightExpr->pLeft->iTable) {
-        if (pExpr->op == TK_OR) {
-          std::shared_ptr<ConnectiveNode> connective_node =
-              std::make_shared<ConnectiveNode>(lpred_tree.get()->root_,
-                                               rpred_tree.get()->root_,
-                                               FilterOperator::OR);
-          predicate_tree = std::make_shared<PredicateTree>(connective_node);
-        }
-        if (pExpr->op == TK_AND) {
-          std::shared_ptr<ConnectiveNode> connective_node =
-              std::make_shared<ConnectiveNode>(lpred_tree.get()->root_,
-                                               rpred_tree.get()->root_,
-                                               FilterOperator::AND);
-          predicate_tree = std::make_shared<PredicateTree>(connective_node);
-        }
-        predicate_tree->table_id_ = lpred_tree->table_id_;
-        predicate_tree->table_name_ = lpred_tree->table_name_;
-        select_predicates_[predicate_tree->table_name_] = predicate_tree;
+        if (lpred_tree == nullptr &&  rpred_tree == nullptr )
+            break;
+        if (lpred_tree == nullptr ||  rpred_tree == nullptr ) {
+            auto  cur_pred_tree = (lpred_tree == nullptr) ? rpred_tree : lpred_tree;
+                if (pExpr->op == TK_AND) {
+                    auto prev_pred_tree = select_predicates_[cur_pred_tree->table_name_];
+                    if (prev_pred_tree != cur_pred_tree) {
+                        std::shared_ptr<ConnectiveNode> connective_node =
+                                std::make_shared<ConnectiveNode>(prev_pred_tree.get()->root_,
+                                                                 cur_pred_tree.get()->root_,
+                                                                 FilterOperator::AND);
+                        predicate_tree = std::make_shared<PredicateTree>(connective_node);
+                        select_predicates_[cur_pred_tree->table_name_] = predicate_tree;
+                    }
+                }
+                break;
       }
+      if (leftExpr->pLeft->iTable == rightExpr->pLeft->iTable) {
+          if (pExpr->op == TK_OR) {
+              std::shared_ptr<ConnectiveNode> connective_node =
+                      std::make_shared<ConnectiveNode>(lpred_tree.get()->root_,
+                                                       rpred_tree.get()->root_,
+                                                       FilterOperator::OR);
+              predicate_tree = std::make_shared<PredicateTree>(connective_node);
+          }
+          if (pExpr->op == TK_AND) {
+              std::shared_ptr<ConnectiveNode> connective_node =
+                      std::make_shared<ConnectiveNode>(lpred_tree.get()->root_,
+                                                       rpred_tree.get()->root_,
+                                                       FilterOperator::AND);
+              predicate_tree = std::make_shared<PredicateTree>(connective_node);
+          }
+          predicate_tree->table_id_ = lpred_tree->table_id_;
+          predicate_tree->table_name_ = lpred_tree->table_name_;
+          select_predicates_[predicate_tree->table_name_] = predicate_tree;
+      } else {
+            if (pExpr->op == TK_OR) {
+                throw std::runtime_error("Logical OR operator on different table is not supported.");
+            }
+        }
       break;
     }
     case TK_NE:
@@ -184,7 +204,9 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         predicate_tree = std::make_shared<PredicateTree>(predicate_node);
         predicate_tree->table_id_ = leftExpr->iTable;
         predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
-        select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
+        if (select_predicates_[leftExpr->y.pTab->zName] == nullptr) {
+            select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
+        }
       } else {
           if (!((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
           (rightExpr != NULL && rightExpr->op == TK_COLUMN))) {
@@ -242,13 +264,13 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
 }
 
 bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
-  // Collect all the src tables
+    // Collect all the src tables
   SrcList* pTabList = queryTree->pSrc;
   if (pTabList == NULL) {
     return false;
   }
 
-  // Currently having construct is not handled in Hustle
+    // Currently having construct is not handled in Hustle
   if (queryTree->pHaving != NULL) {
     return false;
   }
@@ -261,12 +283,12 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     select_predicates_.insert({pTabList->a[i].zName, nullptr});
   }
 
-  ExprList* pEList = queryTree->pEList;
+    ExprList* pEList = queryTree->pEList;
   for (int k = 0; k < pEList->nExpr; k++) {
     ResolvePredExpr(pEList->a[k].pExpr);
   }
 
-  for (int k = 0; k < pEList->nExpr; k++) {
+    for (int k = 0; k < pEList->nExpr; k++) {
     if (pEList->a[k].pExpr->op == TK_AGG_FUNCTION) {
       Expr* expr = pEList->a[k].pExpr->x.pList->a[0].pExpr;
       char* zName = NULL;
@@ -318,7 +340,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     }
   }
 
-  // Resolve predicates
+    // Resolve predicates
   Expr* pWhere = queryTree->pWhere;
   if (pWhere != NULL) {
     ResolvePredExpr(pWhere);
@@ -330,7 +352,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     ResolveJoinPredExpr(pWhere);
   }
 
-  // Resolve GroupBy
+    // Resolve GroupBy
   ExprList* pGroupBy = queryTree->pGroupBy;
   if (pGroupBy != NULL) {
     for (int i = 0; i < pGroupBy->nExpr; i++) {
@@ -370,7 +392,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       }
     }
   }
-  return true;  // TODO: return true or false based on query resolvability
+    return true;  // TODO: return true or false based on query resolvability
 }
 }  // namespace resolver
 }  // namespace hustle
