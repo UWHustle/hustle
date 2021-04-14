@@ -109,7 +109,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
     return nullptr;
   }
   arrow::compute::CompareOperator comparatorOperator;
-  FilterOperator connective;
   std::shared_ptr<PredicateTree> predicate_tree = nullptr;
   switch (pExpr->op) {
     case TK_INTEGER:
