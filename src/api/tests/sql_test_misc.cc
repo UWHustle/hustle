@@ -189,3 +189,40 @@ TEST_F(SQLMiscTest, q_unsupported_having) {
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output, "25 | 2247\n26 | 2271\n27 | 2264\n28 | 2215\n29 | 2291\n");
 }
+
+TEST_F(SQLMiscTest, q_logical_OR_exception) {
+    std::string query =
+            "select Count(lo_quantity)\n"
+            "from  lineorder, ddate\n"
+            "where d_datekey = lo_orderdate and (d_year = 1993 or lo_quantity = 20);\n";
+    try {
+        std::string output = hustle_db->execute_query_result(query);
+        FAIL() << "Expected Exception from Unsupported use of Logical OR";
+    }
+    catch(std::runtime_error const & err) {
+        EXPECT_EQ(err.what(),std::string("Logical OR operator on different table is not supported."));
+    }
+}
+
+TEST_F(SQLMiscTest, q_logical_AND_exception) {
+    std::string query =
+            "select Count(lo_quantity)\n"
+            "from  lineorder, ddate\n"
+            "where d_datekey = lo_orderdate and d_year = 1993 and lo_quantity = 20 and lo_revenue = 763;\n";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1\n");
+
+    query =
+            "select Count(lo_quantity)\n"
+            "from  lineorder, ddate\n"
+            "where d_datekey = lo_orderdate and lo_quantity = 20 and d_year = 1993 and lo_revenue = 763;\n";
+     output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1\n");
+
+    query =
+            "select Count(lo_quantity)\n"
+            "from  lineorder, ddate\n"
+            "where d_datekey = lo_orderdate and lo_quantity = 20 and d_year = 2100 and lo_revenue = 763;\n";
+    output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "");
+}
