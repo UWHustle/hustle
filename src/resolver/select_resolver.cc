@@ -109,7 +109,6 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
     return nullptr;
   }
   arrow::compute::CompareOperator comparatorOperator;
-  FilterOperator connective;
   std::shared_ptr<PredicateTree> predicate_tree = nullptr;
   switch (pExpr->op) {
     case TK_INTEGER:
@@ -122,7 +121,22 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
       std::shared_ptr<PredicateTree> lpred_tree = ResolvePredExpr(leftExpr);
       std::shared_ptr<PredicateTree> rpred_tree = ResolvePredExpr(rightExpr);
 
-      if (lpred_tree == nullptr || rpred_tree == nullptr) break;
+      if (lpred_tree == nullptr && rpred_tree == nullptr) break;
+      if (lpred_tree == nullptr || rpred_tree == nullptr) {
+        auto cur_pred_tree = (lpred_tree == nullptr) ? rpred_tree : lpred_tree;
+        if (pExpr->op == TK_AND) {
+          auto prev_pred_tree = select_predicates_[cur_pred_tree->table_name_];
+          if (prev_pred_tree != cur_pred_tree) {
+            std::shared_ptr<ConnectiveNode> connective_node =
+                std::make_shared<ConnectiveNode>(prev_pred_tree.get()->root_,
+                                                 cur_pred_tree.get()->root_,
+                                                 FilterOperator::AND);
+            predicate_tree = std::make_shared<PredicateTree>(connective_node);
+            select_predicates_[cur_pred_tree->table_name_] = predicate_tree;
+          }
+        }
+        break;
+      }
       if (leftExpr->pLeft->iTable == rightExpr->pLeft->iTable) {
         if (pExpr->op == TK_OR) {
           std::shared_ptr<ConnectiveNode> connective_node =
@@ -141,6 +155,11 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         predicate_tree->table_id_ = lpred_tree->table_id_;
         predicate_tree->table_name_ = lpred_tree->table_name_;
         select_predicates_[predicate_tree->table_name_] = predicate_tree;
+      } else {
+        if (pExpr->op == TK_OR) {
+          throw std::runtime_error(
+              "Logical OR operator on different table is not supported.");
+        }
       }
       break;
     }
@@ -184,12 +203,14 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
         predicate_tree = std::make_shared<PredicateTree>(predicate_node);
         predicate_tree->table_id_ = leftExpr->iTable;
         predicate_tree->table_name_ = std::string(leftExpr->y.pTab->zName);
-        select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
+        if (select_predicates_[leftExpr->y.pTab->zName] == nullptr) {
+          select_predicates_[leftExpr->y.pTab->zName] = predicate_tree;
+        }
       } else {
-          if (!((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
-          (rightExpr != NULL && rightExpr->op == TK_COLUMN))) {
-              resolve_status_ = false;
-          }
+        if (!((leftExpr != NULL && leftExpr->op == TK_COLUMN) &&
+              (rightExpr != NULL && rightExpr->op == TK_COLUMN))) {
+          resolve_status_ = false;
+        }
         return nullptr;
       }
       break;
@@ -231,10 +252,10 @@ std::shared_ptr<PredicateTree> SelectResolver::ResolvePredExpr(Expr* pExpr) {
     case TK_AGG_COLUMN:
     case TK_AGG_FUNCTION:
     case TK_COLUMN: {
-        break;
+      break;
     }
     default: {
-        resolve_status_ = false;
+      resolve_status_ = false;
     }
   }
   // predicate_tree is NULL it it contains operator not supported
@@ -323,7 +344,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   if (pWhere != NULL) {
     ResolvePredExpr(pWhere);
     if (!resolve_status_) {
-        return false;
+      return false;
     }
   }
   if (pWhere != NULL) {
@@ -354,16 +375,18 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
         if (pOrderBy->a[i].pExpr->iColumn >= 0) {
           std::shared_ptr<OrderByReference> order_ref;
           if (pOrderBy->a[i].pExpr->op == TK_AGG_FUNCTION) {
-              order_ref = std::make_shared<OrderByReference>(OrderByReference{
+            order_ref = std::make_shared<OrderByReference>(OrderByReference{
                 nullptr,
                 (*project_references_)[pOrderBy->a[i].u.x.iOrderByCol - 1]
-                    ->alias, (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
+                    ->alias,
+                (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
           } else {
-              order_ref = std::make_shared<OrderByReference>(OrderByReference{
+            order_ref = std::make_shared<OrderByReference>(OrderByReference{
                 catalog_->GetTable(pOrderBy->a[i].pExpr->y.pTab->zName),
                 pOrderBy->a[i]
                     .pExpr->y.pTab->aCol[pOrderBy->a[i].pExpr->iColumn]
-                    .zName, (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
+                    .zName,
+                (bool)(pOrderBy->a[i].sortFlags & KEYINFO_ORDER_DESC)});
           }
           order_by_references_->emplace_back(order_ref);
         }
