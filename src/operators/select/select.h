@@ -27,8 +27,8 @@
 #include "operators/operator.h"
 #include "operators/select/predicate.h"
 #include "operators/utils/operator_result.h"
-#include "storage/block.h"
-#include "storage/table.h"
+#include "storage/base_block.h"
+#include "storage/base_table.h"
 
 namespace hustle::operators {
 
@@ -48,12 +48,12 @@ class Select : public Operator {
    * @param prev_result OperatorResult from an upstream operator
    * @param tree predicate tree
    */
-  Select(const std::size_t query_id, DBTable::TablePtr table,
+  Select(const std::size_t query_id, std::shared_ptr<HustleTable> table,
          OperatorResult::OpResultPtr prev_result,
          OperatorResult::OpResultPtr output_result,
          std::shared_ptr<PredicateTree> tree);
 
-  Select(const std::size_t query_id, DBTable::TablePtr table,
+  Select(const std::size_t query_id, std::shared_ptr<HustleTable> table,
          OperatorResult::OpResultPtr prev_result,
          OperatorResult::OpResultPtr output_result,
          std::shared_ptr<PredicateTree> tree,
@@ -71,7 +71,7 @@ class Select : public Operator {
     output_result_ = output_result;
   }
 
-  inline void set_table(DBTable::TablePtr table) {
+  inline void set_table(std::shared_ptr<HustleTable> table) {
     table_ = table;
   }
 
@@ -82,7 +82,7 @@ class Select : public Operator {
   void Clear() override;
 
  protected:
-  DBTable::TablePtr table_;
+  std::shared_ptr<HustleTable> table_;
   OperatorResult::OpResultPtr output_result_;
   std::shared_ptr<PredicateTree> tree_;
   arrow::ArrayVector filters_;
@@ -101,7 +101,7 @@ class Select : public Operator {
    * @return A filter corresponding to values that satisfy the node's
    * selection predicate(s)
    */
-  arrow::Datum Filter(const std::shared_ptr<Block> &block,
+  arrow::Datum Filter(const std::shared_ptr<HustleBlock> &block,
                       const std::shared_ptr<Node> &node);
 
   /**
@@ -116,11 +116,11 @@ class Select : public Operator {
    * @return A filter corresponding to values that satisfy the node's
    * selection predicate(s)
    */
-  arrow::Datum Filter(const std::shared_ptr<Block> &block,
+  arrow::Datum Filter(const std::shared_ptr<HustleBlock> &block,
                       const std::shared_ptr<Predicate> &predicate);
 
   template <typename T, typename Op>
-  arrow::Datum Filter(const std::shared_ptr<Block> &block,
+  arrow::Datum Filter(const std::shared_ptr<HustleBlock> &block,
                       const ColumnReference &col_ref, const arrow::Datum& arrow_val,
                       const T &value,
                       arrow::compute::CompareOperator arrow_compare,

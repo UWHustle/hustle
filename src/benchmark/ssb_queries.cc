@@ -245,16 +245,16 @@ namespace hustle::operators {
 
 
         std::cout << "read the table files..." << std::endl;
-        DBTable::TablePtr lo, c, s, p, d;
-        lo = std::make_shared<hustle::storage::DBTable>("lineorder", lo_schema,
+        std::shared_ptr<HustleTable> lo, c, s, p, d;
+        lo = std::make_shared<hustle::storage::BaseTable>("lineorder", lo_schema,
                                                           BLOCK_SIZE);
-        d = std::make_shared<hustle::storage::DBTable>("ddate", d_schema,
+        d = std::make_shared<hustle::storage::BaseTable>("ddate", d_schema,
                                                           BLOCK_SIZE);
-        p = std::make_shared<hustle::storage::DBTable>("part", p_schema,
+        p = std::make_shared<hustle::storage::BaseTable>("part", p_schema,
                                                           BLOCK_SIZE);
-        c = std::make_shared<hustle::storage::DBTable>("customer", c_schema,
+        c = std::make_shared<hustle::storage::BaseTable>("customer", c_schema,
                                                           BLOCK_SIZE);
-        s = std::make_shared<hustle::storage::DBTable>("supplier", s_schema,
+        s = std::make_shared<hustle::storage::BaseTable>("supplier", s_schema,
                                                           BLOCK_SIZE);
         hustle_db->create_table(supplier, s);
         hustle_db->create_table(customer, c);

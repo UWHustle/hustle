@@ -28,8 +28,8 @@
 #include "operators/select/predicate.h"
 #include "operators/select/select.h"
 #include "operators/utils/operator_result.h"
-#include "storage/block.h"
-#include "storage/table.h"
+#include "storage/base_block.h"
+#include "storage/base_table.h"
 
 namespace hustle::operators {
 
@@ -49,13 +49,13 @@ class SelectBuildHash : public Select {
    * @param prev_result OperatorResult from an upstream operator
    * @param tree predicate tree
    */
-  SelectBuildHash(const std::size_t query_id, DBTable::TablePtr table,
+  SelectBuildHash(const std::size_t query_id, std::shared_ptr<HustleTable> table,
                   OperatorResult::OpResultPtr prev_result,
                   OperatorResult::OpResultPtr output_result,
                   std::shared_ptr<PredicateTree> tree,
                   ColumnReference join_column);
 
-  SelectBuildHash(const std::size_t query_id, DBTable::TablePtr table,
+  SelectBuildHash(const std::size_t query_id, std::shared_ptr<HustleTable> table,
                   OperatorResult::OpResultPtr prev_result,
                   OperatorResult::OpResultPtr output_result,
                   std::shared_ptr<PredicateTree> tree,

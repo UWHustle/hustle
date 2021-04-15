@@ -31,8 +31,8 @@ namespace optimizer {
 using namespace hustle::operators;
 
 using OperatorResultVec = std::vector<OperatorResult::OpResultPtr>;
-using TableIdMap = std::unordered_map<DBTable::TablePtr, std::size_t>;
-using TablePtrMap = std::unordered_map<std::size_t, DBTable::TablePtr>;
+using TableIdMap = std::unordered_map<std::shared_ptr<HustleTable>, std::size_t>;
+using TablePtrMap = std::unordered_map<std::size_t, std::shared_ptr<HustleTable>>;
 
 ExecutionPlan::PlanPtr ReorderJoin::ApplyJoinReordering(
     const std::size_t query_id, const std::vector<JoinPredicate> predicates,
@@ -42,7 +42,7 @@ ExecutionPlan::PlanPtr ReorderJoin::ApplyJoinReordering(
 
   std::vector<std::size_t> sizes;
 
-  auto populate_tables_maps = [&](DBTable::TablePtr tablePtr) {
+  auto populate_tables_maps = [&](std::shared_ptr<HustleTable> tablePtr) {
     if (table_ids.find(tablePtr) == table_ids.end()) {
       table_ids[tablePtr] = table_ids.size();
       table_ptrs[table_ids[tablePtr]] = tablePtr;

@@ -38,7 +38,7 @@ class ReorderingTestFixture : public testing::Test {
   std::shared_ptr<arrow::Schema> s_schema, r_schema, t_schema, q_schema,
       u_schema, v_schema;
 
-  DBTable::TablePtr Q, R, S, T, U, V;
+  std::shared_ptr<HustleTable> Q, R, S, T, U, V;
 
   void SetUp() override {
     arrow::Status status;

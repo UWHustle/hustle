@@ -15,29 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "ma_block.h"
+#include "indexed_block.h"
 
-#define THROW_ERROR_ON_NOT_OK_METADATA true
+#include "hustle_block.h"
+#include "metadata_units/sma.h"
 
 namespace hustle::storage {
 
-bool MetadataAttachedBlock::SearchMetadata(
-    int column_id, const arrow::Datum &val_ptr,
-    arrow::compute::CompareOperator compare_operator) {
-  if (CheckValidMetadata(column_id)) {
-    for (auto &block_metadata : column_metadata_list_[column_id]) {
-      if (!block_metadata->Search(val_ptr, compare_operator)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-std::vector<MetadataUnit *> MetadataAttachedBlock::GenerateMetadataForColumn(
+std::vector<HustleIndex *> IndexedBlock::GenerateIndicesForColumn(
     int column_id) {
-  std::vector<MetadataUnit *> out;
-  std::vector<MetadataUnit *> verify_buffer;
+  std::vector<HustleIndex *> out;
+  std::vector<HustleIndex *> verify_buffer;
   // TODO: (Type Handle) Handle SMA for different data type.
   switch (get_column(column_id)->type()->id()) {
     case arrow::Type::UINT8:
@@ -71,13 +59,52 @@ std::vector<MetadataUnit *> MetadataAttachedBlock::GenerateMetadataForColumn(
   return out;
 }
 
-std::vector<arrow::Status> MetadataAttachedBlock::GetMetadataStatusList(
-    int column_id) {
-  std::vector<arrow::Status> out;
-  out.reserve(column_metadata_list_[column_id].size());
-  for (int i = 0; i < column_metadata_list_[column_id].size(); i++) {
-    out.push_back(column_metadata_list_[column_id][i]->GetStatus());
+bool IndexedBlock::SearchMetadata(
+    int column_id, const arrow::Datum &val_ptr,
+    arrow::compute::CompareOperator compare_operator) {
+  if (column_indices_valid[column_id]) {
+    for (auto &block_metadata : column_indices_list[column_id]) {
+      if (!block_metadata->Search(val_ptr, compare_operator)) {
+        return false;
+      }
+    }
   }
+  return true;
+}
+
+std::vector<arrow::Status> IndexedBlock::GetIndexStatusList(int column_id) {
+  std::vector<arrow::Status> out;
+  out.reserve(column_indices_list[column_id].size());
+  for (int i = 0; i < column_indices_list[column_id].size(); i++) {
+    out.push_back(column_indices_list[column_id][i]->GetStatus());
+  }
+  return out;
+}
+
+int IndexedBlock::InsertRecord(uint8_t *record, int32_t *byte_widths) {
+  int out = BaseBlock::InsertRecord(record, byte_widths);
+  ProcessInsertion(out);
+  return out;
+}
+int IndexedBlock::InsertRecord(std::vector<std::string_view> record,
+                               int32_t *byte_widths) {
+  int out = BaseBlock::InsertRecord(record, byte_widths);
+  ProcessInsertion(out);
+  return out;
+}
+int IndexedBlock::InsertRecords(
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
+  int out = BaseBlock::InsertRecords(column_data);
+  ProcessInsertion(out);
+  return out;
+}
+int IndexedBlock::InsertRecords(
+    std::map<int, BlockInfo> &block_map, std::map<int, int> &row_map,
+    std::shared_ptr<arrow::Array> valid_column,
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
+  int out =
+      BaseBlock::InsertRecords(block_map, row_map, valid_column, column_data);
+  ProcessInsertion(out);
   return out;
 }
 }  // namespace hustle::storage

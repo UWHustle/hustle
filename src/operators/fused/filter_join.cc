@@ -17,7 +17,7 @@
 
 #include "operators/fused/filter_join.h"
 
-#include "storage/utils/util.h"
+#include "arrow_utils.h"
 
 namespace hustle::operators {
 

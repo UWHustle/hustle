@@ -15,43 +15,35 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_BLOCK_METADATA_SMA
-#define HUSTLE_BLOCK_METADATA_SMA
-
-#include <arrow/compute/api.h>
-#include <arrow/datum.h>
-#include <arrow/scalar.h>
-
-#include "storage/hustle_index.h"
+#ifndef HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_STORABLE
+#define HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_STORABLE
 
 namespace hustle::storage {
 
-class Sma : public HustleIndex {
+/**
+ * sqlite3 callback type
+ * Used by multiple classes within the hustle
+ * storage module.
+ */
+typedef int (*sqlite3_callback)(void *, int, char **, char **);
+
+/**
+ * Signaling enum to communicate general execution state to a hustle storable.
+ * There is no guarantee that a particular object will act on a particular
+ * signal.
+ */
+enum HustleStorableSignal { QUERY_BEGIN, QUERY_END };
+
+/**
+ * Abstract Class.
+ * Base class that all hustle-related objects implement.
+ * In practice, other interfaces will derive this class.
+ */
+class HustleStorable {
  public:
-  /**
-   * Construct a Small Materialized Aggregate (SMA) metadata from a
-   * given ArrayData. This stores Min and Max values.
-   *
-   * @param data
-   */
-  Sma(const std::shared_ptr<arrow::Array>& array);
-
-  /// implementation of GetStatus
-  inline arrow::Status GetStatus() override { return status_; }
-
-  /// implementation of Search
-  bool Search(const arrow::Datum& val_ptr,
-              arrow::compute::CompareOperator compare_operator) override;
-
- private:
-  /// status from calculating min and max
-  arrow::Status status_;
-
-  /// min value
-  arrow::Datum min_;
-
-  /// max value
-  arrow::Datum max_;
+  virtual ~HustleStorable() = default;
+  virtual void ReceiveSignal(HustleStorableSignal signal){};
 };
+
 }  // namespace hustle::storage
-#endif  // HUSTLE_BLOCK_METADATA_SMA
+#endif  // HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_STORABLE

@@ -35,7 +35,7 @@
 #include "absl/strings/str_cat.h"
 #include "gtest/gtest.h"
 #include "sqlite3/sqlite3.h"
-#include "storage/table.h"
+#include "storage/base_table.h"
 #include "table_schema.h"
 #include "utils/map_utils.h"
 #include "utils/sqlite_utils.h"
@@ -48,7 +48,7 @@ namespace catalog {
 class TableInfo {
   public:
     TableSchema table_schema;
-    DBTable::TablePtr table;
+    std::shared_ptr<HustleTable> table;
 
     template <class Archive>
     void serialize(Archive& archive) {
@@ -63,7 +63,7 @@ class Catalog {
                                                       std::string SqlitePath);
 
   bool AddTable(sqlite3* db, TableSchema t);
-  bool AddTable(sqlite3* db, TableSchema t, DBTable::TablePtr table_ref);
+  bool AddTable(sqlite3* db, TableSchema t, std::shared_ptr<HustleTable> table_ref);
 
   bool DropMemTable(std::string name);
 
@@ -73,8 +73,8 @@ class Catalog {
 
   void print() const;
 
-  DBTable::TablePtr GetTable(size_t table_id);
-  DBTable::TablePtr GetTable(std::string table_name);
+  std::shared_ptr<HustleTable> GetTable(size_t table_id);
+  std::shared_ptr<HustleTable> GetTable(std::string table_name);
 
   std::vector<std::string> GetTableNames(){
     std::vector<std::string> result;
@@ -111,7 +111,7 @@ class Catalog {
   void SaveToFile();
 
   // TODO(chronis) make private
-  std::vector<DBTable::TablePtr> table_refs_;
+  std::vector<std::shared_ptr<HustleTable>> table_refs_;
   std::map<std::string, TableInfo> tables_;
   std::string CatalogPath_;
   std::string SqlitePath_;

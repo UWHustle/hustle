@@ -19,9 +19,9 @@
 
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
+#include <operators/aggregate/hash_aggregate.h>
 
 #include <fstream>
-#include <operators/aggregate/hash_aggregate.h>
 
 #include "execution/execution_plan.h"
 #include "gmock/gmock.h"
@@ -29,7 +29,7 @@
 #include "operators/join/multiway_join.h"
 #include "operators/select/select.h"
 #include "scheduler/scheduler.h"
-#include "storage/block.h"
+#include "storage/base_block.h"
 #include "storage/utils/util.h"
 
 using namespace testing;
@@ -50,7 +50,7 @@ class AggregateTestFixture : public testing::Test {
   std::shared_ptr<arrow::Array> expected_T_col_1;
   std::shared_ptr<arrow::Array> expected_T_col_2;
 
-  DBTable::TablePtr R, S, T;
+  std::shared_ptr<HustleTable> R, S, T;
 
   void SetUp() override {
     arrow::Status status;

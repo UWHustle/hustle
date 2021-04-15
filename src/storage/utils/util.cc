@@ -22,24 +22,17 @@
 #include <arrow/ipc/api.h>
 #include <arrow/scalar.h>
 
-#include <fstream>
 #include <iostream>
 
+#include "arrow_utils.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "scheduler/scheduler.h"
-#include "storage/block.h"
-#include "storage/table.h"
+#include "storage/hustle_block.h"
+#include "storage/hustle_table.h"
+#include "storage/base_table.h"
+#include "storage/index_aware_table.h"
 #include "type/type_helper.h"
-
-void evaluate_status(const arrow::Status& status, const char* function_name,
-                     int line_no) {
-  if (!status.ok()) {
-    std::cout << "\nInvalid status: " << function_name << ", line " << line_no
-              << std::endl;
-    throw std::runtime_error(status.ToString());
-  }
-}
 
 // TODO: Refactor this function.
 //  I don't think we need to do this.
@@ -112,7 +105,7 @@ void read_record_batch(
 }
 // TOOO(nicholas): Distinguish between reading blocks we intend to mutate vs.
 // reading blocks we do not intend to mutate.
-std::shared_ptr<hustle::storage::DBTable> read_from_file(
+std::shared_ptr<hustle::storage::HustleTable> read_from_file(
     const char* path, bool read_only, const char* table_name) {
   auto& scheduler = hustle::Scheduler::GlobalInstance();
 
@@ -141,8 +134,8 @@ std::shared_ptr<hustle::storage::DBTable> read_from_file(
   scheduler.start();
   scheduler.join();
 
-  return std::make_shared<hustle::storage::DBTable>(table_name, record_batches,
-                                                    BLOCK_SIZE);
+  return std::make_shared<hustle::storage::BaseTable>(
+      table_name, record_batches, BLOCK_SIZE);
 }
 
 std::vector<std::shared_ptr<arrow::Array>> get_columns_from_record_batch(
@@ -156,7 +149,7 @@ std::vector<std::shared_ptr<arrow::Array>> get_columns_from_record_batch(
   return columns;
 }
 
-void write_to_file(const char* path, hustle::storage::DBTable& table) {
+void write_to_file(const char* path, hustle::storage::HustleTable& table) {
   std::shared_ptr<arrow::io::FileOutputStream> file;
   std::shared_ptr<arrow::ipc::RecordBatchWriter> record_batch_writer;
   arrow::Status status;
@@ -251,9 +244,9 @@ std::vector<int32_t> get_field_sizes(
   return field_sizes;
 }
 
-std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
+std::shared_ptr<hustle::storage::HustleTable> read_from_csv_file(
     const char* path, std::shared_ptr<arrow::Schema> schema, int block_size,
-    bool metadata_enabled) {
+    bool index_enabled) {
   arrow::Status status;
 
   // RecordBatchBuilder initializes ArrayBuilders for each field in schema
@@ -316,8 +309,14 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
   std::string line;
 
-  auto out_table = std::make_shared<hustle::storage::DBTable>(
-      "table", schema, block_size, metadata_enabled);
+  std::shared_ptr<hustle::storage::HustleTable> out_table;
+  if (index_enabled) {
+    out_table = std::make_shared<hustle::storage::IndexAwareTable>("table", schema,
+                                                             block_size);
+  } else {
+    out_table = std::make_shared<hustle::storage::BaseTable>(
+        "table", schema, block_size);
+  }
 
   while (fgets(buf, 1024, file)) {
     // Note that the newline character is still included!
@@ -330,8 +329,10 @@ std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
 
     out_table->InsertRecord(values, byte_widths);
   }
-  if (metadata_enabled) {
-    out_table->BuildMetadata();
+
+  if (index_enabled) {
+    std::dynamic_pointer_cast<hustle::storage::IndexAwareTable>(out_table)
+        ->GenerateIndices();
   }
   return out_table;
 }

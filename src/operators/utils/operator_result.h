@@ -23,8 +23,9 @@
 #include <string>
 
 #include "operators/utils/lazy_table.h"
-#include "storage/block.h"
-#include "storage/table.h"
+#include "storage/base_block.h"
+#include "storage/base_table.h"
+#include "storage/index_aware_table.h"
 
 using namespace hustle::storage;
 
@@ -61,7 +62,7 @@ class OperatorResult {
    *
    * @param table The table to append
    */
-  void append(DBTable::TablePtr table);
+  void append(std::shared_ptr<HustleTable> table);
 
   /**
    * Append a new lazy table to the OperatorResult.
@@ -96,7 +97,7 @@ class OperatorResult {
    * @param table
    * @return a LazyTable
    */
-  LazyTable get_table(const DBTable::TablePtr& table);
+  LazyTable get_table(const std::shared_ptr<HustleTable>& table);
 
   /**
    * Construct a new table from the OperatorResult
@@ -105,7 +106,7 @@ class OperatorResult {
    * @param metadata_enabled true if the output DBTable should be metadata enabled
    * @return A new table containing all columns specified by col_refs
    */
-  DBTable::TablePtr materialize(
+  std::shared_ptr<HustleTable> materialize(
       const std::vector<ColumnReference>& col_refs,
       bool metadata_enabled);
 
@@ -115,14 +116,14 @@ class OperatorResult {
    * @param col_refs References to the columns to project in the output table.
    * @return A new table containing all columns specified by col_refs
    */
-  inline DBTable::TablePtr materialize(
+  inline std::shared_ptr<HustleTable> materialize(
       const std::vector<ColumnReference>& col_refs) {
-    return materialize(col_refs, ENABLE_METADATA_BY_DEFAULT);
+    return materialize(col_refs, ENABLE_INDEXING);
   }
 
   std::vector<LazyTable> lazy_tables_;
 
-  void set_materialized_col(DBTable::TablePtr table, int i,
+  void set_materialized_col(std::shared_ptr<HustleTable> table, int i,
                             std::shared_ptr<arrow::ChunkedArray> col);
 };
 

@@ -15,13 +15,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_BLOCK_METADATA_H
-#define HUSTLE_BLOCK_METADATA_H
+#ifndef HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_INDEX
+#define HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_INDEX
+
+#include <arrow/api.h>
+
+#include "hustle_storable.h"
 
 namespace hustle::storage {
 
-class MetadataUnit {
+class HustleIndex : public HustleStorable {
  public:
+  ~HustleIndex() override = default;
 
   /**
    * Get the status of the metadata's construction.
@@ -44,4 +49,4 @@ class MetadataUnit {
 };
 
 }  // namespace hustle::storage
-#endif  // HUSTLE_BLOCK_METADATA_H
+#endif  // HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_INDEX

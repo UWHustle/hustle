@@ -25,6 +25,7 @@
 #include "absl/hash/hash.h"
 #include "column_schema.h"
 #include "utils/map_utils.h"
+#include "utils/bit_utils.h"
 
 namespace hustle {
 namespace catalog {

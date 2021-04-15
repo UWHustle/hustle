@@ -17,11 +17,8 @@
 
 #include "operators/utils/operator_result.h"
 
-#include <iostream>
-#include <utility>
-
-#include "storage/table.h"
-#include "storage/utils/util.h"
+#include "storage/base_table.h"
+#include "arrow_utils.h"
 
 namespace hustle::operators {
 
@@ -31,13 +28,14 @@ OperatorResult::OperatorResult(std::vector<LazyTable> lazy_tables) {
 
 OperatorResult::OperatorResult() = default;
 
-void OperatorResult::append(DBTable::TablePtr table) {
+void OperatorResult::append(std::shared_ptr<HustleTable> table) {
   LazyTable lazy_table(table, arrow::Datum(), arrow::Datum(), arrow::Datum());
   lazy_tables_.insert(lazy_tables_.begin(), lazy_table);
 }
 
 void OperatorResult::set_materialized_col(
-    DBTable::TablePtr table, int i, std::shared_ptr<arrow::ChunkedArray> col) {
+    std::shared_ptr<HustleTable> table, int i,
+    std::shared_ptr<arrow::ChunkedArray> col) {
   get_table(table).set_materialized_column(i, col);
 }
 
@@ -57,7 +55,7 @@ void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
 
 LazyTable OperatorResult::get_table(int i) { return lazy_tables_[i]; }
 
-LazyTable OperatorResult::get_table(const DBTable::TablePtr& table) {
+LazyTable OperatorResult::get_table(const std::shared_ptr<HustleTable>& table) {
   LazyTable result;
   for (auto& lazy_table : lazy_tables_) {
     if (lazy_table.table == table) {
@@ -68,7 +66,7 @@ LazyTable OperatorResult::get_table(const DBTable::TablePtr& table) {
   return result;
 }
 
-DBTable::TablePtr OperatorResult::materialize(
+std::shared_ptr<HustleTable> OperatorResult::materialize(
     const std::vector<ColumnReference>& col_refs, bool metadata_enabled) {
   arrow::Status status;
   arrow::SchemaBuilder schema_builder;
@@ -94,12 +92,18 @@ DBTable::TablePtr OperatorResult::materialize(
   evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
   auto out_schema = schema_builder.Finish().ValueOrDie();
 
-  auto out_table = std::make_shared<DBTable>("out", out_schema, BLOCK_SIZE,
-                                             metadata_enabled);
+  std::shared_ptr<HustleTable> out_table;
+  if (metadata_enabled) {
+    out_table = std::static_pointer_cast<HustleTable>(
+        std::make_shared<IndexAwareTable>("out", out_schema, BLOCK_SIZE));
+  } else {
+    out_table = std::static_pointer_cast<HustleTable>(
+        std::make_shared<BaseTable>("out", out_schema, BLOCK_SIZE));
+  }
 
   out_table->InsertRecords(out_cols);
-  if(metadata_enabled) {
-    out_table->BuildMetadata();
+  if (metadata_enabled) {
+    std::dynamic_pointer_cast<IndexAwareTable>(out_table)->GenerateIndices();
   }
   return out_table;
 }

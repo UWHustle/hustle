@@ -29,8 +29,8 @@
 #include "operators/select/predicate.h"
 #include "operators/utils/operator_result.h"
 #include "parallel_hashmap/phmap.h"
-#include "storage/block.h"
-#include "storage/table.h"
+#include "storage/base_block.h"
+#include "storage/base_table.h"
 
 namespace hustle {
 namespace operators {
@@ -166,7 +166,7 @@ class Aggregate : public BaseAggregate {
   OperatorResult::OpResultPtr prev_result_, output_result_;
 
   // The new output table containing the group columns and aggregate columns.
-  DBTable::TablePtr output_table_;
+  std::shared_ptr<HustleTable> output_table_;
 
   std::atomic<int64_t>* aggregate_data_;
   // Hold the aggregate column data (in chunks)

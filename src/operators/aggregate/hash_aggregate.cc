@@ -17,7 +17,7 @@
 
 #include "operators/aggregate/hash_aggregate.h"
 
-#include <storage/utils/util.h>
+#include "arrow_utils.h"
 
 #include "type/type_helper.h"
 
@@ -83,7 +83,8 @@ void HashAggregate::Initialize(Task *ctx) {
   std::shared_ptr<arrow::Schema> out_schema =
       OutputSchema(aggregate_refs_[0].kernel, aggregate_refs_[0].agg_name);
   output_table_ =
-      std::make_shared<DBTable>(AGGREGATE_OUTPUT_TABLE, out_schema, BLOCK_SIZE);
+      std::static_pointer_cast<HustleTable>(std::make_shared<BaseTable>(
+          AGGREGATE_OUTPUT_TABLE, out_schema, BLOCK_SIZE));
   group_by_cols_.resize(group_by_refs_.size());
   for (auto &group_by : group_by_refs_) {
     group_by_tables_.push_back(prev_result_->get_table(group_by.table));

@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "table.h"
+#include "base_table.h"
 
 #include <arrow/api.h>
 #include <arrow/io/api.h>
@@ -23,50 +23,45 @@
 
 #include <iostream>
 
-#include "storage/block.h"
-#include "storage/ma_block.h"
+#include "storage/base_block.h"
 #include "storage/utils/util.h"
 #include "type/type_helper.h"
 
 namespace hustle::storage {
 
-DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
-                 int block_capacity, bool enable_metadata)
-    : table_name(std::move(name)),
-      schema(schema),
-      metadata_enabled(enable_metadata),
-      block_counter(0),
-      num_rows(0),
-      block_capacity(block_capacity),
-      block_row_offsets({}) {
+BaseTable::BaseTable(std::string in_name,
+                     const std::shared_ptr<arrow::Schema> &in_schema,
+                     int in_block_capacity) {
+  // base class initialization
+  table_name = std::move(in_name);
+  schema = in_schema;
+  block_counter = 0;
+  num_rows = 0;
+  block_capacity = in_block_capacity;
+  block_row_offsets = {};
   //
   fixed_record_width = compute_fixed_record_width(schema);
   num_cols = schema->num_fields();
 }
 
-DBTable::DBTable(
-    std::string name,
-    std::vector<std::shared_ptr<arrow::RecordBatch>> record_batches,
-    int block_capacity, bool enable_metadata)
-    : table_name(std::move(name)),
-      metadata_enabled(enable_metadata),
-      block_counter(0),
-      num_rows(0),
-      block_capacity(block_capacity),
-      block_row_offsets({0}) {
+BaseTable::BaseTable(
+    std::string in_name,
+    const std::vector<std::shared_ptr<arrow::RecordBatch>> &record_batches,
+    int in_block_capacity) {
+  // base class initialization
+  table_name = std::move(in_name);
+  block_counter = 0;
+  num_rows = 0;
+  block_capacity = in_block_capacity;
+  block_row_offsets = {0};
   //
   schema = std::move(record_batches[0]->schema());
   num_cols = schema->num_fields();
   // Must be called only after schema is set
   fixed_record_width = compute_fixed_record_width(schema);
-  std::shared_ptr<Block> block;
+  std::shared_ptr<HustleBlock> block;
   for (const auto &batch : record_batches) {
-    if (enable_metadata) {
-      block = std::make_shared<MetadataAttachedBlock>(block_counter, batch,
-                                                      BLOCK_SIZE);
-    } else {
-      block = std::make_shared<Block>(block_counter, batch, BLOCK_SIZE);
-    }
+    block = GenerateNewBlock(block_counter, batch, BLOCK_SIZE);
     blocks.emplace(block_counter, block);
     block_counter++;
     num_rows += batch->num_rows();
@@ -80,7 +75,8 @@ DBTable::DBTable(
   }
 }
 
-void DBTable::InsertBlocks(std::vector<std::shared_ptr<Block>> input_blocks) {
+void BaseTable::InsertBlocks(
+    std::vector<std::shared_ptr<HustleBlock>> input_blocks) {
   if (input_blocks.empty()) {
     return;
   }
@@ -98,7 +94,7 @@ void DBTable::InsertBlocks(std::vector<std::shared_ptr<Block>> input_blocks) {
   }
 }
 
-void DBTable::InsertRecords(arrow::ChunkedArrayVector col_arrays) {
+void BaseTable::InsertRecords(arrow::ChunkedArrayVector col_arrays) {
   std::vector<std::shared_ptr<arrow::ArrayData>> block_data;
   for (int i = 0; i < col_arrays[0]->num_chunks(); i++) {
     for (auto &col : col_arrays) {
@@ -109,7 +105,7 @@ void DBTable::InsertRecords(arrow::ChunkedArrayVector col_arrays) {
   }
 }
 
-void DBTable::InsertRecords(
+void BaseTable::InsertRecords(
     std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   int l = column_data[0]->length;
   int data_size = 0;
@@ -177,30 +173,9 @@ void DBTable::InsertRecords(
   num_rows += l;
 }
 
-int DBTable::get_record_size(int32_t *byte_widths) {
-  int record_size = 0;
-  int num_cols = get_num_cols();
-
-  for (int i = 0; i < num_cols; i++) {
-    auto data_type = schema->field(i)->type();
-    auto handler = [&]<typename T>(T *) {
-      if constexpr (has_ctype_member<T>::value) {
-        record_size += sizeof(int64_t);
-      } else if constexpr (isOneOf<T, arrow::StringType>::value) {
-        record_size += byte_widths[i];
-      } else {
-        throw std::logic_error(std::string("unsupported type: ") +
-                               data_type->ToString());
-      }
-    };
-    type_switcher(data_type, handler);
-  }
-  return record_size;
-}
-
 // Tuple is passed in as an array of bytes which must be parsed.
-BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
-  std::shared_ptr<Block> block = GetBlockForInsert();
+BlockInfo BaseTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
+  std::shared_ptr<HustleBlock> block = GetBlockForInsert();
   int32_t record_size = this->get_record_size(byte_widths);
   if (block->get_bytes_left() < record_size) {
     block = CreateBlock();
@@ -213,16 +188,16 @@ BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   return {block->get_id(), row_num};
 }
 
-void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
-                                UpdateMetaInfo *updateMetaInfo, uint8_t *record,
-                                int32_t *byte_widths) {
+void BaseTable::UpdateRecord(uint32_t row_id, int num_UpdateMetaInfo,
+                             UpdateMetaInfo *updateMetaInfo, uint8_t *record,
+                             int32_t *byte_widths) {
   auto block_map_it = block_map.find(row_id);
   if (block_map_it == block_map.end()) {
     return;
   }
   BlockInfo block_info = block_map_it->second;
   int row_num = block_info.row_num;
-  std::shared_ptr<Block> block = this->get_block(block_info.block_id);
+  std::shared_ptr<HustleBlock> block = this->get_block(block_info.block_id);
   int offset = 0;
   int curr_offset_col = 0;
   for (int i = 0; i < num_UpdateMetaInfo; i++) {
@@ -241,8 +216,8 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
         block->UpdateColumnValue<CType>(col_num, row_num, record + offset,
                                         byte_widths[col_num]);
       } else if constexpr (isOneOf<T, arrow::StringType>::value) {
-        this->DeleteRecordTable(row_id);
-        this->InsertRecordTable(row_id, record, byte_widths);
+        this->DeleteRecord(row_id);
+        this->InsertRecord(row_id, record, byte_widths);
       } else {
         throw std::logic_error(
             std::string("Cannot insert tuple with unsupported type: ") +
@@ -254,16 +229,16 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
   }
 }
 
-void DBTable::DeleteRecordTable(uint32_t row_id) {
+void BaseTable::DeleteRecord(uint32_t row_id) {
   auto block_map_it = block_map.find(row_id);
   if (block_map_it == block_map.end()) {
     return;
   }
   BlockInfo block_info = block_map_it->second;
-  std::shared_ptr<Block> block = this->get_block(block_info.block_id);
+  std::shared_ptr<HustleBlock> block = this->get_block(block_info.block_id);
   block->set_valid(block_info.row_num, false);
-  auto updatedBlock = std::make_shared<Block>(block_info.block_id, schema,
-                                              block->get_capacity());
+  auto updatedBlock =
+      GenerateNewBlock(block_info.block_id, schema, block->get_capacity());
   updatedBlock->InsertRecords(block_map, block->get_row_id_map(),
                               block->get_valid_column(), block->get_columns());
   blocks[block_info.block_id] = updatedBlock;
@@ -273,9 +248,9 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
   }
 }
 
-void DBTable::InsertRecord(std::vector<std::string_view> values,
-                           int32_t *byte_widths) {
-  std::shared_ptr<Block> block = GetBlockForInsert();
+void BaseTable::InsertRecord(std::vector<std::string_view> values,
+                             int32_t *byte_widths) {
+  std::shared_ptr<HustleBlock> block = GetBlockForInsert();
   int32_t record_size = 0;
   // record size is incorrectly computed!
   for (int i = 0; i < num_cols; i++) {
@@ -291,61 +266,4 @@ void DBTable::InsertRecord(std::vector<std::string_view> values,
   }
 }
 
-bool DBTable::GetMetadataOk() {
-  if (metadata_enabled) {
-    for (size_t block_idx = 0; block_idx < get_num_blocks(); block_idx++) {
-      bool block_compatible = get_block(block_idx)->IsMetadataCompatible();
-      if (block_compatible) {
-        auto metadata_block = std::static_pointer_cast<MetadataAttachedBlock>(
-            get_block(block_idx));
-        for (int col_idx = 0; col_idx < metadata_block->get_num_cols();
-             col_idx++) {
-          auto status_list = metadata_block->GetMetadataStatusList(col_idx);
-          for (int status_idx = 0; status_idx < status_list.size();
-               status_idx++) {
-            if (!metadata_block->GetMetadataStatusList(col_idx)[status_idx]
-                     .ok()) {
-              return false;
-            }
-          }
-        }
-      }
-    }
-  }
-  return true;
-}
-
-void DBTable::BuildMetadata() {
-  if (metadata_enabled) {
-    for (int i = 0; i < get_num_blocks(); i++) {
-      bool block_compatible = get_block(i)->IsMetadataCompatible();
-      if (!block_compatible) {
-        // ignore blocks that are not metadata compatible
-      } else {
-        auto metadata_block =
-            std::static_pointer_cast<MetadataAttachedBlock>(get_block(i));
-        metadata_block->BuildMetadata();
-      }
-    }
-  }
-}
-
-std::vector<std::vector<arrow::Status>> DBTable::GetMetadataStatusList(
-    int column_id) {
-  std::vector<std::vector<arrow::Status>> out;
-  if (metadata_enabled) {
-    for (int i = 0; i < get_num_blocks(); i++) {
-      bool block_compatible = get_block(i)->IsMetadataCompatible();
-      if (!block_compatible) {
-        std::vector<arrow::Status> empty_list;
-        out.push_back(empty_list);
-      } else {
-        auto metadata_block =
-            std::static_pointer_cast<MetadataAttachedBlock>(get_block(i));
-        out.push_back(metadata_block->GetMetadataStatusList(column_id));
-      }
-    }
-  }
-  return out;
-}
 }  // namespace hustle::storage

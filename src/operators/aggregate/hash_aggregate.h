@@ -159,7 +159,7 @@ class HashAggregate : public BaseAggregate {
   // Operator result from an upstream operator and output result will be stored
   OperatorResult::OpResultPtr prev_result_, output_result_;
   // The new output table containing the group columns and aggregate columns.
-  DBTable::TablePtr output_table_;
+  std::shared_ptr<HustleTable> output_table_;
   // The output result of each aggregate group (length = num_aggs_)
   std::atomic<int64_t>* aggregate_data_;
   // Hold the aggregate column data (in chunks)

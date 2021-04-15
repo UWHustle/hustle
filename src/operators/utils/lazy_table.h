@@ -24,8 +24,8 @@
 #include <string>
 
 #include "scheduler/task.h"
-#include "storage/block.h"
-#include "storage/table.h"
+#include "storage/base_block.h"
+#include "storage/base_table.h"
 #include "utils/arrow_compute_wrappers.h"
 
 using namespace hustle::storage;
@@ -38,7 +38,7 @@ struct RecordID {
 };
 
 struct ColumnReference {
-  DBTable::TablePtr table;
+  std::shared_ptr<HustleTable> table;
   std::string col_name;
 };
 
@@ -68,11 +68,11 @@ class LazyTable {
    * @param filter A Boolean ChunkedArray Datum
    * @param indices An INT64 Array Datum
    */
-  LazyTable(DBTable::TablePtr table, arrow::Datum filter, arrow::Datum indices,
+  LazyTable(std::shared_ptr<HustleTable> table, arrow::Datum filter, arrow::Datum indices,
             arrow::Datum index_chunks);
 
   LazyTable(
-      DBTable::TablePtr table, arrow::Datum filter, arrow::Datum indices,
+      std::shared_ptr<HustleTable> table, arrow::Datum filter, arrow::Datum indices,
       arrow::Datum index_chunks,
       std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
           hash_table);
@@ -119,7 +119,7 @@ class LazyTable {
     hash_table_ = hash_table;
   }
 
-  DBTable::TablePtr table;
+  std::shared_ptr<HustleTable> table;
   arrow::Datum filter;   // filters are ChunkedArrays
   arrow::Datum indices;  // indices are Arrays
   arrow::Datum index_chunks;

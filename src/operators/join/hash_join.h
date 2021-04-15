@@ -26,8 +26,8 @@
 #include "operators/join/join_graph.h"
 #include "operators/operator.h"
 #include "operators/utils/operator_result.h"
-#include "storage/block.h"
-#include "storage/table.h"
+#include "storage/base_block.h"
+#include "storage/base_table.h"
 
 namespace hustle::operators {
 

@@ -24,30 +24,12 @@
 
 #include <string>
 
-#include "storage/utils/util.h"
 #include "catalog/table_schema.h"
-#include "storage/table.h"
+#include "storage/base_table.h"
+#include "storage/hustle_table.h"
+#include "storage/utils/util.h"
 
-#define IMPORT_CSV_TO_METADATA_ENABLED_BLOCK_BY_DEFAULT true
-
-/**
- * If a status outcome is an error, print its error message and throw an
- * expection. Otherwise, do nothing.
- *
- * The function_name and line_no parameters allow us to find exactly where
- * the error occured, since the same error can be thrown from different places.
- *
- * @param status Status outcome object
- * @param function_name name of the function that called evaluate_status
- * @param line_no Line number of the call to evaluate_status
- *
- * TODO: Do we want to throw an expection on error?
- * TODO: Move this out of the storage scope. This can be made globa.
- */
-void evaluate_status(const arrow::Status& status, const char* function_name,
-                     int line_no);
-
-
+#define IMPORT_CSV_TO_INDEX_ENABLED_BLOCK_BY_DEFAULT true
 
 /**
  * Write a table to a file. Currently, all blocks are written to the same file.
@@ -57,7 +39,7 @@ void evaluate_status(const arrow::Status& status, const char* function_name,
  *
  * TODO(nicholas): write one file for each block
  */
-void write_to_file(const char* path, hustle::storage::DBTable& table);
+void write_to_file(const char* path, hustle::storage::HustleTable& table);
 
 /**
  * Construct a table from RecordBatches read from a file.
@@ -68,10 +50,8 @@ void write_to_file(const char* path, hustle::storage::DBTable& table);
  *
  * TODO: Assuming all blocks are written to separate files, read in one block.
  */
-std::shared_ptr<hustle::storage::DBTable> read_from_file(const char* path,
-                                                       bool read_only = true,
-                                                       const char* table_name = "table");
-
+std::shared_ptr<hustle::storage::HustleTable> read_from_file(
+    const char* path, bool read_only = true, const char* table_name = "table");
 
 /**
  * Return the columns of a RecordBatch as a vector of Arrays. This is a special
@@ -104,14 +84,14 @@ int compute_fixed_record_width(const std::shared_ptr<arrow::Schema>& schema);
 std::vector<int32_t> get_field_sizes(
     const std::shared_ptr<arrow::Schema>& schema);
 
-std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
+std::shared_ptr<hustle::storage::HustleTable> read_from_csv_file(
     const char* path, std::shared_ptr<arrow::Schema> schema, int block_size,
-    bool metadata_enabled);
+    bool index_enabled);
 
-inline std::shared_ptr<hustle::storage::DBTable> read_from_csv_file(
+inline std::shared_ptr<hustle::storage::HustleTable> read_from_csv_file(
     const char* path, std::shared_ptr<arrow::Schema> schema, int block_size) {
   return read_from_csv_file(path, schema, block_size,
-                            IMPORT_CSV_TO_METADATA_ENABLED_BLOCK_BY_DEFAULT);
+                            IMPORT_CSV_TO_INDEX_ENABLED_BLOCK_BY_DEFAULT);
 }
 
 std::shared_ptr<arrow::Schema> make_schema(

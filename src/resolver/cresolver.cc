@@ -254,10 +254,10 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   return plan;
 }
 
-std::shared_ptr<hustle::storage::DBTable> execute(
+std::shared_ptr<hustle::storage::HustleTable> execute(
     std::shared_ptr<hustle::ExecutionPlan> plan,
     hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
-  std::shared_ptr<hustle::storage::DBTable> out_table;
+  std::shared_ptr<hustle::storage::HustleTable> out_table;
   using namespace hustle::operators;
   hustle::Scheduler &scheduler = hustle::HustleDB::get_scheduler();
   SynchronizationLock sync_lock;
@@ -293,7 +293,7 @@ int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs,
         createPlan(select_resolver, catalog);
 
     if (plan != nullptr) {
-      std::shared_ptr<hustle::storage::DBTable> outTable =
+      std::shared_ptr<hustle::storage::HustleTable> outTable =
           execute(plan, select_resolver, catalog);
       outTable->out_table(pArgs, xCallback);
     } else {

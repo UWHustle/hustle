@@ -15,31 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "block.h"
+#include "base_block.h"
 
 #include <arrow/scalar.h>
-#include <string.h>
+#include <cstring>
 
 #include <iostream>
 #include <vector>
 
+#include "hustle_block.h"
 #include "absl/strings/numbers.h"
 #include "arrow_compute_wrappers.h"
+#include "arrow_utils.h"
 #include "storage/utils/util.h"
 #include "type/type_helper.h"
 
-#define ESTIMATED_STR_LEN 30
-
 namespace hustle::storage {
 
-Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
-             int capacity, bool enable_metadata)
-    : num_rows(0),
-      num_bytes(0),
-      capacity(capacity),
-      id(id),
-      schema(in_schema),
-      metadata_enabled(enable_metadata) {
+BaseBlock::BaseBlock(int in_id, const std::shared_ptr<arrow::Schema> &in_schema,
+                     int in_capacity) {
+  // base class initialization
+  num_rows = 0;
+  num_bytes = 0;
+  id = in_id;
+  schema = in_schema;
+  capacity = in_capacity;
+  //
   arrow::Status status;
   num_cols = schema->num_fields();
   this->fixed_record_width = compute_fixed_record_width(schema);
@@ -116,18 +117,20 @@ Block::Block(int id, const std::shared_ptr<arrow::Schema> &in_schema,
   }
 }
 
-Block::Block(int id, const std::shared_ptr<arrow::RecordBatch> &record_batch,
-             int capacity, bool enable_metadata)
-    : capacity(capacity),
-      id(id),
-      num_bytes(0),
-      metadata_enabled(enable_metadata) {
+BaseBlock::BaseBlock(int in_id,
+                     const std::shared_ptr<arrow::RecordBatch> &in_record_batch,
+                     int in_capacity) {
+  // base class initialization
+  num_bytes = 0;
+  id = in_id;
+  capacity = in_capacity;
+  //
   arrow::Status status;
-  num_rows = record_batch->num_rows();
-  schema = std::move(record_batch->schema());
+  num_rows = in_record_batch->num_rows();
+  schema = std::move(in_record_batch->schema());
   num_cols = schema->num_fields();
-  for (int i = 0; i < record_batch->num_columns(); i++) {
-    columns.push_back(record_batch->column_data(i));
+  for (int i = 0; i < in_record_batch->num_columns(); i++) {
+    columns.push_back(in_record_batch->column_data(i));
     // Column sizes will be computed in ComputeByteSize(). Store 0 for now
     column_sizes.push_back(0);
   }
@@ -148,7 +151,7 @@ Block::Block(int id, const std::shared_ptr<arrow::RecordBatch> &record_batch,
 }
 
 template <typename field_size>
-std::shared_ptr<arrow::ArrayData> Block::AllocateColumnData(
+std::shared_ptr<arrow::ArrayData> BaseBlock::AllocateColumnData(
     std::shared_ptr<arrow::DataType> type, int init_rows) {
   std::shared_ptr<arrow::ResizableBuffer> data;
 
@@ -161,7 +164,7 @@ std::shared_ptr<arrow::ArrayData> Block::AllocateColumnData(
   return arrow::ArrayData::Make(type, 0, {nullptr, data});
 }
 
-void Block::ComputeByteSize() {
+void BaseBlock::ComputeByteSize() {
   // Start at i=1 to skip valid column
   for (int i = 0; i < num_cols; i++) {
     auto get_byte_size = [&, this]<typename T>(T *ptr) {
@@ -190,7 +193,7 @@ void Block::ComputeByteSize() {
   }
 }
 
-void Block::out_block(void *pArg, sqlite3_callback callback) {
+void BaseBlock::out_block(void *pArg, sqlite3_callback callback) const {
   // Create Arrays from ArrayData so we can easily read column data
   std::vector<std::shared_ptr<arrow::Array>> arrays;
   for (int i = 0; i < num_cols; i++) {
@@ -253,7 +256,7 @@ void Block::out_block(void *pArg, sqlite3_callback callback) {
   free(azCols);
 }
 
-void Block::print() {
+void BaseBlock::print() const {
   // Create Arrays from ArrayData so we can easily read column data
   std::vector<std::shared_ptr<arrow::Array>> arrays;
   for (int i = 0; i < num_cols; i++) {
@@ -293,7 +296,7 @@ void Block::print() {
 }
 
 // Note that this function assumes that the valid column is in column_data
-int Block::InsertRecords(
+int BaseBlock::InsertRecords(
     std::map<int, BlockInfo> &block_map, std::map<int, int> &row_map,
     const std::shared_ptr<arrow::Array> valid_column,
     const std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
@@ -325,7 +328,7 @@ int Block::InsertRecords(
 }
 
 // Note that this function assumes that the valid column is in column_data
-int Block::InsertRecords(
+int BaseBlock::InsertRecords(
     std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   if (column_data[0]->length == 0) {
     return -1;
@@ -460,8 +463,9 @@ int Block::InsertRecords(
 }
 
 template <typename field_size>
-void Block::InsertValues(int col_num, int offset,
-                         std::shared_ptr<arrow::ArrayData> vals, int num_vals) {
+void BaseBlock::InsertValues(int col_num, int offset,
+                             std::shared_ptr<arrow::ArrayData> vals,
+                             int num_vals) {
   int data_size = sizeof(int64_t) * num_vals;
   auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
       columns[col_num]->buffers[1]);
@@ -477,7 +481,7 @@ void Block::InsertValues(int col_num, int offset,
   num_bytes += data_size;
 }
 
-int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
+int BaseBlock::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
@@ -552,8 +556,8 @@ int Block::InsertRecord(uint8_t *record, int32_t *byte_widths) {
 }
 
 template <typename field_type>
-void Block::InsertValue(int col_num, int &head, uint8_t *record_value,
-                        int byte_width) {
+void BaseBlock::InsertValue(int col_num, int &head, uint8_t *record_value,
+                            int byte_width) {
   auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
       columns[col_num]->buffers[1]);
   auto status =
@@ -592,8 +596,8 @@ void Block::InsertValue(int col_num, int &head, uint8_t *record_value,
 }
 
 // Return true is insertion was successful, false otherwise
-int Block::InsertRecord(std::vector<std::string_view> record,
-                        int32_t *byte_widths) {
+int BaseBlock::InsertRecord(std::vector<std::string_view> record,
+                            int32_t *byte_widths) {
   int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
@@ -706,7 +710,7 @@ int Block::InsertRecord(std::vector<std::string_view> record,
         InsertCsvValue<int64_t>(i, head, record[i]);
       } else {
         throw std::logic_error(
-            std::string("Block::InsertRecord(): "
+            std::string("BaseBlock::InsertRecord(): "
                         "Cannot insert tuple with unsupported type: ") +
             data_type->ToString());
       }
@@ -718,7 +722,8 @@ int Block::InsertRecord(std::vector<std::string_view> record,
 }
 
 template <typename field_size>
-void Block::InsertCsvValue(int col_num, int &head, std::string_view record) {
+void BaseBlock::InsertCsvValue(int col_num, int &head,
+                               std::string_view record) {
   auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
       columns[col_num]->buffers[1]);
   if (column_sizes[col_num] + sizeof(field_size) > data_buffer->capacity()) {
@@ -738,7 +743,7 @@ void Block::InsertCsvValue(int col_num, int &head, std::string_view record) {
   columns[col_num]->length++;
 }
 
-void Block::TruncateBuffers() {
+void BaseBlock::TruncateBuffers() {
   arrow::Status status;
   for (int i = 0; i < num_cols; i++) {
     auto data_type = schema->field(i)->type();
@@ -774,7 +779,7 @@ void Block::TruncateBuffers() {
 
       } else {
         throw std::logic_error(
-            std::string("In Block::TruncateBuffers(): "
+            std::string("In BaseBlock::TruncateBuffers(): "
                         "Cannot insert tuple with unsupported type: ") +
             data_type->ToString());
       }
@@ -784,7 +789,7 @@ void Block::TruncateBuffers() {
 }
 
 template <typename field_size>
-void Block::TruncateColumnBuffer(int col_num) {
+void BaseBlock::TruncateColumnBuffer(int col_num) {
   auto data_buffer = std::static_pointer_cast<arrow::ResizableBuffer>(
       columns[col_num]->buffers[1]);
   auto status = data_buffer->Resize(num_rows * sizeof(int64_t), true);

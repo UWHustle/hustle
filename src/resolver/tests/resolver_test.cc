@@ -34,7 +34,7 @@ class ResolverTest : public Test {
  public:
   static hustle::catalog::TableSchema part, supplier, customer, ddate,
       lineorder;
-  static DBTable::TablePtr lo, d, p, c, s;
+  static std::shared_ptr<HustleTable> lo, d, p, c, s;
   void SetUp() override {
     /**
       CREATE TABLE part
@@ -326,15 +326,15 @@ class ResolverTest : public Test {
     ResolverTest::lineorder.addColumn(lo_shipmode);
     ResolverTest::lineorder.setPrimaryKey({});
 
-    ResolverTest::lo = std::make_shared<hustle::storage::DBTable>(
+    ResolverTest::lo = std::make_shared<hustle::storage::BaseTable>(
         "lineorder", ResolverTest::lineorder.getArrowSchema(), BLOCK_SIZE);
-    ResolverTest::c = std::make_shared<hustle::storage::DBTable>(
+    ResolverTest::c = std::make_shared<hustle::storage::BaseTable>(
         "customer", ResolverTest::customer.getArrowSchema(), BLOCK_SIZE);
-    ResolverTest::s = std::make_shared<hustle::storage::DBTable>(
+    ResolverTest::s = std::make_shared<hustle::storage::BaseTable>(
         "supplier", ResolverTest::supplier.getArrowSchema(), BLOCK_SIZE);
-    ResolverTest::p = std::make_shared<hustle::storage::DBTable>(
+    ResolverTest::p = std::make_shared<hustle::storage::BaseTable>(
         "part", ResolverTest::part.getArrowSchema(), BLOCK_SIZE);
-    ResolverTest::d = std::make_shared<hustle::storage::DBTable>(
+    ResolverTest::d = std::make_shared<hustle::storage::BaseTable>(
         "ddate", ResolverTest::ddate.getArrowSchema(), BLOCK_SIZE);
   }
 };
@@ -343,7 +343,7 @@ hustle::catalog::TableSchema ResolverTest::part("part"),
     ResolverTest::supplier("supplier"), ResolverTest::customer("customer"),
     ResolverTest::ddate("ddate"), ResolverTest::lineorder("lineorder");
 
-DBTable::TablePtr ResolverTest::lo, ResolverTest::d, ResolverTest::p,
+std::shared_ptr<HustleTable> ResolverTest::lo, ResolverTest::d, ResolverTest::p,
     ResolverTest::c, ResolverTest::s;
 
 TEST_F(ResolverTest, q1) {

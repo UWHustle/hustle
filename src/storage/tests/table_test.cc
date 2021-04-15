@@ -15,8 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "storage/table.h"
-
 #include <arrow/io/api.h>
 
 #include <filesystem>
@@ -26,6 +24,7 @@
 #include "api/hustle_db.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "storage/base_table.h"
 #include "storage/utils/util.h"
 
 #define BLOCK_SIZE \
@@ -99,24 +98,24 @@ class HustleTableTest : public testing::Test {
 };
 
 TEST_F(HustleTableTest, EmptyTable) {
-  DBTable table("table", schema, BLOCK_SIZE);
+  BaseTable table("table", schema, BLOCK_SIZE);
   EXPECT_EQ(table.get_num_blocks(), 0);
 }
 
 TEST_F(HustleTableTest, OneBlockTable) {
-  DBTable table("table", schema, BLOCK_SIZE);
+  BaseTable table("table", schema, BLOCK_SIZE);
   table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   EXPECT_EQ(table.get_num_blocks(), 1);
 }
 
 TEST_F(HustleTableTest, OneBlockArray) {
-  DBTable table("table", schema, BLOCK_SIZE);
+  BaseTable table("table", schema, BLOCK_SIZE);
   table.InsertRecords(column_data);
   EXPECT_EQ(table.get_num_blocks(), 1);
 }
 
 TEST_F(HustleTableTest, TwoBlockArray) {
-  DBTable table("table", schema, BLOCK_SIZE);
+  BaseTable table("table", schema, BLOCK_SIZE);
   // Inserting three records 14 times. This fits into one block.
   for (int i = 0; i < 14; i++) {
     table.InsertRecords(column_data);
@@ -127,7 +126,7 @@ TEST_F(HustleTableTest, TwoBlockArray) {
 }
 
 TEST_F(HustleTableTest, TwoBlockTable) {
-  DBTable table("table", schema, BLOCK_SIZE);
+  BaseTable table("table", schema, BLOCK_SIZE);
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.
   for (int i = 0; i < 8; i++) {
@@ -140,7 +139,7 @@ TEST_F(HustleTableTest, TwoBlockTable) {
 }
 
 TEST_F(HustleTableTest, TableIO) {
-  DBTable table("table", schema, BLOCK_SIZE);
+  BaseTable table("table", schema, BLOCK_SIZE);
   table.InsertRecords(column_data);
   table.InsertRecord((uint8_t *)record_string.data(), byte_widths);
   table.InsertRecords(column_data);
@@ -161,7 +160,7 @@ TEST_F(HustleTableTest, TableIO) {
 }
 
 TEST_F(HustleTableTest, ReadTableFromCSV) {
-  DBTable table("table", schema, BLOCK_SIZE);
+  BaseTable table("table", schema, BLOCK_SIZE);
   // With 1 KB block size, we can store 8 copies of the first record in one
   // block.
   for (int i = 0; i < 8; i++) {
@@ -219,8 +218,8 @@ TEST_F(HustleTableTest, Insert) {
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  DBTable::TablePtr c =
-      std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
+  std::shared_ptr<HustleTable> c =
+      std::make_shared<BaseTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_insert");
     hustleDB.create_table(customer, c);
     hustleDB.execute_query_result(query);
@@ -266,8 +265,8 @@ TEST_F(HustleTableTest, Update) {
       "'Houston', 'Great',"
       "         'best', 'fit', 12);"
       "COMMIT;";
-  DBTable::TablePtr customer_table_ptr =
-      std::make_shared<DBTable>("customer_table", customer_schema, BLOCK_SIZE);
+  std::shared_ptr<HustleTable> customer_table_ptr =
+      std::make_shared<BaseTable>("customer_table", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_update");
     hustleDB.create_table(customer_table, customer_table_ptr);
     hustleDB.execute_query_result(query);
@@ -336,7 +335,7 @@ TEST_F(HustleTableTest, Delete) {
       "'Houston', 'Great',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  DBTable::TablePtr customer_table_ptr = std::make_shared<DBTable>(
+  std::shared_ptr<HustleTable> customer_table_ptr = std::make_shared<BaseTable>(
       "customer_table_d", customer_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_delete");
     hustleDB.create_table(customer_table, customer_table_ptr);
@@ -395,8 +394,8 @@ TEST_F(HustleTableTest, Load) {
       "'Houston1', 'Great1',"
       "         'best', 'fit', 'done');"
       "COMMIT;";
-  DBTable::TablePtr c =
-      std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
+  std::shared_ptr<HustleTable> c =
+      std::make_shared<BaseTable>("customer_table_test", c_schema, BLOCK_SIZE);
   hustle::HustleDB hustleDB("db_directory_load");
     hustleDB.create_table(customer, c);
     hustleDB.execute_query_result(query);
@@ -404,7 +403,7 @@ TEST_F(HustleTableTest, Load) {
   EXPECT_EQ(c->get_num_cols(), 8);
 
     hustleDB.drop_mem_table("customer_table_test");
-  c = std::make_shared<DBTable>("customer_table_test", c_schema, BLOCK_SIZE);
+  c = std::make_shared<BaseTable>("customer_table_test", c_schema, BLOCK_SIZE);
     hustleDB.create_table(customer, c);
     hustleDB.load_tables();
   EXPECT_EQ(c->get_num_rows(), 2);

@@ -23,7 +23,7 @@
 #include <iostream>
 #include <utility>
 
-#include "storage/utils/util.h"
+#include "arrow_utils.h"
 #include "type/type_helper.h"
 
 #define AGGREGATE_OUTPUT_TABLE "aggregate"
@@ -122,7 +122,8 @@ void Aggregate::InitializeVariables(Task* ctx) {
   std::shared_ptr<arrow::Schema> out_schema =
       OutputSchema(aggregate_refs_[0].kernel, aggregate_refs_[0].agg_name);
   output_table_ =
-      std::make_shared<DBTable>(AGGREGATE_OUTPUT_TABLE, out_schema, BLOCK_SIZE);
+      std::static_pointer_cast<HustleTable>(std::make_shared<BaseTable>(
+          AGGREGATE_OUTPUT_TABLE, out_schema, BLOCK_SIZE));
 
   unique_values_.resize(group_by_refs_.size());
   group_by_cols_.resize(group_by_refs_.size());

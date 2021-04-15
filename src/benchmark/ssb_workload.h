@@ -19,12 +19,13 @@
 #define HUSTLE_SSB_WORKLOAD_H
 
 #include <operators/aggregate/aggregate_const.h>
+
 #include "execution/execution_plan.h"
-#include "operators/utils/operator_options.h"
 #include "operators/select/predicate.h"
-#include "scheduler/scheduler.h"
-#include "storage/table.h"
 #include "operators/utils/aggregate_factory.h"
+#include "operators/utils/operator_options.h"
+#include "scheduler/scheduler.h"
+#include "storage/base_table.h"
 
 namespace hustle::operators {
 class SSB {
@@ -69,7 +70,7 @@ class SSB {
   void q42_lip();
   void q43_lip();
 
-  DBTable::TablePtr lo, c, s, p, d;
+  std::shared_ptr<HustleTable> lo, c, s, p, d;
   std::shared_ptr<arrow::Schema> lo_schema, c_schema, s_schema, p_schema,
       d_schema;
 
@@ -103,7 +104,7 @@ class SSB {
   std::shared_ptr<OperatorOptions> filter_join_options;
   std::shared_ptr<OperatorOptions> aggregate_options;
 
-  DBTable::TablePtr out_table;
+  std::shared_ptr<HustleTable> out_table;
 
   ColumnReference lo_d_ref;
   ColumnReference lo_p_ref;

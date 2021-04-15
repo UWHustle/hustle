@@ -46,7 +46,7 @@ class SQLTest : public Test {
  public:
   static hustle::catalog::TableSchema part, supplier, customer, ddate,
       lineorder;
-  static DBTable::TablePtr lo, d, p, c, s;
+  static std::shared_ptr<HustleTable> lo, d, p, c, s;
   static std::shared_ptr<hustle::HustleDB> hustle_db;
 
   char** getfields(char* line, int num) {
@@ -193,15 +193,15 @@ class SQLTest : public Test {
     SQLTest::lineorder.addColumn(lo_discount);
     SQLTest::lineorder.setPrimaryKey({});
 
-    SQLTest::lo = std::make_shared<hustle::storage::DBTable>(
+    SQLTest::lo = std::make_shared<hustle::storage::BaseTable>(
         "lineorder", SQLTest::lineorder.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::c = std::make_shared<hustle::storage::DBTable>(
+    SQLTest::c = std::make_shared<hustle::storage::BaseTable>(
         "customer", SQLTest::customer.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::s = std::make_shared<hustle::storage::DBTable>(
+    SQLTest::s = std::make_shared<hustle::storage::BaseTable>(
         "supplier", SQLTest::supplier.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::p = std::make_shared<hustle::storage::DBTable>(
+    SQLTest::p = std::make_shared<hustle::storage::BaseTable>(
         "part", SQLTest::part.getArrowSchema(), BLOCK_SIZE);
-    SQLTest::d = std::make_shared<hustle::storage::DBTable>(
+    SQLTest::d = std::make_shared<hustle::storage::BaseTable>(
         "ddate", SQLTest::ddate.getArrowSchema(), BLOCK_SIZE);
 
     hustle_db->create_table(SQLTest::lineorder, SQLTest::lo);
@@ -327,7 +327,7 @@ hustle::catalog::TableSchema SQLTest::part("part"),
     SQLTest::supplier("supplier"), SQLTest::customer("customer"),
     SQLTest::ddate("ddate"), SQLTest::lineorder("lineorder");
 
-DBTable::TablePtr SQLTest::lo, SQLTest::d, SQLTest::p, SQLTest::c, SQLTest::s;
+std::shared_ptr<HustleTable> SQLTest::lo, SQLTest::d, SQLTest::p, SQLTest::c, SQLTest::s;
 
 std::shared_ptr<hustle::HustleDB> SQLTest::hustle_db;
 

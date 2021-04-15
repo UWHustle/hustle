@@ -25,7 +25,7 @@
 #include <cmath>
 #include <utility>
 
-#include "storage/table.h"
+#include "storage/base_table.h"
 #include "storage/utils/util.h"
 #include "utils/bit_utils.h"
 
@@ -33,7 +33,7 @@ namespace hustle {
 namespace operators {
 
 SelectBuildHash::SelectBuildHash(const std::size_t query_id,
-                                 DBTable::TablePtr table,
+                                 std::shared_ptr<HustleTable> table,
                                  OperatorResult::OpResultPtr prev_result,
                                  OperatorResult::OpResultPtr output_result,
                                  std::shared_ptr<PredicateTree> tree,
@@ -42,7 +42,7 @@ SelectBuildHash::SelectBuildHash(const std::size_t query_id,
                       join_column, std::make_shared<OperatorOptions>()) {}
 
 SelectBuildHash::SelectBuildHash(const std::size_t query_id,
-                                 DBTable::TablePtr table,
+                                 std::shared_ptr<HustleTable> table,
                                  OperatorResult::OpResultPtr prev_result,
                                  OperatorResult::OpResultPtr output_result,
                                  std::shared_ptr<PredicateTree> tree,

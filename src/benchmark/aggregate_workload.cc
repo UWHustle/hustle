@@ -59,7 +59,7 @@ void AggregateWorkload::prepareData() {
 
   schema = arrow::schema(fields);
 
-  inputTable = std::make_shared<hustle::storage::DBTable>(
+  inputTable = std::make_shared<hustle::storage::BaseTable>(
     "table", schema, BLOCK_SIZE);
 
   inputTable->InsertRecords(inputData);

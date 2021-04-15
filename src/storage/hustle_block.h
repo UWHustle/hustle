@@ -15,18 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef HUSTLE_OFFLINE_BLOCK_H
-#define HUSTLE_OFFLINE_BLOCK_H
+#ifndef HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_BLOCK
+#define HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_BLOCK
 
 #include <arrow/api.h>
+#include <arrow/scalar.h>
 
+#include <cstring>
 #include <iostream>
 #include <map>
+#include <vector>
 
+#include "hustle_storable.h"
 #include "storage/cmemlog.h"
 #include "utils/bit_utils.h"
 
 #define BLOCK_SIZE (1 << 20)
+#define ESTIMATED_STR_LEN 30
+
+namespace hustle::storage {
+
+/**
+ * BlockInfo struct.
+ */
+struct BlockInfo {
+  int32_t block_id;
+  int32_t row_num;
+};
 
 /**
  * A Hustle Block is a wrapper for an Arrow RecordBatch. An Arrow RecordBatch
@@ -49,41 +64,9 @@
  * However, support for any fixed-width type can be added by introducing
  * additional case statements in each switch block.
  */
-typedef int (*sqlite3_callback)(void *, int, char **, char **);
-
-namespace hustle::storage {
-
-struct BlockInfo {
-  int32_t block_id;
-  int32_t row_num;
-};
-
-class Block {
+class HustleBlock : public HustleStorable {
  public:
-  //
-  /**
-   * Initialize an empty block.
-   *
-   * @param id Block ID
-   * @param schema Block schema, excluding the valid column
-   * @param capacity Maximum number of date bytes to be stored in the Block
-   */
-  inline Block(int id, const std::shared_ptr<arrow::Schema> &schema,
-               int capacity)
-      : Block(id, schema, capacity, false) {}
-
-  /**
-   * Initialize a Block from a RecordBatch read in from a file. This will
-   * eventually be removed. The constructor that uses a vector of ArrayData
-   * should be used instead.
-   *
-   * @param id Block ID
-   * @param record_batch RecordBatch read from a file
-   * @param capacity Maximum number of date bytes to be stored in the Block
-   */
-  inline Block(int id, std::shared_ptr<arrow::RecordBatch> record_batch,
-               int capacity)
-      : Block(id, record_batch, capacity, false) {}
+  ~HustleBlock() override = default;
 
   /**
    * Get the Block's ID
@@ -97,7 +80,7 @@ class Block {
    *
    * @return the block's schema
    */
-  inline std::shared_ptr<arrow::Schema> get_schema() { return schema; }
+  inline std::shared_ptr<arrow::Schema> get_schema() const { return schema; }
 
   /**
    * Get a column from the Block by index. The indexing of columns is defined
@@ -115,7 +98,7 @@ class Block {
    *
    * @return all columns in the block
    */
-  inline std::vector<std::shared_ptr<arrow::ArrayData>> get_columns() {
+  inline std::vector<std::shared_ptr<arrow::ArrayData>> get_columns() const {
     return columns;
   }
 
@@ -183,11 +166,11 @@ class Block {
   }
 
   /**
-   * Get the Block's RecordBatch
+   * Make a record batch from the Block's data.
    *
    * @return A pointer to the Block's RecordBatch
    */
-  inline std::shared_ptr<arrow::RecordBatch> get_records() {
+  inline std::shared_ptr<arrow::RecordBatch> get_records() const {
     return arrow::RecordBatch::Make(schema, num_rows, columns);
   }
 
@@ -197,13 +180,13 @@ class Block {
    *
    * @return Number of bytes that can still be added to the Block
    */
-  inline int get_bytes_left() { return capacity - num_bytes; }
+  inline int get_bytes_left() const { return capacity - num_bytes; }
 
   /**
    * Print the contents of the block delimited by tabs, including the valid
    * column.
    */
-  void print();
+  virtual void print() const = 0;
 
   /**
    * Get the number of rows in the Block.
@@ -238,14 +221,14 @@ class Block {
    *
    * @return row ID map
    */
-  std::map<int, int> &get_row_id_map() { return row_id_map; }
+  inline std::map<int, int> &get_row_id_map() { return row_id_map; }
 
   /**
    * Outputs the block contents to the callback fn passed.
    * @param pArg call back arg to return the result from it
    * @param callback  output callback format (sqlite3 compatible)
    */
-  void out_block(void *pArg, sqlite3_callback callback);
+  virtual void out_block(void *pArg, sqlite3_callback callback) const = 0;
 
   /**
    * Insert a record into the Block.
@@ -258,7 +241,7 @@ class Block {
    * @return -1 if the insertion failed, otherwise the highest row index now
    * present in the block.
    */
-  int InsertRecord(uint8_t *record, int32_t *byte_widths);
+  virtual int InsertRecord(uint8_t *record, int32_t *byte_widths) = 0;
 
   /**
    * Insert a record into the block.
@@ -268,7 +251,8 @@ class Block {
    * @return -1 if the insertion failed, otherwise the highest row index now
    * present in the block.
    */
-  int InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths);
+  virtual int InsertRecord(std::vector<std::string_view> record,
+                           int32_t *byte_widths) = 0;
 
   /**
    * Insert one or more records into the Block as a vector of ArrayData.
@@ -283,7 +267,8 @@ class Block {
    * @return -1 if the insertion failed, otherwise the highest row index now
    * present in the block.
    */
-  int InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
+  virtual int InsertRecords(
+      std::vector<std::shared_ptr<arrow::ArrayData>> column_data) = 0;
 
   /**
    * Insert one or more records into the Block using BlockInfo from a different
@@ -296,13 +281,16 @@ class Block {
    * @return -1 if the insertion failed, otherwise the highest row index now
    * present in the block.
    */
-  int InsertRecords(std::map<int, BlockInfo> &block_map,
-                    std::map<int, int> &row_map,
-                    std::shared_ptr<arrow::Array> valid_column,
-                    std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
+  virtual int InsertRecords(
+      std::map<int, BlockInfo> &block_map, std::map<int, int> &row_map,
+      std::shared_ptr<arrow::Array> valid_column,
+      std::vector<std::shared_ptr<arrow::ArrayData>> column_data) = 0;
 
   /**
    * Update a value in a column.
+   * Note that this function calls
+   * preUpdateColumnValue and postUpdateColumnValue.
+   * If preUpdateColumnValue returns false, the update is rejected.
    *
    * @tparam field_size
    * @param col_num column number
@@ -313,55 +301,30 @@ class Block {
   template <typename field_size>
   inline void UpdateColumnValue(int col_num, int row_num, uint8_t *record_value,
                                 int byte_width) {
-    auto *dest = columns[col_num]->GetMutableValues<field_size>(1, row_num);
-    uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
-    // Handle 0 or 1 storage encoding optimization from sqlite3 record
-    if (byte_width < 0) {
-      // Get zero or one from encoding in negative byte width
-      uint8_t val = -(byte_width)-ZERO_TYPE_ENCODING;  // 0 or 1
-      std::memcpy(value, &val, 1);
-    } else {
-      std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
-                  byte_width);
+    if (PreUpdateColumnValue(col_num, row_num, record_value, byte_width)) {
+      auto *dest = columns[col_num]->GetMutableValues<field_size>(1, row_num);
+      auto *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
+      // Handle 0 or 1 storage encoding optimization from sqlite3 record
+      if (byte_width < 0) {
+        // Get zero or one from encoding in negative byte width
+        uint8_t val = -(byte_width)-ZERO_TYPE_ENCODING;  // 0 or 1
+        std::memcpy(value, &val, 1);
+      } else {
+        std::memcpy(value, utils::reverse_bytes(record_value, byte_width),
+                    byte_width);
+      }
+      std::memcpy(dest, value, sizeof(field_size));
+      free(value);
+      PostUpdateColumnValue(col_num, row_num, record_value, byte_width);
     }
-    std::memcpy(dest, value, sizeof(field_size));
-    free(value);
   }
 
   /**
    * Truncate column buffers for all columns in the Block.
    */
-  void TruncateBuffers();
-
-  /// static-cast guard for MetadataBlock
-  inline bool IsMetadataCompatible() { return metadata_enabled; }
+  virtual void TruncateBuffers() = 0;
 
  protected:
-  /**
-   * Initialize an empty block.
-   *
-   * @param id Block ID
-   * @param schema Block schema, excluding the valid column
-   * @param capacity Maximum number of date bytes to be stored in the Block
-   * @param metadata_enabled if metadata will be enabled for this block (always
-   * false)
-   */
-  Block(int id, const std::shared_ptr<arrow::Schema> &schema, int capacity,
-        bool metadata_enabled);
-
-  /**
-   * Initialize a Block from a RecordBatch read in from a file. This will
-   * eventually be removed. The constructor that uses a vector of ArrayData
-   * should be used instead.
-   *
-   * @param id Block ID
-   * @param record_batch RecordBatch read from a file
-   * @param capacity Maximum number of date bytes to be stored in the Block
-   */
-  Block(int id, const std::shared_ptr<arrow::RecordBatch> &record_batch,
-        int capacity, bool metadata_enabled);
-
- private:
   /**
    * Block ID.
    */
@@ -424,75 +387,32 @@ class Block {
   int num_cols;
 
   /**
-   * If metadata is enabled for this block.
-   */
-  const bool metadata_enabled;
-
-  /**
-   * Compute the number of bytes in the block. This function is only called
-   * when a block is initialized from a RecordBatch, i.e. when we read in a
-   * block from a file.
-   */
-  void ComputeByteSize();
-
-  /**
-   * Allocate data for each column during Block creation.
+   * Called before an UpdateColumnValue execution
    *
-   * @tparam field_size
-   * @param type type of column
-   * @param init_rows number of rows to initialize the column with
-   * @return
+   * @param col_num same as UpdateColumnValue
+   * @param row_num same as UpdateColumnValue
+   * @param record_value same as UpdateColumnValue
+   * @param byte_width same as UpdateColumnValue
+   * @return false if UpdateColumnValue should not run, true if it should run.
    */
-  template <typename field_size>
-  std::shared_ptr<arrow::ArrayData> AllocateColumnData(
-      std::shared_ptr<arrow::DataType> type, int init_rows);
+  virtual inline bool PreUpdateColumnValue(int col_num, int row_num,
+                                           uint8_t *record_value,
+                                           int byte_width) {
+    return true;
+  }
 
   /**
-   * Insert a value into a column.
+   * Called after a successful UpdateColumnValue execution.
    *
-   * @tparam field_size
-   * @param col_num column number
-   * @param head scanner head
-   * @param record_value value to insert
-   * @param byte_width width of field
+   * @param col_num same as UpdateColumnValue
+   * @param row_num same as UpdateColumnValue
+   * @param record_value same as UpdateColumnValue
+   * @param byte_width same as UpdateColumnValue
    */
-  template <typename field_size>
-  void InsertValue(int col_num, int &head, uint8_t *record_value,
-                   int byte_width);
-
-  /**
-   * Insert values into a column
-   *
-   * @tparam field_size
-   * @param col_num column number
-   * @param offset offset
-   * @param vals values to insert
-   * @param num_vals number of values to insert
-   */
-  template <typename field_size>
-  void InsertValues(int col_num, int offset,
-                    std::shared_ptr<arrow::ArrayData> vals, int num_vals);
-
-  /**
-   * Insert value from CSV string
-   *
-   * @tparam field_size
-   * @param col_num column number
-   * @param head scanner head
-   * @param record CSV record
-   * @param byte_width width of value to insert
-   */
-  template <typename field_size>
-  void InsertCsvValue(int col_num, int &head, std::string_view record);
-
-  /**
-   * Truncate column buffer
-   *
-   * @tparam field_size
-   * @param col_num column number
-   */
-  template <typename field_size>
-  void TruncateColumnBuffer(int col_num);
+  virtual inline void PostUpdateColumnValue(int col_num, int row_num,
+                                            uint8_t *record_value,
+                                            int byte_width) {}
 };
+
 }  // namespace hustle::storage
-#endif  // HUSTLE_OFFLINE_BLOCK_H
+#endif  // HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_BLOCK

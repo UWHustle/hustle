@@ -48,7 +48,7 @@ private:
   std::shared_ptr<OperatorOptions> aggregate_options;
 
   std::shared_ptr<arrow::Schema> schema;
-  std::shared_ptr<hustle::storage::DBTable> inputTable;
+  std::shared_ptr<hustle::storage::HustleTable> inputTable;
   std::vector<std::shared_ptr<arrow::ArrayData>> inputData;
 
   std::string eventName(AggregateType t, const std::string &name);

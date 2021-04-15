@@ -18,10 +18,10 @@
 #include "cmemlog.h"
 
 #include <arrow/io/api.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
 
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <mutex>
@@ -55,13 +55,13 @@ void memlog_remove_table_mapping(int db_id, char *db_name, char *tbl_name) {
   std::lock_guard<std::mutex> lock(instance_lock);
   using namespace hustle;
   std::shared_ptr<catalog::Catalog> catalog =
-          HustleDB::get_catalog(std::string(db_name));
+      HustleDB::get_catalog(std::string(db_name));
   auto table_itr = table_map[db_id].begin();
   std::string tbl_name_str = std::string(tbl_name);
   while (table_itr != table_map[db_id].end()) {
     if (table_itr->second.compare(tbl_name_str) == 0) {
       table_map[db_id].erase(table_itr->first);
-        catalog->DropMemTable(tbl_name_str);
+      catalog->DropMemTable(tbl_name_str);
       break;
     }
     table_itr++;
@@ -182,7 +182,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
   using namespace hustle;
 
   std::shared_ptr<catalog::Catalog> catalog =
-          HustleDB::get_catalog(mem_log->db_name);
+      HustleDB::get_catalog(mem_log->db_name);
 
   int table_index = 0;
   struct DBRecord *tmp_record;
@@ -195,7 +195,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
     }
 
     auto table =
-            catalog->GetTable(table_map[DEFAULT_DB_ID][table_index].c_str());
+        catalog->GetTable(table_map[DEFAULT_DB_ID][table_index].c_str());
     if (table == nullptr) {
       table_index++;
       continue;
@@ -204,7 +204,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
       tmp_record = head;
 
       if (head->mode == MEMLOG_HUSTLE_DELETE) {
-        table->DeleteRecordTable(head->rowId);
+        table->DeleteRecord(head->rowId);
       } else {
         u32 hdrLen;
         // Read header len in the record
@@ -217,12 +217,14 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
         while (idx < hdrLen) {
           u32 typeLen;
           nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
-          // Add the byte width to the vector, if its 0 or 1 sqlite3 serial encoding
-          // add the negative serial encoding value
-          // TODO (@suryadev) : Instead of bytewidth pass on the serial encoding throughout the call
-          byte_widths.emplace_back((typeLen == ZERO_TYPE_ENCODING || typeLen == ONE_TYPE_ENCODING)
-                                       ? -typeLen
-                                       : serialTypeLen(typeLen));
+          // Add the byte width to the vector, if its 0 or 1 sqlite3 serial
+          // encoding add the negative serial encoding value
+          // TODO (@suryadev) : Instead of bytewidth pass on the serial encoding
+          // throughout the call
+          byte_widths.emplace_back(
+              (typeLen == ZERO_TYPE_ENCODING || typeLen == ONE_TYPE_ENCODING)
+                  ? -typeLen
+                  : serialTypeLen(typeLen));
           idx += nBytes;
         }
 
@@ -236,11 +238,11 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
           }
           // Insert record to the arrow table
           if (head->mode == MEMLOG_HUSTLE_INSERT) {
-            table->InsertRecordTable(head->rowId, record_data + hdrLen, widths);
+            table->InsertRecord(head->rowId, record_data + hdrLen, widths);
           } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
-            table->UpdateRecordTable(head->rowId, head->nUpdateMetaInfo,
-                                     head->updateMetaInfo, record_data + hdrLen,
-                                     widths);
+            table->UpdateRecord(head->rowId, head->nUpdateMetaInfo,
+                                head->updateMetaInfo, record_data + hdrLen,
+                                widths);
           }
         }
       }

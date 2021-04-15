@@ -15,13 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include "arrow_utils.h"
 #include "arrow_compute_wrappers.h"
 
 #include <cassert>
 
 #include <thread>
 
-#include "storage/utils/util.h"
+// #include "storage/utils/util.h"
 #include "type/type_helper.h"
 
 namespace hustle {

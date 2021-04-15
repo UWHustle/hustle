@@ -47,16 +47,16 @@ void JoinGraph::insert(std::vector<JoinPredicate> predicate_group) {
   num_predicates_ += predicate_group.size();
 }
 
-DBTable::TablePtr JoinGraph::get_table(int i) { return tables_[i]; }
+std::shared_ptr<HustleTable> JoinGraph::get_table(int i) { return tables_[i]; }
 std::vector<JoinPredicate> JoinGraph::get_predicates(
-    const DBTable::TablePtr& table) {
+    const std::shared_ptr<HustleTable>& table) {
   auto it = std::find(tables_.begin(), tables_.end(), table);
   return adj_[it - tables_.end()];
 }
 
 std::vector<JoinPredicate> JoinGraph::get_predicates(int i) { return adj_[i]; }
 
-int JoinGraph::find_table(DBTable::TablePtr table) {
+int JoinGraph::find_table(std::shared_ptr<HustleTable> table) {
   auto it = std::find(tables_.begin(), tables_.end(), table);
   return it != tables_.end();
 }

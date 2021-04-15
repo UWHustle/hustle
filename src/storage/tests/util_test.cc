@@ -24,7 +24,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "storage/table.h"
+#include "storage/base_table.h"
 
 using namespace testing;
 

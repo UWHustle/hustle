@@ -52,3 +52,4 @@ ssb/
 .vscode/
 cmake-3.15.5/
 *.tbl
+Testing/Temporary/*

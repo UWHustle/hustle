@@ -22,10 +22,9 @@
 
 #include <algorithm>
 #include <cassert>
-#include <iostream>
 #include <utility>
 
-#include "storage/utils/util.h"
+#include "arrow_utils.h"
 #include "utils/bloom_filter.h"
 #include "utils/parallel_utils.h"
 
@@ -292,7 +291,7 @@ OperatorResult::OpResultPtr HashJoin::BackPropogateResult(
    *  This elimates tuples from other tables in the previous result that were
    *  eliminated in the most recent join.
    */
-  auto propogate_indices = [&, this](int index, DBTable::TablePtr table,
+  auto propogate_indices = [&, this](int index, std::shared_ptr<HustleTable> table,
                                      arrow::Datum &join_indices) {
     for (auto &lazy_table : prev_result_.at(index)->lazy_tables_) {
       if (lazy_table.table != table &&

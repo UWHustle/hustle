@@ -17,6 +17,8 @@
 
 #include "storage/metadata_units/sma.h"
 
+#include "storage/hustle_index.h"
+
 namespace hustle::storage {
 
 Sma::Sma(const std::shared_ptr<arrow::Array>& array) {

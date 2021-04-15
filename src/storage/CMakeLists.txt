@@ -1,13 +1,17 @@
 add_library(
         hustle_src_storage
-        table.h table.cc
-        block.h block.cc
+        hustle_storable.h
+        hustle_block.h
+        base_block.h base_block.cc
+        indexed_block.h indexed_block.cc
+        hustle_index.h
+        metadata_units/sma.h metadata_units/sma.cc
+        hustle_table.h
+        base_table.h base_table.cc
+        index_aware_table.h index_aware_table.cc
         utils/util.h utils/util.cc
         cmemlog.h cmemlog.cc
-        utils/record_utils.h
-        metadata_unit.h
-        metadata_units/sma.cc metadata_units/sma.h
-        ma_block.cc ma_block.h)
+        utils/record_utils.h)
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_storage PUBLIC
@@ -68,12 +72,12 @@ target_link_libraries(hustle_memlog_test
         )
 add_test(HustleMemlogTest hustle_memlog_test)
 
-add_executable(hustle_metadata_test "tests/metadata_test.cc")
-target_link_libraries(hustle_metadata_test
+add_executable(hustle_index_test "tests/index_test.cc")
+target_link_libraries(hustle_index_test
         gtest
         gtest_main
         gmock
         ${ARROW_SHARED_LIB}
         hustle_src_storage
         )
-add_test(HustleMetadataTest hustle_metadata_test)
+add_test(HustleIndexTest hustle_index_test)

@@ -25,23 +25,22 @@
 #include <cmath>
 #include <utility>
 
-#include "storage/ma_block.h"
-#include "storage/table.h"
-#include "storage/utils/util.h"
+#include "storage/base_table.h"
 #include "type/type_helper.h"
+#include "arrow_utils.h"
 #include "utils/bit_utils.h"
 
 namespace hustle {
 namespace operators {
 
-Select::Select(const std::size_t query_id, DBTable::TablePtr table,
+Select::Select(const std::size_t query_id, std::shared_ptr<HustleTable> table,
                OperatorResult::OpResultPtr prev_result,
                OperatorResult::OpResultPtr output_result,
                std::shared_ptr<PredicateTree> tree)
     : Select(query_id, table, prev_result, output_result, tree,
              std::make_shared<OperatorOptions>()) {}
 
-Select::Select(const std::size_t query_id, DBTable::TablePtr table,
+Select::Select(const std::size_t query_id, std::shared_ptr<HustleTable> table,
                OperatorResult::OpResultPtr prev_result,
                OperatorResult::OpResultPtr output_result,
                std::shared_ptr<PredicateTree> tree,
@@ -90,7 +89,7 @@ void Select::ExecuteBlock(int block_index) {
   filters_[block_index] = block_filter.make_array();
 }
 
-arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
+arrow::Datum Select::Filter(const std::shared_ptr<HustleBlock> &block,
                             const std::shared_ptr<Node> &node) {
   arrow::Status status;
   if (node->is_leaf()) {
@@ -125,7 +124,7 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
   return left_child_filter;
 }
 
-arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
+arrow::Datum Select::Filter(const std::shared_ptr<HustleBlock> &block,
                             const std::shared_ptr<Predicate> &predicate) {
   auto data_type = predicate->value_.type();
 
@@ -212,7 +211,7 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
 void Select::Clear() { filters_.clear(); }
 
 template <typename T, typename Op>
-arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
+arrow::Datum Select::Filter(const std::shared_ptr<HustleBlock> &block,
                             const ColumnReference &col_ref,
                             const arrow::Datum &arrow_val, const T &value,
                             arrow::compute::CompareOperator arrow_compare,
@@ -225,12 +224,10 @@ arrow::Datum Select::Filter(const std::shared_ptr<Block> &block,
   auto bytemap = buffer->mutable_data();
   std::shared_ptr<arrow::BooleanArray> out_filter;
   const T *col_data;
-
-  if (block->IsMetadataCompatible()) {
-    auto metadata_block =
-        std::static_pointer_cast<MetadataAttachedBlock>(block);
-    if (!metadata_block->SearchMetadata(col_ref.col_name, arrow_val,
-                                        arrow_compare)) {
+  auto casted_block = std::dynamic_pointer_cast<IndexedBlock>(block);
+  if (casted_block != nullptr) {
+    if (!casted_block->SearchMetadata(col_ref.col_name, arrow_val,
+                                      arrow_compare)) {
       const T zero_val = (T)0;
       for (uint32_t i = 0; i < num_rows; ++i) {
         bytemap[i] = zero_val;

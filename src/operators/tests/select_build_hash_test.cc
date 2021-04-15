@@ -26,7 +26,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "scheduler/scheduler.h"
-#include "storage/block.h"
+#include "storage/base_block.h"
 #include "storage/utils/util.h"
 
 #define BLOCK_SIZE 108
@@ -46,7 +46,7 @@ class SelectTestFixture : public testing::Test {
   std::shared_ptr<arrow::Array> expected_R_col_2;
   std::shared_ptr<arrow::Array> expected_R_col_3;
 
-  DBTable::TablePtr R, S, T;
+  std::shared_ptr<HustleTable> R, S, T;
 
   void SetUp() override {
     arrow::Status status;

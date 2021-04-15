@@ -23,7 +23,7 @@
 #include <iostream>
 #include <utility>
 
-#include "storage/utils/util.h"
+#include "arrow_utils.h"
 #include "type/type_helper.h"
 #include "utils/bloom_filter.h"
 

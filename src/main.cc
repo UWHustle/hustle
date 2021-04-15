@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
   lo_schema = lineorder.getArrowSchema();
   
   /*
-    DBTable::TablePtr t;
+    std::shared_ptr<HustleTable> t;
 
      t = read_from_csv_file("../ssb/data/customer.tbl", c_schema,
                            20 * BLOCK_SIZE);
@@ -337,14 +337,14 @@ int main(int argc, char *argv[]) {
     write_to_file("../ssb/data/lineorder.hsl", *t);
     */
   std::cout << "read the table files..." << std::endl;
-  DBTable::TablePtr lo, c, s, p, d;
+  std::shared_ptr<HustleTable> lo, c, s, p, d;
   lo = read_from_file("../ssb/data/lineorder.hsl", true, "lineorder");
   d = read_from_file("../ssb/data/date.hsl", true, "ddate");
   p = read_from_file("../ssb/data/part.hsl", true, "part");
   c = read_from_file("../ssb/data/customer.hsl", true, "customer");
   s = read_from_file("../ssb/data/supplier.hsl", true, "supplier");
 
-  //c = std::make_shared<hustle::storage::DBTable>("table", c_schema, BLOCK_SIZE);
+  //c = std::make_shared<hustle::storage::BaseTable>("table", c_schema, BLOCK_SIZE);
 
   std::filesystem::remove_all("db_directory");
   // EXPECT_FALSE(std::filesystem::exists("db_directory"));

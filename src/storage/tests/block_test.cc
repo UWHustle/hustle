@@ -22,7 +22,9 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "storage/table.h"
+#include "storage/hustle_table.h"
+#include "storage/base_table.h"
+#include "storage/hustle_block.h"
 #include "storage/utils/util.h"
 
 #define BLOCK_SIZE \
@@ -143,7 +145,7 @@ class HustleBlockTest : public testing::Test {
 };
 
 TEST_F(HustleBlockTest, EmptyBlock) {
-  Block block(0, schema, BLOCK_SIZE);
+  BaseBlock block(0, schema, BLOCK_SIZE);
 
   EXPECT_EQ(block.get_id(), 0);
   EXPECT_EQ(block.get_bytes_left(), BLOCK_SIZE);
@@ -152,7 +154,7 @@ TEST_F(HustleBlockTest, EmptyBlock) {
 }
 
 TEST_F(HustleBlockTest, OneInsertBlock) {
-  Block block(0, schema, BLOCK_SIZE);
+  BaseBlock block(0, schema, BLOCK_SIZE);
   int row_index =
       block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
 
@@ -176,7 +178,7 @@ TEST_F(HustleBlockTest, OneInsertBlock) {
 }
 
 TEST_F(HustleBlockTest, ManyInsertBlock) {
-  Block block(0, schema, BLOCK_SIZE);
+  BaseBlock block(0, schema, BLOCK_SIZE);
   block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
   block.InsertRecord((uint8_t *)record_string_2.data(), byte_widths_2);
   block.InsertRecord((uint8_t *)record_string_3.data(), byte_widths_3);
@@ -231,7 +233,7 @@ TEST_F(HustleBlockTest, ManyInsertBlock) {
 }
 
 TEST_F(HustleBlockTest, FullBlock) {
-  Block block(0, schema, BLOCK_SIZE);
+  BaseBlock block(0, schema, BLOCK_SIZE);
 
   // With 1 KB block size, we can store 8 copies of the first record
   for (int i = 0; i < 8; i++) {
@@ -253,7 +255,7 @@ TEST_F(HustleBlockTest, ArrayInsert) {
 
   auto record_batch = arrow::RecordBatch::Make(test_schema, 5, column_data);
 
-  Block block(0, schema, BLOCK_SIZE);
+  BaseBlock block(0, schema, BLOCK_SIZE);
   block.InsertRecords(column_data);
 
   int row;
@@ -297,7 +299,7 @@ TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
   auto in_offsets_data = column_data[2]->GetMutableValues<int32_t>(1, 0);
   int off = in_offsets_data[0];
 
-  Block block(0, schema, BLOCK_SIZE);
+  BaseBlock block(0, schema, BLOCK_SIZE);
   block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
   block.InsertRecords(column_data);
   block.InsertRecord((uint8_t *)record_string_1.data(), byte_widths_1);
@@ -356,7 +358,7 @@ TEST_F(HustleBlockTest, ArrayAndSingleInsert) {
 TEST_F(HustleBlockTest, BlockFromRecordBatch) {
   auto record_batch_1 = arrow::RecordBatch::Make(schema, 3, column_data);
 
-  Block block(0, record_batch_1, BLOCK_SIZE);
+  BaseBlock block(0, record_batch_1, BLOCK_SIZE);
 
   int row;
   valid =
