@@ -298,12 +298,12 @@ void TATP::RunQuery1() {
       "msc_location, vlr_location "
       "FROM Subscriber "
       "WHERE s_id=10;";
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("tatp - 1");
     hustle_db->execute_query_result(query1);
   container->endEvent("tatp - 1");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
 }
 
 void TATP::RunQuery2() {
@@ -319,12 +319,12 @@ void TATP::RunQuery2() {
       "AND is_active=131321 )"
       "AND (start_time <=1000 "
       "AND end_time > 1000);";
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("tatp - 2");
     hustle_db->execute_query_result(query2);
   container->endEvent("tatp - 2");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
 }
 
 void TATP::RunQuery3() {
@@ -334,12 +334,12 @@ void TATP::RunQuery3() {
       "FROM Access_Info "
       "WHERE s_id=10 "
       "AND ai_type=131321;";
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("tatp - 3");
     hustle_db->execute_query_result(query3);
   container->endEvent("tatp - 3");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
 }
 
 void TATP::RunQuery4() {
@@ -348,12 +348,12 @@ void TATP::RunQuery4() {
       "UPDATE Subscriber "
       "SET bit_1=999 "
       "WHERE s_id=10; ";
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("tatp - 4.1");
     hustle_db->execute_query_result(query4);
   container->endEvent("tatp - 4.1");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
 
   std::cout << "Verify Query 4.1: " << std::endl;
   query4 =
@@ -375,12 +375,12 @@ void TATP::RunQuery4() {
       "SET data_a = 999 "
       "WHERE sf_s_id=10 "
       "AND sf_sf_type=10";
-  container = simple_profiler.getContainer();
+  container = profiler.getContainer();
   container->startEvent("tatp - 4.2");
     hustle_db->execute_query_result(query4);
   container->endEvent("tatp - 4.2");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
 
   std::cout << "Verify Query 4.2: " << std::endl;
   query4 =
@@ -397,12 +397,12 @@ void TATP::RunQuery5() {
       "UPDATE Subscriber"
       " SET  vlr_location=50 "
       "WHERE sub_nbr='h10';";
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("tatp - 5");
     hustle_db->execute_query_result(query5);
   container->endEvent("tatp - 5");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
   std::cout << "Verify Query 5: " << std::endl;
   query5 =
       "SELECT s_id, sub_nbr,"
@@ -426,12 +426,12 @@ void TATP::RunQuery6() {
       "131321,"
       "'great');"
       "COMMIT;";
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("tatp - 6");
     hustle_db->execute_query_result(query6);
   container->endEvent("tatp - 6");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
   std::cout << "Verify Query 6: " << std::endl;
   query6 =
       "SELECT cf_s_id, start_time, end_time "
@@ -445,12 +445,12 @@ void TATP::RunQuery7() {
   std::string query7 =
       "DELETE FROM Call_Forwarding "
       "WHERE cf_s_id = 11;";
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("tatp - 7");
     hustle_db->execute_query_result(query7);
   container->endEvent("tatp - 7");
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
   std::cout << "Verify Query 7: " << std::endl;
   query7 =
       "SELECT cf_s_id, start_time, end_time "

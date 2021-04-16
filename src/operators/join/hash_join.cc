@@ -56,7 +56,7 @@ HashJoin::HashJoin(const std::size_t query_id,
   joined_indices_.resize(2);
 }
 
-void HashJoin::execute(Task *ctx) {
+void HashJoin::Execute(Task *ctx, int32_t flags) {
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this](Task *internal) { Initialize(internal); }),
       CreateLambdaTask([&, this](Task *internal) { Join(internal); }),

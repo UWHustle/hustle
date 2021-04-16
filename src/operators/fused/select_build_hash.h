@@ -68,7 +68,11 @@ class SelectBuildHash : public Select {
    *
    * @return a new OperatorResult with an updated filter.
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+    std::string operator_name() override {
+        return operator_names.find(OperatorType::SELECT_BUILD_HASH)->second;
+    }
 
   void Clear() override {}
 

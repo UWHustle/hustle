@@ -74,7 +74,11 @@ class LIP : public Operator {
    *
    * @param ctx A scheduler task
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+    std::string operator_name() override {
+        return operator_names.find(OperatorType::LIP_OP)->second;
+    }
 
   void Clear() override {}
 

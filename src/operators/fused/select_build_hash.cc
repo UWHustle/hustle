@@ -55,7 +55,7 @@ SelectBuildHash::SelectBuildHash(const std::size_t query_id,
       phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
 }
 
-void SelectBuildHash::execute(Task *ctx) {
+void SelectBuildHash::Execute(Task *ctx, int32_t flags) {
   chunk_row_offsets_.resize(table_->get_num_rows());
   chunk_row_offsets_[0] = 0;
   for (std::size_t i = 1; i < table_->get_num_blocks(); i++) {

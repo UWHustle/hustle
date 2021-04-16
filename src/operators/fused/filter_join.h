@@ -80,7 +80,11 @@ class FilterJoin : public Operator {
    *
    * @param ctx A scheduler task
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+    std::string operator_name() override {
+        return operator_names.find(OperatorType::FILTER_JOIN)->second;
+    }
 
   void Clear() override {}
 

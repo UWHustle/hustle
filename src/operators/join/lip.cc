@@ -336,7 +336,7 @@ void LIP::initialize(Task *ctx) {
   }
 }
 
-void LIP::execute(Task *ctx) {
+void LIP::Execute(Task *ctx, int32_t flags) {
   for (auto &result : prev_result_vec_) {
     prev_result_->append(result);
   }

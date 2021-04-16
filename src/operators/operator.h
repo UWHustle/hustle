@@ -26,16 +26,59 @@
 #include "scheduler/task.h"
 #include "utils/config.h"
 #include "utils/event_profiler.h"
+#include <unordered_map>
 
 namespace hustle::operators {
 
-class Operator {
+    enum OperatorType
+    {
+        SELECT,
+        HASH_JOIN,
+        MULTI_JOIN, // i removed the rest since it's sequential
+        HASH_BASED_AGGREGATE,
+        AGGREGATE, // changed spelling
+        LIP_OP,
+        FILTER_JOIN,
+        SELECT_BUILD_HASH,
+    };
+
+
+    using OperatorName = std::string;
+    static const std::unordered_map<int, OperatorName> operator_names = {
+            { OperatorType::SELECT, "Select" },
+            { OperatorType::HASH_JOIN, "Hash Join" },
+            { OperatorType::MULTI_JOIN, "Multi Join" },
+            { OperatorType::HASH_BASED_AGGREGATE, "Hash Aggregate" },
+            { OperatorType::AGGREGATE, "Aggregate" },
+            { OperatorType::LIP_OP, "LIP" },
+            { OperatorType::FILTER_JOIN, "Filter Join" },
+            { OperatorType::SELECT_BUILD_HASH, "Select Build Hash" },
+    };
+
+
+
+
+
+
+    class Operator {
  public:
-  virtual void execute(Task *ctx) = 0;
 
-  virtual void Clear() = 0;
+     void execute(Task *ctx) {
+         auto container = profiler.getContainer();
+         container->startEvent(this->operator_name() + " " + std::to_string(this->operator_index()));
+         this->Execute(ctx, 0);
+         container->endEvent(this->operator_name() + " " + std::to_string(this->operator_index()));
+         profiler.summarizeToStream(std::cout);
+         //profiler.clear();
+     }
 
-  inline std::size_t operator_index() const { return op_index_; }
+    virtual void Execute(Task *ctx, int32_t flags) = 0;
+
+    virtual void Clear() = 0;
+
+    virtual std::string operator_name() = 0;
+
+    inline std::size_t operator_index() const { return op_index_; }
 
   inline void set_operator_index(const std::size_t op_index) {
     op_index_ = op_index;

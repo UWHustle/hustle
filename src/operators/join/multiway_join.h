@@ -65,7 +65,11 @@ class MultiwayJoin : public Operator {
    * that did not satisfy all join predicates specificed in the join graph
    * are not included.
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+    std::string operator_name() override {
+        return operator_names.find(OperatorType::MULTI_JOIN)->second;
+    }
 
   void Clear() override;
 

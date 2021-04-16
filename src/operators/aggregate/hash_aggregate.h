@@ -130,7 +130,11 @@ class HashAggregate : public BaseAggregate {
                 std::vector<OrderByReference> order_by_refs,
                 std::shared_ptr<OperatorOptions> options);
 
-  void execute(Task* ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+    std::string operator_name() override {
+        return operator_names.find(OperatorType::HASH_BASED_AGGREGATE)->second;
+    }
 
   inline void set_prev_result(OperatorResult::OpResultPtr prev_result) {
     prev_result_ = std::move(prev_result);

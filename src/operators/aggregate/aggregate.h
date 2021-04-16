@@ -132,7 +132,11 @@ class Aggregate : public BaseAggregate {
    * OperatorResult does not contain any of the LazyTables contained in the
    * prev_result paramter.
    */
-  void execute(Task* ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+    std::string operator_name() override {
+        return operator_names.find(OperatorType::AGGREGATE)->second;
+    }
 
   void Clear() override;
 

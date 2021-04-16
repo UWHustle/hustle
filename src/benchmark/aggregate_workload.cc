@@ -103,7 +103,7 @@ void AggregateWorkload::q1(AggregateType agg_type) {
   ExecutionPlan plan(0);
   plan.addOperator(agg_op);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   auto name = "Q1_" + std::to_string(cardinality) + "*" +
                       std::to_string(num_group_by);
   auto eventName = this->eventName(agg_type, name);
@@ -117,8 +117,8 @@ void AggregateWorkload::q1(AggregateType agg_type) {
   if (print_) {
     out_table->print();
   }
-  simple_profiler.summarizeToStream(std::cout);
-  simple_profiler.clear();
+  profiler.summarizeToStream(std::cout);
+  profiler.clear();
 
 };
 

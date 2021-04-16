@@ -316,7 +316,7 @@ void FilterJoin::Initialize(Task *ctx) {
   }
 }
 
-void FilterJoin::execute(Task *ctx) {
+void FilterJoin::Execute(Task *ctx, int32_t flags) {
   for (auto &result : prev_result_vec_) {
     prev_result_->append(result);
   }

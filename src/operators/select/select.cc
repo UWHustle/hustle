@@ -53,7 +53,7 @@ Select::Select(const std::size_t query_id, DBTable::TablePtr table,
   filters_.resize(table_->get_num_blocks());
 }
 
-void Select::execute(Task *ctx) {
+void Select::Execute(Task *ctx, int32_t flags) {
   ctx->spawnTask(CreateTaskChain(
       // Task 1: perform selection on all blocks
       CreateLambdaTask([this](Task *internal) {

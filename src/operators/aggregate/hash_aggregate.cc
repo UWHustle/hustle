@@ -53,7 +53,7 @@ HashAggregate::HashAggregate(const std::size_t query_id,
       group_by_refs_(group_by_refs),
       order_by_refs_(order_by_refs) {}
 
-void HashAggregate::execute(Task *ctx) {
+void HashAggregate::Execute(Task *ctx, int32_t flags) {
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this](Task *internal) { Initialize(internal); }),
       CreateLambdaTask([this](Task *internal) { ComputeAggregates(internal); }),

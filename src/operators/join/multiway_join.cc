@@ -53,7 +53,7 @@ MultiwayJoin::MultiwayJoin(
   joined_index_chunks_.resize(2);
 }
 
-void MultiwayJoin::execute(Task *ctx) {
+void MultiwayJoin::Execute(Task *ctx, int32_t flags) {
   for (auto &result : prev_result_vec_) {
     prev_result_->append(result);
   }

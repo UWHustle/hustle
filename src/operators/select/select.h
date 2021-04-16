@@ -65,7 +65,11 @@ class Select : public Operator {
    *
    * @return a new OperatorResult with an updated filter.
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+    std::string operator_name() override {
+        return operator_names.find(OperatorType::SELECT)->second;
+    }
 
   inline void set_output_result(OperatorResult::OpResultPtr output_result) {
     output_result_ = output_result;
