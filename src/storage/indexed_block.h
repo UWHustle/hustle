@@ -94,7 +94,10 @@ class IndexedBlock : public BaseBlock {
    */
   inline bool SearchMetadata(const std::string &column_name,
                              const arrow::Datum &val_ptr,
-                             arrow::compute::CompareOperator compare_operator);
+                             arrow::compute::CompareOperator compare_operator) {
+    return SearchMetadata(schema->GetFieldIndex(column_name), val_ptr,
+                          compare_operator);
+  }
 
   /**
    * Returns each metadata's arrow:Status object for a given column

@@ -71,12 +71,7 @@ bool IndexedBlock::SearchMetadata(
   }
   return true;
 }
-inline bool IndexedBlock::SearchMetadata(
-    const std::string &column_name, const arrow::Datum &val_ptr,
-    arrow::compute::CompareOperator compare_operator) {
-  return SearchMetadata(schema->GetFieldIndex(column_name), val_ptr,
-                        compare_operator);
-}
+
 std::vector<arrow::Status> IndexedBlock::GetIndexStatusList(int column_id) {
   std::vector<arrow::Status> out;
   out.reserve(column_indices_list[column_id].size());
