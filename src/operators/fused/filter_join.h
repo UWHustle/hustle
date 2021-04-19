@@ -113,11 +113,11 @@ class FilterJoin : public Operator {
   std::vector<LookupFilterJoin> dim_filters_;
 
   // Dimension (lazy) tables
-  std::vector<LazyTable> dim_tables_;
+  std::vector<LazyTable::LazyTablePtr> dim_tables_;
   // Dimension primary key col names
   std::vector<std::string> dim_pk_col_names_;
 
-  LazyTable fact_table_;
+  LazyTable::LazyTablePtr fact_table_;
   // Fact table foreign key col names to probe Bloom filters.
   std::vector<std::string> fact_fk_col_names_;
 

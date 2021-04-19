@@ -60,6 +60,9 @@ struct ExprReference {
  */
 class LazyTable {
  public:
+
+    using LazyTablePtr = std::shared_ptr<LazyTable>;
+
   LazyTable();
   /**
    * Construct a LazyTable

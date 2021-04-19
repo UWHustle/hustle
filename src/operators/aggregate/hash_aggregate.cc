@@ -93,7 +93,7 @@ void HashAggregate::Initialize(Task *ctx) {
   for (std::size_t group_index = 0; group_index < group_by_refs_.size();
        group_index++) {
     ctx->spawnTask(CreateLambdaTask([this, group_index](Task *internal) {
-      group_by_tables_[group_index].MaterializeColumn(
+      group_by_tables_[group_index]->MaterializeColumn(
           internal, group_by_refs_[group_index].col_name,
           group_by_cols_[group_index]);
     }));
@@ -113,9 +113,9 @@ void HashAggregate::ComputeAggregates(Task *ctx) {
         auto col_name = aggregate_refs_[0].col_ref.col_name;
         if (aggregate_refs_[0].expr_ref == nullptr) {
           agg_lazy_table_ = prev_result_->get_table(table);
-          agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
-          filter_ = (agg_lazy_table_.filter.kind() != arrow::Datum::NONE)
-                        ? agg_lazy_table_.filter.chunked_array()
+          agg_lazy_table_->MaterializeColumn(internal, col_name, agg_col_);
+          filter_ = (agg_lazy_table_->filter.kind() != arrow::Datum::NONE)
+                        ? agg_lazy_table_->filter.chunked_array()
                         : nullptr;
         } else {
           // For expression case, create expression object and initialize

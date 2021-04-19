@@ -46,16 +46,16 @@ void LIP::build_filters(Task *ctx) {
     ctx->spawnTask(CreateTaskChain(
         CreateLambdaTask([this, dim_join_col_name, i](Task *internal) {
           dim_pk_cols_[dim_join_col_name] =
-              dim_tables_[i].table->get_column_by_name(dim_join_col_name);
+              dim_tables_[i]->table->get_column_by_name(dim_join_col_name);
         }),
         CreateLambdaTask([this, dim_join_col_name, i] {
           auto pk_col = dim_pk_cols_[dim_join_col_name].chunked_array();
-          auto filter_d = dim_tables_[i].filter;
+          auto filter_d = dim_tables_[i]->filter;
           std::shared_ptr<BloomFilter> bloom_filter;
 
           // TODO(nicholas): consider indices as well. We don't have to worry
           // about this for SSB, though.
-          auto indices_d = dim_tables_[i].indices;
+          auto indices_d = dim_tables_[i]->indices;
 
           if (filter_d.kind() == arrow::Datum::NONE) {
             bloom_filter = std::make_shared<BloomFilter>(pk_col->length());
@@ -98,7 +98,7 @@ void LIP::build_filters(Task *ctx) {
 
           bloom_filter->set_memory(1);
           bloom_filter->set_fact_fk_name(fact_fk_col_names_[i]);
-          dim_filters_[i] = {bloom_filter, dim_tables_[i].hash_table()};
+          dim_filters_[i] = {bloom_filter, dim_tables_[i]->hash_table()};
         })));
   }
 }
@@ -293,7 +293,7 @@ void LIP::finish() {
 
     OPT_PROBE_COUNT =
         num_lip_indices * dim_filters_.size();  // A hit will pass all filters
-    OPT_PROBE_COUNT += fact_table_.table->get_num_rows() -
+    OPT_PROBE_COUNT += fact_table_->table->get_num_rows() -
                        num_lip_indices;  // opt scenario: we eliminate bad
                                          // tuples with one probe.
   }
@@ -306,7 +306,7 @@ void LIP::finish() {
   evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
   // Create a new lazy fact table with the new index array
-  LazyTable out_fact_table(fact_table_.table, fact_table_.filter, new_indices,
+  LazyTable::LazyTablePtr out_fact_table = std::make_shared<LazyTable>(fact_table_->table, fact_table_->filter, new_indices,
                            index_chunks);
   //    LazyTable out_fact_table(fact_table_.table, fact_table_.filter,
   //    new_indices, arrow::Datum());
@@ -330,7 +330,7 @@ void LIP::initialize(Task *ctx) {
   for (int i = 0; i < dim_tables_.size(); i++) {
     ctx->spawnLambdaTask([this, i](Task *internal) {
       auto fact_join_col_name = fact_fk_col_names_[i];
-        fact_table_.MaterializeColumn(internal, fact_join_col_name,
+        fact_table_->MaterializeColumn(internal, fact_join_col_name,
                                       fact_fk_cols_[fact_join_col_name]);
     });
   }
@@ -357,13 +357,13 @@ void LIP::Execute(Task *ctx, int32_t flags) {
     for (int i = 0; i < prev_result_->lazy_tables_.size(); i++) {
       auto lazy_table = prev_result_->get_table(i);
 
-      if (left_ref.table == lazy_table.table) {
+      if (left_ref.table == lazy_table->table) {
         fact_table_ = lazy_table;  // left table is always the same
-        if (lazy_table.indices.kind() != arrow::Datum::NONE)
-          fact_indices_ = lazy_table.indices.array()->GetValues<uint32_t>(1, 0);
+        if (lazy_table->indices.kind() != arrow::Datum::NONE)
+          fact_indices_ = lazy_table->indices.array()->GetValues<uint32_t>(1, 0);
         else
           fact_indices_ = nullptr;
-      } else if (right_ref.table == lazy_table.table) {
+      } else if (right_ref.table == lazy_table->table) {
         dim_tables_.push_back(lazy_table);
       }
     }

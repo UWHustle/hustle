@@ -209,8 +209,8 @@ class Aggregate : public BaseAggregate {
 
   // Map group-by column name to group_index in the group_by_refs_ table.
   std::unordered_map<std::string, int> group_by_index_map_;
-  std::vector<LazyTable> group_by_tables_;
-  LazyTable agg_lazy_table_;
+  std::vector<LazyTable::LazyTablePtr> group_by_tables_;
+  LazyTable::LazyTablePtr agg_lazy_table_;
 
   // If a thread wants to insert a group and its aggregate into group_builder_
   // and aggregate_builder_, then it must grab this mutex to ensure that the

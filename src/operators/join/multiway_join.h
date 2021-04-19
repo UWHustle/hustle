@@ -92,7 +92,7 @@ class MultiwayJoin : public Operator {
  private:
   // lefts_[i] = the left table in the ith join
   // rights_[i] = the right table in the ith join
-  std::vector<LazyTable> lefts_, rights_;
+  std::vector<LazyTable::LazyTablePtr> lefts_, rights_;
 
   // left_col_names[i] = the left join col name in the ith join
   // right_col_names[i] = the right join col name in the ith join
@@ -132,7 +132,7 @@ class MultiwayJoin : public Operator {
 
   arrow::Datum left_join_col_, right_join_col_;
 
-  LazyTable left_, right_;
+  LazyTable::LazyTablePtr left_, right_;
 
   std::unordered_map<DBTable::TablePtr, bool> finished_;
 
@@ -183,7 +183,7 @@ class MultiwayJoin : public Operator {
    *
    */
   OperatorResult::OpResultPtr BackPropogateResult(
-      LazyTable &left, LazyTable right,
+      LazyTable::LazyTablePtr &left, LazyTable::LazyTablePtr right,
       const std::vector<arrow::Datum> &joined_indices);
 
   /**

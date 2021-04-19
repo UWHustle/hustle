@@ -63,6 +63,7 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
           join_predicates_[rRef.table->get_name()] = join_pred;
           predicates_.emplace_back(join_pred);
         }
+
       }
       break;
     }

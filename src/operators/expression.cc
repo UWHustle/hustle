@@ -51,7 +51,7 @@ void Expression::ConvertPostfix(hustle::Task* ctx,
   if (expr->op == TK_COLUMN || expr->op == TK_AGG_COLUMN) {
     arrow::Datum col;
     prev_op_output_->get_table(expr->column_ref->table)
-        .MaterializeColumn(ctx, expr->column_ref->col_name, col);
+        ->MaterializeColumn(ctx, expr->column_ref->col_name, col);
     column = col.chunked_array();
     exp_num_chunks_ = std::max(exp_num_chunks_, column->num_chunks());
   }

@@ -137,7 +137,7 @@ void Aggregate::InitializeGroupByColumn(Task* ctx, std::size_t group_index) {
   std::scoped_lock<std::mutex> lock(mutex_);
   group_by_index_map_.emplace(group_by_refs_[group_index].col_name,
                               group_index);
-  group_by_tables_[group_index].MaterializeColumn(
+  group_by_tables_[group_index]->MaterializeColumn(
       ctx, group_by_refs_[group_index].col_name, group_by_cols_[group_index]);
 }
 
@@ -399,7 +399,7 @@ void Aggregate::ComputeAggregates(Task* ctx) {
         auto table = aggregate_refs_[0].col_ref.table;
         auto col_name = aggregate_refs_[0].col_ref.col_name;
         agg_lazy_table_ = prev_result_->get_table(table);
-        agg_lazy_table_.MaterializeColumn(internal, col_name, agg_col_);
+        agg_lazy_table_->MaterializeColumn(internal, col_name, agg_col_);
       }),
       CreateLambdaTask([this](Task* internal) {
         // Initialize the slots to hold the current iteration value for each

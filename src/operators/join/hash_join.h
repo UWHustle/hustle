@@ -80,7 +80,7 @@ class HashJoin : public Operator {
   // Results from upstream operators condensed into one object
   // Where the output result will be stored once the operator is executed.a
   OperatorResult::OpResultPtr output_result_;
-  LazyTable left_table_, right_table_;
+  LazyTable::LazyTablePtr left_table_, right_table_;
   arrow::Datum lcol_, rcol_;
 
   // join predicate
