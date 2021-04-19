@@ -81,8 +81,8 @@ TEST_F(SQLMiscTest, q_without_agg) {
 
   std::string output = hustle_db->execute_query_result(query);
   EXPECT_EQ(output,
-            "946 | 29 | 4 | Feb1992\n"
-            "946 | 29 | 4 | Mar1992\n");
+            "946 | 29 | 4 | Mar1992\n"
+                 "946 | 29 | 4 | Feb1992\n");
 }
 
 TEST_F(SQLMiscTest, q_without_join) {
