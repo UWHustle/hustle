@@ -53,8 +53,8 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
         ColumnReference rRef = {
             table_2, rightExpr->y.pTab->aCol[rightExpr->iColumn].zName};
 
-        if ((table_1 != nullptr && table_1->get_num_rows()) <
-            (table_2 != nullptr && table_2->get_num_rows())) {
+        if ((table_1 != nullptr && table_2 != nullptr ) &&
+            (table_1->get_num_rows() < table_2->get_num_rows())) {
           std::swap(lRef, rRef);
         }
 
