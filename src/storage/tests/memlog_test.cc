@@ -15,22 +15,22 @@
 //// specific language governing permissions and limitations
 //// under the License.
 //
-//#include <filesystem>
-//#include <iostream>
-//
-//#include "gtest/gtest.h"
-//#include "storage/cmemlog.h"
-//
-//using namespace testing;
-//
-//class HustleMemLogTest : public testing::Test {
+#include <filesystem>
+#include <iostream>
+
+#include "gtest/gtest.h"
+#include "storage/cmemlog.h"
+
+using namespace testing;
+
+class HustleMemLogTest : public testing::Test {
 // protected:
 //  void SetUp() override {
 //    hustle_memlog_initialize(&hustle_memlog, "test", MEMLOG_INIT_SIZE);
 //  }
 //
 //  HustleMemLog* hustle_memlog;
-//};
+};
 //
 //TEST_F(HustleMemLogTest, MemlogTestForInsertion) {
 //  DBRecord* record =
@@ -151,4 +151,4 @@
 //
 //  recordList = hustle_memlog_get_records(NULL, 0);
 //  EXPECT_TRUE(recordList == NULL);
-//}
+}
