@@ -21,6 +21,7 @@ target_link_libraries(
         sqlite_utils_parse
         absl::strings
         hustle_src_resolver
+        hustle_src_storage
         sqlite3
 )
 
