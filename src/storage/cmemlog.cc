@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "cmemlog.h"
 
 #include <arrow/io/api.h>
 #include <cstdio>
@@ -27,8 +26,8 @@
 #include <mutex>
 #include <string>
 
-#include "api/hustle_db.h"
-#include "storage/utils/record_utils.h"
+#include "cmemlog.h"
+#include "cmemlog_dep.h"
 
 // Maps the Btree root id to hustle table id
 static std::map<int, std::map<int, std::string>> table_map;
