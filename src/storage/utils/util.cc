@@ -31,15 +31,16 @@
 #include "storage/block.h"
 #include "storage/table.h"
 #include "type/type_helper.h"
+#include "utils/arrow_utils.h"
 
-void evaluate_status(const arrow::Status& status, const char* function_name,
-                     int line_no) {
-  if (!status.ok()) {
-    std::cout << "\nInvalid status: " << function_name << ", line " << line_no
-              << std::endl;
-    throw std::runtime_error(status.ToString());
-  }
-}
+//void evaluate_status(const arrow::Status& status, const char* function_name,
+//                     int line_no) {
+//  if (!status.ok()) {
+//    std::cout << "\nInvalid status: " << function_name << ", line " << line_no
+//              << std::endl;
+//    throw std::runtime_error(status.ToString());
+//  }
+//}
 
 // TODO: Refactor this function.
 //  I don't think we need to do this.

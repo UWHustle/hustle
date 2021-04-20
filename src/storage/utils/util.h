@@ -44,8 +44,8 @@
  * TODO: Do we want to throw an expection on error?
  * TODO: Move this out of the storage scope. This can be made globa.
  */
-void evaluate_status(const arrow::Status& status, const char* function_name,
-                     int line_no);
+//void evaluate_status(const arrow::Status& status, const char* function_name,
+//                     int line_no);
 
 
 

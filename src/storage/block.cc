@@ -26,6 +26,7 @@
 #include "absl/strings/numbers.h"
 #include "arrow_compute_wrappers.h"
 #include "storage/utils/util.h"
+#include "utils/arrow_utils.h"
 #include "type/type_helper.h"
 
 #define ESTIMATED_STR_LEN 30

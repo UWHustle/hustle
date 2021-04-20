@@ -27,9 +27,9 @@
 
 #include "storage/ma_block.h"
 #include "storage/table.h"
-#include "storage/utils/util.h"
 #include "type/type_helper.h"
 #include "utils/bit_utils.h"
+#include "utils/arrow_utils.h"
 
 namespace hustle {
 namespace operators {

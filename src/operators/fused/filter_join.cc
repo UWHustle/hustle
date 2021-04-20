@@ -16,8 +16,7 @@
 // under the License.
 
 #include "operators/fused/filter_join.h"
-
-#include "storage/utils/util.h"
+#include "utils/arrow_utils.h"
 
 namespace hustle::operators {
 

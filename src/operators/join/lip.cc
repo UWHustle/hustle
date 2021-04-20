@@ -17,7 +17,7 @@
 
 #include "operators/join/lip.h"
 
-#include "storage/utils/util.h"
+#include "utils/arrow_utils.h"
 
 #define DEBUG 0
 uint64_t PROBE_COUNT = 0;

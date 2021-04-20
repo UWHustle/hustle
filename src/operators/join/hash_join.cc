@@ -25,7 +25,7 @@
 #include <iostream>
 #include <utility>
 
-#include "storage/utils/util.h"
+#include "utils/arrow_utils.h"
 #include "utils/bloom_filter.h"
 #include "utils/parallel_utils.h"
 
