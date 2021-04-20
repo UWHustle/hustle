@@ -24,12 +24,12 @@
 using namespace testing;
 
 class HustleMemLogTest : public testing::Test {
- protected:
-  void SetUp() override {
-    hustle_memlog_initialize(&hustle_memlog, "test", MEMLOG_INIT_SIZE);
-  }
-
-  HustleMemLog* hustle_memlog;
+// protected:
+//  void SetUp() override {
+//    hustle_memlog_initialize(&hustle_memlog, "test", MEMLOG_INIT_SIZE);
+//  }
+//
+//  HustleMemLog* hustle_memlog;
 };
 //
 //TEST_F(HustleMemLogTest, MemlogTestForInsertion) {
