@@ -21,6 +21,8 @@
 
 namespace hustle::storage {
 
+IndexAwareTable::~IndexAwareTable() {}
+
 void IndexAwareTable::InsertBlocks(
     std::vector<std::shared_ptr<HustleBlock>> input_blocks) {
   BaseTable::InsertBlocks(input_blocks);
@@ -97,5 +99,7 @@ void IndexAwareTable::GenerateIndices() {
     }
   }
 }
+
+
 
 }  // namespace hustle::storage

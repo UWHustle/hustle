@@ -30,7 +30,7 @@ namespace hustle::storage {
 
 class BaseBlock : public HustleBlock {
  public:
-  ~BaseBlock() override = default;
+  ~BaseBlock() override;
 
   /**
    * Initialize an empty block.

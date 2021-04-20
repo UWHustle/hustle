@@ -38,7 +38,7 @@ namespace hustle::storage {
 
 class IndexAwareTable : public BaseTable {
  public:
-  ~IndexAwareTable() override = default;
+  ~IndexAwareTable() override;
 
   inline IndexAwareTable(std::string name,
                          const std::shared_ptr<arrow::Schema> &schema,

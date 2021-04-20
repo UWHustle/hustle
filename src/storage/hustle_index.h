@@ -26,7 +26,7 @@ namespace hustle::storage {
 
 class HustleIndex : public HustleStorable {
  public:
-  ~HustleIndex() override = default;
+  ~HustleIndex() override;
 
   /**
    * Get the status of the metadata's construction.

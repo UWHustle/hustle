@@ -35,7 +35,7 @@ namespace hustle::storage {
 
 class IndexedBlock : public BaseBlock {
  public:
-  ~IndexedBlock() override = default;
+  ~IndexedBlock() override;
 
   inline IndexedBlock(int id, const std::shared_ptr<arrow::Schema> &schema,
                       int capacity)

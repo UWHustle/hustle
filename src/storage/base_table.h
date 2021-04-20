@@ -38,7 +38,7 @@ namespace hustle::storage {
  */
 class BaseTable : public HustleTable {
  public:
-  ~BaseTable() override = default;
+  ~BaseTable() override;
 
   /**
    * Construct an empty table with no blocks.

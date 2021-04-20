@@ -34,7 +34,7 @@ namespace hustle::storage {
  */
 class HustleTable : public HustleStorable {
  public:
-  ~HustleTable() override = default;
+  ~HustleTable() override;
 
   /**
    * Add a vector of blocks to the table. This functions does not check if

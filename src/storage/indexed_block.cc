@@ -21,7 +21,7 @@
 #include "metadata_units/sma.h"
 
 namespace hustle::storage {
-
+IndexedBlock::~IndexedBlock() = default;
 std::vector<HustleIndex *> IndexedBlock::GenerateIndicesForColumn(
     int column_id) {
   std::vector<HustleIndex *> out;
@@ -107,4 +107,6 @@ int IndexedBlock::InsertRecords(
   ProcessInsertion(out);
   return out;
 }
+
+
 }  // namespace hustle::storage

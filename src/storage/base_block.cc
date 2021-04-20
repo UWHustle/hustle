@@ -32,6 +32,8 @@
 
 namespace hustle::storage {
 
+BaseBlock::~BaseBlock() {}
+
 BaseBlock::BaseBlock(int in_id, const std::shared_ptr<arrow::Schema> &in_schema,
                      int in_capacity) {
   // base class initialization
@@ -795,4 +797,5 @@ void BaseBlock::TruncateColumnBuffer(int col_num) {
   auto status = data_buffer->Resize(num_rows * sizeof(int64_t), true);
   evaluate_status(status, __FUNCTION__, __LINE__);
 }
+
 }  // namespace hustle::storage

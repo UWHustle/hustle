@@ -66,7 +66,7 @@ struct BlockInfo {
  */
 class HustleBlock : public HustleStorable {
  public:
-  ~HustleBlock() override = default;
+  ~HustleBlock() override;
 
   /**
    * Get the Block's ID

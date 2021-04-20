@@ -29,6 +29,8 @@
 
 namespace hustle::storage {
 
+BaseTable::~BaseTable() {}
+
 BaseTable::BaseTable(std::string in_name,
                      const std::shared_ptr<arrow::Schema> &in_schema,
                      int in_block_capacity) {
@@ -265,5 +267,6 @@ void BaseTable::InsertRecord(std::vector<std::string_view> values,
     insert_pool[block->get_id()] = block;
   }
 }
+
 
 }  // namespace hustle::storage
