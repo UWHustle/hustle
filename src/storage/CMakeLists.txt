@@ -1,17 +1,17 @@
 add_library(
         hustle_src_storage
-        hustle_storable.h
-        hustle_block.h
+        hustle_storable.h hustle_storable.cc
+        hustle_block.h hustle_block.cc
         base_block.h base_block.cc
         indexed_block.h indexed_block.cc
-        hustle_index.h
+        hustle_index.h hustle_index.cc
         metadata_units/sma.h metadata_units/sma.cc
-        hustle_table.h
+        hustle_table.h hustle_table.cc
         base_table.h base_table.cc
         index_aware_table.h index_aware_table.cc
         utils/util.h utils/util.cc
         cmemlog.h cmemlog.cc
-        utils/record_utils.h hustle_table.cc hustle_index.cc hustle_block.cc hustle_storable.cc)
+        utils/record_utils.h)
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_storage PUBLIC
