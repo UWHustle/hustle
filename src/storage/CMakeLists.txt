@@ -11,7 +11,7 @@ add_library(
         index_aware_table.h index_aware_table.cc
         utils/util.h utils/util.cc
         cmemlog.h cmemlog.cc
-        utils/record_utils.h cmemlog_dep.h)
+        utils/record_utils.h)
 
 target_include_directories(hustle_src_storage PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_storage PUBLIC
