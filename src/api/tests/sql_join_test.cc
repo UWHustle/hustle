@@ -24,19 +24,18 @@ using namespace testing;
 using namespace hustle::resolver;
 
 class SQLJoinTest : public SQLTest {
-
+public:
     static hustle::catalog::TableSchema t1_schema, t2_schema;
     static DBTable::TablePtr t1, t2;
     static std::shared_ptr<hustle::HustleDB> hustle_db;
 
     void SetUp() override {
-        int num_remove = std::filesystem::remove_all("db_directory_join");
-        EXPECT_FALSE(std::filesystem::exists("db_directory_join"));
+        std::filesystem::remove_all("db_directory_join_test");
+        EXPECT_FALSE(std::filesystem::exists("db_directory_join_test"));
 
-        SQLTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory_join");
+        SQLJoinTest::hustle_db = std::make_shared<hustle::HustleDB>("db_directory_join_test");
 
         // Create table part
-        //hustle::catalog::TableSchema part("part");
         hustle::catalog::ColumnSchema a (
                 "a", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
         hustle::catalog::ColumnSchema b (
@@ -45,31 +44,24 @@ class SQLJoinTest : public SQLTest {
         hustle::catalog::ColumnSchema c (
                 "c", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
 
-        SQLTest::t1_schema.addColumn(a);
-        SQLTest::t1_schema.addColumn(b);
-        SQLTest::t1_schema.addColumn(c);
-
-        // Create table supplier
-        // hustle::catalog::TableSchema supplier("supplier");
-        hustle::catalog::ColumnSchema b (
-                "b", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
-        hustle::catalog::ColumnSchema c (
-                "c", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
+        SQLJoinTest::t1_schema.addColumn(a);
+        SQLJoinTest::t1_schema.addColumn(b);
+        SQLJoinTest::t1_schema.addColumn(c);
 
         hustle::catalog::ColumnSchema d (
                 "d", {hustle::catalog::HustleType::INTEGER, 0}, true, false);
 
-        SQLTest::t2_schema.addColumn(b);
-        SQLTest::t2_schema.addColumn(c);
-        SQLTest::t2_schema.addColumn(d);
+        SQLJoinTest::t2_schema.addColumn(b);
+        SQLJoinTest::t2_schema.addColumn(c);
+        SQLJoinTest::t2_schema.addColumn(d);
 
-        SQLTest::t1 = std::make_shared<hustle::storage::DBTable>(
-                "t1", SQLTest::t1_schema.getArrowSchema(), BLOCK_SIZE);
-        SQLTest::t2 = std::make_shared<hustle::storage::DBTable>(
-                "t2", SQLTest::t2_schema.getArrowSchema(), BLOCK_SIZE);
+        SQLJoinTest::t1 = std::make_shared<hustle::storage::DBTable>(
+                "t1", SQLJoinTest::t1_schema.getArrowSchema(), BLOCK_SIZE);
+        SQLJoinTest::t2 = std::make_shared<hustle::storage::DBTable>(
+                "t2", SQLJoinTest::t2_schema.getArrowSchema(), BLOCK_SIZE);
 
-        hustle_db->create_table(SQLTest::t1_schema, SQLTest::t1);
-        hustle_db->create_table(SQLTest::t2_schema, SQLTest::t2);
+        hustle_db->create_table(SQLJoinTest::t1_schema, SQLJoinTest::t1);
+        hustle_db->create_table(SQLJoinTest::t2_schema, SQLJoinTest::t2);
 
         hustle_db->execute_query_result("INSERT INTO t1 VALUES(1,2,3);");
         hustle_db->execute_query_result("INSERT INTO t1 VALUES(2,3,4);");
@@ -81,16 +73,100 @@ class SQLJoinTest : public SQLTest {
 
         hustle::HustleDB::init();
     }
+
+
+    void TearDown() override {
+        hustle::HustleDB::destroy();
+        SQLJoinTest::t1.reset();
+        SQLJoinTest::t2.reset();
+        hustle_db.reset();
+        std::filesystem::remove_all("db_directory_join_test");
+    }
 };
 
+hustle::catalog::TableSchema SQLJoinTest::t1_schema("t1"),
+        SQLJoinTest::t2_schema("t2");
 
-TEST_F(SQLMiscTest, q1_join_reorder) {
+DBTable::TablePtr SQLJoinTest::t1, SQLJoinTest::t2;
+
+std::shared_ptr<hustle::HustleDB> SQLJoinTest::hustle_db;
+
+
+TEST_F(SQLJoinTest, q1_join) {
     std::string query =
-            "select sum(lo_extendedprice*lo_discount) as "
-            "revenue "
-            "from lineorder, ddate "
-            "where d_datekey = lo_orderdate and d_year = 1993 and (lo_discount "
-            "BETWEEN 0 and 3 and lo_quantity < 25);";
+    "SELECT t1.rowid, t2.rowid, '|' FROM t1, t2 ON t1.a=t2.b;";
     std::string output = hustle_db->execute_query_result(query);
-    EXPECT_EQ(output, "3249196\n");
+    EXPECT_EQ(output, "1 | 1 | |\n2 | 2 | |\n3 | 3 | |\n");
+}
+
+TEST_F(SQLJoinTest, q2_join) {
+    std::string query =
+            "SELECT * FROM t1 NATURAL JOIN t2;";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3 | 4\n2 | 3 | 4 | 5\n");
+}
+
+TEST_F(SQLJoinTest, q3_join) {
+    std::string query =
+            "SELECT * FROM t1 INNER JOIN t2 USING(b,c);";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3 | 4\n2 | 3 | 4 | 5\n");
+}
+
+TEST_F(SQLJoinTest, q4_join) {
+    std::string query =
+            "SELECT t1.* FROM t1 NATURAL LEFT JOIN t2;";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3\n2 | 3 | 4\n3 | 4 | 5\n");
+}
+
+TEST_F(SQLJoinTest, q5_join) {
+    std::string query =
+            "SELECT * FROM t2 NATURAL LEFT OUTER JOIN t1;";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3 | NULL\n2 | 3 | 4 | 1\n3 | 4 | 5 | 2\n");
+}
+
+TEST_F(SQLJoinTest, q6_join) {
+    std::string query =
+            "SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.d WHERE t1.a>1";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output,  "2 | 3 | 4 | NULL | NULL | NULL\n3 | 4 | 5 | 1 | 2 | 3\n");
+}
+
+TEST_F(SQLJoinTest, q7_join) {
+    std::string query =
+            "SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.d WHERE t2.b IS NULL OR t2.b>1";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3 | NULL | NULL | NULL\n2 | 3 | 4 | NULL | NULL | NULL\n");
+}
+
+TEST_F(SQLJoinTest, q8_join) {
+    std::string query =
+            "SELECT * FROM t1 CROSS JOIN t2 USING(b,c);";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3 | 4\n2 | 3 | 4 | 5\n");
+}
+
+TEST_F(SQLJoinTest, q9_join) {
+    std::string query =
+            "SELECT * FROM t1 NATURAL INNER JOIN t2;";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3 | 4\n2 | 3 | 4 | 5\n");
+}
+
+TEST_F(SQLJoinTest, q10_join) {
+    std::string query =
+            " SELECT * FROM t1 NATURAL JOIN \n"
+            "        (SELECT b as 'c', c as 'd', d as 'e' FROM t2) as t3;";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "1 | 2 | 3 | 4 | 5\n");
+}
+
+TEST_F(SQLJoinTest, q11_join) {
+    std::string query =
+    "SELECT * FROM (SELECT b as 'c', c as 'd', d as 'e' FROM t2) as 'tx'"
+    "NATURAL JOIN t1;";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output,   "3 | 4 | 5 | 1 | 2\n");
 }

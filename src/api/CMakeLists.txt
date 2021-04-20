@@ -47,3 +47,17 @@ target_link_libraries(hustle_SQL_MISC_test
         hustleDB
         )
 add_test(SQL_MISC_test hustle_SQL_MISC_test)
+
+add_executable(hustle_SQL_JOIN_test "tests/sql_join_test.cc")
+target_link_libraries(hustle_SQL_JOIN_test
+        gtest
+        gtest_main
+        gmock
+        hustle_src_catalog
+        sqlite3
+        absl::container absl::hash
+        absl::flat_hash_map
+        hustleDB
+        )
+add_test(SQL_JOIN_test hustle_SQL_JOIN_test)
+
