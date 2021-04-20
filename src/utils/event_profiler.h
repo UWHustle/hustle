@@ -207,7 +207,7 @@ class EventProfiler {
   DISALLOW_COPY_AND_ASSIGN(EventProfiler);
 };
 
-extern EventProfiler<std::string> simple_profiler;
+extern EventProfiler<std::string> profiler;
 
 }  // namespace hustle
 

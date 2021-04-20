@@ -25,28 +25,26 @@
 
 namespace hustle::operators {
 
-OperatorResult::OperatorResult(std::vector<LazyTable> lazy_tables) {
+OperatorResult::OperatorResult(
+    std::vector<LazyTable::LazyTablePtr> lazy_tables) {
   lazy_tables_ = lazy_tables;
 }
 
 OperatorResult::OperatorResult() = default;
 
 void OperatorResult::append(DBTable::TablePtr table) {
-  LazyTable lazy_table(table, arrow::Datum(), arrow::Datum(), arrow::Datum());
-  lazy_tables_.insert(lazy_tables_.begin(), lazy_table);
+  LazyTable::LazyTablePtr lazy_table_ptr = std::make_shared<LazyTable>(
+      table, arrow::Datum(), arrow::Datum(), arrow::Datum());
+  lazy_tables_.insert(lazy_tables_.begin(), lazy_table_ptr);
 }
 
 void OperatorResult::set_materialized_col(
     DBTable::TablePtr table, int i, std::shared_ptr<arrow::ChunkedArray> col) {
-  get_table(table).set_materialized_column(i, col);
+  get_table(table)->set_materialized_column(i, col);
 }
 
-void OperatorResult::append(LazyTable lazy_table) {
+void OperatorResult::append(LazyTable::LazyTablePtr lazy_table) {
   lazy_tables_.insert(lazy_tables_.begin(), lazy_table);
-}
-
-void OperatorResult::append(std::shared_ptr<LazyTable> lazy_table) {
-  lazy_tables_.insert(lazy_tables_.begin(), *lazy_table);
 }
 
 void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
@@ -55,12 +53,15 @@ void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
   }
 }
 
-LazyTable OperatorResult::get_table(int i) { return lazy_tables_[i]; }
+LazyTable::LazyTablePtr OperatorResult::get_table(int i) {
+  return lazy_tables_[i];
+}
 
-LazyTable OperatorResult::get_table(const DBTable::TablePtr& table) {
-  LazyTable result;
+LazyTable::LazyTablePtr OperatorResult::get_table(
+    const DBTable::TablePtr& table) {
+  LazyTable::LazyTablePtr result = nullptr;
   for (auto& lazy_table : lazy_tables_) {
-    if (lazy_table.table == table) {
+    if (lazy_table->table == table) {
       result = lazy_table;
       break;
     }
@@ -80,13 +81,13 @@ DBTable::TablePtr OperatorResult::materialize(
 
     // When we want to materialize a new aggregate table.
     if (table == nullptr) {
-      table = get_table(0).table;
+      table = get_table(0)->table;
     }
     status =
         schema_builder.AddField(table->get_schema()->GetFieldByName(col_name));
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-    auto col = get_table(table).MaterializeColumn(col_name);
+    auto col = get_table(table)->MaterializeColumn(col_name);
     out_cols.push_back(col);
   }
 
@@ -98,7 +99,7 @@ DBTable::TablePtr OperatorResult::materialize(
                                              metadata_enabled);
 
   out_table->InsertRecords(out_cols);
-  if(metadata_enabled) {
+  if (metadata_enabled) {
     out_table->BuildMetadata();
   }
   return out_table;

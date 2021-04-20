@@ -65,15 +65,17 @@ class Select : public Operator {
    *
    * @return a new OperatorResult with an updated filter.
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::SELECT)->second;
+  }
 
   inline void set_output_result(OperatorResult::OpResultPtr output_result) {
     output_result_ = output_result;
   }
 
-  inline void set_table(DBTable::TablePtr table) {
-    table_ = table;
-  }
+  inline void set_table(DBTable::TablePtr table) { table_ = table; }
 
   inline void set_tree(std::shared_ptr<PredicateTree> tree) { tree_ = tree; }
 
@@ -121,8 +123,8 @@ class Select : public Operator {
 
   template <typename T, typename Op>
   arrow::Datum Filter(const std::shared_ptr<Block> &block,
-                      const ColumnReference &col_ref, const arrow::Datum& arrow_val,
-                      const T &value,
+                      const ColumnReference &col_ref,
+                      const arrow::Datum &arrow_val, const T &value,
                       arrow::compute::CompareOperator arrow_compare,
                       Op comparator);
 };

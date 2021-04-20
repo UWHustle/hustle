@@ -107,7 +107,7 @@ void SSB::q11_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("1.1_lip");
   scheduler->start();
   scheduler->join();
@@ -116,10 +116,10 @@ void SSB::q11_lip() {
   if (print_) {
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -213,7 +213,7 @@ void SSB::q12_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("1.2_lip");
   scheduler->start();
   scheduler->join();
@@ -222,10 +222,10 @@ void SSB::q12_lip() {
   if (print_) {
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -329,7 +329,7 @@ void SSB::q13_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("1.3_lip");
   scheduler->start();
   scheduler->join();
@@ -338,10 +338,10 @@ void SSB::q13_lip() {
   if (print_) {
     out_table = agg_result_out->materialize({{nullptr, "revenue"}});
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -408,7 +408,7 @@ void SSB::q21_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = hustle::simple_profiler.getContainer();
+  auto container = hustle::profiler.getContainer();
   container->startEvent("2.1_lip");
   scheduler->start();
   scheduler->join();
@@ -418,9 +418,9 @@ void SSB::q21_lip() {
     out_table = agg_result_out->materialize(
         {{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "brand1"}});
     out_table->print();
-    hustle::simple_profiler.summarizeToStream(std::cout);
+    hustle::profiler.summarizeToStream(std::cout);
   }
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -496,7 +496,7 @@ void SSB::q22_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = hustle::simple_profiler.getContainer();
+  auto container = hustle::profiler.getContainer();
   container->startEvent("2.2_lip");
   scheduler->start();
   scheduler->join();
@@ -506,9 +506,9 @@ void SSB::q22_lip() {
     out_table = agg_result_out->materialize(
         {{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "brand1"}});
     out_table->print();
-    hustle::simple_profiler.summarizeToStream(std::cout);
+    hustle::profiler.summarizeToStream(std::cout);
   }
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -574,7 +574,7 @@ void SSB::q23_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = hustle::simple_profiler.getContainer();
+  auto container = hustle::profiler.getContainer();
   container->startEvent("2.3_lip");
   scheduler->start();
   scheduler->join();
@@ -584,9 +584,9 @@ void SSB::q23_lip() {
     out_table = agg_result_out->materialize(
         {{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "brand1"}});
     out_table->print();
-    hustle::simple_profiler.summarizeToStream(std::cout);
+    hustle::profiler.summarizeToStream(std::cout);
   }
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -671,7 +671,7 @@ void SSB::q31_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("3.1_lip");
   scheduler->start();
   scheduler->join();
@@ -683,10 +683,10 @@ void SSB::q31_lip() {
                                              {nullptr, "c nation"},
                                              {nullptr, "s nation"}});
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -771,7 +771,7 @@ void SSB::q32_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("3.2_lip");
   scheduler->start();
   scheduler->join();
@@ -783,10 +783,10 @@ void SSB::q32_lip() {
                                              {nullptr, "c city"},
                                              {nullptr, "s city"}});
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -895,7 +895,7 @@ void SSB::q33_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("3.3_lip");
   scheduler->start();
   scheduler->join();
@@ -907,10 +907,10 @@ void SSB::q33_lip() {
                                              {nullptr, "c city"},
                                              {nullptr, "s city"}});
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -1008,7 +1008,7 @@ void SSB::q34_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("3.4_lip");
   scheduler->start();
   scheduler->join();
@@ -1020,10 +1020,10 @@ void SSB::q34_lip() {
                                              {nullptr, "c city"},
                                              {nullptr, "s city"}});
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -1115,7 +1115,7 @@ void SSB::q41_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("4.1_lip");
   scheduler->start();
   scheduler->join();
@@ -1125,10 +1125,10 @@ void SSB::q41_lip() {
       {{nullptr, "revenue"}, {nullptr, "year"}, {nullptr, "c nation"}});
   if (print_) {
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -1238,7 +1238,7 @@ void SSB::q42_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("4.2_lip");
   scheduler->start();
   scheduler->join();
@@ -1250,10 +1250,10 @@ void SSB::q42_lip() {
                                            {nullptr, "category"}});
   if (print_) {
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 
@@ -1350,7 +1350,7 @@ void SSB::q43_lip() {
 
   scheduler->addTask(&plan);
 
-  auto container = simple_profiler.getContainer();
+  auto container = profiler.getContainer();
   container->startEvent("4.3_lip");
   scheduler->start();
   scheduler->join();
@@ -1362,10 +1362,10 @@ void SSB::q43_lip() {
                                            {nullptr, "brand1"}});
   if (print_) {
     out_table->print();
-    simple_profiler.summarizeToStream(std::cout);
+    profiler.summarizeToStream(std::cout);
   }
 
-  simple_profiler.clear();
+  profiler.clear();
   reset_results();
 }
 

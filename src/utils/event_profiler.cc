@@ -21,6 +21,6 @@
 
 namespace hustle {
 
-EventProfiler<std::string> simple_profiler;
+EventProfiler<std::string> profiler;
 
 }  // namespace hustle

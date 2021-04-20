@@ -77,7 +77,7 @@ void ExecutionPlan::execute() {
   scheduler->addTask(
       CreateLambdaTask([qid = query_id_, operators, start_time] {
         if (FLAGS_print_per_query_span) {
-          const auto &zero_time = simple_profiler.zero_time();
+          const auto &zero_time = profiler.zero_time();
           const double start =
               std::chrono::duration<double>(*start_time - zero_time).count();
           const double end =

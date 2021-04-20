@@ -47,7 +47,7 @@ class OperatorResult {
    *
    * @param lazy_tables a vector of LazyTables
    */
-  explicit OperatorResult(std::vector<LazyTable> lazy_tables);
+  explicit OperatorResult(std::vector<LazyTable::LazyTablePtr> lazy_tables);
 
   /**
    * Construct an empty OperatorResult.
@@ -67,13 +67,13 @@ class OperatorResult {
    * Append a new lazy table to the OperatorResult.
    * @param table The lazy table to append
    */
-  void append(LazyTable lazy_table);
+  void append(LazyTable::LazyTablePtr lazy_table);
 
   /**
    * Append a new lazy table to the OperatorResult.
    * @param table Shared pointer to the lazy table to append
    */
-  void append(std::shared_ptr<LazyTable> lazy_table);
+  void append(std::shared_ptr<LazyTable::LazyTablePtr> lazy_table);
 
   /**
    * Append another OperatorResult to this OperatorResult.
@@ -88,7 +88,7 @@ class OperatorResult {
    * @param i
    * @return a LazyTable
    */
-  LazyTable get_table(int i);
+  LazyTable::LazyTablePtr get_table(int i);
 
   /**
    * Get the LazyTable that matches a particular table.
@@ -96,18 +96,18 @@ class OperatorResult {
    * @param table
    * @return a LazyTable
    */
-  LazyTable get_table(const DBTable::TablePtr& table);
+  LazyTable::LazyTablePtr get_table(const DBTable::TablePtr& table);
 
   /**
    * Construct a new table from the OperatorResult
    *
    * @param col_refs References to the columns to project in the output table.
-   * @param metadata_enabled true if the output DBTable should be metadata enabled
+   * @param metadata_enabled true if the output DBTable should be metadata
+   * enabled
    * @return A new table containing all columns specified by col_refs
    */
-  DBTable::TablePtr materialize(
-      const std::vector<ColumnReference>& col_refs,
-      bool metadata_enabled);
+  DBTable::TablePtr materialize(const std::vector<ColumnReference>& col_refs,
+                                bool metadata_enabled);
 
   /**
    * Construct a new table from the OperatorResult
@@ -120,7 +120,7 @@ class OperatorResult {
     return materialize(col_refs, ENABLE_METADATA_BY_DEFAULT);
   }
 
-  std::vector<LazyTable> lazy_tables_;
+  std::vector<LazyTable::LazyTablePtr> lazy_tables_;
 
   void set_materialized_col(DBTable::TablePtr table, int i,
                             std::shared_ptr<arrow::ChunkedArray> col);
