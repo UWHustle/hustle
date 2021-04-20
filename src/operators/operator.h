@@ -28,6 +28,8 @@
 #include "utils/event_profiler.h"
 #include <unordered_map>
 
+#define OP_PERF_ANALYSIS 0
+
 namespace hustle::operators {
 
     enum OperatorType
@@ -64,11 +66,15 @@ namespace hustle::operators {
  public:
 
      void execute(Task *ctx) {
-         auto container = profiler.getContainer();
-         container->startEvent(this->operator_name() + " " + std::to_string(this->operator_index()));
-         this->Execute(ctx, 0);
-         container->endEvent(this->operator_name() + " " + std::to_string(this->operator_index()));
-         profiler.summarizeToStream(std::cout);
+         if (OP_PERF_ANALYSIS) {
+             auto container = profiler.getContainer();
+             container->startEvent(this->operator_name() + " " + std::to_string(this->operator_index()));
+             this->Execute(ctx, 0);
+             container->endEvent(this->operator_name() + " " + std::to_string(this->operator_index()));
+             profiler.summarizeToStream(std::cout);
+         } else {
+             this->Execute(ctx, 0);
+         }
          //profiler.clear();
      }
 
