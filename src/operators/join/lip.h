@@ -34,7 +34,9 @@ namespace hustle::operators {
 
 struct LookupFilter {
   std::shared_ptr<BloomFilter> bloom_filter;
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>> hash_table;
+  std::shared_ptr<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
+      hash_table;
 };
 
 static bool SortByBloomFilter(const LookupFilter &lhs,
@@ -76,9 +78,9 @@ class LIP : public Operator {
    */
   void Execute(Task *ctx, int32_t flags) override;
 
-    std::string operator_name() override {
-        return operator_names.find(OperatorType::LIP_OP)->second;
-    }
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::LIP_OP)->second;
+  }
 
   void Clear() override {}
 

@@ -106,10 +106,10 @@ arrow::Datum Expression::ExecuteBlock(
 }
 
 template <typename ArrayType, typename ArrayPrimitiveType>
-arrow::Datum Expression::ExecuteBlock(
-    bool is_result, const arrow::Scalar& scalar, int op,
-    std::shared_ptr<arrow::Array> left_col,
-    std::shared_ptr<arrow::Array> right_col) {
+arrow::Datum Expression::ExecuteBlock(bool is_result,
+                                      const arrow::Scalar& scalar, int op,
+                                      std::shared_ptr<arrow::Array> left_col,
+                                      std::shared_ptr<arrow::Array> right_col) {
   if (is_result) {
     std::shared_ptr<ArrayType> result = std::static_pointer_cast<ArrayType>(
         arrow::MakeArrayFromScalar(scalar, left_col->length()).ValueOrDie());
@@ -155,7 +155,7 @@ arrow::Datum Expression::Evaluate(hustle::Task* ctx, int chunk_id) {
             "expression evaluation currently not supported.");
       }
 
-      auto execute_block_handler = [&, this]<typename T>(T * ptr_) {
+      auto execute_block_handler = [&, this]<typename T>(T* ptr_) {
         // Naturally handles block calculation
         if constexpr (arrow::has_c_type<T>::value &&
                       !std::is_same_v<T, arrow::DayTimeIntervalType>) {

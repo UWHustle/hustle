@@ -311,7 +311,7 @@ void FilterJoin::Initialize(Task *ctx) {
     ctx->spawnLambdaTask([this, table_idx](Task *internal) {
       auto fact_join_col_name = fact_fk_col_names_[table_idx];
       fact_table_->MaterializeColumn(internal, fact_join_col_name,
-                                    fact_fk_cols_[fact_join_col_name]);
+                                     fact_fk_cols_[fact_join_col_name]);
     });
   }
 }
@@ -341,7 +341,8 @@ void FilterJoin::Execute(Task *ctx, int32_t flags) {
       if (left_ref.table == lazy_table->table) {
         fact_table_ = lazy_table;  // left table is always the same
         if (lazy_table->indices.kind() != arrow::Datum::NONE)
-          fact_indices_ = lazy_table->indices.array()->GetValues<uint32_t>(1, 0);
+          fact_indices_ =
+              lazy_table->indices.array()->GetValues<uint32_t>(1, 0);
         else
           fact_indices_ = nullptr;
       } else if (right_ref.table == lazy_table->table) {
@@ -426,15 +427,15 @@ void FilterJoin::Finish() {
 
   std::vector<LazyTable::LazyTablePtr> output_lazy_tables;
   // Create a new lazy fact table with the new index array
-  output_lazy_tables.emplace_back(std::make_shared<LazyTable>(fact_table_->table, arrow::Datum(),
-                                  fact_indices, fact_index_chunks));
+  output_lazy_tables.emplace_back(std::make_shared<LazyTable>(
+      fact_table_->table, arrow::Datum(), fact_indices, fact_index_chunks));
   // Add all dimension tables to the output without changing them.
   for (size_t dim_tbl_idx = 0; dim_tbl_idx < dim_tables_.size();
        dim_tbl_idx++) {
-    output_lazy_tables.emplace_back(std::make_shared<LazyTable>(dim_tables_[dim_tbl_idx]->table,
-                                    arrow::Datum(), dim_indices[dim_tbl_idx],
-                                    arrow::Datum(),
-                                    dim_tables_[dim_tbl_idx]->hash_table()));
+    output_lazy_tables.emplace_back(std::make_shared<LazyTable>(
+        dim_tables_[dim_tbl_idx]->table, arrow::Datum(),
+        dim_indices[dim_tbl_idx], arrow::Datum(),
+        dim_tables_[dim_tbl_idx]->hash_table()));
   }
   OperatorResult result({output_lazy_tables});
   output_result_->append(std::make_shared<OperatorResult>(result));

@@ -34,7 +34,9 @@ namespace hustle::operators {
 
 struct LookupFilterJoin {
   std::shared_ptr<BloomFilter> bloom_filter;
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>> hash_table;
+  std::shared_ptr<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
+      hash_table;
   std::vector<std::vector<uint32_t>> indices_;
 };
 
@@ -82,9 +84,9 @@ class FilterJoin : public Operator {
    */
   void Execute(Task *ctx, int32_t flags) override;
 
-    std::string operator_name() override {
-        return operator_names.find(OperatorType::FILTER_JOIN)->second;
-    }
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::FILTER_JOIN)->second;
+  }
 
   void Clear() override {}
 

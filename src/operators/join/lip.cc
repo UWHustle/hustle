@@ -306,8 +306,8 @@ void LIP::finish() {
   evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
   // Create a new lazy fact table with the new index array
-  LazyTable::LazyTablePtr out_fact_table = std::make_shared<LazyTable>(fact_table_->table, fact_table_->filter, new_indices,
-                           index_chunks);
+  LazyTable::LazyTablePtr out_fact_table = std::make_shared<LazyTable>(
+      fact_table_->table, fact_table_->filter, new_indices, index_chunks);
   //    LazyTable out_fact_table(fact_table_.table, fact_table_.filter,
   //    new_indices, arrow::Datum());
 
@@ -330,8 +330,8 @@ void LIP::initialize(Task *ctx) {
   for (int i = 0; i < dim_tables_.size(); i++) {
     ctx->spawnLambdaTask([this, i](Task *internal) {
       auto fact_join_col_name = fact_fk_col_names_[i];
-        fact_table_->MaterializeColumn(internal, fact_join_col_name,
-                                      fact_fk_cols_[fact_join_col_name]);
+      fact_table_->MaterializeColumn(internal, fact_join_col_name,
+                                     fact_fk_cols_[fact_join_col_name]);
     });
   }
 }
@@ -360,7 +360,8 @@ void LIP::Execute(Task *ctx, int32_t flags) {
       if (left_ref.table == lazy_table->table) {
         fact_table_ = lazy_table;  // left table is always the same
         if (lazy_table->indices.kind() != arrow::Datum::NONE)
-          fact_indices_ = lazy_table->indices.array()->GetValues<uint32_t>(1, 0);
+          fact_indices_ =
+              lazy_table->indices.array()->GetValues<uint32_t>(1, 0);
         else
           fact_indices_ = nullptr;
       } else if (right_ref.table == lazy_table->table) {

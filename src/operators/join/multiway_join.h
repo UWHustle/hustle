@@ -67,13 +67,14 @@ class MultiwayJoin : public Operator {
    */
   void Execute(Task *ctx, int32_t flags) override;
 
-    std::string operator_name() override {
-        return operator_names.find(OperatorType::MULTI_JOIN)->second;
-    }
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::MULTI_JOIN)->second;
+  }
 
   void Clear() override;
 
-  inline void set_prev_result(std::vector<OperatorResult::OpResultPtr> prev_result) {
+  inline void set_prev_result(
+      std::vector<OperatorResult::OpResultPtr> prev_result) {
     prev_result_vec_ = prev_result;
   }
 
@@ -108,7 +109,8 @@ class MultiwayJoin : public Operator {
   JoinGraph graph_;
 
   // Hash table for the right table in each join
-  std::vector<std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>>
+  std::vector<std::shared_ptr<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>>
       hash_tables_;
 
   // new_left_indices_vector[i] = the indices of rows joined in chunk i in

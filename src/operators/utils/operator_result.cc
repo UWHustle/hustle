@@ -25,14 +25,16 @@
 
 namespace hustle::operators {
 
-OperatorResult::OperatorResult(std::vector<LazyTable::LazyTablePtr> lazy_tables) {
+OperatorResult::OperatorResult(
+    std::vector<LazyTable::LazyTablePtr> lazy_tables) {
   lazy_tables_ = lazy_tables;
 }
 
 OperatorResult::OperatorResult() = default;
 
 void OperatorResult::append(DBTable::TablePtr table) {
-    LazyTable::LazyTablePtr lazy_table_ptr = std::make_shared<LazyTable>(table, arrow::Datum(), arrow::Datum(), arrow::Datum());
+  LazyTable::LazyTablePtr lazy_table_ptr = std::make_shared<LazyTable>(
+      table, arrow::Datum(), arrow::Datum(), arrow::Datum());
   lazy_tables_.insert(lazy_tables_.begin(), lazy_table_ptr);
 }
 
@@ -51,10 +53,13 @@ void OperatorResult::append(const std::shared_ptr<OperatorResult>& result) {
   }
 }
 
-LazyTable::LazyTablePtr OperatorResult::get_table(int i) { return lazy_tables_[i]; }
+LazyTable::LazyTablePtr OperatorResult::get_table(int i) {
+  return lazy_tables_[i];
+}
 
-LazyTable::LazyTablePtr OperatorResult::get_table(const DBTable::TablePtr& table) {
-    LazyTable::LazyTablePtr result = nullptr;
+LazyTable::LazyTablePtr OperatorResult::get_table(
+    const DBTable::TablePtr& table) {
+  LazyTable::LazyTablePtr result = nullptr;
   for (auto& lazy_table : lazy_tables_) {
     if (lazy_table->table == table) {
       result = lazy_table;
@@ -94,7 +99,7 @@ DBTable::TablePtr OperatorResult::materialize(
                                              metadata_enabled);
 
   out_table->InsertRecords(out_cols);
-  if(metadata_enabled) {
+  if (metadata_enabled) {
     out_table->BuildMetadata();
   }
   return out_table;

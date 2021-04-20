@@ -102,12 +102,12 @@ class OperatorResult {
    * Construct a new table from the OperatorResult
    *
    * @param col_refs References to the columns to project in the output table.
-   * @param metadata_enabled true if the output DBTable should be metadata enabled
+   * @param metadata_enabled true if the output DBTable should be metadata
+   * enabled
    * @return A new table containing all columns specified by col_refs
    */
-  DBTable::TablePtr materialize(
-      const std::vector<ColumnReference>& col_refs,
-      bool metadata_enabled);
+  DBTable::TablePtr materialize(const std::vector<ColumnReference>& col_refs,
+                                bool metadata_enabled);
 
   /**
    * Construct a new table from the OperatorResult

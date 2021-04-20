@@ -115,26 +115,24 @@ class HashAggregate : public BaseAggregate {
   //      on the aggregate column. Hopefully this mapping won't change.
 
  public:
-  HashAggregate(std::size_t query_id,
-                OperatorResult::OpResultPtr prev_result,
+  HashAggregate(std::size_t query_id, OperatorResult::OpResultPtr prev_result,
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
                 std::vector<ColumnReference> group_by_refs,
                 std::vector<OrderByReference> order_by_refs);
 
-  HashAggregate(std::size_t query_id,
-                OperatorResult::OpResultPtr prev_result,
+  HashAggregate(std::size_t query_id, OperatorResult::OpResultPtr prev_result,
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
                 std::vector<ColumnReference> group_by_refs,
                 std::vector<OrderByReference> order_by_refs,
                 std::shared_ptr<OperatorOptions> options);
 
-  void Execute(Task *ctx, int32_t flags) override;
+  void Execute(Task* ctx, int32_t flags) override;
 
-    std::string operator_name() override {
-        return operator_names.find(OperatorType::HASH_BASED_AGGREGATE)->second;
-    }
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::HASH_BASED_AGGREGATE)->second;
+  }
 
   inline void set_prev_result(OperatorResult::OpResultPtr prev_result) {
     prev_result_ = std::move(prev_result);
@@ -293,6 +291,6 @@ class HashAggregate : public BaseAggregate {
   void SortResult(std::vector<arrow::Datum>& groups, arrow::Datum& aggregates);
 };
 
-}  // namespace hustle::operator
+}  // namespace hustle::operators
 
 #endif  // HUSTLE_HASH_AGGREGATE_H

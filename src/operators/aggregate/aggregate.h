@@ -107,15 +107,13 @@ class Aggregate : public BaseAggregate {
    * @param order_by_refs vector of ColumnReferences denoting which columns
    * we should order by.
    */
-  Aggregate(const std::size_t query_id,
-            OperatorResult::OpResultPtr prev_result,
+  Aggregate(const std::size_t query_id, OperatorResult::OpResultPtr prev_result,
             OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<OrderByReference> order_by_refs);
 
-  Aggregate(const std::size_t query_id,
-            OperatorResult::OpResultPtr prev_result,
+  Aggregate(const std::size_t query_id, OperatorResult::OpResultPtr prev_result,
             OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
@@ -132,11 +130,11 @@ class Aggregate : public BaseAggregate {
    * OperatorResult does not contain any of the LazyTables contained in the
    * prev_result paramter.
    */
-  void Execute(Task *ctx, int32_t flags) override;
+  void Execute(Task* ctx, int32_t flags) override;
 
-    std::string operator_name() override {
-        return operator_names.find(OperatorType::AGGREGATE)->second;
-    }
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::AGGREGATE)->second;
+  }
 
   void Clear() override;
 
