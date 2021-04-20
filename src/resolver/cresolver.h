@@ -259,7 +259,7 @@ struct sqlite3;
 #define JT_RIGHT     0x0010    /* Right outer join */
 #define JT_OUTER     0x0020    /* The "OUTER" keyword is present */
 #define JT_ERROR     0x0040    /* unknown or unsupported join type */
-#define JT_UNSUPPORTED 0x007F
+#define JT_UNSUPPORTED 0x007E  /* Only Inner Join is supported */
 
 typedef int (*sqlite3_callback)(void*,int,char**, char**);
 
