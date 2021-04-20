@@ -31,26 +31,26 @@ class HustleMemLogTest : public testing::Test {
 
   HustleMemLog* hustle_memlog;
 };
-//
-//TEST_F(HustleMemLogTest, MemlogTestForInsertion) {
-//  DBRecord* record =
-//      hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 0, "test", 4);
-//  int status = hustle_memlog_insert_record(hustle_memlog, record, 0);
-//  EXPECT_EQ(status, MEMLOG_OK);
-//  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 1, "sample", 6);
-//  status = hustle_memlog_insert_record(hustle_memlog, record, 0);
-//
-//  DBRecordList* recordList = hustle_memlog_get_records(hustle_memlog, 0);
-//  record = recordList->head;
-//  EXPECT_TRUE(memcmp(record->data, "test", 4) == 0);
-//  record = record->next_record;
-//  EXPECT_TRUE(memcmp(record->data, "sample", 6) == 0);
-//
-//  EXPECT_EQ(status, MEMLOG_OK);
-//  EXPECT_EQ(hustle_memlog->record_list[0].curr_size, 2);
-//  status = hustle_memlog_free(hustle_memlog);
-//  EXPECT_EQ(status, MEMLOG_OK);
-//}
+
+TEST_F(HustleMemLogTest, MemlogTestForInsertion) {
+  DBRecord* record =
+      hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 0, "test", 4);
+  int status = hustle_memlog_insert_record(hustle_memlog, record, 0);
+  EXPECT_EQ(status, MEMLOG_OK);
+  record = hustle_memlog_create_record(MEMLOG_HUSTLE_INSERT, 1, "sample", 6);
+  status = hustle_memlog_insert_record(hustle_memlog, record, 0);
+
+  DBRecordList* recordList = hustle_memlog_get_records(hustle_memlog, 0);
+  record = recordList->head;
+  EXPECT_TRUE(memcmp(record->data, "test", 4) == 0);
+  record = record->next_record;
+  EXPECT_TRUE(memcmp(record->data, "sample", 6) == 0);
+
+  EXPECT_EQ(status, MEMLOG_OK);
+  EXPECT_EQ(hustle_memlog->record_list[0].curr_size, 2);
+  status = hustle_memlog_free(hustle_memlog);
+  EXPECT_EQ(status, MEMLOG_OK);
+}
 //
 //TEST_F(HustleMemLogTest, MemlogTestForMultipleInsertion) {
 //  DBRecord* record =
