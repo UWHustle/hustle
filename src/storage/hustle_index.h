@@ -19,6 +19,7 @@
 #define HUSTLE_SRC_STORAGE_INTERFACES_HUSTLE_INDEX
 
 #include <arrow/api.h>
+#include <arrow/compute/api.h>
 
 #include "hustle_storable.h"
 
