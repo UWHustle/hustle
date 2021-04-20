@@ -16,4 +16,6 @@
 // under the License.
 
 #include "hustle_table.h"
-hustle::storage::HustleTable::~HustleTable() = default;
+namespace hustle::storage {
+HustleTable::~HustleTable() = default;
+}  // namespace hustle::storage
