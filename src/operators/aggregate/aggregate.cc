@@ -23,7 +23,7 @@
 #include <iostream>
 #include <utility>
 
-#include "storage/utils/util.h"
+#include "utils/arrow_utils.h"
 #include "type/type_helper.h"
 
 #define AGGREGATE_OUTPUT_TABLE "aggregate"

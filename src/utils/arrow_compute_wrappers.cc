@@ -20,8 +20,6 @@
 #include <cassert>
 
 #include <thread>
-
-#include "storage/utils/util.h"
 #include "type/type_helper.h"
 
 namespace hustle {

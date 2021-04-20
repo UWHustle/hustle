@@ -17,7 +17,7 @@
 
 #include "operators/aggregate/hash_aggregate.h"
 
-#include <storage/utils/util.h>
+#include "utils/arrow_utils.h"
 
 #include "type/type_helper.h"
 

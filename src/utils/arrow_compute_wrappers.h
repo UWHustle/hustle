@@ -21,6 +21,7 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 
+#include "arrow_utils.h"
 #include "scheduler/task.h"
 #include "scheduler/threading/synchronization_lock.h"
 
