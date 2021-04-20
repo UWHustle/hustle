@@ -115,22 +115,24 @@ class HashAggregate : public BaseAggregate {
   //      on the aggregate column. Hopefully this mapping won't change.
 
  public:
-  HashAggregate(std::size_t query_id,
-                OperatorResult::OpResultPtr prev_result,
+  HashAggregate(std::size_t query_id, OperatorResult::OpResultPtr prev_result,
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
                 std::vector<ColumnReference> group_by_refs,
                 std::vector<OrderByReference> order_by_refs);
 
-  HashAggregate(std::size_t query_id,
-                OperatorResult::OpResultPtr prev_result,
+  HashAggregate(std::size_t query_id, OperatorResult::OpResultPtr prev_result,
                 OperatorResult::OpResultPtr output_result,
                 std::vector<AggregateReference> aggregate_refs,
                 std::vector<ColumnReference> group_by_refs,
                 std::vector<OrderByReference> order_by_refs,
                 std::shared_ptr<OperatorOptions> options);
 
-  void execute(Task* ctx) override;
+  void Execute(Task* ctx, int32_t flags) override;
+
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::HASH_BASED_AGGREGATE)->second;
+  }
 
   inline void set_prev_result(OperatorResult::OpResultPtr prev_result) {
     prev_result_ = std::move(prev_result);
@@ -189,8 +191,8 @@ class HashAggregate : public BaseAggregate {
 
   // Map group-by column name to group_index in the group_by_refs_ table.
   std::unordered_map<std::string, int> group_by_index_map_;
-  std::vector<LazyTable> group_by_tables_;
-  LazyTable agg_lazy_table_;
+  std::vector<LazyTable::LazyTablePtr> group_by_tables_;
+  LazyTable::LazyTablePtr agg_lazy_table_;
 
   std::shared_ptr<Expression> expression_;
 
@@ -289,6 +291,6 @@ class HashAggregate : public BaseAggregate {
   void SortResult(std::vector<arrow::Datum>& groups, arrow::Datum& aggregates);
 };
 
-}  // namespace hustle::operator
+}  // namespace hustle::operators
 
 #endif  // HUSTLE_HASH_AGGREGATE_H

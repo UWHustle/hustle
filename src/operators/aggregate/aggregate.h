@@ -107,15 +107,13 @@ class Aggregate : public BaseAggregate {
    * @param order_by_refs vector of ColumnReferences denoting which columns
    * we should order by.
    */
-  Aggregate(const std::size_t query_id,
-            OperatorResult::OpResultPtr prev_result,
+  Aggregate(const std::size_t query_id, OperatorResult::OpResultPtr prev_result,
             OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
             std::vector<OrderByReference> order_by_refs);
 
-  Aggregate(const std::size_t query_id,
-            OperatorResult::OpResultPtr prev_result,
+  Aggregate(const std::size_t query_id, OperatorResult::OpResultPtr prev_result,
             OperatorResult::OpResultPtr output_result,
             std::vector<AggregateReference> aggregate_refs,
             std::vector<ColumnReference> group_by_refs,
@@ -132,7 +130,11 @@ class Aggregate : public BaseAggregate {
    * OperatorResult does not contain any of the LazyTables contained in the
    * prev_result paramter.
    */
-  void execute(Task* ctx) override;
+  void Execute(Task* ctx, int32_t flags) override;
+
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::AGGREGATE)->second;
+  }
 
   void Clear() override;
 
@@ -205,8 +207,8 @@ class Aggregate : public BaseAggregate {
 
   // Map group-by column name to group_index in the group_by_refs_ table.
   std::unordered_map<std::string, int> group_by_index_map_;
-  std::vector<LazyTable> group_by_tables_;
-  LazyTable agg_lazy_table_;
+  std::vector<LazyTable::LazyTablePtr> group_by_tables_;
+  LazyTable::LazyTablePtr agg_lazy_table_;
 
   // If a thread wants to insert a group and its aggregate into group_builder_
   // and aggregate_builder_, then it must grab this mutex to ensure that the

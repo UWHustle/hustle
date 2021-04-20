@@ -53,7 +53,7 @@ MultiwayJoin::MultiwayJoin(
   joined_index_chunks_.resize(2);
 }
 
-void MultiwayJoin::execute(Task *ctx) {
+void MultiwayJoin::Execute(Task *ctx, int32_t flags) {
   for (auto &result : prev_result_vec_) {
     prev_result_->append(result);
   }
@@ -78,11 +78,11 @@ void MultiwayJoin::execute(Task *ctx) {
     // LazyTables that we want to join.
     for (std::size_t i = 0; i < prev_result_->lazy_tables_.size(); i++) {
       auto lazy_table = prev_result_->get_table(i);
-      finished_[lazy_table.table] = false;
+      finished_[lazy_table->table] = false;
 
-      if (left_ref.table == lazy_table.table) {
+      if (left_ref.table == lazy_table->table) {
         lefts_.push_back(lazy_table);
-      } else if (right_ref.table == lazy_table.table) {
+      } else if (right_ref.table == lazy_table->table) {
         rights_.push_back(lazy_table);
       }
     }
@@ -114,20 +114,20 @@ void MultiwayJoin::HashJoin(int join_id, Task *ctx) {
   // anything going out of scope.
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, join_id](Task *internal) {
-        left_ = prev_result_->get_table(lefts_[join_id].table);
-        right_ = prev_result_->get_table(rights_[join_id].table);
-        left_.MaterializeColumn(internal, left_col_names_[join_id],
-                                left_join_col_);
-        right_.MaterializeColumn(internal, right_col_names_[join_id],
-                                 right_join_col_);
+        left_ = prev_result_->get_table(lefts_[join_id]->table);
+        right_ = prev_result_->get_table(rights_[join_id]->table);
+        left_->MaterializeColumn(internal, left_col_names_[join_id],
+                                 left_join_col_);
+        right_->MaterializeColumn(internal, right_col_names_[join_id],
+                                  right_join_col_);
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
         // Build phase
-        if (right_.hash_table() != nullptr) {
-          hash_tables_[join_id] = right_.hash_table();
-        } else if (right_.filter.kind() == arrow::Datum::CHUNKED_ARRAY) {
+        if (right_->hash_table() != nullptr) {
+          hash_tables_[join_id] = right_->hash_table();
+        } else if (right_->filter.kind() == arrow::Datum::CHUNKED_ARRAY) {
           BuildHashTable(join_id, right_join_col_.chunked_array(),
-                         right_.filter.chunked_array(), internal);
+                         right_->filter.chunked_array(), internal);
         } else {
           BuildHashTable(join_id, right_join_col_.chunked_array(), nullptr,
                          internal);
@@ -135,17 +135,17 @@ void MultiwayJoin::HashJoin(int join_id, Task *ctx) {
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
         // Probe phase
-        ProbeHashTable(join_id, left_join_col_.chunked_array(), left_.filter,
-                       left_.indices, internal);
+        ProbeHashTable(join_id, left_join_col_.chunked_array(), left_->filter,
+                       left_->indices, internal);
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
         FinishProbe(internal);
-        finished_[lefts_[join_id].table] = true;
-        finished_[rights_[join_id].table] = true;
+        finished_[lefts_[join_id]->table] = true;
+        finished_[rights_[join_id]->table] = true;
       }),
       CreateLambdaTask([this, join_id](Task *internal) {
-        auto left = prev_result_->get_table(lefts_[join_id].table);
-        auto right = prev_result_->get_table(rights_[join_id].table);
+        auto left = prev_result_->get_table(lefts_[join_id]->table);
+        auto right = prev_result_->get_table(rights_[join_id]->table);
         // Update indices of other LazyTables in the previous OperatorResult
         prev_result_ = BackPropogateResult(left, right, joined_indices_);
       })));
@@ -155,8 +155,8 @@ void MultiwayJoin::BuildHashTable(
     int join_id, const std::shared_ptr<arrow::ChunkedArray> &col,
     const std::shared_ptr<arrow::ChunkedArray> &filter, Task *ctx) {
   // NOTE: Do not forget to clear the hash table
-  hash_tables_[join_id] =
-      std::make_shared<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
+  hash_tables_[join_id] = std::make_shared<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
 
   // Precompute the row offsets of each chunk. A multithreaded build phase
   // requires that we know all offsets beforehand.
@@ -200,8 +200,9 @@ void MultiwayJoin::BuildHashTable(
                 {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i});
             (*hash_tables_[join_id])[val_getter(chunk, row)] = record_ids;
           } else {
-            (*hash_tables_[join_id])[val_getter(chunk, row)] = std::make_shared<std::vector<RecordID>>(std::vector<RecordID>({
-                {(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i}}));
+            (*hash_tables_[join_id])[val_getter(chunk, row)] =
+                std::make_shared<std::vector<RecordID>>(std::vector<RecordID>(
+                    {{(uint32_t)chunk_row_offsets[i] + row, (uint16_t)i}}));
           }
         }
       }
@@ -459,13 +460,13 @@ void MultiwayJoin::FinishProbe(Task *ctx) {
 }
 
 OperatorResult::OpResultPtr MultiwayJoin::BackPropogateResult(
-    LazyTable &left, LazyTable right,
+    LazyTable::LazyTablePtr &left, LazyTable::LazyTablePtr right,
     const std::vector<arrow::Datum> &joined_indices) {
   arrow::Status status;
   arrow::Datum new_indices;
   arrow::Datum new_index_chunks;
 
-  std::vector<LazyTable> output_lazy_tables;
+  std::vector<LazyTable::LazyTablePtr> output_lazy_tables;
 
   // The indices of the indices that were joined
   auto left_indices_of_indices = joined_indices_[kLeftJoinIndex];
@@ -483,31 +484,32 @@ OperatorResult::OpResultPtr MultiwayJoin::BackPropogateResult(
   // corresponds to indices in the left table, and we do not need to
   // call Take.
 
-  if (left.indices.kind() != arrow::Datum::NONE) {
-    status = arrow::compute::Take(left.indices, left_indices_of_indices,
+  if (left->indices.kind() != arrow::Datum::NONE) {
+    status = arrow::compute::Take(left->indices, left_indices_of_indices,
                                   take_options)
                  .Value(&new_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
   } else {
     new_indices = left_indices_of_indices;
   }
-  if (left.index_chunks.kind() != arrow::Datum::NONE) {
-    status = arrow::compute::Take(left.index_chunks, left_indices_of_indices,
+  if (left->index_chunks.kind() != arrow::Datum::NONE) {
+    status = arrow::compute::Take(left->index_chunks, left_indices_of_indices,
                                   take_options)
                  .Value(&new_index_chunks);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
   } else {
     new_index_chunks = left_index_chunks;
   }
-  output_lazy_tables.emplace_back(left.table, arrow::Datum(), new_indices,
-                                  new_index_chunks, left.hash_table());
+  output_lazy_tables.emplace_back(
+      std::make_shared<LazyTable>(left->table, arrow::Datum(), new_indices,
+                                  new_index_chunks, left->hash_table()));
 
   // Update the indices of the right LazyTable. If there was no previous
   // join on the right table, then right_indices_of_indices directly
   // corresponds to indices in the right table, and we do not need to
   // call Take.
-  if (right.indices.kind() != arrow::Datum::NONE) {
-    status = arrow::compute::Take(right.indices, right_indices_of_indices,
+  if (right->indices.kind() != arrow::Datum::NONE) {
+    status = arrow::compute::Take(right->indices, right_indices_of_indices,
                                   take_options)
                  .Value(&new_indices);
     evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
@@ -515,27 +517,28 @@ OperatorResult::OpResultPtr MultiwayJoin::BackPropogateResult(
     new_indices = right_indices_of_indices;
   }
   new_index_chunks = arrow::Datum();
-  output_lazy_tables.emplace_back(right.table, arrow::Datum(), new_indices,
-                                  new_index_chunks, right.hash_table());
+  output_lazy_tables.emplace_back(
+      std::make_shared<LazyTable>(right->table, arrow::Datum(), new_indices,
+                                  new_index_chunks, right->hash_table()));
 
   // Propogate the join to the other tables in the previous OperatorResult.
   // This elimates tuples from other tables in the previous result that were
   // eliminated in the most recent join.
   for (auto &lazy_table : prev_result_->lazy_tables_) {
-    if (lazy_table.table != left.table && lazy_table.table != right.table) {
-      if (finished_[lazy_table.table]) {
-        status = arrow::compute::Take(lazy_table.indices,
+    if (lazy_table->table != left->table && lazy_table->table != right->table) {
+      if (finished_[lazy_table->table]) {
+        status = arrow::compute::Take(lazy_table->indices,
                                       left_indices_of_indices, take_options)
                      .Value(&new_indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
 
-        output_lazy_tables.emplace_back(lazy_table.table, arrow::Datum(),
-                                        new_indices, arrow::Datum(),
-                                        lazy_table.hash_table());
+        output_lazy_tables.emplace_back(std::make_shared<LazyTable>(
+            lazy_table->table, arrow::Datum(), new_indices, arrow::Datum(),
+            lazy_table->hash_table()));
       } else {
-        output_lazy_tables.emplace_back(
-            lazy_table.table, arrow::Datum(), lazy_table.indices,
-            lazy_table.index_chunks, lazy_table.hash_table());
+        output_lazy_tables.emplace_back(std::make_shared<LazyTable>(
+            lazy_table->table, arrow::Datum(), lazy_table->indices,
+            lazy_table->index_chunks, lazy_table->hash_table()));
       }
     }
   }

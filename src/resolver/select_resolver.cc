@@ -53,8 +53,8 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
         ColumnReference rRef = {
             table_2, rightExpr->y.pTab->aCol[rightExpr->iColumn].zName};
 
-        if ((table_1 != nullptr && table_1->get_num_rows()) <
-            (table_2 != nullptr && table_2->get_num_rows())) {
+        if ((table_1 != nullptr && table_2 != nullptr) &&
+            (table_1->get_num_rows() < table_2->get_num_rows())) {
           std::swap(lRef, rRef);
         }
 
@@ -279,6 +279,14 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     if (pTabList->a[i].pSelect != NULL) {
       return false;
     }
+    if (pTabList->a[i].pUsing) return false;
+    if (pTabList->a[i].pOn) {
+      return false;
+    }
+    if (pTabList->a[i].fg.jointype & JT_UNSUPPORTED) {
+      return false;
+    }
+
     select_predicates_.insert({pTabList->a[i].zName, nullptr});
   }
 
@@ -331,13 +339,22 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     } else if (pEList->a[k].pExpr->op == TK_COLUMN ||
                pEList->a[k].pExpr->op == TK_AGG_COLUMN) {
       Expr* expr = pEList->a[k].pExpr;
+      if (expr->iColumn == -1) {  // For ROWID case
+        return false;
+      }
       ColumnReference colRef = {catalog_->GetTable(expr->y.pTab->zName),
                                 expr->y.pTab->aCol[expr->iColumn].zName};
       std::shared_ptr<ProjectReference> projRef =
           std::make_shared<ProjectReference>(ProjectReference{colRef});
       project_references_->emplace_back(projRef);
+    } else {
+      // Other than AGG FUNCTION or COLUMN
+      // it is unsupported
+      return false;
     }
   }
+
+  if (queryTree->pNext) return false;
 
   // Resolve predicates
   Expr* pWhere = queryTree->pWhere;

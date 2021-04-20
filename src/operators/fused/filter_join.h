@@ -34,7 +34,9 @@ namespace hustle::operators {
 
 struct LookupFilterJoin {
   std::shared_ptr<BloomFilter> bloom_filter;
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>> hash_table;
+  std::shared_ptr<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
+      hash_table;
   std::vector<std::vector<uint32_t>> indices_;
 };
 
@@ -80,7 +82,11 @@ class FilterJoin : public Operator {
    *
    * @param ctx A scheduler task
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::FILTER_JOIN)->second;
+  }
 
   void Clear() override {}
 
@@ -109,11 +115,11 @@ class FilterJoin : public Operator {
   std::vector<LookupFilterJoin> dim_filters_;
 
   // Dimension (lazy) tables
-  std::vector<LazyTable> dim_tables_;
+  std::vector<LazyTable::LazyTablePtr> dim_tables_;
   // Dimension primary key col names
   std::vector<std::string> dim_pk_col_names_;
 
-  LazyTable fact_table_;
+  LazyTable::LazyTablePtr fact_table_;
   // Fact table foreign key col names to probe Bloom filters.
   std::vector<std::string> fact_fk_col_names_;
 

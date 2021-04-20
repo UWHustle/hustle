@@ -29,7 +29,6 @@
 #include "utils/bloom_filter.h"
 #include "utils/parallel_utils.h"
 
-
 #define LEFT_JOIN_REF_IDX 0
 #define RIGHT_JOIN_REF_IDX 1
 
@@ -51,12 +50,12 @@ HashJoin::HashJoin(const std::size_t query_id,
       prev_result_(prev_result),
       output_result_(output_result),
       predicate_(predicate) {
-    // prev result has two operator result - 0 - left, 1 - right
+  // prev result has two operator result - 0 - left, 1 - right
   assert(prev_result.size() == 2);
   joined_indices_.resize(2);
 }
 
-void HashJoin::execute(Task *ctx) {
+void HashJoin::Execute(Task *ctx, int32_t flags) {
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this](Task *internal) { Initialize(internal); }),
       CreateLambdaTask([&, this](Task *internal) { Join(internal); }),
@@ -64,33 +63,33 @@ void HashJoin::execute(Task *ctx) {
 }
 
 void HashJoin::Initialize(Task *ctx) {
-  left_table_ =
-      prev_result_.at(LEFT_JOIN_REF_IDX)->get_table(predicate_->left_col_.table);
-  right_table_ =
-      prev_result_.at(RIGHT_JOIN_REF_IDX)->get_table(predicate_->right_col_.table);
+  left_table_ = prev_result_.at(LEFT_JOIN_REF_IDX)
+                    ->get_table(predicate_->left_col_.table);
+  right_table_ = prev_result_.at(RIGHT_JOIN_REF_IDX)
+                     ->get_table(predicate_->right_col_.table);
 
-  left_table_.MaterializeColumn(ctx, predicate_->left_col_.col_name, lcol_);
-  right_table_.MaterializeColumn(ctx, predicate_->right_col_.col_name, rcol_);
+  left_table_->MaterializeColumn(ctx, predicate_->left_col_.col_name, lcol_);
+  right_table_->MaterializeColumn(ctx, predicate_->right_col_.col_name, rcol_);
 }
 
 void HashJoin::Join(Task *ctx) {
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([&, this](Task *internal) {
         // Build phase
-        if (right_table_.hash_table() != nullptr) {
-          hash_table_ = right_table_.hash_table();
+        if (right_table_->hash_table() != nullptr) {
+          hash_table_ = right_table_->hash_table();
         } else {
           BuildHashTable(
               rcol_.chunked_array(),
-              (right_table_.filter.kind() == arrow::Datum::CHUNKED_ARRAY)
-                  ? right_table_.filter.chunked_array()
+              (right_table_->filter.kind() == arrow::Datum::CHUNKED_ARRAY)
+                  ? right_table_->filter.chunked_array()
                   : nullptr,
               internal);
         }
       }),
       CreateLambdaTask([&, this](Task *internal) {
-        ProbeHashTable(lcol_.chunked_array(), left_table_.filter,
-                       left_table_.indices, internal);
+        ProbeHashTable(lcol_.chunked_array(), left_table_->filter,
+                       left_table_->indices, internal);
       }),
       CreateLambdaTask([this](Task *internal) { FinishProbe(internal); })));
 }
@@ -98,8 +97,8 @@ void HashJoin::Join(Task *ctx) {
 void HashJoin::BuildHashTable(
     const std::shared_ptr<arrow::ChunkedArray> &col,
     const std::shared_ptr<arrow::ChunkedArray> &filter, Task *ctx) {
-  hash_table_ =
-      std::make_shared<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
+  hash_table_ = std::make_shared<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>();
 
   // Precompute the row offsets of each chunk. A multithreaded build phase
   // requires that we know all offsets beforehand.
@@ -132,11 +131,13 @@ void HashJoin::BuildHashTable(
         auto record_id_itr = hash_table_->find(chunk->Value(row));
         if (record_id_itr != hash_table_->end()) {
           auto record_ids = record_id_itr->second;
-          record_ids->push_back({(uint32_t)chunk_offsets[i] + row, (uint16_t)i});
+          record_ids->push_back(
+              {(uint32_t)chunk_offsets[i] + row, (uint16_t)i});
           (*hash_table_)[chunk->Value(row)] = record_ids;
         } else {
-          (*hash_table_)[chunk->Value(row)] = std::make_shared<std::vector<RecordID>>(std::vector<RecordID>({
-              {(uint32_t)chunk_offsets[i] + row, (uint16_t)i}}));
+          (*hash_table_)[chunk->Value(row)] =
+              std::make_shared<std::vector<RecordID>>(std::vector<RecordID>(
+                  {{(uint32_t)chunk_offsets[i] + row, (uint16_t)i}}));
         }
       }
     }
@@ -169,7 +170,6 @@ void HashJoin::ProbeHashTableBlock(
     auto idx_len = chunk_len;
     auto offset = chunk_row_offsets[i];
     for (auto row = 0; row < chunk_len; row++) {
-
       if (filter == nullptr || arrow::BitUtil::GetBit(filter, row)) {
         auto record_itr = hash_table_->find(left_data[row]);
 
@@ -266,7 +266,7 @@ OperatorResult::OpResultPtr HashJoin::BackPropogateResult(
   arrow::Status status;
 
   arrow::Datum indices, index_chunks;
-  std::vector<LazyTable> output_lazy_tables;
+  std::vector<LazyTable::LazyTablePtr> output_lazy_tables;
 
   /**
    * Update the indices of the LazyTable. If there was no previous
@@ -274,17 +274,18 @@ OperatorResult::OpResultPtr HashJoin::BackPropogateResult(
    * corresponds to indices in the left table, and we do not need to
    * call Take.
    */
-  auto update_indices = [&, this](LazyTable &table,
+  auto update_indices = [&, this](LazyTable::LazyTablePtr &table,
                                   arrow::Datum &join_indices) {
-    if (table.indices.kind() != arrow::Datum::NONE) {
-      status = arrow::compute::Take(table.indices, join_indices, take_options)
+    if (table->indices.kind() != arrow::Datum::NONE) {
+      status = arrow::compute::Take(table->indices, join_indices, take_options)
                    .Value(&indices);
       evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
     } else {
       indices = join_indices;
     }
-    output_lazy_tables.emplace_back(table.table, arrow::Datum(), indices,
-                                    index_chunks, table.hash_table());
+    output_lazy_tables.emplace_back(
+        std::make_shared<LazyTable>(table->table, arrow::Datum(), indices,
+                                    index_chunks, table->hash_table()));
   };
 
   /**
@@ -295,24 +296,24 @@ OperatorResult::OpResultPtr HashJoin::BackPropogateResult(
   auto propogate_indices = [&, this](int index, DBTable::TablePtr table,
                                      arrow::Datum &join_indices) {
     for (auto &lazy_table : prev_result_.at(index)->lazy_tables_) {
-      if (lazy_table.table != table &&
-          lazy_table.indices.kind() != arrow::Datum::NONE) {
-        status =
-            arrow::compute::Take(lazy_table.indices, join_indices, take_options)
-                .Value(&indices);
+      if (lazy_table->table != table &&
+          lazy_table->indices.kind() != arrow::Datum::NONE) {
+        status = arrow::compute::Take(lazy_table->indices, join_indices,
+                                      take_options)
+                     .Value(&indices);
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
-        output_lazy_tables.emplace_back(lazy_table.table, arrow::Datum(),
-                                        indices, index_chunks,
-                                        lazy_table.hash_table());
+        output_lazy_tables.emplace_back(std::make_shared<LazyTable>(
+            lazy_table->table, arrow::Datum(), indices, index_chunks,
+            lazy_table->hash_table()));
       }
     }
   };
 
   update_indices(left_table_, left_indices);
-  propogate_indices(LEFT_JOIN_REF_IDX, left_table_.table, left_indices);
+  propogate_indices(LEFT_JOIN_REF_IDX, left_table_->table, left_indices);
 
   update_indices(right_table_, right_indices);
-  propogate_indices(RIGHT_JOIN_REF_IDX, right_table_.table, right_indices);
+  propogate_indices(RIGHT_JOIN_REF_IDX, right_table_->table, right_indices);
 
   return std::make_shared<OperatorResult>(output_lazy_tables);
 }

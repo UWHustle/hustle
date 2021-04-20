@@ -34,7 +34,9 @@ namespace hustle::operators {
 
 struct LookupFilter {
   std::shared_ptr<BloomFilter> bloom_filter;
-  std::shared_ptr<phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>> hash_table;
+  std::shared_ptr<
+      phmap::flat_hash_map<int64_t, std::shared_ptr<std::vector<RecordID>>>>
+      hash_table;
 };
 
 static bool SortByBloomFilter(const LookupFilter &lhs,
@@ -74,7 +76,11 @@ class LIP : public Operator {
    *
    * @param ctx A scheduler task
    */
-  void execute(Task *ctx) override;
+  void Execute(Task *ctx, int32_t flags) override;
+
+  std::string operator_name() override {
+    return operator_names.find(OperatorType::LIP_OP)->second;
+  }
 
   void Clear() override {}
 
@@ -113,13 +119,13 @@ class LIP : public Operator {
   std::vector<std::shared_ptr<arrow::ChunkedArray>> fact_col_filters_;
 
   // Dimension (lazy) tables
-  std::vector<LazyTable> dim_tables_;
+  std::vector<LazyTable::LazyTablePtr> dim_tables_;
   // Dimension primary key col names
   std::vector<std::string> dim_pk_col_names_;
   // Total number of chunks in each dimension table.
   std::vector<int> dim_join_col_num_chunks_;
 
-  LazyTable fact_table_;
+  LazyTable::LazyTablePtr fact_table_;
   // Fact table foreign key col names to probe Bloom filters.
   std::vector<std::string> fact_fk_col_names_;
 

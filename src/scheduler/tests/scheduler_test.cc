@@ -33,9 +33,9 @@ class HustleSchedulerTest : public testing::Test {
 };
 
 TEST_F(HustleSchedulerTest, test1) {
-  //    EventProfiler<std::string> simple_profiler;
+  //    EventProfiler<std::string> profiler;
   //
-  //    auto *container = simple_profiler.getContainer();
+  //    auto *container = profiler.getContainer();
   //    container->startEvent("overall");
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
@@ -56,5 +56,5 @@ TEST_F(HustleSchedulerTest, test1) {
   scheduler.join();
   std::cout << x << std::endl;
   //    container->endEvent("overall");
-  //    simple_profiler.summarizeToStream(std::cout);
+  //    profiler.summarizeToStream(std::cout);
 }
