@@ -151,4 +151,4 @@ TEST_F(HustleMemLogTest, MemlogTestForInsertion) {
 //
 //  recordList = hustle_memlog_get_records(NULL, 0);
 //  EXPECT_TRUE(recordList == NULL);
-}
+//}
