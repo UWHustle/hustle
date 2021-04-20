@@ -277,9 +277,13 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
 
   for (int i = 0; i < pTabList->nSrc; i++) {
     // Select as table source is not supported
-    if (pTabList->a[i].pSelect != NULL) {
+    if (pTabList->a[i].pSelect != NULL && (pTabList->a[i].pSelect->selFlags & SF_NestedFrom)!=0 ) {
       return false;
     }
+    if (pTabList->a[i].pUsing) return false;
+    if (pTabList->a[i].pOn) return false;
+    if( pTabList->a[i].fg.jointype & JT_UNSUPPORTED) return false;
+
     select_predicates_.insert({pTabList->a[i].zName, nullptr});
   }
 
@@ -339,6 +343,8 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       project_references_->emplace_back(projRef);
     }
   }
+
+  if (queryTree->pNext) return false;
 
   // Resolve predicates
   Expr* pWhere = queryTree->pWhere;
