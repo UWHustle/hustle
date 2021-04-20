@@ -29,7 +29,7 @@
 
 namespace hustle::storage {
 
-BaseTable::~BaseTable() {}
+BaseTable::~BaseTable() = default;
 
 BaseTable::BaseTable(std::string in_name,
                      const std::shared_ptr<arrow::Schema> &in_schema,
