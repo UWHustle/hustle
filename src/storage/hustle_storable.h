@@ -41,7 +41,7 @@ enum HustleStorableSignal { QUERY_BEGIN, QUERY_END };
  */
 class HustleStorable {
  public:
-  virtual ~HustleStorable() = default;
+  virtual ~HustleStorable() = 0;
   virtual void ReceiveSignal(HustleStorableSignal signal){};
 };
 
