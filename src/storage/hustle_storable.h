@@ -41,8 +41,8 @@ enum HustleStorableSignal { QUERY_BEGIN, QUERY_END };
  */
 class HustleStorable {
  public:
-  virtual ~HustleStorable() = default;
-  virtual void ReceiveSignal(HustleStorableSignal signal){};
+  virtual ~HustleStorable() = 0;
+  virtual void ReceiveSignal(HustleStorableSignal signal) = 0;
 };
 
 }  // namespace hustle::storage
