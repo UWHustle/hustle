@@ -186,7 +186,7 @@ class HustleBlock : public HustleStorable {
    * Print the contents of the block delimited by tabs, including the valid
    * column.
    */
-  virtual void print() const = 0;
+  virtual void print() const;
 
   /**
    * Get the number of rows in the Block.
@@ -228,7 +228,7 @@ class HustleBlock : public HustleStorable {
    * @param pArg call back arg to return the result from it
    * @param callback  output callback format (sqlite3 compatible)
    */
-  virtual void out_block(void *pArg, sqlite3_callback callback) const = 0;
+  virtual void out_block(void *pArg, sqlite3_callback callback) const;
 
   /**
    * Insert a record into the Block.
@@ -241,7 +241,7 @@ class HustleBlock : public HustleStorable {
    * @return -1 if the insertion failed, otherwise the highest row index now
    * present in the block.
    */
-  virtual int InsertRecord(uint8_t *record, int32_t *byte_widths) = 0;
+  virtual int InsertRecord(uint8_t *record, int32_t *byte_widths);
 
   /**
    * Insert a record into the block.
@@ -252,7 +252,7 @@ class HustleBlock : public HustleStorable {
    * present in the block.
    */
   virtual int InsertRecord(std::vector<std::string_view> record,
-                           int32_t *byte_widths) = 0;
+                           int32_t *byte_widths);
 
   /**
    * Insert one or more records into the Block as a vector of ArrayData.
@@ -268,7 +268,7 @@ class HustleBlock : public HustleStorable {
    * present in the block.
    */
   virtual int InsertRecords(
-      std::vector<std::shared_ptr<arrow::ArrayData>> column_data) = 0;
+      std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
   /**
    * Insert one or more records into the Block using BlockInfo from a different
@@ -284,7 +284,7 @@ class HustleBlock : public HustleStorable {
   virtual int InsertRecords(
       std::map<int, BlockInfo> &block_map, std::map<int, int> &row_map,
       std::shared_ptr<arrow::Array> valid_column,
-      std::vector<std::shared_ptr<arrow::ArrayData>> column_data) = 0;
+      std::vector<std::shared_ptr<arrow::ArrayData>> column_data);
 
   /**
    * Update a value in a column.
@@ -322,7 +322,7 @@ class HustleBlock : public HustleStorable {
   /**
    * Truncate column buffers for all columns in the Block.
    */
-  virtual void TruncateBuffers() = 0;
+  virtual void TruncateBuffers();
 
  protected:
   /**

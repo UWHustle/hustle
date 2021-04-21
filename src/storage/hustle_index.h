@@ -35,7 +35,7 @@ class HustleIndex : public HustleStorable {
    * @return arrow::Status if the constructor created a problem status.
    * If IsOkay is true, this method should try to return arrow::Status::OK.
    */
-  virtual arrow::Status GetStatus() = 0;
+  virtual arrow::Status GetStatus();
 
   /**
    * Search the underlying metadata segment.
@@ -46,7 +46,7 @@ class HustleIndex : public HustleStorable {
    * otherwise true.
    */
   virtual bool Search(const arrow::Datum& val_ptr,
-                      arrow::compute::CompareOperator compare_operator) = 0;
+                      arrow::compute::CompareOperator compare_operator);
 };
 
 }  // namespace hustle::storage

@@ -19,4 +19,9 @@
 
 namespace hustle::storage {
 HustleIndex::~HustleIndex() = default;
+arrow::Status HustleIndex::GetStatus() { throw std::runtime_error(""); }
+bool HustleIndex::Search(const arrow::Datum& val_ptr,
+            arrow::compute::CompareOperator compare_operator) {
+  return false;
+}
 }  // namespace hustle::storage
