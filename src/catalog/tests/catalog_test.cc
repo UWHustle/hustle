@@ -39,7 +39,7 @@ using hustle::catalog::HustleType;
 using hustle::catalog::TableSchema;
 
 TEST(ColumnSchema, HappyPath) {
-//  ColumnSchema cs("c1", {HustleType::INTEGER}, false, true);
+  ColumnSchema cs("c1", {HustleType::INTEGER}, false, true);
 //  EXPECT_EQ(cs.getName(), "c1");
 //  EXPECT_TRUE(cs.isUnique());
 //  EXPECT_FALSE(cs.isNotNull());
