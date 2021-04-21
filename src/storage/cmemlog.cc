@@ -29,6 +29,8 @@
 
 #include "api/hustle_db.h"
 #include "storage/utils/record_utils.h"
+#include "storage/base_table.h"
+#include "storage/index_aware_table.h"
 
 // Maps the Btree root id to hustle table id
 static std::map<int, std::map<int, std::string>> table_map;
