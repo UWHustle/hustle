@@ -23,6 +23,8 @@
 #include "operators/operator.h"
 #include "operators/select/predicate.h"
 #include "storage/base_table.h"
+#include "storage/hustle_storable.h"
+#include "storage/hustle_table.h"
 #include "storage/indexed_block.h"
 #include "storage/index_aware_table.h"
 
