@@ -15,30 +15,30 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//#include "catalog/catalog.h"
-//
-//#include <stdio.h>
-//
-//#include <cereal/archives/json.hpp>
-//#include <cereal/types/complex.hpp>
-//#include <cereal/types/map.hpp>
-//#include <cereal/types/memory.hpp>
-//#include <cereal/types/optional.hpp>
-//#include <cereal/types/string.hpp>
-//#include <cereal/types/vector.hpp>
-//#include "api/hustle_db.h"
-//#include "gmock/gmock.h"
-//#include "gtest/gtest.h"
-//#include "sqlite3/sqlite3.h"
-//
-//using namespace testing;
-//using hustle::catalog::Catalog;
-//using hustle::catalog::ColumnSchema;
-//using hustle::catalog::ColumnType;
-//using hustle::catalog::HustleType;
-//using hustle::catalog::TableSchema;
-//
-//TEST(ColumnSchema, HappyPath) {
+#include "catalog/catalog.h"
+
+#include <stdio.h>
+
+#include <cereal/archives/json.hpp>
+#include <cereal/types/complex.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/optional.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+#include "api/hustle_db.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "sqlite3/sqlite3.h"
+
+using namespace testing;
+using hustle::catalog::Catalog;
+using hustle::catalog::ColumnSchema;
+using hustle::catalog::ColumnType;
+using hustle::catalog::HustleType;
+using hustle::catalog::TableSchema;
+
+TEST(ColumnSchema, HappyPath) {
 //  ColumnSchema cs("c1", {HustleType::INTEGER}, false, true);
 //  EXPECT_EQ(cs.getName(), "c1");
 //  EXPECT_TRUE(cs.isUnique());
@@ -52,7 +52,7 @@
 //  EXPECT_TRUE(cs2.isNotNull());
 //  EXPECT_EQ(cs2.getHustleType(), HustleType::CHAR);
 //  EXPECT_EQ(*(cs2.getTypeSize()), 15);
-//}
+}
 //
 //TEST(TableSchema, HappyPath) {
 //  TableSchema ts("Subscriber");
