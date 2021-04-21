@@ -21,8 +21,15 @@
 #include "gtest/gtest.h"
 #include "storage/cmemlog.h"
 #include "storage/base_table.h"
+#include "storage/hustle_table.h"
 #include "storage/indexed_block.h"
 #include "storage/index_aware_table.h"
+#include "storage/hustle_storable.h"
+#include "storage/base_table.h"
+#include "storage/indexed_block.h"
+#include "storage/index_aware_table.h"
+
+
 using namespace testing;
 
 class HustleMemLogTest : public testing::Test {
