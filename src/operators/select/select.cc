@@ -26,6 +26,8 @@
 #include <utility>
 
 #include "storage/base_table.h"
+#include "storage/indexed_block.h"
+#include "storage/index_aware_table.h"
 #include "type/type_helper.h"
 #include "arrow_utils.h"
 #include "utils/bit_utils.h"
