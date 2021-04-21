@@ -21,7 +21,7 @@ target_link_libraries(hustle_src_storage PUBLIC
         absl::container
         absl::hash
         absl::flat_hash_map
-        hustle_src_catalog
+#        hustle_src_catalog
         hustleDB)
 
 
