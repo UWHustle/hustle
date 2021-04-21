@@ -337,34 +337,35 @@ std::shared_ptr<hustle::storage::HustleTable> read_from_csv_file(
   return out_table;
 }
 
-std::shared_ptr<arrow::Schema> make_schema(
-    const hustle::catalog::TableSchema& catalog_schema) {
-  arrow::Status status;
-  arrow::SchemaBuilder schema_builder;
-
-  std::shared_ptr<arrow::Field> field;
-
-  for (auto& col : catalog_schema.getColumns()) {
-    switch (col.getHustleType()) {
-      // TODO(nicholas): distinguish between different integer types
-      case hustle::catalog::INTEGER: {
-        field = arrow::field(col.getName(), arrow::int64());
-        break;
-      }
-      case hustle::catalog::CHAR: {
-        field = arrow::field(col.getName(), arrow::utf8());
-        break;
-      }
-    }
-    status = schema_builder.AddField(field);
-    evaluate_status(status, __FUNCTION__, __LINE__);
-  }
-
-  auto result = schema_builder.Finish();
-  evaluate_status(result.status(), __FUNCTION__, __LINE__);
-
-  return result.ValueOrDie();
-}
+//// TODO: (Refactor) Maybe deprecate this?
+//std::shared_ptr<arrow::Schema> make_schema(
+//    const hustle::catalog::TableSchema& catalog_schema) {
+//  arrow::Status status;
+//  arrow::SchemaBuilder schema_builder;
+//
+//  std::shared_ptr<arrow::Field> field;
+//
+//  for (auto& col : catalog_schema.getColumns()) {
+//    switch (col.getHustleType()) {
+//      // TODO(nicholas): distinguish between different integer types
+//      case hustle::catalog::INTEGER: {
+//        field = arrow::field(col.getName(), arrow::int64());
+//        break;
+//      }
+//      case hustle::catalog::CHAR: {
+//        field = arrow::field(col.getName(), arrow::utf8());
+//        break;
+//      }
+//    }
+//    status = schema_builder.AddField(field);
+//    evaluate_status(status, __FUNCTION__, __LINE__);
+//  }
+//
+//  auto result = schema_builder.Finish();
+//  evaluate_status(result.status(), __FUNCTION__, __LINE__);
+//
+//  return result.ValueOrDie();
+//}
 
 void skew_column(std::shared_ptr<arrow::ChunkedArray>& col) {
   auto num_chunks = col->num_chunks();

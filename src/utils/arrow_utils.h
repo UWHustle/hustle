@@ -42,4 +42,6 @@ inline void evaluate_status(const arrow::Status& status,
   }
 }
 
+
+
 #endif  // HUSTLE_UTILS_ARROW_UTIL

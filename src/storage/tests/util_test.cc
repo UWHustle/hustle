@@ -33,22 +33,22 @@ class HustleUtilTest : public testing::Test {
   void SetUp() override {}
 };
 
-TEST_F(HustleUtilTest, CatalogToArrowSchema) {
-  hustle::catalog::ColumnType int_type(hustle::catalog::HustleType::INTEGER,
-                                       sizeof(int64_t));
-  hustle::catalog::ColumnSchema int_col("int col", int_type, true, true);
-
-  hustle::catalog::ColumnType str_type(hustle::catalog::HustleType::CHAR);
-  hustle::catalog::ColumnSchema str_col("str col", str_type, true, true);
-
-  hustle::catalog::TableSchema catalog_schema("schema");
-  catalog_schema.addColumn(int_col);
-  catalog_schema.addColumn(str_col);
-
-  auto schema = make_schema(catalog_schema);
-
-  auto test_schema = arrow::schema({arrow::field("int col", arrow::int64()),
-                                    arrow::field("str col", arrow::utf8())});
-
-  EXPECT_TRUE(schema->Equals(test_schema));
-}
+//TEST_F(HustleUtilTest, CatalogToArrowSchema) {
+//  hustle::catalog::ColumnType int_type(hustle::catalog::HustleType::INTEGER,
+//                                       sizeof(int64_t));
+//  hustle::catalog::ColumnSchema int_col("int col", int_type, true, true);
+//
+//  hustle::catalog::ColumnType str_type(hustle::catalog::HustleType::CHAR);
+//  hustle::catalog::ColumnSchema str_col("str col", str_type, true, true);
+//
+//  hustle::catalog::TableSchema catalog_schema("schema");
+//  catalog_schema.addColumn(int_col);
+//  catalog_schema.addColumn(str_col);
+//
+//  auto schema = make_schema(catalog_schema);
+//
+//  auto test_schema = arrow::schema({arrow::field("int col", arrow::int64()),
+//                                    arrow::field("str col", arrow::utf8())});
+//
+//  EXPECT_TRUE(schema->Equals(test_schema));
+//}

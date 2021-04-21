@@ -24,7 +24,7 @@
 
 #include <string>
 
-#include "catalog/table_schema.h"
+//#include "catalog/table_schema.h"
 #include "storage/base_table.h"
 #include "storage/hustle_table.h"
 #include "storage/utils/util.h"
@@ -94,8 +94,8 @@ inline std::shared_ptr<hustle::storage::HustleTable> read_from_csv_file(
                             IMPORT_CSV_TO_INDEX_ENABLED_BLOCK_BY_DEFAULT);
 }
 
-std::shared_ptr<arrow::Schema> make_schema(
-    const hustle::catalog::TableSchema& schema);
+//std::shared_ptr<arrow::Schema> make_schema(
+//    const hustle::catalog::TableSchema& schema);
 
 std::shared_ptr<arrow::ChunkedArray> array_to_chunkedarray(
     std::shared_ptr<arrow::Array> array, int num_chunks);
