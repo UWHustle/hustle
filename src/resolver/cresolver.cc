@@ -46,7 +46,7 @@ using FilterJoinPtr = std::unique_ptr<FilterJoin>;
 using ProjectReferencePtr = std::shared_ptr<ProjectReference>;
 
 std::optional<bool> build_select(
-    Catalog *catalog, SelectResolver *select_resolver,
+    Catalog *catalog, std::shared_ptr<hustle::resolver::SelectResolver> select_resolver,
     std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
         select_predicates,
     std::vector<OperatorResult::OpResultPtr> &select_result,
@@ -119,7 +119,7 @@ void build_join(
   }
 }
 
-void build_aggregate(hustle::resolver::SelectResolver *select_resolver,
+void build_aggregate(std::shared_ptr<hustle::resolver::SelectResolver> select_resolver,
                      std::shared_ptr<std::vector<AggregateReference>> &agg_refs,
                      AggPtr &agg_op,
                      OperatorResult::OpResultPtr &prev_result_out,
@@ -162,7 +162,7 @@ void build_output_cols(bool is_agg_out,
 }
 
 std::shared_ptr<hustle::ExecutionPlan> createPlan(
-    hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
+    std::shared_ptr<hustle::resolver::SelectResolver> select_resolver, Catalog *catalog) {
   using namespace hustle::operators;
   std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
       select_predicates = select_resolver->select_predicates();
@@ -255,8 +255,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 }
 
 std::shared_ptr<hustle::storage::DBTable> execute(
-    std::shared_ptr<hustle::ExecutionPlan> plan,
-    hustle::resolver::SelectResolver *select_resolver, Catalog *catalog) {
+    std::shared_ptr<hustle::ExecutionPlan> plan) {
   std::shared_ptr<hustle::storage::DBTable> out_table;
   using namespace hustle::operators;
   hustle::Scheduler &scheduler = hustle::HustleDB::get_scheduler();
@@ -282,24 +281,23 @@ std::shared_ptr<hustle::storage::DBTable> execute(
 int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs,
                   sqlite3_callback xCallback) {
   using hustle::resolver::SelectResolver;
-  Catalog *catalog = hustle::HustleDB::get_catalog(dbName).get();
+  auto catalog = hustle::HustleDB::get_catalog(dbName);
   if (dbName == NULL || catalog == nullptr) return 0;
 
-  SelectResolver *select_resolver = new SelectResolver(catalog);
+  auto select_resolver = std::make_shared<SelectResolver>(catalog);
   bool is_resolvable = select_resolver->ResolveSelectTree(queryTree);
 
   if (is_resolvable) {
     std::shared_ptr<hustle::ExecutionPlan> plan =
-        createPlan(select_resolver, catalog);
+        createPlan(select_resolver, catalog.get());
 
     if (plan != nullptr) {
       std::shared_ptr<hustle::storage::DBTable> outTable =
-          execute(plan, select_resolver, catalog);
+          execute(plan);
       outTable->out_table(pArgs, xCallback);
     } else {
       return 0;
     }
   }
-  delete select_resolver;
   return is_resolvable ? 1 : 0;
 }

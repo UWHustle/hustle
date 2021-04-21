@@ -80,7 +80,7 @@ class HustleDB {
 
   inline const std::string get_sqlite_path() { return SqliteDBPath_; }
 
-  Catalog *get_catalog() { return catalog_.get(); }
+  std::shared_ptr<Catalog> get_catalog() { return catalog_; }
 
   ~HustleDB() { utils::close_sqlite3(db); }
 

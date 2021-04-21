@@ -61,6 +61,8 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
         JoinPredicate join_pred = {lRef, arrow::compute::EQUAL, rRef};
         if (rRef.table != nullptr) {
           join_predicates_[rRef.table->get_name()] = join_pred;
+          join_graph_[rRef.table->get_name()].emplace_back(join_pred);
+          join_graph_[lRef.table->get_name()].emplace_back(join_pred);
           predicates_.emplace_back(join_pred);
         }
       }
@@ -272,6 +274,19 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   // Currently having construct is not handled in Hustle
   if (queryTree->pHaving != NULL) {
     return false;
+  }
+
+  // Unsupported types of select queries in Hustle
+  if ((queryTree->selFlags & SF_Distinct)
+        || (queryTree->selFlags & SF_All)
+        || (queryTree->selFlags & SF_NestedFrom)
+        || (queryTree->selFlags & SF_View)
+        || (queryTree->selFlags & SF_Recursive)
+        || (queryTree->selFlags & SF_FixedLimit)
+        || (queryTree->selFlags & SF_Compound)
+        || (queryTree->selFlags & SF_Values)
+        || (queryTree->selFlags & SF_MultiValue)) {
+      return false;
   }
 
   for (int i = 0; i < pTabList->nSrc; i++) {

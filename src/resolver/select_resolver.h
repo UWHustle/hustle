@@ -50,6 +50,7 @@ class SelectResolver {
       select_predicates_;
 
   std::unordered_map<std::string, JoinPredicate> join_predicates_;
+  std::unordered_map<std::string, std::vector<JoinPredicate>> join_graph_;
   std::vector<JoinPredicate> predicates_;
 
   std::shared_ptr<std::vector<AggregateReference>> agg_references_;
@@ -65,7 +66,7 @@ class SelectResolver {
        {"COUNT", AggregateKernel::COUNT},
        {"MEAN", AggregateKernel::MEAN}};
 
-  Catalog* catalog_;
+  std::shared_ptr<Catalog> catalog_;
 
   bool resolve_status_;
 
@@ -73,7 +74,7 @@ class SelectResolver {
   void ResolveJoinPredExpr(Expr* pExpr);
 
  public:
-  SelectResolver(Catalog* catalog) : catalog_(catalog) {
+  SelectResolver(std::shared_ptr<Catalog> catalog) : catalog_(catalog) {
     agg_references_ = std::make_shared<std::vector<AggregateReference>>();
     group_by_references_ =
         std::make_shared<std::vector<std::shared_ptr<ColumnReference>>>();
