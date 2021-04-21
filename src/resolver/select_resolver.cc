@@ -274,6 +274,19 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     return false;
   }
 
+  // Unsupported types of select queries in Hustle
+  if ((queryTree->selFlags & SF_Distinct)
+        || (queryTree->selFlags & SF_All)
+        || (queryTree->selFlags & SF_NestedFrom)
+        || (queryTree->selFlags & SF_View)
+        || (queryTree->selFlags & SF_Recursive)
+        || (queryTree->selFlags & SF_FixedLimit)
+        || (queryTree->selFlags & SF_Compound)
+        || (queryTree->selFlags & SF_Values)
+        || (queryTree->selFlags & SF_MultiValue)) {
+      return false;
+  }
+
   for (int i = 0; i < pTabList->nSrc; i++) {
     // Select as table source is not supported
     if (pTabList->a[i].pSelect != NULL) {
