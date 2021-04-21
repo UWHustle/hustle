@@ -35,15 +35,9 @@ int HustleBlock::InsertRecords(
     std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   return 0;
 }
-int InsertRecord(uint8_t *record, int32_t *byte_widths) {}
-int InsertRecord(std::vector<std::string_view> record, int32_t *byte_widths) {}
-int InsertRecords(std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {}
-
-int InsertRecords(std::map<int, BlockInfo> &block_map,
-                  std::map<int, int> &row_map,
-                  std::shared_ptr<arrow::Array> valid_column,
-                  std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
+int HustleBlock::InsertRecords(
+    std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
   return 0;
 }
-void TruncateBuffers() {}
+void HustleBlock::TruncateBuffers() {}
 }  // namespace hustle::storage
