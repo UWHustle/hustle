@@ -109,6 +109,8 @@ class SelectResolver {
     return select_predicates_;
   }
 
+  inline JoinType join_type() { return join_type_; }
+
   inline std::unordered_map<std::string, JoinPredicate> join_predicates() {
     return join_predicates_;
   }

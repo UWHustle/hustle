@@ -30,6 +30,9 @@ using namespace hustle::operators;
 using namespace hustle::catalog;
 
 bool SelectResolver::CheckJoinSupport() {
+  // set default join type as "other"
+  join_type_ = JoinType::OTHER;
+
   for (auto const& [ltable_name, predicate_list] : join_graph_) {
     if (predicate_list.size() == predicates_.size()) {
       join_type_ = JoinType::STAR;
@@ -50,32 +53,28 @@ bool SelectResolver::CheckJoinSupport() {
   }
 
   int covered_preds = 0;
-  JoinPredicate cur_predicate = start_predicate;
-  std::string cur_table_name = start_table_name;
+  JoinPredicate curr_predicate = start_predicate;
+  std::string curr_table_name = start_table_name;
 
   std::set<std::string> visited_tables;
   while (covered_preds < predicates_.size()) {
-    if (visited_tables.find(cur_table_name) != visited_tables.end())
+    if (visited_tables.find(curr_table_name) != visited_tables.end())
       return false;
-    visited_tables.insert(cur_table_name);
+    visited_tables.insert(curr_table_name);
     std::string next_table =
-        !cur_predicate.left_col_.table->get_name().compare(cur_table_name)
-            ? cur_predicate.right_col_.table->get_name()
-            : cur_predicate.left_col_.table->get_name();
-    auto rpreds = join_graph_[next_table];
-    if (rpreds.size() > 2) {
-      join_type_ = JoinType::OTHER;
+        !curr_predicate.left_col_.table->get_name().compare(curr_table_name)
+            ? curr_predicate.right_col_.table->get_name()
+            : curr_predicate.left_col_.table->get_name();
+    auto rpredicates = join_graph_[next_table];
+    if (rpredicates.size() > 2) {
       return false;
     }
     covered_preds++;
     bool found_next_pred = false;
-    for (auto pred : rpreds) {
-      if (pred.left_col_.table != cur_predicate.left_col_.table ||
-          pred.left_col_.col_name.compare(cur_predicate.left_col_.col_name) ||
-          pred.right_col_.table != cur_predicate.right_col_.table ||
-          pred.right_col_.col_name.compare(cur_predicate.right_col_.col_name)) {
-        cur_predicate = pred;
-        cur_table_name = next_table;
+    for (auto predicate : rpredicates) {
+      if (predicate != curr_predicate) {
+        curr_predicate = predicate;
+        curr_table_name = next_table;
         found_next_pred = true;
       }
     }
@@ -441,6 +440,10 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   }
   if (pWhere != NULL) {
     ResolveJoinPredExpr(pWhere);
+  }
+
+  if (!CheckJoinSupport()) {
+    return false;
   }
 
   // Resolve GroupBy
