@@ -21,12 +21,71 @@
 #include <cctype>
 #include <cstring>
 #include <memory>
+#include <set>
 
 namespace hustle {
 namespace resolver {
 
 using namespace hustle::operators;
 using namespace hustle::catalog;
+
+bool SelectResolver::CheckJoinSupport() {
+  for (auto const& [ltable_name, predicate_list] : join_graph_) {
+    if (predicate_list.size() == predicates_.size()) {
+      join_type_ = JoinType::STAR;
+      return true;
+    }
+  }
+
+  JoinPredicate start_predicate;
+  std::string start_table_name;
+  for (auto const& [ltable_name, predicate_list] : join_graph_) {
+    if (predicate_list.size() == 1) {
+      start_predicate = predicate_list.at(0);
+      start_table_name = ltable_name;
+    }
+  }
+  if (start_table_name.empty()) {
+    return false;
+  }
+
+  int covered_preds = 0;
+  JoinPredicate cur_predicate = start_predicate;
+  std::string cur_table_name = start_table_name;
+
+  std::set<std::string> visited_tables;
+  while (covered_preds < predicates_.size()) {
+    if (visited_tables.find(cur_table_name) != visited_tables.end())
+      return false;
+    visited_tables.insert(cur_table_name);
+    std::string next_table =
+        !cur_predicate.left_col_.table->get_name().compare(cur_table_name)
+            ? cur_predicate.right_col_.table->get_name()
+            : cur_predicate.left_col_.table->get_name();
+    auto rpreds = join_graph_[next_table];
+    if (rpreds.size() > 2) {
+      join_type_ = JoinType::OTHER;
+      return false;
+    }
+    covered_preds++;
+    bool found_next_pred = false;
+    for (auto pred : rpreds) {
+      if (pred.left_col_.table != cur_predicate.left_col_.table ||
+          pred.left_col_.col_name.compare(cur_predicate.left_col_.col_name) ||
+          pred.right_col_.table != cur_predicate.right_col_.table ||
+          pred.right_col_.col_name.compare(cur_predicate.right_col_.col_name)) {
+        cur_predicate = pred;
+        cur_table_name = next_table;
+        found_next_pred = true;
+      }
+    }
+    if (!found_next_pred && covered_preds < predicates_.size()) {
+      return false;
+    }
+  }
+  join_type_ = JoinType::LINEAR;
+  return true;
+}
 
 void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
   if (pExpr == NULL) {
@@ -62,8 +121,11 @@ void SelectResolver::ResolveJoinPredExpr(Expr* pExpr) {
         if (rRef.table != nullptr) {
           join_predicates_[rRef.table->get_name()] = join_pred;
           join_graph_[rRef.table->get_name()].emplace_back(join_pred);
-          join_graph_[lRef.table->get_name()].emplace_back(join_pred);
           predicates_.emplace_back(join_pred);
+        }
+
+        if (lRef.table != nullptr) {
+          join_graph_[lRef.table->get_name()].emplace_back(join_pred);
         }
       }
       break;
@@ -277,16 +339,14 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
   }
 
   // Unsupported types of select queries in Hustle
-  if ((queryTree->selFlags & SF_Distinct)
-        || (queryTree->selFlags & SF_All)
-        || (queryTree->selFlags & SF_NestedFrom)
-        || (queryTree->selFlags & SF_View)
-        || (queryTree->selFlags & SF_Recursive)
-        || (queryTree->selFlags & SF_FixedLimit)
-        || (queryTree->selFlags & SF_Compound)
-        || (queryTree->selFlags & SF_Values)
-        || (queryTree->selFlags & SF_MultiValue)) {
-      return false;
+  if ((queryTree->selFlags & SF_Distinct) || (queryTree->selFlags & SF_All) ||
+      (queryTree->selFlags & SF_NestedFrom) ||
+      (queryTree->selFlags & SF_View) || (queryTree->selFlags & SF_Recursive) ||
+      (queryTree->selFlags & SF_FixedLimit) ||
+      (queryTree->selFlags & SF_Compound) ||
+      (queryTree->selFlags & SF_Values) ||
+      (queryTree->selFlags & SF_MultiValue)) {
+    return false;
   }
 
   for (int i = 0; i < pTabList->nSrc; i++) {

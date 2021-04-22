@@ -43,6 +43,12 @@ struct ProjectReference {
   std::string alias;
 };
 
+enum JoinType {
+  STAR,
+  LINEAR,
+  OTHER,
+};
+
 class SelectResolver {
  private:
   std::unordered_map<std::string,
@@ -70,8 +76,12 @@ class SelectResolver {
 
   bool resolve_status_;
 
+  JoinType join_type_;
+
   std::shared_ptr<PredicateTree> ResolvePredExpr(Expr* pExpr);
   void ResolveJoinPredExpr(Expr* pExpr);
+
+  bool CheckJoinSupport();
 
  public:
   SelectResolver(std::shared_ptr<Catalog> catalog) : catalog_(catalog) {
@@ -91,9 +101,7 @@ class SelectResolver {
     resolve_status_ = true;
   }
 
-  SelectResolver() : SelectResolver(nullptr) {
-      resolve_status_ = true;
-  }
+  SelectResolver() : SelectResolver(nullptr) { resolve_status_ = true; }
 
   inline std::unordered_map<std::string,
                             std::shared_ptr<hustle::operators::PredicateTree>>&
