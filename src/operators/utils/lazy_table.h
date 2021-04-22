@@ -136,7 +136,6 @@ class LazyTable {
       hash_table_;
   std::vector<std::shared_ptr<arrow::ChunkedArray>> materialized_cols_;
   std::unordered_map<int, std::shared_ptr<arrow::ChunkedArray>> filtered_cols_;
-  Context context_;
 };
 
 }  // namespace hustle::operators
