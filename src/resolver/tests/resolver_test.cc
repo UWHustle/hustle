@@ -350,11 +350,11 @@ TEST_F(ResolverTest, q1) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_extendedprice) as "
@@ -368,11 +368,12 @@ TEST_F(ResolverTest, q1) {
             << hustleDB.get_plan(query) << std::endl;
 
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 1);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -386,11 +387,11 @@ TEST_F(ResolverTest, q2) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_extendedprice) as "
@@ -405,11 +406,12 @@ TEST_F(ResolverTest, q2) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 1);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -423,11 +425,11 @@ TEST_F(ResolverTest, q3) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_extendedprice) as "
@@ -442,11 +444,12 @@ TEST_F(ResolverTest, q3) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 1);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -460,11 +463,11 @@ TEST_F(ResolverTest, q4) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_revenue), d_year, p_brand1\n"
@@ -481,11 +484,12 @@ TEST_F(ResolverTest, q4) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -499,11 +503,11 @@ TEST_F(ResolverTest, q5) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_revenue), d_year, p_brand1\n"
@@ -520,11 +524,12 @@ TEST_F(ResolverTest, q5) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -538,11 +543,11 @@ TEST_F(ResolverTest, q6) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_revenue), d_year, p_brand1\n"
@@ -559,11 +564,12 @@ TEST_F(ResolverTest, q6) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -577,11 +583,11 @@ TEST_F(ResolverTest, q7) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_nation, s_nation, d_year, sum(lo_revenue) "
@@ -600,11 +606,12 @@ TEST_F(ResolverTest, q7) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -618,11 +625,11 @@ TEST_F(ResolverTest, q8) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_city, s_city, d_year, sum(lo_revenue) as "
@@ -641,11 +648,12 @@ TEST_F(ResolverTest, q8) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -659,11 +667,11 @@ TEST_F(ResolverTest, q9) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_city, s_city, d_year, sum(lo_revenue) as "
@@ -682,11 +690,12 @@ TEST_F(ResolverTest, q9) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -700,11 +709,11 @@ TEST_F(ResolverTest, q10) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select c_city, s_city, d_year, sum(lo_revenue) as "
@@ -723,11 +732,12 @@ TEST_F(ResolverTest, q10) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 3);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -741,11 +751,11 @@ TEST_F(ResolverTest, q11) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select d_year, c_nation, "
@@ -765,11 +775,12 @@ TEST_F(ResolverTest, q11) {
             << "The plan is: " << std::endl
             << hustleDB.get_plan(query) << std::endl;
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -783,11 +794,11 @@ TEST_F(ResolverTest, q12) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select d_year, s_nation, p_category, sum(lo_revenue) "
@@ -809,11 +820,12 @@ TEST_F(ResolverTest, q12) {
             << hustleDB.get_plan(query) << std::endl;
 
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
 
   select_resolver.ResolveSelectTree(queryTree);
   EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -827,11 +839,11 @@ TEST_F(ResolverTest, q13) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select d_year, s_city, p_brand1, sum(lo_revenue) as "
@@ -853,11 +865,12 @@ TEST_F(ResolverTest, q13) {
             << hustleDB.get_plan(query) << std::endl;
 
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
 
   select_resolver.ResolveSelectTree(queryTree);
   EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
 
@@ -871,11 +884,11 @@ TEST_F(ResolverTest, queryAggExpr) {
   std::filesystem::remove_all("db_directory");
   hustle::HustleDB hustleDB("db_directory");
 
-    hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
-    hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
-    hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
-    hustleDB.create_table(ResolverTest::part, ResolverTest::p);
-    hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
 
   std::string query =
       "select sum(lo_extendedprice*lo_discount) as "
@@ -887,11 +900,12 @@ TEST_F(ResolverTest, queryAggExpr) {
       "and lo_quantity < 35;";
 
   Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
+      hustleDB.get_sqlite_path(), query);
   SelectResolver select_resolver(hustleDB.get_catalog());
   select_resolver.ResolveSelectTree(queryTree);
 
   EXPECT_EQ(select_resolver.join_predicates().size(), 1);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::STAR);
 
   EXPECT_EQ(select_resolver.agg_references()->size(), 1);
   EXPECT_TRUE((*select_resolver.agg_references())[0].expr_ref != nullptr);
@@ -901,8 +915,7 @@ TEST_F(ResolverTest, queryAggExpr) {
   EXPECT_EQ((*select_resolver.agg_references())[0]
                 .expr_ref->right_expr->column_ref->col_name,
             "lo_discount");
-  EXPECT_EQ((*select_resolver.agg_references())[0]
-                .expr_ref->op, TK_STAR);
+  EXPECT_EQ((*select_resolver.agg_references())[0].expr_ref->op, TK_STAR);
   EXPECT_EQ(select_resolver.groupby_references()->size(), 0);
   EXPECT_EQ(select_resolver.orderby_references()->size(), 0);
 
@@ -917,8 +930,8 @@ TEST_F(ResolverTest, queryAggExpr) {
       "and lo_discount < 6\n"
       "and lo_quantity < 35;";
   queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
-          hustleDB.get_sqlite_path(), query);
-  
+      hustleDB.get_sqlite_path(), query);
+
   SelectResolver select_resolver2(hustleDB.get_catalog());
   select_resolver2.ResolveSelectTree(queryTree);
   EXPECT_TRUE((*select_resolver2.agg_references())[0].expr_ref == nullptr);
