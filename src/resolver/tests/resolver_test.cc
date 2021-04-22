@@ -936,3 +936,166 @@ TEST_F(ResolverTest, queryAggExpr) {
   select_resolver2.ResolveSelectTree(queryTree);
   EXPECT_TRUE((*select_resolver2.agg_references())[0].expr_ref == nullptr);
 }
+
+TEST_F(ResolverTest, q_linear1) {
+  std::filesystem::remove_all("db_directory");
+  hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+
+  std::string query =
+      "select d_year, s_city, p_brand1, sum(lo_revenue) as "
+      "profit1\n"
+      "\tfrom ddate, customer, supplier, part, lineorder\n"
+      "\twhere lo_partkey = p_partkey\n"
+      "\t\tand p_partkey = s_suppkey\n"
+      "\t\tand s_suppkey = c_custkey\n"
+      "\t\tand c_custkey = d_datekey\n"
+      "\t\tand c_region = 'AMERICA'\n"
+      "\t\tand s_nation = 'UNITED STATES'\n"
+      "\t\tand (d_year = 1997 or d_year = 1998)\n"
+      "\t\tand p_category = 'MFGR#14'\n"
+      "\tgroup by d_year, s_city, p_brand1\n"
+      "\torder by d_year, s_city, p_brand1;";
+
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.get_plan(query) << std::endl;
+
+  Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
+      hustleDB.get_sqlite_path(), query);
+  SelectResolver select_resolver(hustleDB.get_catalog());
+
+  select_resolver.ResolveSelectTree(queryTree);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::LINEAR);
+
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
+
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 3);
+
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
+}
+
+TEST_F(ResolverTest, q_linear2) {
+  std::filesystem::remove_all("db_directory");
+  hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+
+  std::string query =
+      "select d_year, s_city, p_brand1, sum(lo_revenue) as "
+      "profit1\n"
+      "\tfrom ddate, customer, supplier, part, lineorder\n"
+      "\twhere lo_partkey = p_partkey\n"
+      "\t\tand s_suppkey = c_custkey\n"
+      "\t\tand c_custkey = d_datekey\n"
+      "\t\tand p_partkey = s_suppkey\n"
+      "\t\tand c_region = 'AMERICA'\n"
+      "\t\tand s_nation = 'UNITED STATES'\n"
+      "\t\tand (d_year = 1997 or d_year = 1998)\n"
+      "\t\tand p_category = 'MFGR#14'\n"
+      "\tgroup by d_year, s_city, p_brand1\n"
+      "\torder by d_year, s_city, p_brand1;";
+
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.get_plan(query) << std::endl;
+
+  Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
+      hustleDB.get_sqlite_path(), query);
+  SelectResolver select_resolver(hustleDB.get_catalog());
+
+  select_resolver.ResolveSelectTree(queryTree);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::LINEAR);
+
+  EXPECT_EQ(select_resolver.agg_references()->size(), 1);
+
+  EXPECT_EQ(select_resolver.groupby_references()->size(), 3);
+  EXPECT_EQ(select_resolver.orderby_references()->size(), 3);
+
+  EXPECT_EQ(select_resolver.project_references()->size(), 4);
+}
+
+TEST_F(ResolverTest, q_other1) {
+  std::filesystem::remove_all("db_directory");
+  hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+
+  std::string query =
+      "select s_city, p_brand1, sum(lo_revenue) as "
+      "profit1\n"
+      "\tfrom customer, supplier, part, lineorder\n"
+      "\twhere lo_partkey = p_partkey\n"
+      "\t\tand s_suppkey = c_custkey\n"
+      "\t\tand c_region = 'AMERICA'\n"
+      "\t\tand s_nation = 'UNITED STATES'\n"
+      "\t\tand p_category = 'MFGR#14'\n"
+      "\tgroup by s_city, p_brand1\n"
+      "\torder by s_city, p_brand1;";
+
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.get_plan(query) << std::endl;
+
+  Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
+      hustleDB.get_sqlite_path(), query);
+  SelectResolver select_resolver(hustleDB.get_catalog());
+
+  select_resolver.ResolveSelectTree(queryTree);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::OTHER);
+}
+
+TEST_F(ResolverTest, q_other2) {
+  std::filesystem::remove_all("db_directory");
+  hustle::HustleDB hustleDB("db_directory");
+
+  hustleDB.create_table(ResolverTest::lineorder, ResolverTest::lo);
+  hustleDB.create_table(ResolverTest::customer, ResolverTest::c);
+  hustleDB.create_table(ResolverTest::supplier, ResolverTest::s);
+  hustleDB.create_table(ResolverTest::part, ResolverTest::p);
+  hustleDB.create_table(ResolverTest::ddate, ResolverTest::d);
+
+  std::string query =
+      "select d_year, s_city, p_brand1, sum(lo_revenue) as "
+      "profit1\n"
+      "\tfrom ddate, customer, supplier, part, lineorder\n"
+      "\twhere lo_partkey = p_partkey\n"
+      "\t\tand lo_suppkey = c_custkey\n"
+      "\t\tand p_partkey = d_datekey\n"
+      "\t\tand p_partkey = s_suppkey\n"
+      "\t\tand c_region = 'AMERICA'\n"
+      "\t\tand s_nation = 'UNITED STATES'\n"
+      "\t\tand (d_year = 1997 or d_year = 1998)\n"
+      "\t\tand p_category = 'MFGR#14'\n"
+      "\tgroup by d_year, s_city, p_brand1\n"
+      "\torder by d_year, s_city, p_brand1;";
+
+  std::cout << "For query: " << query << std::endl
+            << "The plan is: " << std::endl
+            << hustleDB.get_plan(query) << std::endl;
+
+  Sqlite3Select* queryTree = (Sqlite3Select*)hustle::utils::executeSqliteParse(
+      hustleDB.get_sqlite_path(), query);
+  SelectResolver select_resolver(hustleDB.get_catalog());
+
+  select_resolver.ResolveSelectTree(queryTree);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_type(), JoinType::OTHER);
+}
