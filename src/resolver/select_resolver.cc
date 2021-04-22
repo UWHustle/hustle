@@ -52,7 +52,7 @@ bool SelectResolver::CheckJoinSupport() {
     return false;
   }
 
-  int covered_preds = 0;
+  std::size_t covered_preds = 0;
   JoinPredicate curr_predicate = start_predicate;
   std::string curr_table_name = start_table_name;
 
