@@ -46,6 +46,18 @@ struct JoinPredicate {
   ColumnReference left_col_;
   arrow::compute::CompareOperator comparator_;
   ColumnReference right_col_;
+
+  bool operator==(const JoinPredicate& join_predicate) const {
+    return (left_col_ == join_predicate.left_col_ &&
+            right_col_ == join_predicate.right_col_) &&
+           comparator_ == join_predicate.comparator_;
+  }
+
+  bool operator!=(const JoinPredicate& join_predicate) const {
+    return (left_col_ != join_predicate.left_col_ ||
+            right_col_ != join_predicate.right_col_) ||
+           comparator_ != join_predicate.comparator_;
+  }
 };
 
 struct OrderByReference {

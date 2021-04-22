@@ -40,6 +40,14 @@ struct RecordID {
 struct ColumnReference {
   DBTable::TablePtr table;
   std::string col_name;
+
+  bool operator==(const ColumnReference& col_ref) const {
+    return table == col_ref.table && !col_name.compare(col_ref.col_name);
+  }
+
+  bool operator!=(const ColumnReference& col_ref) const {
+    return table != col_ref.table || col_name.compare(col_ref.col_name);
+  }
 };
 
 struct ExprReference {
