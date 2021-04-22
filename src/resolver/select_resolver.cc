@@ -76,6 +76,7 @@ bool SelectResolver::CheckJoinSupport() {
         curr_predicate = predicate;
         curr_table_name = next_table;
         found_next_pred = true;
+        break;
       }
     }
     if (!found_next_pred && covered_preds < predicates_.size()) {
