@@ -25,6 +25,8 @@
 #include "scheduler/scheduler.h"
 #include "storage/table.h"
 #include "operators/utils/aggregate_factory.h"
+#include "operators/utils/reference_structs.h"
+#include "operators/utils/predicate_structs.h"
 
 namespace hustle::operators {
 class SSB {

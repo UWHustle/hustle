@@ -17,6 +17,7 @@ add_library(
         fused/filter_join.cc fused/filter_join.h
         utils/lazy_table.cc utils/lazy_table.h
         utils/operator_result.cc utils/operator_result.h
+        utils/predicate_structs.h utils/reference_structs.h
         ../utils/bloom_filter.h
         ../utils/xxHash.h aggregate/base_aggregate.h utils/aggregate_factory.cc utils/aggregate_factory.h
 

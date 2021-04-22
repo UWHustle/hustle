@@ -24,6 +24,8 @@
 #include "operators/select/predicate.h"
 #include "operators/utils/operator_options.h"
 #include "operators/utils/operator_result.h"
+#include "operators/utils/reference_structs.h"
+#include "operators/utils/predicate_structs.h"
 #include "scheduler/task.h"
 #include "utils/config.h"
 #include "utils/event_profiler.h"

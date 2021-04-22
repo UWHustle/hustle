@@ -21,51 +21,11 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 
+#include "operators/utils/reference_structs.h"
+#include "operators/utils/predicate_structs.h"
 #include "operators/utils/operator_result.h"
 
 namespace hustle::operators {
-
-enum CompareOperator {
-  EQUAL,
-  NOT_EQUAL,
-  LESS,
-  LESS_EQUAL,
-  GREATER,
-  GREATER_EQUAL,
-  BETWEEN
-};
-
-struct Predicate {
-  ColumnReference col_ref_;
-  arrow::compute::CompareOperator comparator_;
-  arrow::Datum value_;
-  arrow::Datum value2_;
-};
-
-struct JoinPredicate {
-  ColumnReference left_col_;
-  arrow::compute::CompareOperator comparator_;
-  ColumnReference right_col_;
-
-  bool operator==(const JoinPredicate& join_predicate) const {
-    return (left_col_ == join_predicate.left_col_ &&
-            right_col_ == join_predicate.right_col_) &&
-           comparator_ == join_predicate.comparator_;
-  }
-
-  bool operator!=(const JoinPredicate& join_predicate) const {
-    return (left_col_ != join_predicate.left_col_ ||
-            right_col_ != join_predicate.right_col_) ||
-           comparator_ != join_predicate.comparator_;
-  }
-};
-
-struct OrderByReference {
-  ColumnReference col_ref_;
-  bool is_desc;
-};
-
-using JoinPredicatePtr = std::shared_ptr<JoinPredicate>;
 
 /**
  * The base class for nodes of a PredicateTree. Internal nodes contain a

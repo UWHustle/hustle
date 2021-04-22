@@ -22,7 +22,7 @@
 #include <utils/parallel_hashmap/phmap.h>
 
 #include <string>
-
+#include "operators/utils/reference_structs.h"
 #include "scheduler/task.h"
 #include "storage/block.h"
 #include "storage/table.h"
@@ -31,31 +31,6 @@
 using namespace hustle::storage;
 
 namespace hustle::operators {
-
-struct RecordID {
-  uint32_t index;
-  uint16_t chunk;
-};
-
-struct ColumnReference {
-  DBTable::TablePtr table;
-  std::string col_name;
-
-  bool operator==(const ColumnReference& col_ref) const {
-    return table == col_ref.table && !col_name.compare(col_ref.col_name);
-  }
-
-  bool operator!=(const ColumnReference& col_ref) const {
-    return table != col_ref.table || col_name.compare(col_ref.col_name);
-  }
-};
-
-struct ExprReference {
-  uint16_t op;
-  std::shared_ptr<ExprReference> left_expr;
-  std::shared_ptr<ExprReference> right_expr;
-  std::shared_ptr<ColumnReference> column_ref;
-};
 
 /**
  * A LazyTable associates a table pointer with a boolean filter and an array

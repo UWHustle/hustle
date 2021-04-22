@@ -25,6 +25,8 @@
 #include "catalog/catalog.h"
 #include "operators/aggregate/aggregate.h"
 #include "operators/select/predicate.h"
+#include "operators/utils/reference_structs.h"
+#include "operators/utils/predicate_structs.h"
 #include "resolver/cresolver.h"
 
 /* The default is chosen heuristically by looking at the standard
