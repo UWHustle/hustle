@@ -1058,7 +1058,7 @@ TEST_F(ResolverTest, q_other1) {
   SelectResolver select_resolver(hustleDB.get_catalog());
 
   select_resolver.ResolveSelectTree(queryTree);
-  EXPECT_EQ(select_resolver.join_predicates().size(), 4);
+  EXPECT_EQ(select_resolver.join_predicates().size(), 2);
   EXPECT_EQ(select_resolver.join_type(), JoinType::OTHER);
 }
 
