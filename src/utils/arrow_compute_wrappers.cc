@@ -247,9 +247,9 @@ void Context::apply_indices(Task* ctx, const arrow::Datum values,
                             const arrow::Datum indices,
                             const arrow::Datum index_chunks,
                             arrow::Datum& out) {
-  clear_data();
-  SynchronizationLock sync_lock;
 
+  SynchronizationLock sync_lock;
+  clear_data();
   ctx->spawnTask(CreateTaskChain(
       CreateLambdaTask([this, values, indices, index_chunks,
                         &out](Task* internal) {

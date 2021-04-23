@@ -94,6 +94,7 @@ void LazyTable::MaterializeColumn(Task *ctx, int i, arrow::Datum &out) {
   }
   out = table->get_column(i);
   if (indices.kind() != arrow::Datum::NONE) {
+    Context context_;
     context_.apply_indices(ctx, out, indices, index_chunks, out);
   }
   materialized_cols_[i] = out.chunked_array();

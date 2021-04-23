@@ -25,6 +25,8 @@
 #include "catalog/catalog.h"
 #include "operators/aggregate/aggregate.h"
 #include "operators/select/predicate.h"
+#include "operators/utils/reference_structs.h"
+#include "operators/utils/predicate_structs.h"
 #include "resolver/cresolver.h"
 
 /* The default is chosen heuristically by looking at the standard
@@ -41,6 +43,12 @@ using namespace hustle::catalog;
 struct ProjectReference {
   ColumnReference colRef;
   std::string alias;
+};
+
+enum JoinType {
+  STAR,
+  LINEAR,
+  OTHER,
 };
 
 class SelectResolver {
@@ -70,8 +78,12 @@ class SelectResolver {
 
   bool resolve_status_;
 
+  JoinType join_type_;
+
   std::shared_ptr<PredicateTree> ResolvePredExpr(Expr* pExpr);
   void ResolveJoinPredExpr(Expr* pExpr);
+
+  bool CheckJoinSupport();
 
  public:
   SelectResolver(std::shared_ptr<Catalog> catalog) : catalog_(catalog) {
@@ -91,15 +103,15 @@ class SelectResolver {
     resolve_status_ = true;
   }
 
-  SelectResolver() : SelectResolver(nullptr) {
-      resolve_status_ = true;
-  }
+  SelectResolver() : SelectResolver(nullptr) { resolve_status_ = true; }
 
   inline std::unordered_map<std::string,
                             std::shared_ptr<hustle::operators::PredicateTree>>&
   select_predicates() {
     return select_predicates_;
   }
+
+  inline JoinType join_type() { return join_type_; }
 
   inline std::unordered_map<std::string, JoinPredicate> join_predicates() {
     return join_predicates_;

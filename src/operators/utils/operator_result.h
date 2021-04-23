@@ -30,12 +30,6 @@ using namespace hustle::storage;
 
 namespace hustle::operators {
 
-enum FilterOperator {
-  AND,
-  OR,
-  NONE,
-};
-
 class OperatorResult {
  public:
   using OpResultPtr = std::shared_ptr<OperatorResult>;
