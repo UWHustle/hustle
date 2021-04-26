@@ -106,13 +106,57 @@ void build_linear_join(const std::vector<JoinPredicate> &predicates,
                        std::vector<OperatorResult::OpResultPtr> &select_result,
                        OperatorResult::OpResultPtr &join_result_out) {
   std::vector<OperatorResult::OpResultPtr> prev_result_out = select_result;
+  bool is_first_join = true;
+  std::unordered_map<std::string, LazyTable::LazyTablePtr> output_map;
   for (auto join_predicate : predicates) {
-    OperatorResult::OpResultPtr result_out = std::make_shared<OperatorResult>();
-    HashJoinPtr join_ptr = std::make_unique<HashJoin>(
-        0, prev_result_out, result_out,
-        std::make_shared<JoinPredicate>(join_predicate));
-    join_ptrs.emplace_back(std::move(join_ptr));
+      OperatorResult::OpResultPtr result_out = std::make_shared<OperatorResult>();
+      std::vector<OperatorResult::OpResultPtr> input_result_out;
+
+      OperatorResult::OpResultPtr left_input = std::make_shared<OperatorResult>();
+
+      //DCHECK_EQ(prev_result_out.size(), 1);
+      bool is_found_prev = false;
+      if (!is_first_join && prev_result_out.at(0)->get_table(join_predicate.left_col_.table) != nullptr) {
+          DCHECK_EQ(prev_result_out.size(), 1);
+          is_found_prev = true;
+      }
+      if (!is_found_prev) {
+          for (auto op_result : select_result) {
+              if (op_result->get_table(join_predicate.left_col_.table) != nullptr) {
+                  left_input->append(op_result->get_table(join_predicate.left_col_.table));
+              }
+          }
+
+      if (left_input->lazy_tables_.size() == 0) {
+          left_input->append(join_predicate.left_col_.table);
+      }
+  }
+      is_found_prev = false;
+        OperatorResult::OpResultPtr right_input = std::make_shared<OperatorResult>();
+        if (!is_first_join && prev_result_out.at(0)->get_table(join_predicate.right_col_.table) != nullptr){
+            DCHECK_EQ(prev_result_out.size(), 1);
+            is_found_prev = true;
+        }
+
+      if (!is_found_prev) {
+          for (auto op_result : select_result) {
+              if (op_result->get_table(join_predicate.right_col_.table) != nullptr) {
+                  right_input->append(op_result->get_table(join_predicate.right_col_.table));
+              }
+          }
+
+          if (right_input->lazy_tables_.size() == 0) {
+              right_input->append(join_predicate.right_col_.table);
+          }
+      }
+          input_result_out = {left_input, right_input};
+
+
+    join_ptrs.emplace_back(std::make_unique<HashJoin>(
+            0, input_result_out, result_out,
+            std::make_shared<JoinPredicate>(join_predicate)));
     prev_result_out = {result_out};
+    is_first_join = false;
   }
   DCHECK_GE(prev_result_out.size(), 1);
   join_result_out = prev_result_out.at(0);
@@ -273,6 +317,7 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   }
 
   if (!join_ids.empty()) {
+      std::cout << "Linear join" << std::endl;
     for (int i = 0; i < join_ids.size() - 1; i++) {
       plan->createLink(join_ids.at(i), join_ids.at(i + 1));
     }
@@ -285,12 +330,13 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 
   // Declare aggregate dependency on join operator
   if (agg_id != NULL_OP_ID) {
-    if (join_id == NULL_OP_ID) {
+    if (join_id == NULL_OP_ID && join_ids.empty()) {
       if (select_operators.size() != 1) return nullptr;
       plan->createLink(select_id, agg_id);
     } else {
       if (!join_ids.empty()) {
         plan->createLink(join_ids.at(join_ids.size() - 1), agg_id);
+        std::cout << "Join with aggregate" << std::endl;
       } else {
         plan->createLink(join_id, agg_id);
       }
@@ -338,9 +384,11 @@ int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs,
     std::shared_ptr<hustle::ExecutionPlan> plan =
         createPlan(select_resolver, catalog.get());
     if (plan != nullptr) {
+        std::cout << "Execute plan" << std::endl;
       std::shared_ptr<hustle::storage::DBTable> outTable = execute(plan);
       outTable->out_table(pArgs, xCallback);
     } else {
+        std::cout << "not resolvable" << std::endl;
       return 0;
     }
   }
