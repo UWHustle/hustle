@@ -113,28 +113,32 @@ class SelectResolver {
 
   inline JoinType join_type() { return join_type_; }
 
-  inline std::unordered_map<std::string, JoinPredicate> join_predicates() {
+  inline std::unordered_map<std::string, std::vector<JoinPredicate>> join_graph() const {
+      return join_graph_;
+  }
+
+  inline std::unordered_map<std::string, JoinPredicate> join_predicates() const {
     return join_predicates_;
   }
 
-  inline std::vector<JoinPredicate> predicates() { return predicates_; }
+  inline std::vector<JoinPredicate> predicates() const { return predicates_; }
 
-  inline std::shared_ptr<std::vector<AggregateReference>> agg_references() {
+  inline std::shared_ptr<std::vector<AggregateReference>> agg_references() const {
     return agg_references_;
   }
 
   inline std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
-  groupby_references() {
+  groupby_references() const {
     return group_by_references_;
   }
 
   inline std::shared_ptr<std::vector<std::shared_ptr<OrderByReference>>>
-  orderby_references() {
+  orderby_references() const {
     return order_by_references_;
   }
 
   inline std::shared_ptr<std::vector<std::shared_ptr<ProjectReference>>>
-  project_references() {
+  project_references() const {
     return project_references_;
   }
 
