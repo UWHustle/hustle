@@ -9,7 +9,6 @@ add_library(hustle_src_benchmark
 target_include_directories(hustle_src_benchmark PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_benchmark PUBLIC
         hustle_src_storage
-        hustle_src_operators
         hustle_src_resolver
         hustle_src_scheduler_Scheduler
         hustle_src_optimizer_ExecutionPlan
@@ -24,6 +23,8 @@ target_link_libraries(hustle_src_benchmark PUBLIC
 add_executable(hustle_src_benchmark_main main.cc
         ../utils/bloom_filter.h
         ../utils/xxHash.h
+        ../operators/join/hash_join.cc
+        ../operators/join/hash_join.h
         aggregate_workload.cc aggregate_workload.h)
 target_link_libraries(hustle_src_benchmark_main PUBLIC
         hustle_src_benchmark
