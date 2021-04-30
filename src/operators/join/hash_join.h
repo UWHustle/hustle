@@ -46,12 +46,12 @@ class HashJoin : public Operator {
    * @param predicate join preicate on join column
    */
   HashJoin(const std::size_t query_id,
-           std::vector<std::shared_ptr<OperatorResult>> prev_result,
+           std::shared_ptr<std::vector<std::shared_ptr<OperatorResult>>> prev_result,
            OperatorResult::OpResultPtr output_result,
            std::shared_ptr<JoinPredicate> predicate);
 
   HashJoin(const std::size_t query_id,
-           std::vector<std::shared_ptr<OperatorResult>> prev_result,
+           std::shared_ptr<std::vector<std::shared_ptr<OperatorResult>>> prev_result,
            OperatorResult::OpResultPtr output_result,
            std::shared_ptr<JoinPredicate> predicate,
            std::shared_ptr<OperatorOptions> options);
@@ -74,9 +74,13 @@ class HashJoin : public Operator {
 
   void Clear() override {}
 
+  ~HashJoin() {
+
+  }
+
  private:
   // Results from upstream operators
-  std::vector<OperatorResult::OpResultPtr> prev_result_;
+  std::shared_ptr<std::vector<OperatorResult::OpResultPtr>> prev_result_;
   // Results from upstream operators condensed into one object
   // Where the output result will be stored once the operator is executed.a
   OperatorResult::OpResultPtr output_result_;

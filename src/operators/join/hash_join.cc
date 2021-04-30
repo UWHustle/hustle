@@ -34,24 +34,26 @@
 
 namespace hustle::operators {
 
-HashJoin::HashJoin(const std::size_t query_id,
-                   std::vector<OperatorResult::OpResultPtr> prev_result,
-                   OperatorResult::OpResultPtr output_result,
-                   std::shared_ptr<JoinPredicate> predicate)
+HashJoin::HashJoin(
+    const std::size_t query_id,
+    std::shared_ptr<std::vector<OperatorResult::OpResultPtr>> prev_result,
+    OperatorResult::OpResultPtr output_result,
+    std::shared_ptr<JoinPredicate> predicate)
     : HashJoin(query_id, prev_result, output_result, predicate,
                std::make_shared<OperatorOptions>()) {}
 
-HashJoin::HashJoin(const std::size_t query_id,
-                   std::vector<OperatorResult::OpResultPtr> prev_result,
-                   OperatorResult::OpResultPtr output_result,
-                   std::shared_ptr<JoinPredicate> predicate,
-                   std::shared_ptr<OperatorOptions> options)
+HashJoin::HashJoin(
+    const std::size_t query_id,
+    std::shared_ptr<std::vector<OperatorResult::OpResultPtr>> prev_result,
+    OperatorResult::OpResultPtr output_result,
+    std::shared_ptr<JoinPredicate> predicate,
+    std::shared_ptr<OperatorOptions> options)
     : Operator(query_id, options),
       prev_result_(prev_result),
       output_result_(output_result),
       predicate_(predicate) {
   // prev result has two operator result - 0 - left, 1 - right
-  assert(prev_result.size() == 2);
+  assert(prev_result->size() == 2);
   joined_indices_.resize(2);
 }
 
@@ -63,9 +65,9 @@ void HashJoin::Execute(Task *ctx, int32_t flags) {
 }
 
 void HashJoin::Initialize(Task *ctx) {
-  left_table_ = prev_result_.at(LEFT_JOIN_REF_IDX)
+  left_table_ = prev_result_->at(LEFT_JOIN_REF_IDX)
                     ->get_table(predicate_->left_col_.table);
-  right_table_ = prev_result_.at(RIGHT_JOIN_REF_IDX)
+  right_table_ = prev_result_->at(RIGHT_JOIN_REF_IDX)
                      ->get_table(predicate_->right_col_.table);
 
   left_table_->MaterializeColumn(ctx, predicate_->left_col_.col_name, lcol_);
@@ -295,7 +297,7 @@ OperatorResult::OpResultPtr HashJoin::BackPropogateResult(
    */
   auto propogate_indices = [&, this](int index, DBTable::TablePtr table,
                                      arrow::Datum &join_indices) {
-    for (auto &lazy_table : prev_result_.at(index)->lazy_tables_) {
+    for (auto &lazy_table : prev_result_->at(index)->lazy_tables_) {
       if (lazy_table->table != table &&
           lazy_table->indices.kind() != arrow::Datum::NONE) {
         status = arrow::compute::Take(lazy_table->indices, join_indices,
@@ -304,6 +306,10 @@ OperatorResult::OpResultPtr HashJoin::BackPropogateResult(
         evaluate_status(status, __PRETTY_FUNCTION__, __LINE__);
         output_lazy_tables.emplace_back(std::make_shared<LazyTable>(
             lazy_table->table, arrow::Datum(), indices, index_chunks,
+            lazy_table->hash_table()));
+      } else {
+        output_lazy_tables.emplace_back(std::make_shared<LazyTable>(
+            lazy_table->table, arrow::Datum(), join_indices, index_chunks,
             lazy_table->hash_table()));
       }
     }
@@ -314,7 +320,6 @@ OperatorResult::OpResultPtr HashJoin::BackPropogateResult(
 
   update_indices(right_table_, right_indices);
   propogate_indices(RIGHT_JOIN_REF_IDX, right_table_->table, right_indices);
-
   return std::make_shared<OperatorResult>(output_lazy_tables);
 }
 
