@@ -26,6 +26,7 @@
 #include "operators/aggregate/hash_aggregate.h"
 #include "operators/fused/filter_join.h"
 #include "operators/fused/select_build_hash.h"
+#include "operators/join/hash_join.h"
 #include "operators/select/predicate.h"
 #include "operators/select/select.h"
 #include "operators/utils/operator_result.h"
@@ -42,13 +43,17 @@ using namespace hustle::resolver;
 using SelectPtr = std::unique_ptr<hustle::operators::Select>;
 using AggPtr = std::unique_ptr<HashAggregate>;
 using JoinPtr = std::unique_ptr<MultiwayJoin>;
+using HashJoinPtr = std::unique_ptr<HashJoin>;
 using FilterJoinPtr = std::unique_ptr<FilterJoin>;
 using ProjectReferencePtr = std::shared_ptr<ProjectReference>;
 
 std::optional<bool> build_select(
-    Catalog *catalog, std::shared_ptr<hustle::resolver::SelectResolver> select_resolver,
+    Catalog *catalog,
+    std::shared_ptr<hustle::resolver::SelectResolver> select_resolver,
     std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
         select_predicates,
+    std::unordered_map<std::string, OperatorResult::OpResultPtr>
+        &select_result_map,
     std::vector<OperatorResult::OpResultPtr> &select_result,
     std::vector<SelectPtr> &select_operators) {
   /**
@@ -93,12 +98,67 @@ std::optional<bool> build_select(
       }
       select_operators.emplace_back(std::move(select));
     }
+    select_result_map[table_name] = output_result;
     select_result.emplace_back(output_result);
   }
   return is_predicate_avail;
 }
 
+void build_linear_join(
+    const std::vector<JoinPredicate> &predicates,
+    std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
+        select_predicates,
+    std::vector<HashJoinPtr> &join_ptrs,
+    std::unordered_map<std::string, OperatorResult::OpResultPtr>
+        &select_result_map,
+    std::vector<OperatorResult::OpResultPtr> &select_result,
+    OperatorResult::OpResultPtr &join_result_out) {
+  std::shared_ptr<std::vector<OperatorResult::OpResultPtr>> input_result;
+  OperatorResult::OpResultPtr prev_join_result, output_result;
+  bool is_first_join = true;
+  for (auto join_predicate : predicates) {
+    OperatorResult::OpResultPtr left_result = nullptr, right_result = nullptr;
+    if (!is_first_join) {
+      left_result = prev_join_result;
+    }
+    if (right_result == nullptr) {
+      auto predicate_tree_itr =
+          select_predicates.find(join_predicate.right_col_.table->get_name());
+      if (predicate_tree_itr != select_predicates.end()) {
+        right_result =
+            select_result_map[join_predicate.right_col_.table->get_name()];
+      } else {
+        right_result = std::make_shared<OperatorResult>();
+        right_result->append(join_predicate.right_col_.table);
+      }
+    }
+
+    if (left_result == nullptr) {
+      auto predicate_tree_itr =
+          select_predicates.find(join_predicate.left_col_.table->get_name());
+      if (predicate_tree_itr != select_predicates.end()) {
+        left_result =
+            select_result_map[join_predicate.left_col_.table->get_name()];
+      } else {
+        left_result = std::make_shared<OperatorResult>();
+        left_result->append(join_predicate.left_col_.table);
+      }
+    }
+
+    input_result = std::make_shared<std::vector<OperatorResult::OpResultPtr>>();
+    input_result->assign({left_result, right_result});
+    output_result = std::make_shared<OperatorResult>();
+    join_ptrs.emplace_back(std::make_unique<HashJoin>(
+        0, input_result, output_result,
+        std::make_shared<JoinPredicate>(join_predicate)));
+    prev_join_result = output_result;
+    is_first_join = false;
+  }
+  join_result_out = prev_join_result;
+}
+
 void build_join(
+    JoinType join_type,
     std::unordered_map<std::string, JoinPredicate> &join_predicate_map,
     bool is_predicate_avail, JoinPtr &join_op, FilterJoinPtr &filter_join_op,
     std::vector<OperatorResult::OpResultPtr> &select_result,
@@ -119,11 +179,11 @@ void build_join(
   }
 }
 
-void build_aggregate(std::shared_ptr<hustle::resolver::SelectResolver> select_resolver,
-                     std::shared_ptr<std::vector<AggregateReference>> &agg_refs,
-                     AggPtr &agg_op,
-                     OperatorResult::OpResultPtr &prev_result_out,
-                     OperatorResult::OpResultPtr &agg_result_out) {
+void build_aggregate(
+    std::shared_ptr<hustle::resolver::SelectResolver> select_resolver,
+    std::shared_ptr<std::vector<AggregateReference>> &agg_refs, AggPtr &agg_op,
+    OperatorResult::OpResultPtr &prev_result_out,
+    OperatorResult::OpResultPtr &agg_result_out) {
   /**
    * Group by references and order by references from select resolver
    */
@@ -162,17 +222,20 @@ void build_output_cols(bool is_agg_out,
 }
 
 std::shared_ptr<hustle::ExecutionPlan> createPlan(
-    std::shared_ptr<hustle::resolver::SelectResolver> select_resolver, Catalog *catalog) {
+    std::shared_ptr<hustle::resolver::SelectResolver> select_resolver,
+    Catalog *catalog) {
   using namespace hustle::operators;
   std::unordered_map<std::string, std::shared_ptr<PredicateTree>>
       select_predicates = select_resolver->select_predicates();
   std::vector<OperatorResult::OpResultPtr> select_result;
+  std::unordered_map<std::string, OperatorResult::OpResultPtr>
+      select_result_map;
   std::vector<SelectPtr> select_operators;
   auto join_predicate_map = select_resolver->join_predicates();
 
   std::optional<bool> is_predicate_avail =
-      build_select(catalog, select_resolver, select_predicates, select_result,
-                   select_operators);
+      build_select(catalog, select_resolver, select_predicates,
+                   select_result_map, select_result, select_operators);
   if (is_predicate_avail == std::nullopt) return nullptr;
 
   /**
@@ -182,9 +245,18 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
   OperatorResult::OpResultPtr join_result_out;
   JoinPtr join_op = nullptr;
   FilterJoinPtr filter_join_op = nullptr;
+  std::vector<HashJoinPtr> hash_join_ptrs;
+
   if (join_predicate_map.size() != 0) {
-    build_join(join_predicate_map, is_predicate_avail.value(), join_op,
-               filter_join_op, select_result, join_result_out);
+    if (select_resolver->join_type() == JoinType::STAR) {
+      build_join(select_resolver->join_type(), join_predicate_map,
+                 is_predicate_avail.value(), join_op, filter_join_op,
+                 select_result, join_result_out);
+    } else if (select_resolver->join_type() == JoinType::LINEAR) {
+      build_linear_join(select_resolver->predicates(),
+                        select_resolver->select_predicates(), hash_join_ptrs,
+                        select_result_map, select_result, join_result_out);
+    }
   } else {
     join_result_out = select_result[0];
   }
@@ -219,10 +291,15 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     plan->setOperatorResult(agg_result_out);
   }
 
+  std::vector<std::size_t> join_ids;
   if (join_op != nullptr) {
     join_id = plan->addOperator(std::move(join_op));
   } else if (filter_join_op != nullptr) {
     join_id = plan->addOperator(std::move(filter_join_op));
+  } else if (hash_join_ptrs.size() > 0) {
+    for (int i = 0; i < hash_join_ptrs.size(); i++) {
+      join_ids.emplace_back(plan->addOperator(std::move(hash_join_ptrs.at(i))));
+    }
   }
   if (join_id != NULL_OP_ID && plan->getOperatorResult() == nullptr) {
     plan->setOperatorResult(join_result_out);
@@ -232,6 +309,14 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
     select_id = plan->addOperator(std::move(select_op));
     if (join_id != NULL_OP_ID) {
       plan->createLink(select_id, join_id);
+    } else if (!join_ids.empty()) {
+      plan->createLink(select_id, join_ids.at(0));
+    }
+  }
+
+  if (!join_ids.empty()) {
+    for (int i = 0; i < join_ids.size() - 1; i++) {
+      plan->createLink(join_ids.at(i), join_ids.at(i + 1));
     }
   }
   if (select_id != NULL_OP_ID && plan->getOperatorResult() == nullptr) {
@@ -242,11 +327,15 @@ std::shared_ptr<hustle::ExecutionPlan> createPlan(
 
   // Declare aggregate dependency on join operator
   if (agg_id != NULL_OP_ID) {
-    if (join_id == NULL_OP_ID) {
+    if (join_id == NULL_OP_ID && join_ids.empty()) {
       if (select_operators.size() != 1) return nullptr;
       plan->createLink(select_id, agg_id);
     } else {
-      plan->createLink(join_id, agg_id);
+      if (!join_ids.empty()) {
+        plan->createLink(join_ids.at(join_ids.size() - 1), agg_id);
+      } else {
+        plan->createLink(join_id, agg_id);
+      }
     }
     plan->setOperatorResult(agg_result_out);
   }
@@ -290,10 +379,8 @@ int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs,
   if (is_resolvable) {
     std::shared_ptr<hustle::ExecutionPlan> plan =
         createPlan(select_resolver, catalog.get());
-
     if (plan != nullptr) {
-      std::shared_ptr<hustle::storage::DBTable> outTable =
-          execute(plan);
+      std::shared_ptr<hustle::storage::DBTable> outTable = execute(plan);
       outTable->out_table(pArgs, xCallback);
     } else {
       return 0;

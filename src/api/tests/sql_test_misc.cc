@@ -226,3 +226,28 @@ TEST_F(SQLMiscTest, q_logical_AND_exception) {
     output = hustle_db->execute_query_result(query);
     EXPECT_EQ(output, "");
 }
+
+TEST_F(SQLMiscTest, linear_join1) {
+    std::string query =
+            "select Count(lo_quantity)\n"
+            "from  lineorder, ddate, part, supplier, customer\n"
+            "where d_datekey = lo_orderdate and\n"
+            "lo_custkey = c_custkey\n"
+            "and c_custkey = s_suppkey\n"
+            "and s_suppkey = p_partkey\n"
+            "and s_suppkey = 20";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "200\n");
+}
+
+TEST_F(SQLMiscTest, linear_join) {
+    std::string query =
+            "select Count(lo_quantity)\n"
+            "from  lineorder, ddate, part, supplier, customer\n"
+            "where d_datekey = lo_orderdate\n"
+            "and c_custkey = s_suppkey\n"
+            "and lo_custkey = c_custkey\n"
+            "and s_suppkey = p_partkey\n";
+    std::string output = hustle_db->execute_query_result(query);
+    EXPECT_EQ(output, "20000\n");
+}

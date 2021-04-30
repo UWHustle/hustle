@@ -115,7 +115,10 @@ TEST_F(HashJoinTestFixture, EquiJoin1) {
 
   std::shared_ptr<JoinPredicate> join_pred = std::make_shared<JoinPredicate>(
       JoinPredicate{R_ref_1, arrow::compute::EQUAL, S_ref_1});
-  HashJoin join_op(0, {result1, result2}, out_result, join_pred);
+  auto input_vec_ptr =
+      std::make_shared<std::vector<std::shared_ptr<OperatorResult>>>();
+  input_vec_ptr->assign({result1, result2});
+  HashJoin join_op(0, input_vec_ptr, out_result, join_pred);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -181,8 +184,11 @@ TEST_F(HashJoinTestFixture, EquiJoin2) {
   out_result_vec1.push_back(prev_out_result1);
   out_result_vec1.push_back(prev_out_result2);
 
-  std::unique_ptr<HashJoin> join_op =
-      std::make_unique<HashJoin>(0, out_result_vec1, out_result, join_pred_RS);
+  std::unique_ptr<HashJoin> join_op = std::make_unique<HashJoin>(
+      0,
+      std::make_shared<std::vector<std::shared_ptr<OperatorResult>>>(
+          out_result_vec1),
+      out_result, join_pred_RS);
 
   Scheduler &scheduler = Scheduler::GlobalInstance();
 
@@ -198,7 +204,10 @@ TEST_F(HashJoinTestFixture, EquiJoin2) {
   out_result_vec.push_back(out_result);
 
   std::unique_ptr<HashJoin> rs_join_op = std::make_unique<HashJoin>(
-      0, out_result_vec, next_out_result, join_pred_OS);
+      0,
+      std::make_shared<std::vector<std::shared_ptr<OperatorResult>>>(
+          out_result_vec),
+      next_out_result, join_pred_OS);
 
   std::shared_ptr<hustle::ExecutionPlan> plan =
       std::make_shared<hustle::ExecutionPlan>(0);

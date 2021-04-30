@@ -9,7 +9,6 @@ add_library(hustle_src_benchmark
 target_include_directories(hustle_src_benchmark PUBLIC ${ARROW_INCLUDE_DIR})
 target_link_libraries(hustle_src_benchmark PUBLIC
         hustle_src_storage
-        hustle_src_operators
         hustle_src_resolver
         hustle_src_scheduler_Scheduler
         hustle_src_optimizer_ExecutionPlan

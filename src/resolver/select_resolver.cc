@@ -57,10 +57,12 @@ bool SelectResolver::CheckJoinSupport() {
   std::string curr_table_name = start_table_name;
 
   std::set<std::string> visited_tables;
+  std::vector<JoinPredicate> ordered_predicates;
   while (covered_preds < predicates_.size()) {
     if (visited_tables.find(curr_table_name) != visited_tables.end())
       return false;
     visited_tables.insert(curr_table_name);
+    ordered_predicates.emplace_back(curr_predicate);
     std::string next_table =
         !curr_predicate.left_col_.table->get_name().compare(curr_table_name)
             ? curr_predicate.right_col_.table->get_name()
@@ -83,6 +85,7 @@ bool SelectResolver::CheckJoinSupport() {
       return false;
     }
   }
+  predicates_ = ordered_predicates;
   join_type_ = JoinType::LINEAR;
   return true;
 }
