@@ -66,7 +66,7 @@ void open_sqlite3_db(const std::string &sqlitePath, sqlite3 **db) {
             sqlite3_errmsg(*db));
   }
 
-  sqlite3_busy_timeout(*db, 2000);
+  sqlite3_busy_timeout(*db, 5000);
   rc = sqlite3_exec(*db, "PRAGMA journal_mode=WAL;", NULL, NULL, &zErrMsg);
 
   if (rc != SQLITE_OK) {

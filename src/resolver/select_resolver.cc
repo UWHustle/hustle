@@ -364,7 +364,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     if (pTabList->a[i].fg.jointype & JT_UNSUPPORTED) {
       return false;
     }
-
+    source_tables_.emplace_back(pTabList->a[i].zName);
     select_predicates_.insert({pTabList->a[i].zName, nullptr});
   }
 

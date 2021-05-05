@@ -32,6 +32,9 @@
 #include "operators/utils/operator_result.h"
 #include "resolver/select_resolver.h"
 #include "scheduler/threading/synchronization_lock.h"
+#include "utils/event_profiler.h"
+
+#define OP_PERF_ANALYSIS 1
 
 #define ENABLE_FUSED_OPERATOR 1
 #define NULL_OP_ID -1
@@ -367,24 +370,49 @@ std::shared_ptr<hustle::storage::DBTable> execute(
   return out_table;
 }
 
-int resolveSelect(char *dbName, Sqlite3Select *queryTree, void *pArgs,
+int resolveSelect(char *dbName, HustleMemLog *mem_log, Sqlite3Select *queryTree, void *pArgs,
                   sqlite3_callback xCallback) {
   using hustle::resolver::SelectResolver;
   auto catalog = hustle::HustleDB::get_catalog(dbName);
   if (dbName == NULL || catalog == nullptr) return 0;
 
   auto select_resolver = std::make_shared<SelectResolver>(catalog);
-  bool is_resolvable = select_resolver->ResolveSelectTree(queryTree);
-
+  bool is_resolvable =  false;
+  if (OP_PERF_ANALYSIS) {
+      auto container = hustle::profiler.getContainer();
+      container->startEvent("resolver");
+      is_resolvable = select_resolver->ResolveSelectTree(queryTree);
+      container->endEvent("resolver");
+  } else {
+      is_resolvable = select_resolver->ResolveSelectTree(queryTree);
+  }
   if (is_resolvable) {
+      if (MEMLOG_LAZY_UPDATE) {
+          char** table_name_array = (char**)malloc(select_resolver->source_tables().size() * sizeof(char*));
+          auto source_tables = select_resolver->source_tables();
+          for(std::size_t i = 0; i < source_tables.size(); i++) {
+              table_name_array[i] = source_tables[i].data();
+          }
+          hustle_memlog_table_update_db(mem_log, table_name_array, source_tables.size(), MEMLOG_UPDATE_FREE);
+          //hustle_memlog_clear(mem_log);
+      }
     std::shared_ptr<hustle::ExecutionPlan> plan =
         createPlan(select_resolver, catalog.get());
     if (plan != nullptr) {
       std::shared_ptr<hustle::storage::DBTable> outTable = execute(plan);
       outTable->out_table(pArgs, xCallback);
+        if (OP_PERF_ANALYSIS) {
+            hustle::profiler.summarizeToStream(std::cout);
+        }
     } else {
+        if (OP_PERF_ANALYSIS) {
+            hustle::profiler.summarizeToStream(std::cout);
+        }
       return 0;
     }
   }
+    if (OP_PERF_ANALYSIS) {
+        hustle::profiler.summarizeToStream(std::cout);
+    }
   return is_resolvable ? 1 : 0;
 }

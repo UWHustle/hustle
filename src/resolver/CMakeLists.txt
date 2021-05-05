@@ -9,6 +9,7 @@ target_link_libraries(hustle_src_resolver PUBLIC
         hustle_src_catalog
         hustle_src_optimizer_ExecutionPlan
         hustle_src_storage
+        hustle_src_utils_EventProfiler
         hustleDB
 )
 

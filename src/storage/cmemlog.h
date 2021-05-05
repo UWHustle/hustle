@@ -37,6 +37,8 @@ extern "C" {
 
 #define ZERO_TYPE_ENCODING 8
 #define ONE_TYPE_ENCODING  9
+
+#define MEMLOG_LAZY_UPDATE 1
 /**
  * MemLog is a temporary in-memory store used by the SQLite write transaction
  * to record the updates and during commit, the records in the Memlog are
@@ -129,7 +131,7 @@ DBRecordList *hustle_memlog_get_records(HustleMemLog *mem_log, int table_id);
  * is_free - whether to free the records after updating
  * */
 Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free);
-
+Status hustle_memlog_table_update_db(HustleMemLog *mem_log, char **table_names, int tables_size, int is_free);
 /**
  * Make the memlog contents empty by clearing/freeing up
  * the records in the memlog.
@@ -145,6 +147,8 @@ Status hustle_memlog_clear(HustleMemLog *mem_log);
  * mem_log - pointer to the memlog
  * */
 Status hustle_memlog_free(HustleMemLog *mem_log);
+
+Status memlog_is_dirty();
 
 #ifdef __cplusplus
 }

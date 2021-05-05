@@ -198,6 +198,14 @@ int DBTable::get_record_size(int32_t *byte_widths) {
   return record_size;
 }
 
+void DBTable::InsertRecordTable(uint32_t rowId, uint8_t *record,
+                                int32_t *byte_widths) {
+  auto container = hustle::profiler.getContainer();
+  container->startEvent("insert_record");
+  block_map[rowId] = InsertRecord(record, byte_widths);
+  container->endEvent("insert_record");
+}
+
 // Tuple is passed in as an array of bytes which must be parsed.
 BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
   std::shared_ptr<Block> block = GetBlockForInsert();
@@ -216,6 +224,8 @@ BlockInfo DBTable::InsertRecord(uint8_t *record, int32_t *byte_widths) {
 void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
                                 UpdateMetaInfo *updateMetaInfo, uint8_t *record,
                                 int32_t *byte_widths) {
+  auto container = hustle::profiler.getContainer();
+  container->startEvent("update_record");
   auto block_map_it = block_map.find(row_id);
   if (block_map_it == block_map.end()) {
     return;
@@ -252,9 +262,12 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
 
     type_switcher(data_type, handler);
   }
+  container->endEvent("update_record");
 }
 
 void DBTable::DeleteRecordTable(uint32_t row_id) {
+  auto container = hustle::profiler.getContainer();
+  container->startEvent("delete_record");
   auto block_map_it = block_map.find(row_id);
   if (block_map_it == block_map.end()) {
     return;
@@ -271,6 +284,7 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
   if (insert_pool.find(block_info.block_id) != insert_pool.end()) {
     insert_pool[block_info.block_id] = updatedBlock;
   }
+  container->endEvent("delete_record");
 }
 
 void DBTable::InsertRecord(std::vector<std::string_view> values,

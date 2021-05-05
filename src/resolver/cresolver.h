@@ -18,6 +18,9 @@
 
 #ifndef HUSTLE_CRESOLVER_H
 #define HUSTLE_CRESOLVER_H
+
+#include "storage/cmemlog.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -737,7 +740,7 @@ struct Schema {
   int cache_size;      /* Number of pages to use in the cache */
 };
 
-int resolveSelect(char* dbName, Select* queryTree, void* pArg, sqlite3_callback xCallback);
+int resolveSelect(char* dbName, HustleMemLog *mem_log, Select* queryTree, void* pArg, sqlite3_callback xCallback);
 
 #ifdef __cplusplus
 }

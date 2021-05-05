@@ -28,6 +28,9 @@
 #include "storage/block.h"
 #include "storage/cmemlog.h"
 #include "storage/ma_block.h"
+#include "utils/event_profiler.h"
+
+#define OP_PERF_ANALYSIS 1
 
 #define ENABLE_METADATA_BY_DEFAULT true
 
@@ -194,10 +197,7 @@ class DBTable {
    * @param record record to insert
    * @param byte_widths widths of fields in record
    */
-  inline void InsertRecordTable(uint32_t rowId, uint8_t *record,
-                                int32_t *byte_widths) {
-    block_map[rowId] = InsertRecord(record, byte_widths);
-  }
+  void InsertRecordTable(uint32_t rowId, uint8_t *record, int32_t *byte_widths);
 
   /**
    * Update record by row ID.

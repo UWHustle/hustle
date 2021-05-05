@@ -32,7 +32,9 @@
 
 // Maps the Btree root id to hustle table id
 static std::map<int, std::map<int, std::string>> table_map;
+static std::map<std::string, int> dirty_table;
 static std::mutex instance_lock;
+static bool is_dirty = false;
 
 void memlog_add_table_mapping(int db_id, int root_page_id, char *table_name) {
   std::lock_guard<std::mutex> lock(instance_lock);
@@ -49,6 +51,10 @@ void memlog_add_column_change(int db_id, int root_page_id, char *column_info) {
   }
 
   // TODO (@suryadev): Update the hustle schema based on the sqlite3 changes
+}
+
+Status memlog_is_dirty() {
+    return is_dirty;
 }
 
 void memlog_remove_table_mapping(int db_id, char *db_name, char *tbl_name) {
@@ -145,6 +151,8 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
 
   DBRecord *tail = mem_log->record_list[table_id].tail;
   mem_log->record_list[table_id].tail = record;
+  dirty_table[table_map[DEFAULT_DB_ID][table_id].c_str()] = table_id;
+  //is_dirty = true;
   if (tail != NULL) {
     tail->next_record = record;
   }
@@ -181,6 +189,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
   }
   using namespace hustle;
 
+  std::cout << "Update Memlog" << std::endl;
   std::shared_ptr<catalog::Catalog> catalog =
           HustleDB::get_catalog(mem_log->db_name);
 
@@ -265,6 +274,110 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
 }
 
 /**
+ * Update the arrow array with the records present in the memlog
+ * and free the records in the memlog.
+ *
+ * mem_log - pointer to the memlog
+ * is_free - whether to free the records after updating
+ * */
+Status hustle_memlog_table_update_db(HustleMemLog *mem_log, char **table_names, int tables_size, int is_free) {
+    if (mem_log == NULL) {
+        return MEMLOG_ERROR;
+    }
+    using namespace hustle;
+
+    std::cout << "Update Memlog" << std::endl;
+    std::shared_ptr<catalog::Catalog> catalog =
+            HustleDB::get_catalog(mem_log->db_name);
+
+    int table_index = 0;
+    struct DBRecord *tmp_record;
+   // while (table_index < mem_log->total_size) {
+   for (int tid = 0; tid < tables_size; tid++) {
+       table_index = dirty_table[table_names[tid]];
+       if (table_index == -1) {
+           continue;
+       }
+       std::cout << "dirty table: " << table_index << std::endl;
+        struct DBRecord *head = mem_log->record_list[table_index].head;
+        auto search = table_map[DEFAULT_DB_ID].find(table_index);
+        if (search == table_map[DEFAULT_DB_ID].end()) {
+            //table_index++;
+            continue;
+        }
+
+        auto table =
+                catalog->GetTable(table_map[DEFAULT_DB_ID][table_index].c_str());
+        if (table == nullptr) {
+            //table_index++;
+            continue;
+        }
+        while (head != NULL) {
+            tmp_record = head;
+
+            if (head->mode == MEMLOG_HUSTLE_DELETE) {
+                table->DeleteRecordTable(head->rowId);
+            } else {
+                u32 hdrLen;
+                // Read header len in the record
+                u32 nBytes = getVarint32((const unsigned char *)head->data, hdrLen);
+                u32 idx = nBytes;
+                const unsigned char *hdr = (const unsigned char *)head->data;
+                std::vector<int32_t> byte_widths;
+                /* read the col width from the record and user serialTypeLen
+                    to convert to exact col width */
+                while (idx < hdrLen) {
+                    u32 typeLen;
+                    nBytes = getVarint32(((const unsigned char *)hdr + idx), typeLen);
+                    // Add the byte width to the vector, if its 0 or 1 sqlite3 serial encoding
+                    // add the negative serial encoding value
+                    // TODO (@suryadev) : Instead of bytewidth pass on the serial encoding throughout the call
+                    byte_widths.emplace_back((typeLen == ZERO_TYPE_ENCODING || typeLen == ONE_TYPE_ENCODING)
+                                             ? -typeLen
+                                             : serialTypeLen(typeLen));
+                    idx += nBytes;
+                }
+
+                // Todo: (@suryadev) handle update and delete
+                uint8_t *record_data = (uint8_t *)head->data;
+                if (table != nullptr) {
+                    size_t len = byte_widths.size();
+                    int32_t widths[len];
+                    for (size_t i = 0; i < len; i++) {
+                        widths[i] = byte_widths[i];
+                    }
+                    // Insert record to the arrow table
+                    if (head->mode == MEMLOG_HUSTLE_INSERT) {
+                        table->InsertRecordTable(head->rowId, record_data + hdrLen, widths);
+                    } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
+                        table->UpdateRecordTable(head->rowId, head->nUpdateMetaInfo,
+                                                 head->updateMetaInfo, record_data + hdrLen,
+                                                 widths);
+                    }
+                }
+            }
+
+            head = head->next_record;
+            if (is_free) {
+                if (tmp_record->mode == MEMLOG_HUSTLE_UPDATE) {
+                    UpdateMetaInfo *updateMetaInfo = tmp_record->updateMetaInfo;
+                    // free(updateMetaInfo);
+                }
+                uint8_t *record_data = (uint8_t *)tmp_record->data;
+                free(record_data);
+                free(tmp_record);
+            }
+        }
+        mem_log->record_list[table_index].head = NULL;
+        mem_log->record_list[table_index].tail = NULL;
+        mem_log->record_list[table_index].curr_size = 0;
+       // table_index++;
+       dirty_table[table_names[tid]] = -1;
+    }
+    return MEMLOG_OK;
+}
+
+/**
  * Make the memlog contents empty by clearing/freeing up
  * the records in the memlog.
  *
@@ -290,6 +403,7 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
     mem_log->record_list[table_index].curr_size = 0;
     table_index++;
   }
+  is_dirty = false;
   return MEMLOG_OK;
 }
 
@@ -308,5 +422,6 @@ Status hustle_memlog_free(HustleMemLog *mem_log) {
   free(mem_log);
 
   table_map.clear();
+  is_dirty = false;
   return MEMLOG_OK;
 }

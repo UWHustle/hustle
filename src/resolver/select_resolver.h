@@ -60,6 +60,7 @@ class SelectResolver {
   std::unordered_map<std::string, JoinPredicate> join_predicates_;
   std::unordered_map<std::string, std::vector<JoinPredicate>> join_graph_;
   std::vector<JoinPredicate> predicates_;
+  std::vector<std::string> source_tables_;
 
   std::shared_ptr<std::vector<AggregateReference>> agg_references_;
   std::shared_ptr<std::vector<std::shared_ptr<ColumnReference>>>
@@ -115,6 +116,10 @@ class SelectResolver {
 
   inline std::unordered_map<std::string, std::vector<JoinPredicate>> join_graph() const {
       return join_graph_;
+  }
+
+  inline std::vector<std::string> source_tables() const {
+      return source_tables_;
   }
 
   inline std::unordered_map<std::string, JoinPredicate> join_predicates() const {
