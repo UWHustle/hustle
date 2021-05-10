@@ -191,7 +191,6 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
   }
   using namespace hustle;
 
-    std::cout << "Update Memlog" << std::endl;
   std::shared_ptr<catalog::Catalog> catalog =
           HustleDB::get_catalog(mem_log->db_name);
 
