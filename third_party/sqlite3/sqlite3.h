@@ -37,6 +37,8 @@
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
 #endif
 #include <sys/mman.h>
+#include "storage/cmemlog.h"
+
 
 /*
 ** Make sure we can call this stuff from C++.
@@ -3545,6 +3547,7 @@ SQLITE_API int sqlite3_open_v2(
   const char *zVfs        /* Name of VFS module to use */
 );
 
+SQLITE_API int sqlite3_set_memlog(sqlite3 *ppDb, HustleMemLog *memlog);
 /*
 ** CAPI3REF: Obtain Values For URI Parameters
 **

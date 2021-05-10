@@ -12,6 +12,7 @@ namespace txbench {
 
 class TATPWorker : public Worker {
  public:
+    static int query_type;
   explicit TATPWorker(int n_rows, std::unique_ptr<TATPConnector> connector);
 
   void run(std::atomic_bool& terminate, std::atomic_int& commit_count) override;

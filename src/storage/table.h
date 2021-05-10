@@ -45,6 +45,8 @@ namespace hustle::storage {
 class DBTable {
  public:
   using TablePtr = std::shared_ptr<DBTable>;
+
+  static int query_type;
   /**
    * Construct an empty table with no blocks.
    *

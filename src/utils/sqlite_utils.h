@@ -28,7 +28,7 @@ namespace utils {
 
 void init_sqlite3();
 
-void open_sqlite3_db(const std::string &sqlitePath, sqlite3 **db);
+void open_sqlite3_db(const std::string &sqlitePath, sqlite3 **db, HustleMemLog *memlog);
 
 void load_tables(sqlite3* db, std::vector<std::string> tables);
 

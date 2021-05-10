@@ -50,7 +50,8 @@ HustleDB::HustleDB(std::string DBpath)
     std::filesystem::create_directories(DBpath);
   }
   this->add_catalog(SqliteDBPath_, catalog_);
-  utils::open_sqlite3_db(SqliteDBPath_, &db);
+    hustle_memlog_initialize(&this->memlog, SqliteDBPath_.c_str(), MEMLOG_INIT_SIZE);
+    //utils::open_sqlite3_db(SqliteDBPath_, &db);
 };
 
 std::string HustleDB::get_plan(const std::string &sql) {
@@ -58,18 +59,26 @@ std::string HustleDB::get_plan(const std::string &sql) {
 }
 
 bool HustleDB::create_table(const TableSchema ts) {
-  return catalog_->AddTable(db, ts);
+    sqlite3 *local_db;
+    utils::open_sqlite3_db(SqliteDBPath_, &local_db, this->memlog);
+    auto result = catalog_->AddTable(local_db, ts);
+    utils::close_sqlite3(local_db);
+    return result;
 }
 
 bool HustleDB::create_table(const TableSchema ts, DBTable::TablePtr table_ref) {
-  return catalog_->AddTable(db, ts, table_ref);
+    sqlite3 *local_db;
+    utils::open_sqlite3_db(SqliteDBPath_, &local_db, this->memlog);
+    auto result =  catalog_->AddTable(local_db, ts, table_ref);
+    utils::close_sqlite3(local_db);
+    return result;
 }
 
 void HustleDB::reinitialize_sqlite_db() {
   if (db != NULL) {
     utils::close_sqlite3(db);
   }
-  utils::open_sqlite3_db(SqliteDBPath_, &db);
+  utils::open_sqlite3_db(SqliteDBPath_, &db, this->memlog);
 }
 
 void HustleDB::load_tables() {
@@ -79,19 +88,35 @@ void HustleDB::load_tables() {
 }
 
 std::string HustleDB::execute_query_result(const std::string &sql) {
-  return utils::execute_sqlite_result(db, sql);
+    sqlite3 *local_db;
+    utils::open_sqlite3_db(SqliteDBPath_, &local_db, this->memlog);
+    std::string result = utils::execute_sqlite_result(local_db, sql);
+    utils::close_sqlite3(local_db);
+    return result;
 }
 
 bool HustleDB::execute_query(const std::string &sql) {
-  return utils::execute_sqlite_query(db, sql);
+    sqlite3 *local_db;
+    utils::open_sqlite3_db(SqliteDBPath_, &local_db, this->memlog);
+    bool result =  utils::execute_sqlite_query(local_db, sql);
+    utils::close_sqlite3(local_db);
+    return result;
 }
 
 bool HustleDB::drop_table(const std::string &name) {
-  return catalog_->DropTable(db, name);
+    sqlite3 *local_db;
+    utils::open_sqlite3_db(SqliteDBPath_, &local_db, this->memlog);
+    auto result =  catalog_->DropTable(local_db, name);
+    utils::close_sqlite3(local_db);
+    return result;
 }
 
 bool HustleDB::drop_mem_table(const std::string &name) {
-  return catalog_->DropMemTable(name);
+    sqlite3 *local_db;
+    utils::open_sqlite3_db(SqliteDBPath_, &local_db, this->memlog);
+    auto result =  catalog_->DropMemTable(name);
+    utils::close_sqlite3(local_db);
+    return result;
 }
 
 }  // namespace hustle

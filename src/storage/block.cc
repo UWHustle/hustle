@@ -297,7 +297,9 @@ int Block::InsertRecords(
     std::map<int, BlockInfo> &block_map, std::map<int, int> &row_map,
     const std::shared_ptr<arrow::Array> valid_column,
     const std::vector<std::shared_ptr<arrow::ArrayData>> column_data) {
-  int col_length = column_data[0]->length;
+        std::unique_lock lock(mutex_);
+
+        int col_length = column_data[0]->length;
   int column_types[num_cols];
   for (int i = 0; i < num_cols; i++) {
     column_types[i] = schema->field(i)->type()->id();
@@ -594,7 +596,9 @@ void Block::InsertValue(int col_num, int &head, uint8_t *record_value,
 // Return true is insertion was successful, false otherwise
 int Block::InsertRecord(std::vector<std::string_view> record,
                         int32_t *byte_widths) {
-  int record_size = 0;
+        std::unique_lock lock(mutex_);
+
+        int record_size = 0;
   for (int i = 0; i < num_cols; i++) {
     record_size += byte_widths[i];
   }

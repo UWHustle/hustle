@@ -40,7 +40,9 @@ double txbench::Benchmark::run() {
     threads.emplace_back([&] { 
       worker->run(terminate, transaction_count); 
       for (int i = 0; i < NUM_QUERIES; i++) {
-        *query_time[i] = *query_time[i] + worker->getTime(i);
+        //if (worker->getTime(i) > 0.000000) {
+          *query_time[i] = *query_time[i] + worker->getTime(i);
+        //}
       }
     });
   }

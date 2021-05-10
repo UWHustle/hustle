@@ -23,4 +23,5 @@ int main(int argc, char **argv) {
                                         measurement_duration, n_rows);
   double tps = benchmark.run();
   std::cout << "tps: " << tps << std::endl;
+  hustle::profiler.summarizeToStream(std::cout);
 }

@@ -87,6 +87,7 @@ class EventProfiler {
     }
 
     std::map<TagT, std::vector<EventInfo>> events;
+    std::map<TagT, double> event_accum;
   };
 
   EventContainer *getContainer() {
@@ -133,20 +134,46 @@ class EventProfiler {
     }
   }
 
+  std::map<TagT, double> event_summary() {
+      std::map<TagT, double> time_slots;
+      std::map<TagT, int> time_count;
+      for (const auto &thread_ctx : thread_map_) {
+          for (const auto &event_group : thread_ctx.second.events) {
+              auto &time_sum = time_slots[event_group.first];
+              auto &event_count = time_count[event_group.first];
+              for (const auto &event_info : event_group.second) {
+                  time_sum += std::chrono::duration<double>(event_info.end_time -
+                                                            event_info.start_time)
+                          .count();
+                  event_count++;
+              }
+          }
+      }
+
+      for (const auto &pair : time_slots) {
+          time_slots[pair.first] = pair.second/time_count[pair.first];
+      }
+      return time_slots;
+  }
+
   void summarizeToStream(std::ostream &os) const {
     std::map<TagT, double> time_slots;
+    std::map<TagT, int> time_count;
     for (const auto &thread_ctx : thread_map_) {
       for (const auto &event_group : thread_ctx.second.events) {
         auto &time_sum = time_slots[event_group.first];
+        auto &event_count = time_count[event_group.first];
         for (const auto &event_info : event_group.second) {
           time_sum += std::chrono::duration<double>(event_info.end_time -
                                                     event_info.start_time)
                           .count();
+          event_count++;
         }
       }
     }
     for (const auto &pair : time_slots) {
       os << pair.first << ":\t\t" << pair.second << "\n";
+      os << "Avg " <<  pair.first << ":\t\t" << pair.second/time_count[pair.first] << "\n";
     }
 
     for (const auto &global_ctx : global_containers_) {

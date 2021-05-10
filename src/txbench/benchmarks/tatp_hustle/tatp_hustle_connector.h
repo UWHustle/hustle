@@ -10,7 +10,9 @@ class TATPHustleConnector : public TATPConnector {
 private:
  std::shared_ptr<hustle::HustleDB> hustle_db;
 public:
-  TATPHustleConnector(const std::string &host, int port,
+    static int query_type;
+
+    TATPHustleConnector(const std::string &host, int port,
                      const std::string &user);
 
   double getSubscriberData(int s_id, std::string *sub_nbr,
@@ -34,7 +36,10 @@ public:
                             const std::string &numberx) override;
 
   double deleteCallForwarding(const std::string &sub_nbr, int sf_type,
-                            int start_time) override;
+                            int start_time) override {};
+
+  double deleteCallForwarding(int s_id, const std::string &sub_nbr, int sf_type,
+                                int start_time) override;
 };
 
 } // namespace txbench

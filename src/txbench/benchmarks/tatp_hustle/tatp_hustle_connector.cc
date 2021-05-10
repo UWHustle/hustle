@@ -3,6 +3,9 @@
 #include <iostream>
 #include <memory>
 #include <chrono>
+#include "storage/table.h"
+
+int txbench::TATPHustleConnector::query_type = -1;
 
 txbench::TATPHustleConnector::TATPHustleConnector(const std::string &host,
                                                   int port,
@@ -30,6 +33,8 @@ double txbench::TATPHustleConnector::getSubscriberData(
       "WHERE s_id=" +
       std::to_string(s_id) + ";";
   const auto before = clock1::now();
+    DBTable::query_type = 1;
+  //std::cout << "Execute: " << query << std::endl;
   if(!hustle_db->execute_query(query)) {
     return -1;
   }
@@ -59,7 +64,10 @@ double txbench::TATPHustleConnector::getNewDestination(int s_id, int sf_type,
       "AND end_time>" +
       std::to_string(end_time) + ");";
   const auto before = clock1::now();
-  if(!hustle_db->execute_query(query)) {
+   // std::cout << "Execute: " << query << std::endl;
+    DBTable::query_type = 2;
+
+    if(!hustle_db->execute_query(query)) {
     return -1;
   }
   const sec duration = clock1::now() - before;
@@ -76,7 +84,10 @@ double txbench::TATPHustleConnector::getAccessData(int s_id, int ai_type,
       "WHERE s_id=" +
       std::to_string(s_id) + " AND ai_type=" + std::to_string(ai_type) + ";";
   const auto before = clock1::now();
-  if(!hustle_db->execute_query(query)) {
+    //std::cout << "Execute: " << query << std::endl;
+    DBTable::query_type = 3;
+
+    if(!hustle_db->execute_query(query)) {
     return -1;
   }
   const sec duration = clock1::now() - before;
@@ -106,7 +117,9 @@ double txbench::TATPHustleConnector::updateSubscriberData(int s_id, bool bit_1,
       std::to_string(sf_type) + ";";
   query += "COMMIT;";
   const auto before = clock1::now();
-  if(!hustle_db->execute_query(query)) {
+    DBTable::query_type = 4;
+
+    if(!hustle_db->execute_query(query)) {
     return -1;
   }
   const sec duration = clock1::now() - before;
@@ -123,7 +136,9 @@ double txbench::TATPHustleConnector::updateLocation(const std::string &sub_nbr,
       "WHERE sub_nbr='" +
       sub_nbr + "';";
   const auto before = clock1::now();
-  if(!hustle_db->execute_query(query)) {
+    DBTable::query_type = 5;
+
+    if(!hustle_db->execute_query(query)) {
     return -1;
   }
   const sec duration = clock1::now() - before;
@@ -140,28 +155,39 @@ double txbench::TATPHustleConnector::insertCallForwarding(
       std::to_string(start_time) + "," + std::to_string(end_time) + "," +
       std::to_string(end_time) + ");";
   const auto before = clock1::now();
-  if(!hustle_db->execute_query(query)) {
+    DBTable::query_type = 6;
+
+    if(!hustle_db->execute_query(query)) {
     return -1;
   }
   const sec duration = clock1::now() - before;
   return duration.count();
 }
 
-double txbench::TATPHustleConnector::deleteCallForwarding(
-    const std::string &sub_nbr, int sf_type, int start_time) {
-  std::string query =
+double txbench::TATPHustleConnector::deleteCallForwarding(int s_id,
+                                                          const std::string &sub_nbr, int sf_type,
+                                                          int start_time) {
+    std::string query = "BEGIN;";
+    query +="SELECT s_id FROM Subscriber "
+            "WHERE sub_nbr = '" + sub_nbr + "';";
+    query +=
       "DELETE FROM Call_Forwarding "
-      "WHERE cf_s_id=10 "
+      "WHERE cf_s_id=" + std::to_string(s_id) + " "
       "AND cf_sf_type=" +
       std::to_string(sf_type) +
       ""
       " AND start_time=" +
       std::to_string(start_time) + ";";
+    query += "COMMIT;";
 
   const auto before = clock1::now();
-  if(!hustle_db->execute_query(query)) {
+    DBTable::query_type = 7;
+
+    if(!hustle_db->execute_query(query)) {
     return -1;
   }
   const sec duration = clock1::now() - before;
   return duration.count();
 }
+
+

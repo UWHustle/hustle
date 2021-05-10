@@ -30,6 +30,8 @@
 
 namespace hustle::storage {
 
+    int  DBTable::query_type = -1;
+
 DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
                  int block_capacity, bool enable_metadata)
     : table_name(std::move(name)),
@@ -39,7 +41,6 @@ DBTable::DBTable(std::string name, const std::shared_ptr<arrow::Schema> &schema,
       num_rows(0),
       block_capacity(block_capacity),
       block_row_offsets({}) {
-  //
   fixed_record_width = compute_fixed_record_width(schema);
   num_cols = schema->num_fields();
 }
@@ -54,7 +55,6 @@ DBTable::DBTable(
       num_rows(0),
       block_capacity(block_capacity),
       block_row_offsets({0}) {
-  //
   schema = std::move(record_batches[0]->schema());
   num_cols = schema->num_fields();
   // Must be called only after schema is set
@@ -201,9 +201,10 @@ int DBTable::get_record_size(int32_t *byte_widths) {
 void DBTable::InsertRecordTable(uint32_t rowId, uint8_t *record,
                                 int32_t *byte_widths) {
   auto container = hustle::profiler.getContainer();
-  container->startEvent("insert_record");
+  int query_type = DBTable::query_type;
+  container->startEvent("insert_record_"+ std::to_string(query_type));
   block_map[rowId] = InsertRecord(record, byte_widths);
-  container->endEvent("insert_record");
+  container->endEvent("insert_record_"+ std::to_string(query_type));
 }
 
 // Tuple is passed in as an array of bytes which must be parsed.
@@ -225,7 +226,8 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
                                 UpdateMetaInfo *updateMetaInfo, uint8_t *record,
                                 int32_t *byte_widths) {
   auto container = hustle::profiler.getContainer();
-  container->startEvent("update_record");
+  int query_type = DBTable::query_type;
+  container->startEvent("update_record_"+ std::to_string(query_type));
   auto block_map_it = block_map.find(row_id);
   if (block_map_it == block_map.end()) {
     return;
@@ -262,16 +264,21 @@ void DBTable::UpdateRecordTable(uint32_t row_id, int num_UpdateMetaInfo,
 
     type_switcher(data_type, handler);
   }
-  container->endEvent("update_record");
+  container->endEvent("update_record_"+ std::to_string(query_type));
 }
 
 void DBTable::DeleteRecordTable(uint32_t row_id) {
   auto container = hustle::profiler.getContainer();
-  container->startEvent("delete_record");
+    int query_type = DBTable::query_type;
   auto block_map_it = block_map.find(row_id);
-  if (block_map_it == block_map.end()) {
+    std::cout << "BEFORE DELETE RECORD TABLE"  << std::endl;
+
+    if (block_map_it == block_map.end()) {
     return;
   }
+  std::cout << "DELETE RECORD TABLE"  << std::endl;
+  container->startEvent("delete_record_"+ std::to_string(query_type));
+
   BlockInfo block_info = block_map_it->second;
   std::shared_ptr<Block> block = this->get_block(block_info.block_id);
   block->set_valid(block_info.row_num, false);
@@ -284,7 +291,7 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
   if (insert_pool.find(block_info.block_id) != insert_pool.end()) {
     insert_pool[block_info.block_id] = updatedBlock;
   }
-  container->endEvent("delete_record");
+  container->endEvent("delete_record_"+ std::to_string(query_type));
 }
 
 void DBTable::InsertRecord(std::vector<std::string_view> values,

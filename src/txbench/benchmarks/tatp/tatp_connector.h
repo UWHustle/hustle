@@ -36,6 +36,9 @@ public:
   virtual double deleteCallForwarding(const std::string &sub_nbr, int sf_type,
                                     int start_time) = 0;
 
+  virtual double deleteCallForwarding(int s_id, const std::string &sub_nbr, int sf_type,
+                                        int start_time) = 0;
+
 };
 
 } // namespace txbench

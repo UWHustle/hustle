@@ -25,6 +25,8 @@
 
 #include "storage/cmemlog.h"
 #include "utils/bit_utils.h"
+#include <mutex>
+#include <shared_mutex>
 
 #define BLOCK_SIZE (1 << 20)
 
@@ -107,6 +109,7 @@ class Block {
    * @return A read-only pointer to the column.
    */
   inline std::shared_ptr<arrow::Array> get_column(int column_index) const {
+      std::shared_lock lock(mutex_);
     return arrow::MakeArray(columns[column_index]);
   }
 
@@ -116,7 +119,8 @@ class Block {
    * @return all columns in the block
    */
   inline std::vector<std::shared_ptr<arrow::ArrayData>> get_columns() {
-    return columns;
+      std::shared_lock lock(mutex_);
+      return columns;
   }
 
   /**
@@ -128,7 +132,9 @@ class Block {
    */
   inline std::shared_ptr<arrow::Array> get_column_by_name(
       const std::string &name) const {
-    return arrow::MakeArray(columns[schema->GetFieldIndex(name)]);
+      std::shared_lock lock(mutex_);
+
+      return arrow::MakeArray(columns[schema->GetFieldIndex(name)]);
   }
 
   /**
@@ -188,7 +194,8 @@ class Block {
    * @return A pointer to the Block's RecordBatch
    */
   inline std::shared_ptr<arrow::RecordBatch> get_records() {
-    return arrow::RecordBatch::Make(schema, num_rows, columns);
+      std::shared_lock lock(mutex_);
+      return arrow::RecordBatch::Make(schema, num_rows, columns);
   }
 
   /**
@@ -197,7 +204,8 @@ class Block {
    *
    * @return Number of bytes that can still be added to the Block
    */
-  inline int get_bytes_left() { return capacity - num_bytes; }
+  inline int get_bytes_left() {
+      return capacity - num_bytes; }
 
   /**
    * Print the contents of the block delimited by tabs, including the valid
@@ -313,7 +321,9 @@ class Block {
   template <typename field_size>
   inline void UpdateColumnValue(int col_num, int row_num, uint8_t *record_value,
                                 int byte_width) {
-    auto *dest = columns[col_num]->GetMutableValues<field_size>(1, row_num);
+      std::unique_lock lock(mutex_);
+
+      auto *dest = columns[col_num]->GetMutableValues<field_size>(1, row_num);
     uint8_t *value = (uint8_t *)calloc(sizeof(field_size), sizeof(uint8_t));
     // Handle 0 or 1 storage encoding optimization from sqlite3 record
     if (byte_width < 0) {
@@ -372,9 +382,11 @@ class Block {
    */
   std::shared_ptr<arrow::Schema> schema;
 
+  mutable std::shared_mutex mutex_;
+
   /**
    * Block valid bit column.
-   */
+  */
   std::shared_ptr<arrow::ArrayData> valid;
 
   /**

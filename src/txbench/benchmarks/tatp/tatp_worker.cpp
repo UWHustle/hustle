@@ -6,6 +6,11 @@
 
 #include "tatp_util.h"
 
+int txbench::TATPWorker::query_type = -1;
+
+#define ISTHROUGHPUT 1
+#define ISLATENCY 0
+
 txbench::TATPWorker::TATPWorker(int n_rows,
                                 std::unique_ptr<TATPConnector> connector)
     : n_rows_(n_rows),
@@ -25,7 +30,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
 
     int transaction_type = rg_.random_int(0, 99);
     // std::cout << "Query executing " << transaction_type << std::endl;
-    if (transaction_type < 35) {
+    if ((ISTHROUGHPUT && transaction_type < 35) || (ISLATENCY && transaction_type < 14)) {
       // GET_SUBSCRIBER_DATA
       // Probability: 35%
       std::string sub_nbr;
@@ -33,13 +38,14 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       std::array<int, 10> hex{};
       std::array<int, 10> byte2{};
       int msc_location, vlr_location;
+        query_type = 1;
       double time = connector_->getSubscriberData(
           s_id, &sub_nbr, bit, hex, byte2, &msc_location, &vlr_location);
       if (time != -1) {
         query_time_[0] += time;
         s_trans_count_[0]++;
       }
-    } else if (transaction_type < 45) {
+    } else if ((ISTHROUGHPUT && transaction_type < 45) || (ISLATENCY && transaction_type < 28)) {
       // GET_NEW_DESTINATION
       // Probability: 10%
       int sf_type = rg_.random_int(1, 4);
@@ -47,50 +53,58 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       int start_time = start_times_possible[rg_.random_int(0, 2)];
       int end_time = rg_.random_int(1, 24);
       std::string numberx;
-      double time = connector_->getNewDestination(s_id, sf_type, start_time,
+        query_type = 2;
+
+        double time = connector_->getNewDestination(s_id, sf_type, start_time,
                                                   end_time, &numberx);
       if (time != -1) {
         query_time_[1] += time;
         s_trans_count_[1]++;
       }
-    } else if (transaction_type < 80) {
+    } else if ((ISTHROUGHPUT && transaction_type < 80) || (ISLATENCY && transaction_type < 42)) {
       // GET_ACCESS_DATA
       // Probability: 35%
       int ai_type = rg_.random_int(1, 4);
       int data1, data2;
       std::string data3, data4;
-      double time = connector_->getAccessData(s_id, ai_type, &data1, &data2,
+        query_type = 3;
+
+        double time = connector_->getAccessData(s_id, ai_type, &data1, &data2,
                                               &data3, &data4);
       if (time != -1) {
         query_time_[2] += time;
         s_trans_count_[2]++;
       }
 
-    } else if (transaction_type < 82) {
+    } else if ((ISTHROUGHPUT && transaction_type < 82) ||(ISLATENCY && transaction_type < 56) ) {
       // UPDATE_SUBSCRIBER_DATA
       // Probability: 2%
       bool bit_1 = rg_.random_bool();
       int sf_type = rg_.random_int(1, 4);
       int data_a = rg_.random_int(0, 255);
-      double time =
+        query_type = 4;
+
+        double time =
           connector_->updateSubscriberData(s_id, bit_1, sf_type, data_a);
 
       if (time != -1) {
         query_time_[3] += time;
         s_trans_count_[3]++;
       }
-    } else if (transaction_type < 96) {
+    } else if ((ISTHROUGHPUT && transaction_type < 96) || (ISLATENCY && transaction_type < 70)) {
       // UPDATE_LOCATION
       // Probability: 14%
       std::string sub_nbr = leading_zero_pad(15, std::to_string(s_id));
       int vlr_location = rg_.random_int(INT_MIN, INT_MAX);
-      double time = connector_->updateLocation(sub_nbr, vlr_location);
+        query_type = 5;
+
+        double time = connector_->updateLocation(sub_nbr, vlr_location);
 
       if (time != -1) {
         query_time_[4] += time;
         s_trans_count_[4]++;
       }
-    } else if (transaction_type < 98) {
+    } else if ((ISTHROUGHPUT &&transaction_type < 98)|| (ISLATENCY && transaction_type < 84)) {
       // INSERT_CALL_FORWARDING
       // Probability: 2%
       std::string sub_nbr = leading_zero_pad(15, std::to_string(s_id));
@@ -100,7 +114,9 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       int end_time = rg_.random_int(1, 24);
       std::string numberx =
           leading_zero_pad(15, std::to_string(rg_.random_int(1, n_rows_)));
-      double time = connector_->insertCallForwarding(
+        query_type = 6;
+
+        double time = connector_->insertCallForwarding(
           sub_nbr, sf_type, start_time, end_time, numberx);
       if (time != -1) {
         query_time_[5] += time;
@@ -113,8 +129,10 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       int sf_type = rg_.random_int(1, 4);
       int start_times_possible[] = {0, 8, 16};
       int start_time = start_times_possible[rg_.random_int(0, 2)];
-      double time =
-          connector_->deleteCallForwarding(sub_nbr, sf_type, start_time);
+        query_type = 7;
+
+        double time =
+          connector_->deleteCallForwarding(s_id, sub_nbr, sf_type, start_time);
 
       if (time != -1) {
         query_time_[6] += time;

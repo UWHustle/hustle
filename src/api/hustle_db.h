@@ -24,6 +24,7 @@
 #include "catalog/catalog.h"
 #include "catalog/table_schema.h"
 #include "scheduler/scheduler.h"
+#include "storage/cmemlog.h"
 
 using hustle::catalog::Catalog;
 using hustle::catalog::TableSchema;
@@ -82,13 +83,19 @@ class HustleDB {
 
   std::shared_ptr<Catalog> get_catalog() { return catalog_; }
 
-  ~HustleDB() { utils::close_sqlite3(db); }
+  ~HustleDB() {
+      if (db != NULL) {
+        utils::close_sqlite3(db);
+      }
+      hustle_memlog_free(memlog);
+  }
 
  private:
   sqlite3 *db;
+  HustleMemLog* memlog;
   const std::string DBPath_;
   const std::string CatalogPath_;
-  const std::string SqliteDBPath_;
+  std::string SqliteDBPath_;
   std::shared_ptr<Catalog> catalog_;
 };
 

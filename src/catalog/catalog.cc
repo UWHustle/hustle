@@ -77,7 +77,7 @@ Catalog Catalog::CreateCatalog(std::string CatalogPath,
     }
     // Rebuild the sqlite db catalog.
     sqlite3 *db;
-    utils::open_sqlite3_db(SqlitePath, &db);
+    utils::open_sqlite3_db(SqlitePath, &db, NULL);
     for (const auto &t : catalog.tables_) {
       utils::execute_sqlite_query(db, createCreateSql(t.second.table_schema));
     }

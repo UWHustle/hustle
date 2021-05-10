@@ -34,6 +34,9 @@ public:
   void deleteCallForwarding(const std::string &sub_nbr, int sf_type,
                             int start_time) override;
 
+  double deleteCallForwarding(int s_id, const std::string &sub_nbr, int sf_type,
+                                int start_time) override {};
+
 private:
   mysqlx::Session session_;
 

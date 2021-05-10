@@ -352,6 +352,8 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
     return false;
   }
 
+  std::cout << "Completed the next sub query" << std::endl;
+
   for (int i = 0; i < pTabList->nSrc; i++) {
     // Select as table source is not supported
     if (pTabList->a[i].pSelect != NULL) {
@@ -431,6 +433,7 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       return false;
     }
   }
+  std::cout << "query tree next 1" << std::endl;
 
   if (queryTree->pNext) return false;
 
@@ -442,15 +445,21 @@ bool SelectResolver::ResolveSelectTree(Sqlite3Select* queryTree) {
       return false;
     }
   }
-  if (pWhere != NULL) {
+    std::cout << "query tree next 2" << std::endl;
+
+    if (pWhere != NULL) {
     ResolveJoinPredExpr(pWhere);
   }
+    std::cout << "query tree next 3" << std::endl;
 
-  if (!CheckJoinSupport()) {
+
+    if (join_graph_.size() > 0 && !CheckJoinSupport()) {
     return false;
   }
+    std::cout << "query tree next 4" << std::endl;
 
-  // Resolve GroupBy
+
+    // Resolve GroupBy
   ExprList* pGroupBy = queryTree->pGroupBy;
   if (pGroupBy != NULL) {
     for (int i = 0; i < pGroupBy->nExpr; i++) {

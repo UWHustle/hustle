@@ -54,7 +54,7 @@ void init_sqlite3() {
   sqlite3_initialize();
 }
 
-void open_sqlite3_db(const std::string &sqlitePath, sqlite3 **db) {
+void open_sqlite3_db(const std::string &sqlitePath, sqlite3 **db, HustleMemLog *memlog) {
   int rc = sqlite3_open_v2(
       sqlitePath.c_str(), db,
       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_CONFIG_MULTITHREAD,
@@ -65,8 +65,8 @@ void open_sqlite3_db(const std::string &sqlitePath, sqlite3 **db) {
     fprintf(stderr, "Can't open sqlite catalog database: %s\n",
             sqlite3_errmsg(*db));
   }
-
-  sqlite3_busy_timeout(*db, 5000);
+  sqlite3_set_memlog(*db, memlog);
+  sqlite3_busy_timeout(*db, 2000);
   rc = sqlite3_exec(*db, "PRAGMA journal_mode=WAL;", NULL, NULL, &zErrMsg);
 
   if (rc != SQLITE_OK) {
@@ -102,9 +102,7 @@ bool execute_sqlite_query(sqlite3 *db, const std::string &sql) {
   char *zErrMsg = 0;
   int rc;
   std::string result;
-
-  rc = sqlite3_exec(db, sql.c_str(), callback_print_plan, 0, &zErrMsg);
-
+  rc = sqlite3_exec(db, sql.c_str(), callback_print_plan, &result, &zErrMsg);
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);

@@ -33,6 +33,7 @@
 // Maps the Btree root id to hustle table id
 static std::map<int, std::map<int, std::string>> table_map;
 static std::map<std::string, int> dirty_table;
+static std::map<std::string, std::unique_ptr<std::mutex>> mutex_cache;
 static std::mutex instance_lock;
 static bool is_dirty = false;
 
@@ -79,7 +80,7 @@ void memlog_remove_table_mapping(int db_id, char *db_name, char *tbl_name) {
  * mem_log - double-pointer to the memlog
  * initial_size - the initial array size of the store
  * */
-Status hustle_memlog_initialize(HustleMemLog **mem_log, char *db_name,
+Status hustle_memlog_initialize(HustleMemLog **mem_log, const char *db_name,
                                 int initial_size) {
   if (initial_size <= 0) {
     return MEMLOG_ERROR;
@@ -152,6 +153,7 @@ Status hustle_memlog_insert_record(HustleMemLog *mem_log, DBRecord *record,
   DBRecord *tail = mem_log->record_list[table_id].tail;
   mem_log->record_list[table_id].tail = record;
   dirty_table[table_map[DEFAULT_DB_ID][table_id].c_str()] = table_id;
+  mutex_cache.emplace(table_map[DEFAULT_DB_ID][table_id].c_str(), std::make_unique<std::mutex>());
   //is_dirty = true;
   if (tail != NULL) {
     tail->next_record = record;
@@ -189,7 +191,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
   }
   using namespace hustle;
 
-  std::cout << "Update Memlog" << std::endl;
+    std::cout << "Update Memlog" << std::endl;
   std::shared_ptr<catalog::Catalog> catalog =
           HustleDB::get_catalog(mem_log->db_name);
 
@@ -292,14 +294,26 @@ Status hustle_memlog_table_update_db(HustleMemLog *mem_log, char **table_names, 
 
     int table_index = 0;
     struct DBRecord *tmp_record;
-   // while (table_index < mem_log->total_size) {
+    int num_dirty_tables = 0;
+    for (int tid = 0; tid < tables_size; tid++) {
+        table_index = dirty_table[table_names[tid]];
+        if (table_index == -1) {
+            continue;
+        }
+        num_dirty_tables++;
+    }
+    if (num_dirty_tables == 0) {
+        return MEMLOG_OK;
+    }
+    std::lock_guard<std::mutex> lock(instance_lock);
+    // while (table_index < mem_log->total_size) {
    for (int tid = 0; tid < tables_size; tid++) {
        table_index = dirty_table[table_names[tid]];
        if (table_index == -1) {
            continue;
        }
-       std::cout << "dirty table: " << table_index << std::endl;
-        struct DBRecord *head = mem_log->record_list[table_index].head;
+
+       struct DBRecord *head = mem_log->record_list[table_index].head;
         auto search = table_map[DEFAULT_DB_ID].find(table_index);
         if (search == table_map[DEFAULT_DB_ID].end()) {
             //table_index++;
@@ -314,8 +328,9 @@ Status hustle_memlog_table_update_db(HustleMemLog *mem_log, char **table_names, 
         }
         while (head != NULL) {
             tmp_record = head;
-
             if (head->mode == MEMLOG_HUSTLE_DELETE) {
+                std::cout << "Head mode: " << head->mode << std::endl;
+
                 table->DeleteRecordTable(head->rowId);
             } else {
                 u32 hdrLen;
@@ -348,8 +363,11 @@ Status hustle_memlog_table_update_db(HustleMemLog *mem_log, char **table_names, 
                     }
                     // Insert record to the arrow table
                     if (head->mode == MEMLOG_HUSTLE_INSERT) {
+                   //     std::cout << "Dirty insert" << std::endl;
+
                         table->InsertRecordTable(head->rowId, record_data + hdrLen, widths);
                     } else if (head->mode == MEMLOG_HUSTLE_UPDATE) {
+                    //    std::cout << "Dirty update" << std::endl;
                         table->UpdateRecordTable(head->rowId, head->nUpdateMetaInfo,
                                                  head->updateMetaInfo, record_data + hdrLen,
                                                  widths);
