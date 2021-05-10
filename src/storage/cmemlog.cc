@@ -288,7 +288,7 @@ Status hustle_memlog_table_update_db(HustleMemLog *mem_log, char **table_names, 
     }
     using namespace hustle;
 
-    std::cout << "Update Memlog" << std::endl;
+    //std::cout << "Update Memlog" << std::endl;
     std::shared_ptr<catalog::Catalog> catalog =
             HustleDB::get_catalog(mem_log->db_name);
 
@@ -329,7 +329,7 @@ Status hustle_memlog_table_update_db(HustleMemLog *mem_log, char **table_names, 
         while (head != NULL) {
             tmp_record = head;
             if (head->mode == MEMLOG_HUSTLE_DELETE) {
-                std::cout << "Head mode: " << head->mode << std::endl;
+                //std::cout << "Head mode: " << head->mode << std::endl;
 
                 table->DeleteRecordTable(head->rowId);
             } else {

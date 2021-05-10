@@ -352,7 +352,7 @@ std::shared_ptr<hustle::storage::DBTable> execute(
   std::shared_ptr<hustle::storage::DBTable> out_table;
   using namespace hustle::operators;
   hustle::Scheduler &scheduler = hustle::HustleDB::get_scheduler();
-  std::cout << "Execute in Hustle" << std::endl;
+  //std::cout << "Execute in Hustle" << std::endl;
   SynchronizationLock sync_lock;
   scheduler.addTask(CreateTaskChain(
       hustle::CreateLambdaTask([&plan](hustle::Task *ctx) {
@@ -388,7 +388,7 @@ int resolveSelect(char *dbName, HustleMemLog *mem_log, Sqlite3Select *queryTree,
   } else {
       is_resolvable = select_resolver->ResolveSelectTree(queryTree);
   }
-  std::cout << "Is resolvable: " << is_resolvable << std::endl;
+  //std::cout << "Is resolvable: " << is_resolvable << std::endl;
   if (is_resolvable) {
       if (MEMLOG_LAZY_UPDATE) {
           auto container = hustle::profiler.getContainer();
@@ -400,7 +400,7 @@ int resolveSelect(char *dbName, HustleMemLog *mem_log, Sqlite3Select *queryTree,
               table_name_array[i] = source_tables[i].data();
           }
           hustle_memlog_table_update_db(mem_log, table_name_array, source_tables.size(), MEMLOG_UPDATE_FREE);
-         std::cout << "Query type:: " <<query_type << std::endl;
+        // std::cout << "Query type:: " <<query_type << std::endl;
           container->endEvent("lazy_update" + std::to_string(query_type));
           //hustle_memlog_clear(mem_log);
       }
