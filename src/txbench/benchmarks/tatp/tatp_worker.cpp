@@ -8,7 +8,8 @@
 
 int txbench::TATPWorker::query_type = -1;
 
-#define ISTHROUGHPUT 1
+#define ISTHROUGHPUT 0
+#define ISTHROUGHPUT_WRITE 1
 #define ISLATENCY 0
 
 txbench::TATPWorker::TATPWorker(int n_rows,
@@ -30,7 +31,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
 
     int transaction_type = rg_.random_int(0, 99);
     // std::cout << "Query executing " << transaction_type << std::endl;
-    if ((ISTHROUGHPUT && transaction_type < 35) || (ISLATENCY && transaction_type < 14)) {
+    if (((ISTHROUGHPUT && transaction_type < 35) || (ISTHROUGHPUT_WRITE && transaction_type < 15 )) || (ISLATENCY && transaction_type < 14)) {
       // GET_SUBSCRIBER_DATA
       // Probability: 35%
       std::string sub_nbr;
@@ -45,7 +46,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
         query_time_[0] += time;
         s_trans_count_[0]++;
       }
-    } else if ((ISTHROUGHPUT && transaction_type < 45) || (ISLATENCY && transaction_type < 28)) {
+    } else if (((ISTHROUGHPUT && transaction_type < 45) || (ISTHROUGHPUT_WRITE && transaction_type < 30 )) || (ISLATENCY && transaction_type < 28)) {
       // GET_NEW_DESTINATION
       // Probability: 10%
       int sf_type = rg_.random_int(1, 4);
@@ -61,7 +62,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
         query_time_[1] += time;
         s_trans_count_[1]++;
       }
-    } else if ((ISTHROUGHPUT && transaction_type < 80) || (ISLATENCY && transaction_type < 42)) {
+    } else if (((ISTHROUGHPUT && transaction_type < 80) || (ISTHROUGHPUT_WRITE && transaction_type < 50 )) || (ISLATENCY && transaction_type < 42)) {
       // GET_ACCESS_DATA
       // Probability: 35%
       int ai_type = rg_.random_int(1, 4);
@@ -76,7 +77,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
         s_trans_count_[2]++;
       }
 
-    } else if ((ISTHROUGHPUT && transaction_type < 82) ||(ISLATENCY && transaction_type < 56) ) {
+    } else if (((ISTHROUGHPUT && transaction_type < 82) || (ISTHROUGHPUT_WRITE && transaction_type < 60)) ||(ISLATENCY && transaction_type < 56) ) {
       // UPDATE_SUBSCRIBER_DATA
       // Probability: 2%
       bool bit_1 = rg_.random_bool();
@@ -91,7 +92,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
         query_time_[3] += time;
         s_trans_count_[3]++;
       }
-    } else if ((ISTHROUGHPUT && transaction_type < 96) || (ISLATENCY && transaction_type < 70)) {
+    } else if (((ISTHROUGHPUT && transaction_type < 96) || (ISTHROUGHPUT_WRITE && transaction_type < 70)) || (ISLATENCY && transaction_type < 70)) {
       // UPDATE_LOCATION
       // Probability: 14%
       std::string sub_nbr = leading_zero_pad(15, std::to_string(s_id));
@@ -104,7 +105,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
         query_time_[4] += time;
         s_trans_count_[4]++;
       }
-    } else if ((ISTHROUGHPUT &&transaction_type < 98)|| (ISLATENCY && transaction_type < 84)) {
+    } else if (((ISTHROUGHPUT &&transaction_type < 98) || (ISTHROUGHPUT_WRITE && transaction_type < 90))|| (ISLATENCY && transaction_type < 84)) {
       // INSERT_CALL_FORWARDING
       // Probability: 2%
       std::string sub_nbr = leading_zero_pad(15, std::to_string(s_id));
