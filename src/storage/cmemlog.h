@@ -38,7 +38,7 @@ extern "C" {
 #define ZERO_TYPE_ENCODING 8
 #define ONE_TYPE_ENCODING  9
 
-#define MEMLOG_LAZY_UPDATE 1
+#define MEMLOG_LAZY_UPDATE 0
 /**
  * MemLog is a temporary in-memory store used by the SQLite write transaction
  * to record the updates and during commit, the records in the Memlog are
