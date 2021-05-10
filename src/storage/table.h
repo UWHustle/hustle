@@ -294,7 +294,7 @@ class DBTable {
    */
   inline void print() {
     if (blocks.empty()) {
-      std::cout << "Table is empty." << std::endl;
+      //std::cout << "Table is empty." << std::endl;
     } else {
       for (int i = 0; i < blocks.size(); i++) {
         blocks[i]->print();
@@ -309,7 +309,7 @@ class DBTable {
    */
   inline void out_table(void *pArgs, sqlite3_callback callback) {
     if (blocks.empty()) {
-      std::cout << "Table is empty." << std::endl;
+     // std::cout << "Table is empty." << std::endl;
     } else {
       for (const auto &[blk_idx, blk] : blocks) {
         blk->out_block(pArgs, callback);

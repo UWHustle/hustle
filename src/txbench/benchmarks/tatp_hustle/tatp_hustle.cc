@@ -22,6 +22,6 @@ int main(int argc, char **argv) {
   txbench::TATPHustleBenchmark benchmark(n_workers, warmup_duration,
                                         measurement_duration, n_rows);
   double tps = benchmark.run();
-  std::cout << "tps: " << tps << std::endl;
+  std::cout << "n_workers : " << n_workers <<" tps : " << tps << std::endl;
   hustle::profiler.summarizeToStream(std::cout);
 }

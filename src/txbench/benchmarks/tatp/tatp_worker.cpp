@@ -149,8 +149,8 @@ void txbench::TATPWorker::print(int commit_count) {
   std::cout << "Worker time " << std::endl;
   int total_s_trans_count = 0;
   for (int i = 0; i < NUM_QUERIES; i++) {
-    std::cout << "Time " << (i + 1) << " : "
-              << 1.0 * (query_time_[i] * 1.0 / s_trans_count_[i]) << std::endl;
+   // std::cout << "Time " << (i + 1) << " : "
+   //           << 1.0 * (query_time_[i] * 1.0 / s_trans_count_[i]) << std::endl;
     total_s_trans_count += s_trans_count_[i];
   }
   std::cout << "transaction count: " << w_trans_count
