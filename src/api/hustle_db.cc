@@ -23,6 +23,8 @@
 #include "scheduler/scheduler.h"
 #include "utils/sqlite_utils.h"
 
+#define ENABLE_ASYNC_MODE 1
+
 namespace hustle {
 
 std::map<std::string, std::shared_ptr<Catalog>> hustle::HustleDB::catalogs = {};
@@ -50,9 +52,30 @@ HustleDB::HustleDB(std::string DBpath)
     std::filesystem::create_directories(DBpath);
   }
   this->add_catalog(SqliteDBPath_, catalog_);
-    hustle_memlog_initialize(&this->memlog, SqliteDBPath_.c_str(), MEMLOG_INIT_SIZE);
+  this->initialize();
     //utils::open_sqlite3_db(SqliteDBPath_, &db);
 };
+
+void HustleDB::initialize() {
+    hustle_memlog_initialize(&this->memlog, SqliteDBPath_.c_str(), MEMLOG_INIT_SIZE);
+    if (ENABLE_ASYNC_MODE) {
+        char **table_name_array = (char **) malloc(catalog_->GetTableNames().size() * sizeof(char *));
+        auto source_tables = catalog_->GetTableNames();
+        for (std::size_t i = 0; i < source_tables.size(); i++) {
+            table_name_array[i] = source_tables[i].data();
+        }
+        int table_size = source_tables.size();
+        background_update_thread_ = std::make_unique<std::thread>([&, table_name_array, table_size] {
+            while (1) {
+                hustle_memlog_table_update_db(memlog, table_name_array, table_size, 1);
+                //std::cout << "Update background" << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            }
+        });
+        background_update_thread_->detach();
+    }
+}
+
 
 std::string HustleDB::get_plan(const std::string &sql) {
   return utils::execute_sqlite_result(db, sql);

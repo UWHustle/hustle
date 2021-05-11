@@ -400,7 +400,8 @@ int resolveSelect(char *dbName, HustleMemLog *mem_log, Sqlite3Select *queryTree,
               table_name_array[i] = source_tables[i].data();
           }
           hustle_memlog_table_update_db(mem_log, table_name_array, source_tables.size(), MEMLOG_UPDATE_FREE);
-        // std::cout << "Query type:: " <<query_type << std::endl;
+          free(table_name_array);
+          // std::cout << "Query type:: " <<query_type << std::endl;
           container->endEvent("lazy_update" + std::to_string(query_type));
           //hustle_memlog_clear(mem_log);
       }

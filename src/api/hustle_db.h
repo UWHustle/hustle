@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <string>
+#include <thread>
 
 #include "catalog/catalog.h"
 #include "catalog/table_schema.h"
@@ -59,6 +60,8 @@ class HustleDB {
 
   HustleDB(std::string path);
 
+  void initialize();
+
   void reinitialize_sqlite_db();
 
   bool create_table(const TableSchema ts);
@@ -88,6 +91,7 @@ class HustleDB {
         utils::close_sqlite3(db);
       }
       hustle_memlog_free(memlog);
+     // background_update_thread_->join();
   }
 
  private:
@@ -97,6 +101,9 @@ class HustleDB {
   const std::string CatalogPath_;
   std::string SqliteDBPath_;
   std::shared_ptr<Catalog> catalog_;
+
+  std::unique_ptr<std::thread> background_update_thread_;
+
 };
 
 }  // namespace hustle
