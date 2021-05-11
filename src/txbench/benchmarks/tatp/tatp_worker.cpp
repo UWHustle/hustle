@@ -8,9 +8,6 @@
 
 int txbench::TATPWorker::query_type = -1;
 
-#define ISTHROUGHPUT 0
-#define ISTHROUGHPUT_WRITE 1
-#define ISLATENCY 0
 
 txbench::TATPWorker::TATPWorker(int n_rows,
                                 std::unique_ptr<TATPConnector> connector)
@@ -25,6 +22,7 @@ txbench::TATPWorker::TATPWorker(int n_rows,
 
 void txbench::TATPWorker::run(std::atomic_bool &terminate,
                               std::atomic_int &commit_count) {
+    int write_limit = rg_.random_int(50, 1000);
   while (!terminate) {
     int s_id =
         (rg_.random_int(0, a_val_) | rg_.random_int(1, n_rows_)) % n_rows_ + 1;
@@ -45,17 +43,21 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[0] += time;
         s_trans_count_[0]++;
+        write_limit--;
       }
     } else if (((ISTHROUGHPUT && transaction_type < 45) || (ISTHROUGHPUT_WRITE && transaction_type < 30 )) || (ISLATENCY && transaction_type < 28)) {
       // GET_NEW_DESTINATION
       // Probability: 10%
+      if (ISTHROUGHPUT_LAZY_WORKLOAD) {
+          continue;
+      }
       int sf_type = rg_.random_int(1, 4);
       int start_times_possible[] = {0, 8, 16};
       int start_time = start_times_possible[rg_.random_int(0, 2)];
       int end_time = rg_.random_int(1, 24);
       std::string numberx;
-        query_type = 2;
-
+      query_type = 2;
+       // std::cout << "get new destination" << std::endl;
         double time = connector_->getNewDestination(s_id, sf_type, start_time,
                                                   end_time, &numberx);
       if (time != -1) {
@@ -68,15 +70,15 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       int ai_type = rg_.random_int(1, 4);
       int data1, data2;
       std::string data3, data4;
-        query_type = 3;
+      query_type = 3;
 
-        double time = connector_->getAccessData(s_id, ai_type, &data1, &data2,
+      double time = connector_->getAccessData(s_id, ai_type, &data1, &data2,
                                               &data3, &data4);
       if (time != -1) {
         query_time_[2] += time;
         s_trans_count_[2]++;
+        write_limit--;
       }
-
     } else if (((ISTHROUGHPUT && transaction_type < 82) || (ISTHROUGHPUT_WRITE && transaction_type < 60)) ||(ISLATENCY && transaction_type < 56) ) {
       // UPDATE_SUBSCRIBER_DATA
       // Probability: 2%
@@ -91,6 +93,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[3] += time;
         s_trans_count_[3]++;
+        write_limit--;
       }
     } else if (((ISTHROUGHPUT && transaction_type < 96) || (ISTHROUGHPUT_WRITE && transaction_type < 70)) || (ISLATENCY && transaction_type < 70)) {
       // UPDATE_LOCATION

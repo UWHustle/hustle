@@ -8,6 +8,13 @@
 #include "txbench/random_generator.h"
 #include "txbench/worker.h"
 
+
+#define ISTHROUGHPUT 1
+#define ISTHROUGHPUT_WRITE 0
+#define ISLATENCY 0
+#define ISTHROUGHPUT_LAZY_WORKLOAD 1
+#define IS_BATCH_HOLD 0
+
 namespace txbench {
 
 class TATPWorker : public Worker {
