@@ -168,8 +168,8 @@ double txbench::TATPHustleConnector::deleteCallForwarding(int s_id,
                                                           const std::string &sub_nbr, int sf_type,
                                                           int start_time) {
     std::string query = "BEGIN;";
-    query +="SELECT s_id FROM Subscriber "
-            "WHERE sub_nbr = '" + sub_nbr + "';";
+  //  query +="SELECT s_id FROM Subscriber "
+  //          "WHERE sub_nbr = '" + sub_nbr + "';";
     query +=
       "DELETE FROM Call_Forwarding "
       "WHERE cf_s_id=" + std::to_string(s_id) + " "

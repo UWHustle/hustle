@@ -14,6 +14,8 @@ public:
   virtual void print(int commit_count) = 0;
 
   virtual double getTime(int query_id) = 0;
+
+  virtual int getCount(int query_id) = 0;
 };
 
 } // namespace txbench

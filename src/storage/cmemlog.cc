@@ -196,7 +196,9 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
 
   int table_index = 0;
   struct DBRecord *tmp_record;
-  while (table_index < mem_log->total_size) {
+    std::lock_guard<std::mutex> lock(instance_lock);
+
+    while (table_index < mem_log->total_size) {
     struct DBRecord *head = mem_log->record_list[table_index].head;
     auto search = table_map[DEFAULT_DB_ID].find(table_index);
     if (search == table_map[DEFAULT_DB_ID].end()) {
@@ -206,13 +208,15 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
 
     auto table =
             catalog->GetTable(table_map[DEFAULT_DB_ID][table_index].c_str());
+    //std::cout << "table name: " << table_map[DEFAULT_DB_ID][table_index].c_str() << std::endl;
+
     if (table == nullptr) {
       table_index++;
       continue;
     }
     while (head != NULL) {
       tmp_record = head;
-
+      //std::cout << "mode: " << head->mode << std::endl;
       if (head->mode == MEMLOG_HUSTLE_DELETE) {
         table->DeleteRecordTable(head->rowId);
       } else {
@@ -259,7 +263,7 @@ Status hustle_memlog_update_db(HustleMemLog *mem_log, int is_free) {
       if (is_free) {
         if (tmp_record->mode == MEMLOG_HUSTLE_UPDATE) {
           UpdateMetaInfo *updateMetaInfo = tmp_record->updateMetaInfo;
-          // free(updateMetaInfo);
+           free(updateMetaInfo);
         }
         uint8_t *record_data = (uint8_t *)tmp_record->data;
         free(record_data);
@@ -412,8 +416,8 @@ Status hustle_memlog_clear(HustleMemLog *mem_log) {
       tmp_record = head;
       head = head->next_record;
       uint8_t *record_data = (uint8_t *)tmp_record->data;
-      free(record_data);
-      free(tmp_record);
+     // free(record_data);
+     // free(tmp_record);
     }
     mem_log->record_list[table_index].head = NULL;
     mem_log->record_list[table_index].tail = NULL;

@@ -23,7 +23,7 @@
 #include "scheduler/scheduler.h"
 #include "utils/sqlite_utils.h"
 
-#define ENABLE_ASYNC_MODE 1
+#define ENABLE_ASYNC_MODE 0
 
 namespace hustle {
 
@@ -72,7 +72,6 @@ void HustleDB::initialize() {
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
             }
         });
-        background_update_thread_->detach();
     }
 }
 

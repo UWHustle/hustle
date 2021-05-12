@@ -174,6 +174,7 @@ class EventProfiler {
     for (const auto &pair : time_slots) {
       os << pair.first << ":\t\t" << pair.second << "\n";
       os << "Avg " <<  pair.first << ":\t\t" << pair.second/time_count[pair.first] << "\n";
+      os << "Count " <<  pair.first << ":\t\t" <<  time_count[pair.first] << "\n";
     }
 
     for (const auto &global_ctx : global_containers_) {

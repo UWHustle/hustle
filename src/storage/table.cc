@@ -271,12 +271,10 @@ void DBTable::DeleteRecordTable(uint32_t row_id) {
   auto container = hustle::profiler.getContainer();
     int query_type = DBTable::query_type;
   auto block_map_it = block_map.find(row_id);
-    std::cout << "BEFORE DELETE RECORD TABLE"  << std::endl;
 
     if (block_map_it == block_map.end()) {
     return;
   }
-  std::cout << "DELETE RECORD TABLE"  << std::endl;
   container->startEvent("delete_record_"+ std::to_string(query_type));
 
   BlockInfo block_info = block_map_it->second;

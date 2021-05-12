@@ -30,6 +30,10 @@ class TATPWorker : public Worker {
     return (1.0 * query_time_[query_id]) / s_trans_count_[query_id];
   }
 
+    int getCount(int query_id) override {
+        return s_trans_count_[query_id];
+    }
+
   ~TATPWorker() {
     free(query_time_);
     free(s_trans_count_);
