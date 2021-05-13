@@ -91,9 +91,9 @@ class HustleDB {
         utils::close_sqlite3(db);
       }
       hustle_memlog_free(memlog);
-      if ( background_update_thread_ != nullptr) {
-          background_update_thread_->join();
-      }
+     // if ( background_update_thread_ != nullptr) {
+       //   background_update_thread_->join();
+      //}
   }
 
  private:
