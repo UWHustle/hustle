@@ -22,16 +22,29 @@ txbench::TATPWorker::TATPWorker(int n_rows,
 
 void txbench::TATPWorker::run(std::atomic_bool &terminate,
                               std::atomic_int &commit_count) {
-    int write_limit = rg_.random_int(50, 1000);
-  while (!terminate) {
+    int write_limit = rg_.random_int(30, 200);
+    int norm_limit = -1;
+
+    while (!terminate) {
     int s_id =
         (rg_.random_int(0, a_val_) | rg_.random_int(1, n_rows_)) % n_rows_ + 1;
 
     int transaction_type = rg_.random_int(0, 99);
+    if (write_limit == 0 && norm_limit == -1) {
+        norm_limit = rg_.random_int(5, 200);
+    }
+    if (norm_limit == 0 && write_limit == 0) {
+        write_limit = rg_.random_int(30, 200);
+        norm_limit = -1;
+    }
+
     // std::cout << "Query executing " << transaction_type << std::endl;
     if (((ISTHROUGHPUT && transaction_type < 35) || (ISTHROUGHPUT_WRITE && transaction_type < 15 )) || (ISLATENCY && transaction_type < 14)) {
       // GET_SUBSCRIBER_DATA
       // Probability: 35%
+      if (write_limit > 0 ) {
+          continue;
+      }
       std::string sub_nbr;
       std::array<bool, 10> bit{};
       std::array<int, 10> hex{};
@@ -43,7 +56,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[0] += time;
         s_trans_count_[0]++;
-        write_limit--;
+        norm_limit--;
       }
     } else if (((ISTHROUGHPUT && transaction_type < 45) || (ISTHROUGHPUT_WRITE && transaction_type < 30 )) || (ISLATENCY && transaction_type < 28)) {
       // GET_NEW_DESTINATION
@@ -51,6 +64,9 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (ISTHROUGHPUT_LAZY_WORKLOAD) {
           continue;
       }
+        if (write_limit > 0) {
+            continue;
+        }
       int sf_type = rg_.random_int(1, 4);
       int start_times_possible[] = {0, 8, 16};
       int start_time = start_times_possible[rg_.random_int(0, 2)];
@@ -63,10 +79,14 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[1] += time;
         s_trans_count_[1]++;
+        norm_limit--;
       }
     } else if (((ISTHROUGHPUT && transaction_type < 80) || (ISTHROUGHPUT_WRITE && transaction_type < 50 )) || (ISLATENCY && transaction_type < 42)) {
       // GET_ACCESS_DATA
       // Probability: 35%
+        if (write_limit > 0) {
+            continue;
+        }
       int ai_type = rg_.random_int(1, 4);
       int data1, data2;
       std::string data3, data4;
@@ -77,7 +97,7 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[2] += time;
         s_trans_count_[2]++;
-        write_limit--;
+        norm_limit--;
       }
     } else if (((ISTHROUGHPUT && transaction_type < 82) || (ISTHROUGHPUT_WRITE && transaction_type < 60)) ||(ISLATENCY && transaction_type < 56) ) {
       // UPDATE_SUBSCRIBER_DATA
@@ -91,9 +111,15 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
           connector_->updateSubscriberData(s_id, bit_1, sf_type, data_a);
 
       if (time != -1) {
-        query_time_[3] += time;
-        s_trans_count_[3]++;
-        write_limit--;
+          query_time_[3] += time;
+          s_trans_count_[3]++;
+          if (write_limit > 0) {
+              write_limit--;
+          }
+          if (norm_limit > 0) {
+              norm_limit--;
+
+          }
       }
     } else if (((ISTHROUGHPUT && transaction_type < 96) || (ISTHROUGHPUT_WRITE && transaction_type < 70)) || (ISLATENCY && transaction_type < 70)) {
       // UPDATE_LOCATION
@@ -107,6 +133,13 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[4] += time;
         s_trans_count_[4]++;
+          if (write_limit > 0) {
+              write_limit--;
+          }
+          if (norm_limit > 0) {
+              norm_limit--;
+
+          }
       }
     } else if (((ISTHROUGHPUT &&transaction_type < 98) || (ISTHROUGHPUT_WRITE && transaction_type < 90))|| (ISLATENCY && transaction_type < 84)) {
       // INSERT_CALL_FORWARDING
@@ -125,6 +158,13 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[5] += time;
         s_trans_count_[5]++;
+          if (write_limit > 0) {
+              write_limit--;
+          }
+          if (norm_limit > 0) {
+              norm_limit--;
+
+          }
       }
     } else {
       // DELETE_CALL_FORWARDING
@@ -141,6 +181,13 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
       if (time != -1) {
         query_time_[6] += time;
         s_trans_count_[6]++;
+          if (write_limit > 0) {
+              write_limit--;
+          }
+          if (norm_limit > 0) {
+              norm_limit--;
+
+          }
       }
     }
     w_trans_count++;

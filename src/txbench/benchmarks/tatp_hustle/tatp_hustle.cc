@@ -6,7 +6,7 @@
 int main(int argc, char **argv) {
   int n_workers = 3;
   int warmup_duration = 5;
-  int measurement_duration = 15;
+  int measurement_duration = 30;
   int n_rows = 100000;
   char *out_file;
   if (argc == 6) {
