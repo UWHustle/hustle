@@ -102,6 +102,9 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
     } else if (((ISTHROUGHPUT && transaction_type < 82) || (ISTHROUGHPUT_WRITE && transaction_type < 60)) ||(ISLATENCY && transaction_type < 56) ) {
       // UPDATE_SUBSCRIBER_DATA
       // Probability: 2%
+        if (norm_limit > 0) {
+            continue;
+        }
       bool bit_1 = rg_.random_bool();
       int sf_type = rg_.random_int(1, 4);
       int data_a = rg_.random_int(0, 255);
@@ -124,6 +127,9 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
     } else if (((ISTHROUGHPUT && transaction_type < 96) || (ISTHROUGHPUT_WRITE && transaction_type < 70)) || (ISLATENCY && transaction_type < 70)) {
       // UPDATE_LOCATION
       // Probability: 14%
+        if (norm_limit > 0) {
+            continue;
+        }
       std::string sub_nbr = leading_zero_pad(15, std::to_string(s_id));
       int vlr_location = rg_.random_int(INT_MIN, INT_MAX);
         query_type = 5;
@@ -144,6 +150,9 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
     } else if (((ISTHROUGHPUT &&transaction_type < 98) || (ISTHROUGHPUT_WRITE && transaction_type < 90))|| (ISLATENCY && transaction_type < 84)) {
       // INSERT_CALL_FORWARDING
       // Probability: 2%
+        if (norm_limit > 0) {
+            continue;
+        }
       std::string sub_nbr = leading_zero_pad(15, std::to_string(s_id));
       int sf_type = rg_.random_int(1, 4);
       int start_times_possible[] = {0, 8, 16};
@@ -169,6 +178,9 @@ void txbench::TATPWorker::run(std::atomic_bool &terminate,
     } else {
       // DELETE_CALL_FORWARDING
       // Probability: 2%
+        if (norm_limit > 0) {
+            continue;
+        }
       std::string sub_nbr = leading_zero_pad(15, std::to_string(s_id));
       int sf_type = rg_.random_int(1, 4);
       int start_times_possible[] = {0, 8, 16};
