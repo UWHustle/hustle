@@ -1,5 +1,12 @@
 [![Hustle](https://circleci.com/gh/UWHustle/hustle.svg?style=shield)](https://circleci.com/gh/UWHustle/hustle)
 
+# Notice (09/05/22)
+
+This repository is no longer maintained and is provided on an "as-is" basis.
+Many of the graduate students who worked on this project have graduated.
+Please refer to the file "src/resolver/Readme.md" for information regarding how SQLite3/HE
+interfaces with SQLite3.
+
 # Hustle
 Hustle is an efficient data platform, organized as a collection of data processing kernels, based on a micro services architecture, serving heterogeneous application query languages that map to core relational algebraic DSL.
 

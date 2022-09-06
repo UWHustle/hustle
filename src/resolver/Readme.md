@@ -9,4 +9,5 @@ select_resolver module gets the parse tree and converts it into structures that 
 
 ### Design
 
-<img width="708" alt="Screenshot 2020-11-08 at 00 27 57" src="https://user-images.githubusercontent.com/6566518/98459124-506e1980-215d-11eb-8ce1-18f321218519.png">
+Image: src/resolver/sqlite3he_design.png
+![Depiction of how SQLite3/HE integrates with SQLite3.](sqlite3he_design.png?raw=true)
